@@ -1,6 +1,5 @@
 import pytest
 from at_yt_timestamps.alphatiming import DriverRow
-from at_yt_timestamps.models import Lap
 from at_yt_timestamps.selection import resolve_driver
 
 
