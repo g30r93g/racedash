@@ -1,0 +1,25 @@
+{
+  "name": "@racedash/cli",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "racedash": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^5.0.0",
+    "@racedash/compositor": "workspace:*",
+    "@racedash/core": "workspace:*",
+    "@racedash/scraper": "workspace:*",
+    "@racedash/timestamps": "workspace:*",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "tsx": "*",
+    "typescript": "*"
+  }
+}
