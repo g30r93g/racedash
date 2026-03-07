@@ -20,3 +20,11 @@ def test_empty_string_returns_none():
 
 def test_whitespace_returns_none():
     assert parse_lap_time_str("   ") is None
+
+
+def test_malformed_returns_none():
+    assert parse_lap_time_str("DNF") is None
+
+
+def test_extra_colon_returns_none():
+    assert parse_lap_time_str("1:2:3") is None
