@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio'
+import type { AnyNode } from 'domhandler'
 import type { Lap } from '@racedash/core'
 
 export interface DriverRow {
@@ -32,8 +33,7 @@ export function parseDrivers(html: string): DriverRow[] {
     .get()
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRow($: cheerio.CheerioAPI, row: any): DriverRow {
+function parseRow($: cheerio.CheerioAPI, row: AnyNode): DriverRow {
   const cells = $(row).find('td')
   const spans = cells.eq(0).find('.at-lap-chart-legend-table-competitor span')
   const kart = spans.eq(0).text().trim()
