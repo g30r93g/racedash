@@ -71,6 +71,9 @@ def main():
                 "See docs/resolve-setup.md for setup.",
                 file=sys.stderr,
             )
+        except RuntimeError as e:
+            print(f"\nError: {e}", file=sys.stderr)
+            sys.exit(1)
 
 
 if __name__ == "__main__":

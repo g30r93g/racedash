@@ -22,7 +22,7 @@ class DriverRow:
 def fetch_html(url: str) -> str:
     """Fetch the Alpha Timing laptimes page HTML."""
     laptimes_url = _normalise_url(url)
-    with httpx.Client() as client:
+    with httpx.Client(timeout=10.0) as client:
         response = client.get(laptimes_url, headers={"User-Agent": _USER_AGENT})
         response.raise_for_status()
         return response.text
@@ -35,7 +35,10 @@ def parse_drivers(html: str) -> list[DriverRow]:
     if table is None:
         raise ValueError("Could not find laptimes table in the page HTML.")
 
-    rows = table.find("tbody").find_all("tr")
+    tbody = table.find("tbody")
+    if tbody is None:
+        return []
+    rows = tbody.find_all("tr")
     return [_parse_row(row) for row in rows]
 
 
