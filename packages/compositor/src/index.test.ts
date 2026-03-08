@@ -1,18 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import * as fsp from 'node:fs/promises'
 import { joinVideos, getVideoDuration } from './index'
 
+// execFile mock: used by getVideoDuration (ffprobe calls).
+// Returns a valid duration by default so joinVideos can probe inputs.
 vi.mock('node:child_process', () => ({
   execFile: vi.fn((_cmd: string, _args: string[], callback: Function) => {
-    callback(null, { stdout: '', stderr: '' })
+    callback(null, { stdout: '60\n', stderr: '' })
   }),
+  spawn: vi.fn(() => makeSpawnResult(0)),
 }))
 
 vi.mock('node:fs/promises', async (importActual) => {
   const actual = await importActual<typeof import('node:fs/promises')>()
   return { ...actual, writeFile: vi.fn(actual.writeFile) }
 })
+
+/** Creates a fake spawn result that emits close with the given exit code. */
+function makeSpawnResult(exitCode: number, stderrOutput?: string) {
+  const stderrListeners: ((data: Buffer) => void)[] = []
+  const closeListeners: ((code: number) => void)[] = []
+  const proc = {
+    stderr: {
+      on: (_event: string, fn: (data: Buffer) => void) => stderrListeners.push(fn),
+    },
+    on: (event: string, fn: (code: number) => void) => {
+      if (event === 'close') closeListeners.push(fn)
+    },
+  }
+  setImmediate(() => {
+    if (stderrOutput) stderrListeners.forEach(fn => fn(Buffer.from(stderrOutput)))
+    closeListeners.forEach(fn => fn(exitCode))
+  })
+  return proc
+}
 
 describe('getVideoDuration', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -49,11 +71,11 @@ describe('joinVideos', () => {
     await expect(joinVideos(['/a.mp4'], '/out.mp4')).rejects.toThrow('at least 2')
   })
 
-  it('calls ffmpeg with concat demuxer args', async () => {
+  it('calls ffmpeg via spawn with concat demuxer args', async () => {
     await joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')
-    const mock = vi.mocked(execFile)
-    expect(mock).toHaveBeenCalledOnce()
-    const [cmd, args] = mock.mock.calls[0] as [string, string[], Function]
+    const mockSpawn = vi.mocked(spawn)
+    expect(mockSpawn).toHaveBeenCalledOnce()
+    const [cmd, args] = mockSpawn.mock.calls[0] as [string, string[]]
     expect(cmd).toBe('ffmpeg')
     expect(args).toContain('-f')
     expect(args[args.indexOf('-f') + 1]).toBe('concat')
@@ -79,26 +101,26 @@ describe('joinVideos', () => {
   })
 
   it('deletes temp file after success', async () => {
-    const mockExecFile = vi.mocked(execFile)
+    const mockSpawn = vi.mocked(spawn)
     let tmpFilePath: string | undefined
-    mockExecFile.mockImplementationOnce((_cmd, args, callback) => {
+    mockSpawn.mockImplementationOnce((_cmd, args) => {
       const iIdx = (args as string[]).indexOf('-i')
       tmpFilePath = (args as string[])[iIdx + 1]
-      ;(callback as Function)(null, { stdout: '', stderr: '' })
+      return makeSpawnResult(0) as ReturnType<typeof spawn>
     })
     await joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')
     await expect(fsp.access(tmpFilePath!)).rejects.toThrow()
   })
 
   it('deletes temp file after ffmpeg failure', async () => {
-    const mockExecFile = vi.mocked(execFile)
+    const mockSpawn = vi.mocked(spawn)
     let tmpFilePath: string | undefined
-    mockExecFile.mockImplementationOnce((_cmd, args, callback) => {
+    mockSpawn.mockImplementationOnce((_cmd, args) => {
       const iIdx = (args as string[]).indexOf('-i')
       tmpFilePath = (args as string[])[iIdx + 1]
-      ;(callback as Function)(new Error('ffmpeg failed'), null)
+      return makeSpawnResult(1, 'ffmpeg: error\n') as ReturnType<typeof spawn>
     })
-    await expect(joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')).rejects.toThrow('ffmpeg failed')
+    await expect(joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')).rejects.toThrow()
     await expect(fsp.access(tmpFilePath!)).rejects.toThrow()
   })
 })

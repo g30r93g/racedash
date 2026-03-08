@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { writeFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -98,19 +98,53 @@ export async function getVideoDurationFrames(
  */
 export async function joinVideos(inputs: string[], outputPath: string): Promise<void> {
   if (inputs.length < 2) throw new Error('joinVideos requires at least 2 input files')
+
+  const durations = await Promise.all(inputs.map(getVideoDuration))
+  const totalSeconds = durations.reduce((a, b) => a + b, 0)
+
   const tmpFile = resolve(tmpdir(), `racedash-concat-${randomUUID()}.txt`)
   const list = inputs.map(f => `file '${resolve(f).replace(/'/g, "'\\''")}'`).join('\n')
   await writeFile(tmpFile, list, 'utf-8')
   try {
-    await execFileAsync('ffmpeg', [
-      '-f', 'concat',
-      '-safe', '0',
-      '-i', tmpFile,
-      '-c', 'copy',
-      '-y',
-      outputPath,
-    ])
+    await runFFmpegWithProgress(
+      ['-f', 'concat', '-safe', '0', '-i', tmpFile, '-c', 'copy', '-y', outputPath],
+      totalSeconds,
+    )
   } finally {
     await unlink(tmpFile).catch(() => {})
   }
+}
+
+function runFFmpegWithProgress(args: string[], totalSeconds: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('ffmpeg', args)
+    let stderr = ''
+    proc.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString()
+      const match = stderr.match(/time=(\d+):(\d+):(\d+\.\d+)/)
+      if (match) {
+        const processed =
+          parseInt(match[1], 10) * 3600 +
+          parseInt(match[2], 10) * 60 +
+          parseFloat(match[3])
+        const pct = Math.min(100, Math.round((processed / totalSeconds) * 100))
+        process.stderr.write(
+          `\rProgress: ${pct}% (${_formatDuration(processed)} / ${_formatDuration(totalSeconds)})`,
+        )
+      }
+    })
+    proc.on('close', (code: number) => {
+      process.stderr.write('\n')
+      if (code === 0) resolve()
+      else reject(new Error(`ffmpeg exited with code ${code}\n${stderr}`))
+    })
+  })
+}
+
+function _formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${m}:${String(s).padStart(2, '0')}`
 }
