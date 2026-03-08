@@ -1,4 +1,4 @@
-# Alpha Timing → YouTube Timestamps
+e Timestaetcps
 
 Fetch lap times from Alpha Timing, apply a video offset, and print YouTube timestamps.
 Optionally adds markers to a DaVinci Resolve timeline.
@@ -36,9 +36,9 @@ python main.py "https://..." "reading" --offset 0:02:15 --resolve
 ### Output
 
 ```
-Lap  1   1:08.588   3:23
-Lap  2   1:04.776   4:28
-Lap  3   1:05.218   5:33
+3:23   Lap  1   1:08.588
+4:28   Lap  2   1:04.776
+5:33   Lap  3   1:05.218
 ```
 
 Columns: lap number | individual lap time | YouTube timestamp
@@ -58,4 +58,79 @@ See [docs/resolve-setup.md](docs/resolve-setup.md).
 ```bash
 pip install -r requirements-dev.txt
 pytest -v
+```
+
+---
+
+## racedash (TypeScript CLI)
+
+### System requirements
+
+- Node.js 20+
+- pnpm
+- FFmpeg (required for the `render` subcommand)
+
+### Installation
+
+```bash
+pnpm install
+```
+
+### Build
+
+```bash
+pnpm turbo build
+```
+
+### Usage
+
+#### `racedash drivers <url>`
+
+Lists all drivers and karts found in the Alpha Timing session.
+
+```bash
+racedash drivers "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes"
+```
+
+#### `racedash timestamps <url> [driver] --offset <M:SS>`
+
+Outputs YouTube chapter timestamps to stdout.
+
+```bash
+racedash timestamps "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "reading" --offset 2:15
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--offset <M:SS>` | Time in `M:SS` (or `H:MM:SS`) from video start to the first lap | _(required)_ |
+
+#### `racedash render <url> [driver] --offset <M:SS> --video <path> [options]`
+
+Renders a GT7-style lap timer overlay onto source footage.
+
+```bash
+racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "reading" \
+  --offset 2:15 \
+  --video ./race.mp4 \
+  --output ./race-out.mp4
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--offset <M:SS>` | Time offset (`M:SS` or `H:MM:SS`) from video start to the first lap | _(required)_ |
+| `--video <path>` | Path to source video file | _(required)_ |
+| `--style <name>` | Overlay style | `gt7` |
+| `--output <path>` | Output path | `./out.mp4` |
+| `--fps <n>` | Output framerate | `60` |
+| `--overlay-x <n>` | Overlay X position in pixels | `0` |
+| `--overlay-y <n>` | Overlay Y position in pixels | `0` |
+
+### Driver selection
+
+If `[driver]` is omitted or the name matches multiple drivers, an interactive numbered selection prompt is shown.
+
+### Running tests
+
+```bash
+pnpm turbo test
 ```
