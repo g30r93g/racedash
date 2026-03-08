@@ -26,6 +26,7 @@ export async function renderOverlay(
   compositionId: string,
   props: OverlayProps,
   outputPath: string,
+  onProgress?: (progress: number) => void,
 ): Promise<void> {
   const serveUrl = await bundle({ entryPoint: rendererEntryPoint })
   const inputProps = props as unknown as Record<string, unknown>
@@ -37,6 +38,7 @@ export async function renderOverlay(
     proResProfile: '4444',
     outputLocation: outputPath,
     inputProps,
+    onProgress: onProgress ? ({ progress }) => onProgress(progress) : undefined,
   })
 }
 
