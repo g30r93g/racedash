@@ -72,6 +72,10 @@ program
   .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
     try {
       const fps = parseInt(opts.fps, 10)
+      if (isNaN(fps)) {
+        console.error('Error: --fps must be a valid integer')
+        process.exit(1)
+      }
       const offsetSeconds = parseOffset(opts.offset)
 
       console.error('Fetching laptimes...')
@@ -92,6 +96,8 @@ program
       }
       const overlayProps: OverlayProps = { session, fps, durationInFrames }
 
+      // Resolves to apps/renderer/src/index.ts from apps/cli/dist/ at runtime.
+      // This only works when run from within the monorepo working tree (dev use).
       const rendererEntry = path.resolve(
         __dirname,
         '../../../apps/renderer/src/index.ts',
@@ -101,11 +107,18 @@ program
       console.error('Rendering overlay (this may take a few minutes)...')
       await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath)
 
+      const overlayX = parseInt(opts.overlayX, 10)
+      const overlayY = parseInt(opts.overlayY, 10)
+      if (isNaN(overlayX) || isNaN(overlayY)) {
+        console.error('Error: --overlay-x and --overlay-y must be valid integers')
+        process.exit(1)
+      }
+
       console.error('Compositing video...')
       await compositeVideo(opts.video, overlayPath, opts.output, {
         fps,
-        overlayX: parseInt(opts.overlayX, 10),
-        overlayY: parseInt(opts.overlayY, 10),
+        overlayX,
+        overlayY,
       })
 
       console.log(`Done: ${opts.output}`)
