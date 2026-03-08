@@ -4,7 +4,7 @@ import { fetchHtml, parseDrivers } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
-import { compositeVideo, getVideoDurationFrames, renderOverlay, joinVideos } from '@racedash/compositor'
+import { compositeVideo, getVideoDuration, renderOverlay, joinVideos } from '@racedash/compositor'
 import type { OverlayProps, SessionData } from '@racedash/core'
 
 program
@@ -93,16 +93,18 @@ program
       }
       const offsetSeconds = parseOffset(opts.offset)
 
-      console.error('Fetching laptimes...')
-      const html = await fetchHtml(url)
+      console.error('Fetching laptimes and probing video...')
+      const [html, durationSeconds] = await Promise.all([
+        fetchHtml(url),
+        getVideoDuration(opts.video),
+      ])
+      const durationInFrames = Math.ceil(durationSeconds * fps)
+
       const drivers = parseDrivers(html)
       const driver = await selectDriver(drivers, driverQuery)
       const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
 
       console.error(`Driver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps`)
-
-      console.error('Probing video duration...')
-      const durationInFrames = await getVideoDurationFrames(opts.video, fps)
 
       const session: SessionData = {
         driver: { kart: driver.kart, name: driver.name },
