@@ -1,115 +1,142 @@
-# Alpha Timing → YouTube Timestamps
+# racedash
 
-Fetch lap times from Alpha Timing, apply a video offset, and print YouTube timestamps.
-Optionally adds markers to a DaVinci Resolve timeline.
+Fetch lap times from Alpha Timing, generate YouTube chapter timestamps, and render a GT7-style lap timer overlay onto your race footage.
 
-## Setup
+---
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+## Quick start (for everyone)
+
+### 1. Install prerequisites
+
+You'll need three tools installed before you can run racedash. Follow the instructions for your operating system.
+
+#### Node.js (v20 or later)
+
+Download and run the installer from **https://nodejs.org** — choose the "LTS" version.
+
+To check it worked, open a terminal and run:
+```
+node --version
+```
+You should see something like `v20.x.x`.
+
+#### pnpm (package manager)
+
+Once Node.js is installed, run this in your terminal:
+```
+npm install -g pnpm
 ```
 
-## Usage
+#### FFmpeg (required for the `render` command)
 
-```bash
-python main.py <alpha_timing_url> [driver_name] --offset H:MM:SS [--resolve]
+**macOS** — if you have [Homebrew](https://brew.sh):
+```
+brew install ffmpeg
 ```
 
-**`driver_name` is optional.** If omitted (or if multiple drivers match), an interactive
-numbered list is shown.
-
-### Examples
-
-```bash
-# Interactive driver selection
-python main.py "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" --offset 0:02:15
-
-# Direct match (partial name, case-insensitive)
-python main.py "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "reading" --offset 0:02:15
-
-# With DaVinci Resolve markers
-python main.py "https://..." "reading" --offset 0:02:15 --resolve
+**Windows** — if you have [Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
+```
+winget install ffmpeg
 ```
 
-### Output
+**Linux:**
+```
+sudo apt install ffmpeg
+```
 
+---
+
+### 2. Download racedash
+
+If you have Git installed:
+```
+git clone https://github.com/your-org/racedash.git
+cd racedash
+```
+
+Or download the ZIP from GitHub, unzip it, and open a terminal in the folder.
+
+---
+
+### 3. Install dependencies
+
+Inside the racedash folder, run:
+```
+pnpm install
+```
+
+---
+
+### 4. Run a command
+
+All commands follow this pattern:
+```
+pnpm racedash <command> [options]
+```
+
+See the **Commands** section below for what you can do.
+
+---
+
+## Commands
+
+### `racedash drivers <url>`
+
+Lists all drivers in an Alpha Timing session — useful for finding the exact driver name to use in other commands.
+
+```bash
+pnpm racedash drivers "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes"
+```
+
+---
+
+### `racedash timestamps <url> [driver] --offset <time>`
+
+Prints YouTube chapter timestamps to your terminal. Copy and paste the output into your YouTube video description.
+
+```bash
+pnpm racedash timestamps "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "Surrey A" --offset 2:15
+```
+
+**`[driver]` is optional.** If you leave it out, or if multiple drivers match, you'll get an interactive list to pick from.
+
+| Flag | Description | Required |
+|------|-------------|----------|
+| `--offset <time>` | The video timestamp when the driver crosses the start line for lap 1, e.g. `2:15` or `0:02:15` | Yes |
+
+**Example output:**
 ```
 3:23   Lap  1   1:08.588
 4:28   Lap  2   1:04.776
 5:33   Lap  3   1:05.218
 ```
 
-Columns: YouTube timestamp | lap number | individual lap time
+#### What is `--offset`?
 
-### `--offset` explained
-
-The offset is the video timestamp when the driver crosses the start line for lap 1.
-Example: if the video starts in the pits and the car begins lap 1 at 2:15 into the video,
-use `--offset 0:02:15`.
-
-## DaVinci Resolve
-
-See [docs/resolve-setup.md](docs/resolve-setup.md).
-
-## Development
-
-```bash
-pip install -r requirements-dev.txt
-pytest -v
-```
+It's the point in your video where the driver starts lap 1. For example, if your recording begins in the pits and the car crosses the start line 2 minutes 15 seconds in, use `--offset 2:15`.
 
 ---
 
-## racedash (TypeScript CLI)
+### `racedash join <files...>`
 
-### System requirements
-
-- Node.js 20+
-- pnpm
-- FFmpeg (required for the `render` subcommand)
-
-### Installation
+Joins multiple GoPro chapter files into a single video (lossless — no re-encoding).
 
 ```bash
-pnpm install
-```
-
-### Build
-
-```bash
-pnpm turbo build
-```
-
-### Usage
-
-#### `racedash drivers <url>`
-
-Lists all drivers and karts found in the Alpha Timing session.
-
-```bash
-racedash drivers "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes"
-```
-
-#### `racedash timestamps <url> [driver] --offset <M:SS>`
-
-Outputs YouTube chapter timestamps to stdout.
-
-```bash
-racedash timestamps "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "reading" --offset 2:15
+pnpm racedash join GH010001.MP4 GH020001.MP4 GH030001.MP4 --output race.mp4
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--offset <M:SS>` | Time in `M:SS` (or `H:MM:SS`) from video start to the first lap | _(required)_ |
+| `--output <path>` | Where to save the joined file | `./joined.mp4` |
 
-#### `racedash render <url> [driver] --offset <M:SS> --video <path> [options]`
+---
 
-Renders a GT7-style lap timer overlay onto source footage.
+### `racedash render <url> [driver] --offset <time> --video <path>`
+
+Renders a GT7-style lap timer overlay onto your video. This takes a few minutes depending on video length.
 
 ```bash
-racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "reading" \
+pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "Surrey A" \
   --offset 2:15 \
   --video ./race.mp4 \
   --output ./race-out.mp4
@@ -117,20 +144,26 @@ racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "readi
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--offset <M:SS>` | Time offset (`M:SS` or `H:MM:SS`) from video start to the first lap | _(required)_ |
-| `--video <path>` | Path to source video file | _(required)_ |
-| `--style <name>` | Overlay style | `gt7` |
-| `--output <path>` | Output path | `./out.mp4` |
+| `--offset <time>` | Video timestamp at the start of lap 1 | _(required)_ |
+| `--video <path>` | Path to your source video file | _(required)_ |
+| `--output <path>` | Where to save the rendered video | `./out.mp4` |
 | `--fps <n>` | Output framerate | `60` |
-| `--overlay-x <n>` | Overlay X position in pixels | `0` |
-| `--overlay-y <n>` | Overlay Y position in pixels | `0` |
+| `--style <name>` | Overlay style | `gt7` |
+| `--overlay-x <n>` | Horizontal position of the overlay in pixels | `0` |
+| `--overlay-y <n>` | Vertical position of the overlay in pixels | `0` |
 
-### Driver selection
+---
 
-If `[driver]` is omitted or the name matches multiple drivers, an interactive numbered selection prompt is shown.
+## Development
 
 ### Running tests
 
 ```bash
 pnpm turbo test
+```
+
+### Building
+
+```bash
+pnpm turbo build
 ```

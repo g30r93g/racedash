@@ -121,9 +121,7 @@ program
 
       console.error('Rendering overlay (this may take a few minutes)...')
       try {
-        await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath, (progress) => {
-          process.stderr.write(`\r  Rendering: ${Math.round(progress * 100)}%`)
-        })
+        await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath, makeProgressCallback('Rendering'))
       } finally {
         process.stderr.write('\n')
       }
@@ -137,9 +135,7 @@ program
 
       console.error('Compositing video...')
       try {
-        await compositeVideo(opts.video, overlayPath, opts.output, { fps, overlayX, overlayY }, (progress) => {
-          process.stderr.write(`\r  Compositing: ${Math.round(progress * 100)}%`)
-        })
+        await compositeVideo(opts.video, overlayPath, opts.output, { fps, overlayX, overlayY }, makeProgressCallback('Compositing'))
       } finally {
         process.stderr.write('\n')
       }
@@ -150,6 +146,28 @@ program
       process.exit(1)
     }
   })
+
+function formatSeconds(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function makeProgressCallback(label: string): (progress: number) => void {
+  const startTime = Date.now()
+  return (progress: number) => {
+    const elapsed = (Date.now() - startTime) / 1000
+    const pct = Math.round(progress * 100)
+    if (progress > 0) {
+      const remaining = Math.max(0, elapsed / progress - elapsed)
+      process.stderr.write(`\r  ${label}: ${pct}% — ETA ${formatSeconds(Math.round(remaining))}   `)
+    } else {
+      process.stderr.write(`\r  ${label}: ${pct}%`)
+    }
+  }
+}
 
 program.parseAsync(process.argv).catch((err: Error) => {
   console.error('Error:', err.message)
