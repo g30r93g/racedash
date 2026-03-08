@@ -134,11 +134,13 @@ function runFFmpegWithProgress(args: string[], totalSeconds: number): Promise<vo
         )
       }
     })
-    proc.on('close', (code: number) => {
+    proc.on('close', (code: number | null, signal: string | null) => {
       process.stderr.write('\n')
       if (code === 0) resolve()
+      else if (signal) reject(new Error(`ffmpeg killed by signal ${signal}\n${stderr}`))
       else reject(new Error(`ffmpeg exited with code ${code}\n${stderr}`))
     })
+    proc.on('error', reject)
   })
 }
 
