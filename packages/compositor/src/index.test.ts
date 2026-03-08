@@ -31,17 +31,18 @@ describe('joinVideos', () => {
 
   it('writes absolute file paths to the concat list', async () => {
     const mockExecFile = vi.mocked(execFile)
-    let tmpFilePath: string | undefined
+    let capturedContent: string | undefined
     mockExecFile.mockImplementationOnce((_cmd, args, callback) => {
       const iIdx = (args as string[]).indexOf('-i')
-      tmpFilePath = (args as string[])[iIdx + 1]
-      ;(callback as Function)(null, { stdout: '', stderr: '' })
+      const tmpFilePath = (args as string[])[iIdx + 1]
+      fs.readFile(tmpFilePath, 'utf-8').then(content => {
+        capturedContent = content
+        ;(callback as Function)(null, { stdout: '', stderr: '' })
+      })
     })
     await joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')
-    expect(tmpFilePath).toBeDefined()
-    const content = await fs.readFile(tmpFilePath!, 'utf-8')
-    expect(content).toContain("file '/clip1.mp4'")
-    expect(content).toContain("file '/clip2.mp4'")
+    expect(capturedContent).toContain("file '/clip1.mp4'")
+    expect(capturedContent).toContain("file '/clip2.mp4'")
   })
 
   it('deletes temp file after success', async () => {
