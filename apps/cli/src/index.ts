@@ -3,6 +3,9 @@ import { program } from 'commander'
 import { fetchHtml, parseDrivers } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
+import path from 'node:path'
+import { compositeVideo, getVideoDurationFrames, renderOverlay } from '@racedash/compositor'
+import type { OverlayProps, SessionData } from '@racedash/core'
 
 program
   .name('racedash')
@@ -40,6 +43,72 @@ program
       const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
       console.error(`\nDriver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps\n`)
       console.log(formatChapters(timestamps))
+    } catch (err) {
+      console.error('Error:', (err as Error).message)
+      process.exit(1)
+    }
+  })
+
+interface RenderOpts {
+  offset: string
+  video: string
+  output: string
+  fps: string
+  style: string
+  overlayX: string
+  overlayY: string
+}
+
+program
+  .command('render <url> [driver]')
+  .description('Render GT7-style overlay onto video')
+  .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15')
+  .requiredOption('--video <path>', 'Source video file path')
+  .option('--output <path>', 'Output file path', './out.mp4')
+  .option('--fps <n>', 'Output framerate', '60')
+  .option('--style <name>', 'Overlay style', 'gt7')
+  .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
+  .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
+  .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
+    try {
+      const fps = parseInt(opts.fps, 10)
+      const offsetSeconds = parseOffset(opts.offset)
+
+      console.error('Fetching laptimes...')
+      const html = await fetchHtml(url)
+      const drivers = parseDrivers(html)
+      const driver = await selectDriver(drivers, driverQuery)
+      const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
+
+      console.error(`Driver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps`)
+
+      console.error('Probing video duration...')
+      const durationInFrames = await getVideoDurationFrames(opts.video, fps)
+
+      const session: SessionData = {
+        driver: { kart: driver.kart, name: driver.name },
+        laps: driver.laps,
+        timestamps,
+      }
+      const overlayProps: OverlayProps = { session, fps, durationInFrames }
+
+      const rendererEntry = path.resolve(
+        __dirname,
+        '../../../apps/renderer/src/index.ts',
+      )
+      const overlayPath = opts.output.replace(/\.[^.]+$/, '-overlay.mov')
+
+      console.error('Rendering overlay (this may take a few minutes)...')
+      await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath)
+
+      console.error('Compositing video...')
+      await compositeVideo(opts.video, overlayPath, opts.output, {
+        fps,
+        overlayX: parseInt(opts.overlayX, 10),
+        overlayY: parseInt(opts.overlayY, 10),
+      })
+
+      console.log(`Done: ${opts.output}`)
     } catch (err) {
       console.error('Error:', (err as Error).message)
       process.exit(1)
