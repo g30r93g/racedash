@@ -140,7 +140,7 @@ function runFFmpegWithProgress(
           parseInt(match[1], 10) * 3600 +
           parseInt(match[2], 10) * 60 +
           parseFloat(match[3])
-        const pct = Math.min(1, processed / totalSeconds)
+        const pct = Math.max(0, Math.min(1, processed / totalSeconds))
         onProgress?.(pct)
       }
     })
@@ -151,12 +151,4 @@ function runFFmpegWithProgress(
     })
     proc.on('error', reject)
   })
-}
-
-function _formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  return `${m}:${String(s).padStart(2, '0')}`
 }
