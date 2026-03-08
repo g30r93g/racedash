@@ -1,3 +1,4 @@
+import React from 'react'
 import { interpolate, useCurrentFrame } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'

@@ -1,3 +1,4 @@
+import React from 'react'
 import { Composition } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import type { RegistryEntry } from './registry'
@@ -23,7 +24,8 @@ const defaultProps: OverlayProps = {
   durationInFrames: 300,
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Remotion v4's Composition requires a Zod schema as the first type argument.
+// Cast to any to allow OverlayProps without a schema.
 const UntypedComposition = Composition as React.ComponentType<any>
 
 function OverlayComposition({ id, entry }: { id: string; entry: RegistryEntry }) {

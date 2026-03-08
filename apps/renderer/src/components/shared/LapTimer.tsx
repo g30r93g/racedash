@@ -1,3 +1,4 @@
+import React from 'react'
 import { useCurrentFrame } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import { getLapAtTime, getLapElapsed } from '../../timing'

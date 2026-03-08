@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "preview": "npx remotion preview src/index.ts"
   },
   "dependencies": {
     "@racedash/core": "workspace:*",

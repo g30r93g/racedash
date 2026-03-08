@@ -1,3 +1,4 @@
+import React from 'react'
 import { AbsoluteFill } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { DeltaBadge } from '../../components/shared/DeltaBadge'
