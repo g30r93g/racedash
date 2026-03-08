@@ -1,4 +1,4 @@
-e Timestaetcps
+# Alpha Timing → YouTube Timestamps
 
 Fetch lap times from Alpha Timing, apply a video offset, and print YouTube timestamps.
 Optionally adds markers to a DaVinci Resolve timeline.
@@ -41,7 +41,7 @@ python main.py "https://..." "reading" --offset 0:02:15 --resolve
 5:33   Lap  3   1:05.218
 ```
 
-Columns: lap number | individual lap time | YouTube timestamp
+Columns: YouTube timestamp | lap number | individual lap time
 
 ### `--offset` explained
 
