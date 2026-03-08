@@ -120,7 +120,13 @@ program
       const overlayPath = opts.output.replace(/\.[^.]+$/, '-overlay.mov')
 
       console.error('Rendering overlay (this may take a few minutes)...')
-      await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath)
+      try {
+        await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath, (progress) => {
+          process.stderr.write(`\r  Rendering: ${Math.round(progress * 100)}%`)
+        })
+      } finally {
+        process.stderr.write('\n')
+      }
 
       const overlayX = parseInt(opts.overlayX, 10)
       const overlayY = parseInt(opts.overlayY, 10)
@@ -130,11 +136,13 @@ program
       }
 
       console.error('Compositing video...')
-      await compositeVideo(opts.video, overlayPath, opts.output, {
-        fps,
-        overlayX,
-        overlayY,
-      })
+      try {
+        await compositeVideo(opts.video, overlayPath, opts.output, { fps, overlayX, overlayY }, (progress) => {
+          process.stderr.write(`\r  Compositing: ${Math.round(progress * 100)}%`)
+        })
+      } finally {
+        process.stderr.write('\n')
+      }
 
       console.log(`Done: ${opts.output}`)
     } catch (err) {
