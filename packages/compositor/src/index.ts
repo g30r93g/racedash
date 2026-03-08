@@ -19,16 +19,18 @@ export interface CompositeOptions {
  */
 export async function renderOverlay(
   rendererEntryPoint: string,
+  compositionId: string,
   props: OverlayProps,
   outputPath: string,
 ): Promise<void> {
   const serveUrl = await bundle({ entryPoint: rendererEntryPoint })
   const inputProps = props as unknown as Record<string, unknown>
-  const comp = await selectComposition({ serveUrl, id: 'gt7', inputProps })
+  const comp = await selectComposition({ serveUrl, id: compositionId, inputProps })
   await renderMedia({
     serveUrl,
     composition: comp,
     codec: 'prores',
+    proResProfile: '4444',
     outputLocation: outputPath,
     inputProps,
   })
@@ -50,6 +52,7 @@ export async function compositeVideo(
     '-i', overlayPath,
     '-filter_complex', `[0:v][1:v]overlay=x=${overlayX}:y=${overlayY}`,
     '-r', String(fps),
+    '-pix_fmt', 'yuv420p',
     '-c:v', 'h264_videotoolbox',
     '-b:v', videoBitrate,
     '-c:a', 'copy',
@@ -73,5 +76,6 @@ export async function getVideoDurationFrames(
     videoPath,
   ])
   const seconds = parseFloat(stdout.trim())
+  if (isNaN(seconds)) throw new Error(`ffprobe returned no duration for: ${videoPath}`)
   return Math.ceil(seconds * fps)
 }
