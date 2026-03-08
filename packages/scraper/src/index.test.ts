@@ -42,4 +42,27 @@ describe('parseDrivers', () => {
   it('throws when table is missing', () => {
     expect(() => parseDrivers('<html></html>')).toThrow('Could not find laptimes table')
   })
+
+  it('skips non-time cells like DNF — driver laps contain no NaN and DNF lap is excluded', () => {
+    const html = `
+      <table class="at-lap-chart-legend-table">
+        <tbody>
+          <tr>
+            <td>
+              <div class="at-lap-chart-legend-table-competitor">
+                <span>99</span>
+                <span>Test Driver</span>
+              </div>
+            </td>
+            <td class="at-lap-chart-legend-table-laptime"><div>1:08.588</div></td>
+            <td class="at-lap-chart-legend-table-laptime"><div>DNF</div></td>
+            <td class="at-lap-chart-legend-table-laptime"><div>1:05.218</div></td>
+          </tr>
+        </tbody>
+      </table>`
+    const drivers = parseDrivers(html)
+    expect(drivers[0].laps).toHaveLength(2)
+    expect(drivers[0].laps.every(l => !isNaN(l.lapTime))).toBe(true)
+    expect(drivers[0].laps.every(l => !isNaN(l.cumulative))).toBe(true)
+  })
 })

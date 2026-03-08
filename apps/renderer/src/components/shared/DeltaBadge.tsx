@@ -39,7 +39,7 @@ export const DeltaBadge: React.FC<Props> = ({ timestamps, fps }) => {
         opacity: flashProgress,
       }}
     >
-      {isFaster ? '' : '+'}{formatLapTime(Math.abs(delta))}
+      {isFaster ? '-' : '+'}{formatLapTime(Math.abs(delta))}
     </div>
   )
 }

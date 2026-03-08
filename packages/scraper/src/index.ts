@@ -56,7 +56,9 @@ function parseLapTimeStr(s: string): number | null {
   s = s.trim()
   if (!s) return null
   const [minutesPart, rest] = s.split(':')
-  return parseInt(minutesPart, 10) * 60 + parseFloat(rest)
+  const result = parseInt(minutesPart, 10) * 60 + parseFloat(rest)
+  if (isNaN(result)) return null
+  return result
 }
 
 function normaliseUrl(url: string): string {
