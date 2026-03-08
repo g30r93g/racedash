@@ -120,8 +120,9 @@ function runFFmpegWithProgress(args: string[], totalSeconds: number): Promise<vo
     const proc = spawn('ffmpeg', args)
     let stderr = ''
     proc.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString()
-      const match = stderr.match(/time=(\d+):(\d+):(\d+\.\d+)/)
+      const text = chunk.toString()
+      stderr += text
+      const match = text.match(/time=(\d+):(\d+):(\d+\.\d+)/)
       if (match) {
         const processed =
           parseInt(match[1], 10) * 3600 +
