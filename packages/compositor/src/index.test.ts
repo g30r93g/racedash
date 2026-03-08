@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { execFile } from 'node:child_process'
-import fs from 'node:fs/promises'
+import * as fsp from 'node:fs/promises'
 import { joinVideos } from './index'
 
 vi.mock('node:child_process', () => ({
@@ -8,6 +8,11 @@ vi.mock('node:child_process', () => ({
     callback(null, { stdout: '', stderr: '' })
   }),
 }))
+
+vi.mock('node:fs/promises', async (importActual) => {
+  const actual = await importActual<typeof import('node:fs/promises')>()
+  return { ...actual, writeFile: vi.fn(actual.writeFile) }
+})
 
 describe('joinVideos', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -30,19 +35,19 @@ describe('joinVideos', () => {
   })
 
   it('writes absolute file paths to the concat list', async () => {
-    const mockExecFile = vi.mocked(execFile)
-    let capturedContent: string | undefined
-    mockExecFile.mockImplementationOnce((_cmd, args, callback) => {
-      const iIdx = (args as string[]).indexOf('-i')
-      const tmpFilePath = (args as string[])[iIdx + 1]
-      fs.readFile(tmpFilePath, 'utf-8').then(content => {
-        capturedContent = content
-        ;(callback as Function)(null, { stdout: '', stderr: '' })
-      })
-    })
+    const writeMock = vi.mocked(fsp.writeFile)
     await joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')
-    expect(capturedContent).toContain("file '/clip1.mp4'")
-    expect(capturedContent).toContain("file '/clip2.mp4'")
+    expect(writeMock).toHaveBeenCalledOnce()
+    const content = writeMock.mock.calls[0][1] as string
+    expect(content).toContain("file '/clip1.mp4'")
+    expect(content).toContain("file '/clip2.mp4'")
+  })
+
+  it('escapes single quotes in file paths', async () => {
+    const writeMock = vi.mocked(fsp.writeFile)
+    await joinVideos(["/rider's cam.mp4", '/clip2.mp4'], '/out.mp4')
+    const content = writeMock.mock.calls[0][1] as string
+    expect(content).toContain("file '/rider'\\''s cam.mp4'")
   })
 
   it('deletes temp file after success', async () => {
@@ -54,7 +59,7 @@ describe('joinVideos', () => {
       ;(callback as Function)(null, { stdout: '', stderr: '' })
     })
     await joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')
-    await expect(fs.access(tmpFilePath!)).rejects.toThrow()
+    await expect(fsp.access(tmpFilePath!)).rejects.toThrow()
   })
 
   it('deletes temp file after ffmpeg failure', async () => {
@@ -66,6 +71,6 @@ describe('joinVideos', () => {
       ;(callback as Function)(new Error('ffmpeg failed'), null)
     })
     await expect(joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')).rejects.toThrow('ffmpeg failed')
-    await expect(fs.access(tmpFilePath!)).rejects.toThrow()
+    await expect(fsp.access(tmpFilePath!)).rejects.toThrow()
   })
 })

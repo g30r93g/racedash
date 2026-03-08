@@ -91,7 +91,7 @@ export async function getVideoDurationFrames(
 export async function joinVideos(inputs: string[], outputPath: string): Promise<void> {
   if (inputs.length < 2) throw new Error('joinVideos requires at least 2 input files')
   const tmpFile = resolve(tmpdir(), `racedash-concat-${randomUUID()}.txt`)
-  const list = inputs.map(f => `file '${resolve(f)}'`).join('\n')
+  const list = inputs.map(f => `file '${resolve(f).replace(/'/g, "'\\''")}'`).join('\n')
   await writeFile(tmpFile, list, 'utf-8')
   try {
     await execFileAsync('ffmpeg', [
