@@ -51,20 +51,26 @@ export async function compositeVideo(
   overlayPath: string,
   outputPath: string,
   opts: CompositeOptions = {},
+  onProgress?: (progress: number) => void,
 ): Promise<void> {
   const { fps = 60, videoBitrate = '50M', overlayX = 0, overlayY = 0 } = opts
-  await execFileAsync('ffmpeg', [
-    '-i', sourcePath,
-    '-i', overlayPath,
-    '-filter_complex', `[0:v][1:v]overlay=x=${overlayX}:y=${overlayY}`,
-    '-r', String(fps),
-    '-pix_fmt', 'yuv420p',
-    '-c:v', 'h264_videotoolbox',
-    '-b:v', videoBitrate,
-    '-c:a', 'copy',
-    '-y',
-    outputPath,
-  ])
+  const totalSeconds = await getVideoDuration(sourcePath)
+  await runFFmpegWithProgress(
+    [
+      '-i', sourcePath,
+      '-i', overlayPath,
+      '-filter_complex', `[0:v][1:v]overlay=x=${overlayX}:y=${overlayY}`,
+      '-r', String(fps),
+      '-pix_fmt', 'yuv420p',
+      '-c:v', 'h264_videotoolbox',
+      '-b:v', videoBitrate,
+      '-c:a', 'copy',
+      '-y',
+      outputPath,
+    ],
+    totalSeconds,
+    onProgress,
+  )
 }
 
 /**
@@ -117,7 +123,11 @@ export async function joinVideos(inputs: string[], outputPath: string): Promise<
   }
 }
 
-function runFFmpegWithProgress(args: string[], totalSeconds: number): Promise<void> {
+function runFFmpegWithProgress(
+  args: string[],
+  totalSeconds: number,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn('ffmpeg', args)
     let stderr = ''
@@ -130,14 +140,11 @@ function runFFmpegWithProgress(args: string[], totalSeconds: number): Promise<vo
           parseInt(match[1], 10) * 3600 +
           parseInt(match[2], 10) * 60 +
           parseFloat(match[3])
-        const pct = Math.min(100, Math.round((processed / totalSeconds) * 100))
-        process.stderr.write(
-          `\rProgress: ${pct}% (${_formatDuration(processed)} / ${_formatDuration(totalSeconds)})`,
-        )
+        const pct = Math.min(1, processed / totalSeconds)
+        onProgress?.(pct)
       }
     })
     proc.on('close', (code: number | null, signal: string | null) => {
-      process.stderr.write('\n')
       if (code === 0) resolve()
       else if (signal) reject(new Error(`ffmpeg killed by signal ${signal}\n${stderr}`))
       else reject(new Error(`ffmpeg exited with code ${code}\n${stderr}`))
