@@ -16,6 +16,7 @@ describe('parseOffset', () => {
   it('parses decimal seconds', () => expect(parseOffset('1:23.5')).toBeCloseTo(83.5))
   it('parses zero', () => expect(parseOffset('0:00')).toBeCloseTo(0))
   it('throws on invalid', () => expect(() => parseOffset('not-a-time')).toThrow('Invalid offset'))
+  it('throws on malformed segments', () => expect(() => parseOffset('abc:xyz')).toThrow('Invalid offset'))
 })
 
 // --- calculateTimestamps ---

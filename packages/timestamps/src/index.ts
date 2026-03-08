@@ -2,15 +2,12 @@ import type { Lap, LapTimestamp } from '@racedash/core'
 
 export function parseOffset(offsetStr: string): number {
   const parts = offsetStr.split(':')
-  try {
-    if (parts.length === 2) {
-      return parseInt(parts[0], 10) * 60 + parseFloat(parts[1])
-    }
-    if (parts.length === 3) {
-      return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2])
-    }
-  } catch {
-    // fall through
+  if (parts.length === 2) {
+    const result = parseInt(parts[0], 10) * 60 + parseFloat(parts[1])
+    if (!isNaN(result)) return result
+  } else if (parts.length === 3) {
+    const result = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2])
+    if (!isNaN(result)) return result
   }
   throw new Error(`Invalid offset '${offsetStr}'. Use H:MM:SS or M:SS.`)
 }
