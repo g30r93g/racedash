@@ -5,6 +5,7 @@ export async function selectDriver(
   drivers: DriverRow[],
   query: string | undefined,
 ): Promise<DriverRow> {
+  if (!drivers.length) throw new Error('No drivers found in session.')
   const candidates = filterDrivers(drivers, query)
   if (candidates.length === 1) return candidates[0]
   return promptDriver(candidates)
