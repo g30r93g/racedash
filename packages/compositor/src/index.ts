@@ -66,12 +66,9 @@ export async function compositeVideo(
 }
 
 /**
- * Get video duration in frames using ffprobe.
+ * Get video duration in seconds using ffprobe.
  */
-export async function getVideoDurationFrames(
-  videoPath: string,
-  fps: number,
-): Promise<number> {
+export async function getVideoDuration(videoPath: string): Promise<number> {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v', 'error',
     '-select_streams', 'v:0',
@@ -81,6 +78,17 @@ export async function getVideoDurationFrames(
   ])
   const seconds = parseFloat(stdout.trim())
   if (isNaN(seconds)) throw new Error(`ffprobe returned no duration for: ${videoPath}`)
+  return seconds
+}
+
+/**
+ * Get video duration in frames using ffprobe.
+ */
+export async function getVideoDurationFrames(
+  videoPath: string,
+  fps: number,
+): Promise<number> {
+  const seconds = await getVideoDuration(videoPath)
   return Math.ceil(seconds * fps)
 }
 
