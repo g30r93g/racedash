@@ -4,7 +4,7 @@ import { fetchHtml, parseDrivers } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
-import { compositeVideo, getVideoDurationFrames, renderOverlay } from '@racedash/compositor'
+import { compositeVideo, getVideoDurationFrames, renderOverlay, joinVideos } from '@racedash/compositor'
 import type { OverlayProps, SessionData } from '@racedash/core'
 
 program
@@ -43,6 +43,21 @@ program
       const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
       console.error(`\nDriver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps\n`)
       console.log(formatChapters(timestamps))
+    } catch (err) {
+      console.error('Error:', (err as Error).message)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('join <files...>')
+  .description('Concatenate GoPro chapter files into a single video (lossless)')
+  .option('--output <path>', 'Output file path', './joined.mp4')
+  .action(async (files: string[], opts: { output: string }) => {
+    try {
+      console.error(`Joining ${files.length} files...`)
+      await joinVideos(files, opts.output)
+      console.log(`Done: ${opts.output}`)
     } catch (err) {
       console.error('Error:', (err as Error).message)
       process.exit(1)
