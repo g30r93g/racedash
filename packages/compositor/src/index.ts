@@ -1,5 +1,9 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { writeFile, unlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { randomUUID } from 'node:crypto'
+import { resolve } from 'node:path'
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition } from '@remotion/renderer'
 import type { OverlayProps } from '@racedash/core'
@@ -78,4 +82,27 @@ export async function getVideoDurationFrames(
   const seconds = parseFloat(stdout.trim())
   if (isNaN(seconds)) throw new Error(`ffprobe returned no duration for: ${videoPath}`)
   return Math.ceil(seconds * fps)
+}
+
+/**
+ * Concatenate video files losslessly using FFmpeg's concat demuxer.
+ * Writes a temporary file list to os.tmpdir(), runs ffmpeg -c copy, then cleans up.
+ */
+export async function joinVideos(inputs: string[], outputPath: string): Promise<void> {
+  if (inputs.length < 2) throw new Error('joinVideos requires at least 2 input files')
+  const tmpFile = resolve(tmpdir(), `racedash-concat-${randomUUID()}.txt`)
+  const list = inputs.map(f => `file '${resolve(f)}'`).join('\n')
+  await writeFile(tmpFile, list, 'utf-8')
+  try {
+    await execFileAsync('ffmpeg', [
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', tmpFile,
+      '-c', 'copy',
+      '-y',
+      outputPath,
+    ])
+  } finally {
+    await unlink(tmpFile).catch(() => {})
+  }
 }
