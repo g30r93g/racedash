@@ -158,4 +158,15 @@ describe('compositeVideo', () => {
     expect(progressValues).toHaveLength(1)
     expect(progressValues[0]).toBeCloseTo(0.5)
   })
+
+  it('passes -hwaccel videotoolbox to ffmpeg for hardware decode', async () => {
+    vi.mocked(spawn).mockImplementationOnce(
+      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
+    )
+    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', { durationSeconds: 60 })
+    const [, args] = vi.mocked(spawn).mock.calls[0] as [string, string[]]
+    const hwIdx = args.indexOf('-hwaccel')
+    expect(hwIdx).toBeGreaterThan(-1)
+    expect(args[hwIdx + 1]).toBe('videotoolbox')
+  })
 })

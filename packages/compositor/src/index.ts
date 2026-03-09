@@ -61,6 +61,7 @@ export async function compositeVideo(
   if (totalSeconds <= 0) throw new Error(`Video duration must be positive, got ${totalSeconds}`)
   await runFFmpegWithProgress(
     [
+      '-hwaccel', 'videotoolbox',
       '-i', sourcePath,
       '-i', overlayPath,
       '-filter_complex', `[0:v][1:v]overlay=x=${overlayX}:y=${overlayY}`,
