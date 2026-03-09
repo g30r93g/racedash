@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { writeFile, unlink } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { tmpdir, cpus } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
 import { bundle } from '@remotion/bundler'
@@ -39,6 +39,8 @@ export async function renderOverlay(
     proResProfile: '4444',
     outputLocation: outputPath,
     inputProps,
+    chromiumOptions: { gl: 'angle' },
+    concurrency: cpus().length,
     onProgress: onProgress ? ({ progress }) => onProgress(progress) : undefined,
   })
 }
