@@ -1,12 +1,12 @@
-import { execFile, spawn } from 'node:child_process'
-import { promisify } from 'node:util'
-import { writeFile, unlink } from 'node:fs/promises'
-import { tmpdir, cpus } from 'node:os'
-import { randomUUID } from 'node:crypto'
-import { resolve } from 'node:path'
+import type { OverlayProps } from '@racedash/core'
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition } from '@remotion/renderer'
-import type { OverlayProps } from '@racedash/core'
+import { execFile, spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { unlink, writeFile } from 'node:fs/promises'
+import { cpus, tmpdir } from 'node:os'
+import { resolve } from 'node:path'
+import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
 
@@ -64,10 +64,11 @@ export async function compositeVideo(
       '-hwaccel', 'videotoolbox',
       '-i', sourcePath,
       '-i', overlayPath,
-      '-filter_complex', `[0:v][1:v]overlay=x=${overlayX}:y=${overlayY}`,
+      '-filter_complex', `[1:v]format=rgba[ov];[0:v][ov]overlay=x=${overlayX}:y=${overlayY}`,
       '-r', String(fps),
       '-pix_fmt', 'yuv420p',
-      '-c:v', 'h264_videotoolbox',
+      '-c:v', 'hevc_videotoolbox',
+      '-tag:v', 'hvc1',
       '-b:v', videoBitrate,
       '-c:a', 'copy',
       '-y',

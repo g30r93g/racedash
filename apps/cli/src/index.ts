@@ -165,12 +165,19 @@ function formatSeconds(seconds: number): string {
 
 function makeProgressCallback(label: string): (progress: number) => void {
   const startTime = Date.now()
+  let lastEtaUpdate = 0
+  let displayedEta = ''
   return (progress: number) => {
-    const elapsed = (Date.now() - startTime) / 1000
+    const now = Date.now()
+    const elapsed = (now - startTime) / 1000
     const pct = Math.round(progress * 100)
     if (progress > 0) {
-      const remaining = Math.max(0, elapsed / progress - elapsed)
-      process.stderr.write(`\r  ${label}: ${pct}% — ETA ${formatSeconds(Math.round(remaining))}   `)
+      if (now - lastEtaUpdate >= 5000 || displayedEta === '') {
+        const remaining = Math.max(0, elapsed / progress - elapsed)
+        displayedEta = formatSeconds(Math.round(remaining))
+        lastEtaUpdate = now
+      }
+      process.stderr.write(`\r  ${label}: ${pct}% — ETA ${displayedEta}   `)
     } else {
       process.stderr.write(`\r  ${label}: ${pct}%`)
     }
