@@ -25,6 +25,6 @@ export function computeLapColors(targetLaps: Lap[], sessionAllLaps: Lap[][]): La
     personalBest = Math.min(personalBest, lap.lapTime)
 
     if (!isPersonalBest) return 'red'
-    return lap.lapTime <= sessionBest ? 'purple' : 'green'
+    return lap.lapTime <= sessionBest ? 'purple' : 'green' // <= is intentional: target is included in sessionAllLaps, so if no one else is faster, sessionBest === lap.lapTime
   })
 }
