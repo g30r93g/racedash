@@ -15,6 +15,7 @@ export interface CompositeOptions {
   videoBitrate?: string
   overlayX?: number
   overlayY?: number
+  durationSeconds?: number
 }
 
 /**
@@ -53,8 +54,8 @@ export async function compositeVideo(
   opts: CompositeOptions = {},
   onProgress?: (progress: number) => void,
 ): Promise<void> {
-  const { fps = 60, videoBitrate = '50M', overlayX = 0, overlayY = 0 } = opts
-  const totalSeconds = await getVideoDuration(sourcePath)
+  const { fps = 60, videoBitrate = '50M', overlayX = 0, overlayY = 0, durationSeconds } = opts
+  const totalSeconds = durationSeconds ?? await getVideoDuration(sourcePath)
   await runFFmpegWithProgress(
     [
       '-i', sourcePath,

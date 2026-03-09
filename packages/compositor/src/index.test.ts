@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { execFile, spawn } from 'node:child_process'
 import * as fsp from 'node:fs/promises'
-import { joinVideos, getVideoDuration } from './index'
+import { joinVideos, getVideoDuration, compositeVideo } from './index'
 
 // execFile mock: used by getVideoDuration (ffprobe calls).
 // Returns a valid duration by default so joinVideos can probe inputs.
@@ -122,5 +122,26 @@ describe('joinVideos', () => {
     })
     await expect(joinVideos(['/clip1.mp4', '/clip2.mp4'], '/out.mp4')).rejects.toThrow()
     await expect(fsp.access(tmpFilePath!)).rejects.toThrow()
+  })
+})
+
+describe('compositeVideo', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('skips ffprobe when durationSeconds is provided', async () => {
+    vi.mocked(spawn).mockImplementationOnce(
+      (_cmd, _args) => makeSpawnResult(0) as ReturnType<typeof spawn>,
+    )
+    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', { durationSeconds: 90 })
+    // execFile is only used by ffprobe — it must not have been called
+    expect(vi.mocked(execFile)).not.toHaveBeenCalled()
+  })
+
+  it('calls ffprobe when durationSeconds is not provided', async () => {
+    vi.mocked(spawn).mockImplementationOnce(
+      (_cmd, _args) => makeSpawnResult(0) as ReturnType<typeof spawn>,
+    )
+    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4')
+    expect(vi.mocked(execFile)).toHaveBeenCalledOnce()
   })
 })
