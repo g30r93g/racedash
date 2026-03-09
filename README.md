@@ -148,7 +148,7 @@ pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "
 | `--video <path>` | Path to your source video file | _(required)_ |
 | `--output <path>` | Where to save the rendered video | `./out.mp4` |
 | `--fps <n>` | Output framerate | `60` |
-| `--style <name>` | Overlay style | `gt7` |
+| `--style <name>` | Overlay style | `geometric` |
 | `--overlay-x <n>` | Horizontal position of the overlay in pixels | `0` |
 | `--overlay-y <n>` | Vertical position of the overlay in pixels | `0` |
 
