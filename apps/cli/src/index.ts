@@ -9,7 +9,7 @@ import type { OverlayProps, SessionData } from '@racedash/core'
 
 program
   .name('racedash')
-  .description('Alpha Timing → YouTube chapters + GT7 overlay')
+  .description('Alpha Timing → YouTube chapters + geometric overlay')
   .version('0.1.0')
 
 program
