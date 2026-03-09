@@ -76,12 +76,12 @@ interface RenderOpts {
 
 program
   .command('render <url> [driver]')
-  .description('Render GT7-style overlay onto video')
+  .description('Render geometric overlay onto video')
   .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15')
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--fps <n>', 'Output framerate', '60')
-  .option('--style <name>', 'Overlay style', 'gt7')
+  .option('--style <name>', 'Overlay style', 'geometric')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
@@ -111,7 +111,12 @@ program
         laps: driver.laps,
         timestamps,
       }
-      const overlayProps: OverlayProps = { session, fps, durationInFrames }
+      const overlayProps: OverlayProps = {
+        session,
+        sessionAllLaps: drivers.map(d => d.laps),
+        fps,
+        durationInFrames,
+      }
 
       // Resolves to apps/renderer/src/index.ts from apps/cli/dist/ at runtime.
       // This only works when run from within the monorepo working tree (dev use).
