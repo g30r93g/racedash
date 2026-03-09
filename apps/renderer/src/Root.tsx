@@ -1,8 +1,11 @@
 import React from 'react'
 import { Composition } from 'remotion'
+import { loadFont } from '@remotion/google-fonts/AtkinsonHyperlegibleMono'
 import type { OverlayProps } from '@racedash/core'
 import type { RegistryEntry } from './registry'
 import { registry } from './registry'
+
+export const { fontFamily } = loadFont()
 
 const defaultSession: OverlayProps['session'] = {
   driver: { kart: '0', name: 'Preview Driver' },

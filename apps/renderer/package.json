@@ -10,6 +10,7 @@
   "dependencies": {
     "@racedash/core": "workspace:*",
     "@racedash/timestamps": "workspace:*",
+    "@remotion/google-fonts": "^4.0.434",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "remotion": "^4.0.0"

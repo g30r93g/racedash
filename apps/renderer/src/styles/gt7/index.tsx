@@ -1,6 +1,7 @@
 import React from 'react'
 import { AbsoluteFill } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
+import { fontFamily } from '../../Root'
 import { DeltaBadge } from '../../components/shared/DeltaBadge'
 import { LapHistory } from '../../components/shared/LapHistory'
 import { LapTimer } from '../../components/shared/LapTimer'
@@ -12,10 +13,7 @@ export const Gt7: React.FC<OverlayProps> = ({ session, fps }) => (
         position: 'absolute',
         bottom: 48,
         left: 48,
-        background: 'rgba(0,0,0,0.65)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderRadius: 14,
+        fontFamily,
         padding: '20px 28px',
         minWidth: 320,
         color: 'white',

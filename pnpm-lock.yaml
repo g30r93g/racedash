@@ -63,6 +63,9 @@ importers:
       '@racedash/timestamps':
         specifier: workspace:*
         version: link:../../packages/timestamps
+      '@remotion/google-fonts':
+        specifier: ^4.0.434
+        version: 4.0.434(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.0
         version: 18.3.1
@@ -760,6 +763,9 @@ packages:
     resolution: {integrity: sha512-3PmLo03LBYf123FvjlUNphbtnTJnvToHMDgBQYdrlQBGbAQpJGLsX7IViQwWSNFGZVzonwliNtC9568Nbts8lw==}
     cpu: [x64]
     os: [win32]
+
+  '@remotion/google-fonts@4.0.434':
+    resolution: {integrity: sha512-8FI5xPQ7kmdyWckMKRfHJuUbxGHaCSXdEgcqhwbWxRIwmGRuAQbyu2+Q6rh7pFzgl3eyXvqqF4SfE4eA3imXoA==}
 
   '@remotion/licensing@4.0.434':
     resolution: {integrity: sha512-Jp9pHUlQBOX7ZjDuG9OVIEDGU5JiN2eSjvHEDS8zwyIIGUaRwDhZRzvGULEiZpu1IJ6UMDpHqIylJ18Inl1PMg==}
@@ -2584,6 +2590,13 @@ snapshots:
 
   '@remotion/compositor-win32-x64-msvc@4.0.434':
     optional: true
+
+  '@remotion/google-fonts@4.0.434(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      remotion: 4.0.434(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   '@remotion/licensing@4.0.434': {}
 
