@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import type { OverlayProps } from '@racedash/core'
-import { Gt7 } from './styles/gt7'
+import { Geometric } from './styles/geometric'
 
 export interface RegistryEntry {
   component: ComponentType<OverlayProps>
@@ -11,10 +11,10 @@ export interface RegistryEntry {
 }
 
 export const registry: Record<string, RegistryEntry> = {
-  gt7: {
-    component: Gt7,
-    width: 1200,
-    height: 760,
+  geometric: {
+    component: Geometric,
+    width: 1920,
+    height: 120,
     overlayX: 0,
     overlayY: 0,
   },
