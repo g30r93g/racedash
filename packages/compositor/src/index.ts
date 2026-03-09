@@ -90,17 +90,6 @@ export async function getVideoDuration(videoPath: string): Promise<number> {
 }
 
 /**
- * Get video duration in frames using ffprobe.
- */
-export async function getVideoDurationFrames(
-  videoPath: string,
-  fps: number,
-): Promise<number> {
-  const seconds = await getVideoDuration(videoPath)
-  return Math.ceil(seconds * fps)
-}
-
-/**
  * Concatenate video files losslessly using FFmpeg's concat demuxer.
  * Writes a temporary file list to os.tmpdir(), runs ffmpeg -c copy, then cleans up.
  */
