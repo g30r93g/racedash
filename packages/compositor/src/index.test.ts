@@ -126,7 +126,7 @@ describe('joinVideos', () => {
 })
 
 describe('compositeVideo', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => vi.clearAllMocks())
 
   it('skips ffprobe when durationSeconds is provided', async () => {
     vi.mocked(spawn).mockImplementationOnce(
@@ -143,5 +143,19 @@ describe('compositeVideo', () => {
     )
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4')
     expect(vi.mocked(execFile)).toHaveBeenCalledOnce()
+  })
+
+  it('uses durationSeconds as the progress denominator', async () => {
+    const progressValues: number[] = []
+    vi.mocked(spawn).mockImplementationOnce(
+      (_cmd, _args) => makeSpawnResult(0, 'frame=10 time=00:00:45.00 bitrate=50\n') as unknown as ReturnType<typeof spawn>,
+    )
+    await compositeVideo(
+      '/src.mp4', '/overlay.mov', '/out.mp4',
+      { durationSeconds: 90 },
+      (p) => progressValues.push(p),
+    )
+    expect(progressValues).toHaveLength(1)
+    expect(progressValues[0]).toBeCloseTo(0.5)
   })
 })

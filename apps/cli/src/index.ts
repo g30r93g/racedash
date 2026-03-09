@@ -137,7 +137,13 @@ program
 
       console.error('Compositing video...')
       try {
-        await compositeVideo(opts.video, overlayPath, opts.output, { fps, overlayX, overlayY, durationSeconds }, makeProgressCallback('Compositing'))
+        await compositeVideo(
+          opts.video,
+          overlayPath,
+          opts.output,
+          { fps, overlayX, overlayY, durationSeconds },
+          makeProgressCallback('Compositing'),
+        )
       } finally {
         process.stderr.write('\n')
       }

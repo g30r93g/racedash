@@ -56,6 +56,7 @@ export async function compositeVideo(
 ): Promise<void> {
   const { fps = 60, videoBitrate = '50M', overlayX = 0, overlayY = 0, durationSeconds } = opts
   const totalSeconds = durationSeconds ?? await getVideoDuration(sourcePath)
+  if (totalSeconds <= 0) throw new Error(`Video duration must be positive, got ${totalSeconds}`)
   await runFFmpegWithProgress(
     [
       '-i', sourcePath,
