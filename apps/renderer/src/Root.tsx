@@ -5,7 +5,7 @@ import type { OverlayProps } from '@racedash/core'
 import type { RegistryEntry } from './registry'
 import { registry } from './registry'
 
-export const { fontFamily } = loadFont()
+export const { fontFamily } = loadFont('normal', { weights: ['400'], subsets: ['latin'] })
 
 const defaultSession: OverlayProps['session'] = {
   driver: { kart: '0', name: 'Preview Driver' },
