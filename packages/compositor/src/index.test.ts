@@ -126,11 +126,11 @@ describe('joinVideos', () => {
 })
 
 describe('compositeVideo', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('skips ffprobe when durationSeconds is provided', async () => {
     vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as ReturnType<typeof spawn>,
+      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
     )
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', { durationSeconds: 90 })
     // execFile is only used by ffprobe — it must not have been called
@@ -139,7 +139,7 @@ describe('compositeVideo', () => {
 
   it('calls ffprobe when durationSeconds is not provided', async () => {
     vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as ReturnType<typeof spawn>,
+      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
     )
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4')
     expect(vi.mocked(execFile)).toHaveBeenCalledOnce()
