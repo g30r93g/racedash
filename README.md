@@ -1,6 +1,6 @@
 # racedash
 
-Fetch lap times from Alpha Timing, generate YouTube chapter timestamps, and render a GT7-style lap timer overlay onto your race footage.
+Fetch lap times from Alpha Timing, generate YouTube chapter timestamps, and render lap timer overlays onto your race footage.
 
 ---
 
