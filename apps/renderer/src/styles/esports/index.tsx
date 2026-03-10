@@ -1,5 +1,5 @@
 import React from 'react'
-import { useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed } from '../../timing'
@@ -19,12 +19,9 @@ function StopwatchIcon({ size, color = 'white' }: { size: number; color?: string
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {/* Crown / top button */}
       <path d="M12 2v2" />
       <path d="M10 2h4" />
-      {/* Watch body */}
       <circle cx="12" cy="13" r="8" />
-      {/* Hand */}
       <polyline points="12 9 12 13 15 13" />
     </svg>
   )
@@ -35,21 +32,14 @@ interface TimePanelProps {
   label: string
   time: string
   sc: number
-  iconBgSize: number
-  iconSize: number
 }
 
-function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelProps) {
+function TimePanel({ iconBg, label, time, sc }: TimePanelProps) {
+  const iconBgSize = 40 * sc
+  const iconSize = 22 * sc
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16 * sc,
-      }}
-    >
-      {/* Icon square */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 * sc }}>
       <div
         style={{
           width: iconBgSize,
@@ -64,21 +54,13 @@ function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelP
       >
         <StopwatchIcon size={iconSize} />
       </div>
-
-      {/* Label + time */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4 * sc,
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 * sc }}>
         <span
           style={{
-            fontSize: 12 * sc,
+            fontSize: 10 * sc,
             fontWeight: 400,
             color: '#9ca3af',
-            letterSpacing: 2 * sc,
+            letterSpacing: 1.5 * sc,
             textTransform: 'uppercase',
           }}
         >
@@ -86,10 +68,10 @@ function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelP
         </span>
         <span
           style={{
-            fontSize: 36 * sc,
+            fontSize: 26 * sc,
             fontWeight: 400,
             color: 'white',
-            letterSpacing: 1 * sc,
+            letterSpacing: 0.5 * sc,
             lineHeight: 1,
           }}
         >
@@ -103,15 +85,13 @@ function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelP
 export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
-  const sc = width / 480
+  const sc = width / 1920
 
   const currentTime = frame / fps
 
-  // Pre-race guard
   const raceStart = session.timestamps[0].ytSeconds
   if (currentTime < raceStart) return null
 
-  // Post-race guard
   const lastTs = session.timestamps[session.timestamps.length - 1]
   const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
   if (currentTime >= raceEnd) return null
@@ -119,148 +99,98 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const currentLap = getLapAtTime(session.timestamps, currentTime)
   const currentIdx = session.timestamps.indexOf(currentLap)
 
-  // Last completed lap time
   const lastLapTime =
     currentIdx >= 1
       ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
       : EMPTY_TIME
 
-  // Session best across all drivers
   const allLaps = sessionAllLaps.flat()
   const sessionBestTime =
     allLaps.length > 0
       ? formatLapTime(Math.min(...allLaps.map(l => l.lapTime)))
       : EMPTY_TIME
 
-  // Current lap elapsed
   const elapsed = getLapElapsed(currentLap, currentTime)
   const elapsedFormatted = formatLapTime(elapsed)
 
-  // Heights (design spec)
-  const accentH = 8 * sc
-  const midH = 140 * sc
-  const bottomH = 80 * sc
-  const totalH = accentH + midH + bottomH
-
-  // Icon square size
-  const iconBgSize = 52 * sc
-  const iconSize = 28 * sc
-
-  // Panel gap between the two time panels
-  const panelGap = 48 * sc
-
-  // Bottom section padding
-  const bottomPadX = 32 * sc
-
-  // Icon-label gap in bottom bar
-  const iconLabelGap = 10 * sc
+  const margin = 20 * sc
+  const boxW = 400 * sc
+  const pad = 16 * sc
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: totalH,
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily,
-        userSelect: 'none',
-      }}
-    >
-        {/* 1. Accent bar — blue-to-purple gradient */}
+    <AbsoluteFill>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: margin,
+          left: margin,
+          width: boxW,
+          display: 'flex',
+          flexDirection: 'column',
+          fontFamily,
+          userSelect: 'none',
+        }}
+      >
+        {/* Accent bar */}
         <div
           style={{
-            width: '100%',
-            height: accentH,
+            height: 8 * sc,
             background: 'linear-gradient(to right, #2563eb, #7c3aed)',
-            flexShrink: 0,
           }}
         />
 
-        {/* 2. Gray middle section */}
+        {/* Gray section: two stacked time panels */}
         <div
           style={{
-            width: '100%',
-            height: midH,
             background: '#3f4755',
-            flexShrink: 0,
+            padding: `${pad}px ${pad}px`,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: 14 * sc,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: panelGap,
-            }}
-          >
-            {/* Left panel: last lap */}
-            <TimePanel
-              iconBg="#16a34a"
-              label="LAST LAP"
-              time={lastLapTime}
-              sc={sc}
-              iconBgSize={iconBgSize}
-              iconSize={iconSize}
-            />
-
-            {/* Right panel: session best */}
-            <TimePanel
-              iconBg="#7c3aed"
-              label="SESSION BEST"
-              time={sessionBestTime}
-              sc={sc}
-              iconBgSize={iconBgSize}
-              iconSize={iconSize}
-            />
-          </div>
+          <TimePanel iconBg="#16a34a" label="LAST LAP" time={lastLapTime} sc={sc} />
+          <TimePanel iconBg="#7c3aed" label="SESSION BEST" time={sessionBestTime} sc={sc} />
         </div>
 
-        {/* 3. Black bottom section */}
+        {/* Black current-lap bar */}
         <div
           style={{
-            width: '100%',
-            height: bottomH,
             background: '#111',
-            flexShrink: 0,
+            height: 56 * sc,
             display: 'flex',
             alignItems: 'center',
-            paddingLeft: bottomPadX,
-            paddingRight: bottomPadX,
+            gap: 10 * sc,
+            paddingLeft: pad,
+            paddingRight: pad,
             boxSizing: 'border-box',
           }}
         >
-          {/* Left: stopwatch icon + "CURRENT" label */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: iconLabelGap }}>
-            <StopwatchIcon size={22 * sc} color="#9ca3af" />
-            <span
-              style={{
-                fontSize: 14 * sc,
-                fontWeight: 400,
-                color: '#9ca3af',
-                letterSpacing: 2 * sc,
-                textTransform: 'uppercase',
-              }}
-            >
-              CURRENT
-            </span>
-          </div>
-
-          {/* Right: elapsed time */}
+          <StopwatchIcon size={18 * sc} color="#9ca3af" />
+          <span
+            style={{
+              fontSize: 12 * sc,
+              fontWeight: 400,
+              color: '#9ca3af',
+              letterSpacing: 2 * sc,
+              textTransform: 'uppercase',
+            }}
+          >
+            CURRENT
+          </span>
           <span
             style={{
               marginLeft: 'auto',
-              fontSize: 32 * sc,
+              fontSize: 26 * sc,
               fontWeight: 400,
               color: 'white',
-              letterSpacing: 1 * sc,
+              letterSpacing: 0.5 * sc,
             }}
           >
             {elapsedFormatted}
           </span>
         </div>
-    </div>
+      </div>
+    </AbsoluteFill>
   )
 }

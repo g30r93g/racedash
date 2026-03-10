@@ -44,11 +44,12 @@ function OverlayComposition({ id, entry }: { id: string; entry: RegistryEntry })
         if (entry.scaleWithVideo) {
           const width = props.videoWidth ?? entry.width
           const scale = width / entry.width
+          const height = props.videoHeight ?? Math.round(entry.height * scale)
           return {
             durationInFrames: props.durationInFrames,
             fps: props.fps,
             width,
-            height: Math.round(entry.height * scale),
+            height,
           }
         }
         return {
