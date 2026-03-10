@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import { getLapAtTime } from '../../timing'
@@ -7,9 +7,10 @@ import { fontFamily } from '../../Root'
 interface Props {
   timestamps: LapTimestamp[]
   fps: number
+  textColor?: string
 }
 
-export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
+export const LapCounter: React.FC<Props> = ({ timestamps, fps, textColor = 'white' }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -18,35 +19,49 @@ export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
   const raceStart = timestamps[0].ytSeconds
   const total = timestamps.length
 
+  const currentLap = useMemo(() => getLapAtTime(timestamps, currentTime), [timestamps, currentTime])
+  const displayText = useMemo(
+    () => `${String(currentLap.lap.number).padStart(2, '0')}/${total}`,
+    [currentLap, total],
+  )
+
+  const containerStyle = useMemo<React.CSSProperties>(() => ({
+    width: 180 * scale,
+    height: 80 * scale,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingRight: 16 * scale,
+    gap: 2 * scale,
+  }), [scale])
+
+  const labelStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily,
+    fontSize: 13 * scale,
+    fontWeight: 700,
+    color: textColor,
+    opacity: 0.75,
+    letterSpacing: 2 * scale,
+    userSelect: 'none',
+  }), [scale, textColor])
+
+  const valueStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily,
+    fontSize: 28 * scale,
+    fontWeight: 700,
+    color: textColor,
+    letterSpacing: 1 * scale,
+    userSelect: 'none',
+  }), [scale, textColor])
+
   // Hidden before race starts
   if (currentTime < raceStart) return null
 
-  const currentLap = getLapAtTime(timestamps, currentTime)
-  const displayText = `${String(currentLap.lap.number).padStart(2, '0')}/${total}`
-
   return (
-    <div
-      style={{
-        width: 180 * scale,
-        height: 80 * scale,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingRight: 16 * scale,
-      }}
-    >
-      <span
-        style={{
-          fontFamily,
-          fontSize: 28 * scale,
-          fontWeight: 700,
-          color: 'white',
-          letterSpacing: 1 * scale,
-          userSelect: 'none',
-        }}
-      >
-        {displayText}
-      </span>
+    <div style={containerStyle}>
+      <span style={labelStyle}>LAP</span>
+      <span style={valueStyle}>{displayText}</span>
     </div>
   )
 }

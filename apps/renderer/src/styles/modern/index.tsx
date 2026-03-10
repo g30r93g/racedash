@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
@@ -14,34 +14,43 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
 
   const currentTime = frame / fps
 
-  // Pre-race guard
   const raceStart = session.timestamps[0].ytSeconds
-  if (currentTime < raceStart) return null
+  const raceEnd = useMemo(() => {
+    const lastTs = session.timestamps[session.timestamps.length - 1]
+    return lastTs.ytSeconds + lastTs.lap.lapTime
+  }, [session.timestamps])
 
-  // Post-race guard
-  const lastTs = session.timestamps[session.timestamps.length - 1]
-  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
-  if (currentTime >= raceEnd) return null
+  const currentLap = useMemo(
+    () => getLapAtTime(session.timestamps, currentTime),
+    [session.timestamps, currentTime],
+  )
+  const currentIdx = useMemo(
+    () => session.timestamps.indexOf(currentLap),
+    [session.timestamps, currentLap],
+  )
 
-  const currentLap = getLapAtTime(session.timestamps, currentTime)
-  const currentIdx = session.timestamps.indexOf(currentLap)
+  // Session best across all drivers — only recomputes when input data changes
+  const allLaps = useMemo(() => sessionAllLaps.flat(), [sessionAllLaps])
+  const sessionBestTime = useMemo(
+    () => allLaps.length > 0 ? formatLapTime(Math.min(...allLaps.map(l => l.lapTime))) : PLACEHOLDER,
+    [allLaps],
+  )
+
+  // Last completed lap time
+  const lastLapTime = useMemo(
+    () => currentIdx >= 1
+      ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
+      : PLACEHOLDER,
+    [currentIdx, session.timestamps],
+  )
 
   // Elapsed time for current lap
   const elapsed = getLapElapsed(currentLap, currentTime)
   const elapsedFormatted = formatLapTime(elapsed)
 
-  // Last completed lap time
-  const lastLapTime =
-    currentIdx >= 1
-      ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
-      : PLACEHOLDER
-
-  // Session best across all drivers
-  const allLaps = sessionAllLaps.flat()
-  const sessionBestTime =
-    allLaps.length > 0
-      ? formatLapTime(Math.min(...allLaps.map(l => l.lapTime)))
-      : PLACEHOLDER
+  // Guards must come after all hooks
+  if (currentTime < raceStart) return null
+  if (currentTime >= raceEnd) return null
 
   const elapsedFontSize = 52 * scale
   const statFontSize = 22 * scale

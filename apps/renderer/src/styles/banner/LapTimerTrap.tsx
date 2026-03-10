@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import type { LapColor } from './lapColor'
@@ -18,6 +18,8 @@ interface Props {
   timestamps: LapTimestamp[]
   lapColors: LapColor[]
   fps: number
+  textColor?: string
+  bgColor?: string
 }
 
 function formatTime(seconds: number): string {
@@ -29,15 +31,17 @@ function formatTime(seconds: number): string {
   return m > 0 ? `${m}:${sStr}.${msStr}` : `${sStr}.${msStr}`
 }
 
-export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) => {
+export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps, textColor = 'white', bgColor }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
   const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
-  const lastTs = timestamps[timestamps.length - 1]
-  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
+  const raceEnd = useMemo(() => {
+    const lastTs = timestamps[timestamps.length - 1]
+    return lastTs.ytSeconds + lastTs.lap.lapTime
+  }, [timestamps])
 
   // Hidden before race starts
   if (currentTime < raceStart) return null
@@ -50,7 +54,7 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) =>
     if (timeSinceEnd < FLASH_DURATION_SECONDS) {
       // Flash the last completed lap's time and color
       const lastIndex = timestamps.length - 1
-      displayText = formatTime(lastTs.lap.lapTime)
+      displayText = formatTime(timestamps[timestamps.length - 1].lap.lapTime)
       bgKey = lapColors[lastIndex]
     } else {
       displayText = 'END'
@@ -72,24 +76,26 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) =>
     }
   }
 
+  const background = bgKey === 'neutral' && bgColor ? bgColor : BACKGROUND[bgKey]
+  // containerStyle depends on bgKey (per-frame), so it is not memoized
+  const containerStyle: React.CSSProperties = {
+    width: 300 * scale,
+    height: 80 * scale,
+    clipPath: 'polygon(0 0, 100% 0, 83% 100%, 17% 100%)',
+    background,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
+
   return (
-    <div
-      style={{
-        width: 300 * scale,
-        height: 80 * scale,
-        clipPath: 'polygon(0 0, 100% 0, 83% 100%, 17% 100%)',
-        background: BACKGROUND[bgKey],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div style={containerStyle}>
       <span
         style={{
           fontFamily,
           fontSize: 36 * scale,
           fontWeight: 400,
-          color: 'white',
+          color: textColor,
           letterSpacing: 1 * scale,
           userSelect: 'none',
         }}

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { Lap, LapTimestamp, SessionMode } from '@racedash/core'
 import { getLapAtTime } from '../../timing'
@@ -12,6 +12,7 @@ interface Props {
   fps: number
   mode: SessionMode
   startingGridPosition?: number
+  textColor?: string
 }
 
 export const PositionCounter: React.FC<Props> = ({
@@ -21,6 +22,7 @@ export const PositionCounter: React.FC<Props> = ({
   fps,
   mode,
   startingGridPosition,
+  textColor = 'white',
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -29,42 +31,51 @@ export const PositionCounter: React.FC<Props> = ({
 
   const raceStart = timestamps[0].ytSeconds
 
-  const currentLap = getLapAtTime(timestamps, currentTime)
-  const currentIdx = timestamps.indexOf(currentLap)
+  const currentLap = useMemo(() => getLapAtTime(timestamps, currentTime), [timestamps, currentTime])
+  const currentIdx = useMemo(() => timestamps.indexOf(currentLap), [timestamps, currentLap])
+  const position = useMemo<number | null>(() => {
+    if (currentTime < raceStart || currentIdx === 0) return startingGridPosition ?? null
+    return getPosition(mode, currentLap.lap.number, currentLaps, sessionAllLaps)
+  }, [currentTime, raceStart, currentIdx, startingGridPosition, mode, currentLap, currentLaps, sessionAllLaps])
 
-  // Before/during lap 1: use starting grid position; after that: computed position
-  let position: number | null = null
-  if (currentTime < raceStart || currentIdx === 0) {
-    position = startingGridPosition ?? null
-  } else {
-    position = getPosition(mode, currentLap.lap.number, currentLaps, sessionAllLaps)
-  }
+  const containerStyle = useMemo<React.CSSProperties>(() => ({
+    width: 180 * scale,
+    height: 80 * scale,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 16 * scale,
+    gap: 2 * scale,
+  }), [scale])
+
+  const labelStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily,
+    fontSize: 13 * scale,
+    fontWeight: 700,
+    color: textColor,
+    opacity: 0.75,
+    letterSpacing: 2 * scale,
+    userSelect: 'none',
+  }), [scale, textColor])
+
+  const valueStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily,
+    fontSize: 44 * scale,
+    fontWeight: 700,
+    color: textColor,
+    letterSpacing: 1 * scale,
+    userSelect: 'none',
+  }), [scale, textColor])
 
   // Always render at full width so the flex layout keeps the centre element centred
   return (
-    <div
-      style={{
-        width: 180 * scale,
-        height: 80 * scale,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingLeft: 16 * scale,
-      }}
-    >
+    <div style={containerStyle}>
       {position != null && (
-        <span
-          style={{
-            fontFamily,
-            fontSize: 44 * scale,
-            fontWeight: 700,
-            color: 'white',
-            letterSpacing: 1 * scale,
-            userSelect: 'none',
-          }}
-        >
-          P{position}
-        </span>
+        <>
+          <span style={labelStyle}>POSITION</span>
+          <span style={valueStyle}>P{position}</span>
+        </>
       )}
     </div>
   )

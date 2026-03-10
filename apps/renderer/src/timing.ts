@@ -5,12 +5,14 @@ import type { LapTimestamp } from '@racedash/core'
  * Before the race starts, returns the first lap.
  */
 export function getLapAtTime(timestamps: LapTimestamp[], currentTime: number): LapTimestamp {
-  let current = timestamps[0]
-  for (const ts of timestamps) {
-    if (ts.ytSeconds <= currentTime) current = ts
-    else break
+  let lo = 0
+  let hi = timestamps.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1
+    if (timestamps[mid].ytSeconds <= currentTime) lo = mid
+    else hi = mid - 1
   }
-  return current
+  return timestamps[lo]
 }
 
 /** Seconds elapsed since this lap started. */
