@@ -33,16 +33,18 @@ export const TimeLabelPanel: React.FC<Props> = ({ timestamps, fps, variant }) =>
     : Math.min(...completedLaps.map(ts => ts.lap.lapTime))
 
   const label = variant === 'last' ? 'LAST' : 'BEST'
-  // last: left edge straight, right edge angled inward (mirrors PositionCounter)
-  // best: right edge straight, left edge angled inward (mirrors LapCounter)
+  // Parallelogram with long edge at bottom:
+  //   last: outer (left) top corner angled, inner (right) edge vertical
+  //   best: inner (left) edge vertical, outer (right) top corner angled
+  const slant = 80 * scale
   const clipPath = variant === 'last'
-    ? 'polygon(0 0, 100% 0, 83% 100%, 0 100%)'
-    : 'polygon(0 0, 100% 0, 100% 100%, 17% 100%)'
+    ? `polygon(${slant}px 0, 100% 0, 100% 100%, 0 100%)`
+    : `polygon(0 0, calc(100% - ${slant}px) 0, 100% 100%, 0 100%)`
 
   return (
     <div
       style={{
-        width: 220 * scale,
+        width: '100%',
         height: 80 * scale,
         clipPath,
         background: 'rgba(0,0,0,0.65)',
