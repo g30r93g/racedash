@@ -21,8 +21,7 @@ export function getPosition(
   for (const driverLaps of sessionAllLaps) {
     if (driverLaps === currentLaps) continue
     const driverScore = computeScore(mode, lapNumber, driverLaps)
-    const beats = mode === 'race' ? driverScore < score : driverScore <= score
-    if (driverScore !== null && beats) position++
+    if (driverScore !== null && driverScore < score) position++
   }
   return position
 }

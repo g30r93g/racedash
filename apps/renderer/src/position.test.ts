@@ -64,6 +64,14 @@ describe('getPosition — qualifying/practice mode', () => {
 
   it('drivers with no laps through N are excluded', () => {
     const allLaps = [currentLaps, fasterDriver, slowerDriver, shortDriver]
-    expect(getPosition('qualifying', 3, currentLaps, allLaps)).toBe(2)
+    // fasterDriver ties on best lap (63.0) but shortDriver has no lap 3 — tie does not push back,
+    // and shortDriver is excluded, so current driver is P1
+    expect(getPosition('qualifying', 3, currentLaps, allLaps)).toBe(1)
+  })
+
+  it('ties do not push current driver back (P1 on tie)', () => {
+    const tiedDriver: Lap[] = [lap(1, 68.0, 68.0)]  // same best as currentLaps lap 1
+    const allLaps = [currentLaps, tiedDriver]
+    expect(getPosition('qualifying', 1, currentLaps, allLaps)).toBe(1)
   })
 })
