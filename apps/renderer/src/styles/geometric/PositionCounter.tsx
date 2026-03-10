@@ -23,7 +23,9 @@ export const PositionCounter: React.FC<Props> = ({
   const frame = useCurrentFrame()
   const currentTime = frame / fps
 
-  if (currentTime < timestamps[0].ytSeconds) return null
+  const raceStart = timestamps[0].ytSeconds
+  // Hidden before race starts
+  if (currentTime < raceStart) return null
 
   const currentLap = getLapAtTime(timestamps, currentTime)
   const position = getPosition(mode, currentLap.lap.number, currentLaps, sessionAllLaps)
@@ -33,12 +35,13 @@ export const PositionCounter: React.FC<Props> = ({
       style={{
         width: 180,
         height: 80,
+        // Right-angle trapezium: left edge vertical, right edge angled inward at bottom
         clipPath: 'polygon(0 0, 100% 0, 83% 100%, 0 100%)',
         background: 'rgba(0,0,0,0.65)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingLeft: 16,
+        paddingRight: 16,
       }}
     >
       <span
