@@ -34,10 +34,11 @@ export const registry: Record<string, RegistryEntry> = {
   },
   minimal: {
     component: Minimal,
-    width: 440,
-    height: 150,
-    overlayX: 48,
-    overlayY: 882,
+    width: 1920,
+    height: 1080,
+    overlayX: 0,
+    overlayY: 0,
+    scaleWithVideo: true,
   },
   modern: {
     component: Modern,

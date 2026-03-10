@@ -51,7 +51,7 @@ function StatColumn({ label, value, scale }: StatColumnProps) {
 export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
-  const scale = width / 440
+  const scale = width / 1920
 
   const currentTime = frame / fps
 
@@ -106,8 +106,8 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
       <div
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
+          bottom: 20 * scale,
+          left: 20 * scale,
           width: cardW,
           height: cardH,
           background: 'rgba(20, 22, 28, 0.88)',
