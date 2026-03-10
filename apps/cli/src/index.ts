@@ -153,15 +153,16 @@ program
         .map((sc, i) => (sc.mode.toLowerCase() === 'race' ? i : -1))
         .filter(i => i >= 0)
 
-      const [durationSeconds, videoResolution, ...fetchResults] = await Promise.all([
-        getVideoDuration(opts.video),
-        getVideoResolution(opts.video),
-        ...segmentConfigs.map(sc => fetchHtml(sc.url)),
-        ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
+      const [[durationSeconds, videoResolution], fetchResults] = await Promise.all([
+        Promise.all([getVideoDuration(opts.video), getVideoResolution(opts.video)]),
+        Promise.all([
+          ...segmentConfigs.map(sc => fetchHtml(sc.url)),
+          ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
+        ]),
       ])
 
-      const htmls = fetchResults.slice(0, segmentConfigs.length) as string[]
-      const gridHtmls = fetchResults.slice(segmentConfigs.length) as string[]
+      const htmls     = fetchResults.slice(0, segmentConfigs.length)
+      const gridHtmls = fetchResults.slice(segmentConfigs.length)
 
       // Build SessionSegment[] — find driver in each segment independently
       const segments: SessionSegment[] = []
@@ -437,6 +438,12 @@ async function loadRenderConfig(opts: RenderOpts): Promise<{ segments: SegmentCo
     const config = raw as RenderConfig
     if (!Array.isArray(config.segments) || config.segments.length === 0) {
       throw new Error('Config file must contain a non-empty "segments" array')
+    }
+    for (let i = 0; i < config.segments.length; i++) {
+      const s = config.segments[i]
+      if (typeof s.url    !== 'string' || !s.url)    throw new Error(`segments[${i}] is missing "url"`)
+      if (typeof s.mode   !== 'string' || !s.mode)   throw new Error(`segments[${i}] is missing "mode"`)
+      if (typeof s.offset !== 'string' || !s.offset) throw new Error(`segments[${i}] is missing "offset"`)
     }
     const driverQuery = opts.driver ?? config.driver
     if (!driverQuery) throw new Error('--driver is required (or set "driver" in config file)')
