@@ -12,19 +12,32 @@ export type LapColor = 'purple' | 'green' | 'red'
  * cumulative time is <= the target lap's cumulative time. This assumes all drivers
  * start at the same time, which holds for karting group sessions.
  */
+/**
+ * @param targetLaps - Must be in ascending cumulative-time order (session.laps always satisfies this).
+ */
 export function computeLapColors(targetLaps: Lap[], sessionAllLaps: Lap[][]): LapColor[] {
-  const allLaps = sessionAllLaps.flat()
+  if (targetLaps.length === 0) return []
+
+  // Sort all session laps once — O(n log n). targetLaps must already be
+  // in ascending cumulative order (guaranteed by session.laps construction).
+  const allLaps = sessionAllLaps.flat().sort((a, b) => a.cumulative - b.cumulative)
+
   let personalBest = Infinity
+  let sessionBest = Infinity
+  let j = 0
 
   return targetLaps.map(lap => {
-    const sessionBest = allLaps
-      .filter(l => l.cumulative <= lap.cumulative)
-      .reduce((min, l) => Math.min(min, l.lapTime), Infinity)
+    // Advance pointer to include every session lap whose cumulative time
+    // is <= this lap's cumulative — i.e. laps that had already occurred.
+    while (j < allLaps.length && allLaps[j].cumulative <= lap.cumulative) {
+      sessionBest = Math.min(sessionBest, allLaps[j].lapTime)
+      j++
+    }
 
     const isPersonalBest = lap.lapTime < personalBest
     personalBest = Math.min(personalBest, lap.lapTime)
 
     if (!isPersonalBest) return 'red'
-    return lap.lapTime <= sessionBest ? 'purple' : 'green' // <= is intentional: target is included in sessionAllLaps, so if no one else is faster, sessionBest === lap.lapTime
+    return lap.lapTime <= sessionBest ? 'purple' : 'green'
   })
 }

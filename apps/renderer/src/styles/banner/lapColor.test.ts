@@ -36,4 +36,14 @@ describe('computeLapColors', () => {
     const target = [lap(1, 60, 60)]
     expect(computeLapColors(target, [target])).toEqual(['purple'])
   })
+
+  it('produces correct colors when sessionAllLaps contains laps from multiple drivers interleaved by cumulative', () => {
+    // Driver A laps: cumulative 60, 115
+    // Driver B laps: cumulative 50, 90 — interleaved before A's laps
+    const target = [lap(1, 60, 60), lap(2, 55, 115)]
+    const other  = [lap(1, 50, 50), lap(2, 45, 90)]
+    // Session best at cum<=60: min(50, 60) = 50 → target lap 1 (60) is PB but not session best → green
+    // Session best at cum<=115: min(50, 60, 45, 90, 55) = 45 → target lap 2 (55) is PB (55<60) but not session best (55>45) → green
+    expect(computeLapColors(target, [target, other])).toEqual(['green', 'green'])
+  })
 })
