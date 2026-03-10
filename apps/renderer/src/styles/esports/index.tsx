@@ -91,7 +91,7 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
-  const { session, sessionAllLaps } = segment
+  const { session } = segment
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {
