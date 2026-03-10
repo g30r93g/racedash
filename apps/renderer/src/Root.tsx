@@ -24,6 +24,7 @@ const defaultSession: OverlayProps['session'] = {
 const defaultProps: OverlayProps = {
   session: defaultSession,
   sessionAllLaps: [defaultSession.laps],
+  mode: 'race',
   fps: 60,
   durationInFrames: 300,
 }
