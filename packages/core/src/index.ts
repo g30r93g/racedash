@@ -19,18 +19,24 @@ export type SessionMode = 'practice' | 'qualifying' | 'race'
 
 export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
 
-export interface OverlayProps {
-  session: SessionData
-  sessionAllLaps: Lap[][]   // one Lap[] per driver, used for session-best comparison
+export interface SessionSegment {
   mode: SessionMode
-  startingGridPosition?: number  // race only: grid position at race start
+  session: SessionData
+  sessionAllLaps: Lap[][]   // one Lap[] per driver; segment-isolated (no cross-segment data)
+  label?: string            // shown ±labelWindowSeconds around this segment's offset
+}
+
+export interface OverlayProps {
+  segments: SessionSegment[]
+  startingGridPosition?: number   // race only: grid position at race start
   fps: number
   durationInFrames: number
   videoWidth?: number
   videoHeight?: number
   boxPosition?: BoxPosition
-  accentColor?: string    // hex/CSS color for style accent (e.g. banner green band)
-  textColor?: string      // hex/CSS color for overlay text (default: white)
-  timerTextColor?: string // hex/CSS color for the lap timer text (default: white)
-  timerBgColor?: string   // hex/CSS color for the lap timer background (default: #111111)
+  accentColor?: string
+  textColor?: string
+  timerTextColor?: string
+  timerBgColor?: string
+  labelWindowSeconds?: number     // default 5
 }
