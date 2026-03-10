@@ -71,7 +71,7 @@ interface RenderOpts {
   offset?: string
   mode?: string
   label?: string
-  driver: string
+  driver?: string
   video: string
   output: string
   fps: string
@@ -94,7 +94,7 @@ program
   .option('--mode <mode>', 'Session mode for inline segment: practice, qualifying, or race')
   .option('--offset <time>', 'Video timestamp at session start, e.g. 0:02:15.500 (inline single-segment)')
   .option('--label <text>', 'Segment label shown around offset (inline single-segment)')
-  .requiredOption('--driver <name>', 'Driver name (partial, case-insensitive)')
+  .option('--driver <name>', 'Driver name (partial, case-insensitive)')
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--fps <n>', 'Output framerate', '60')
