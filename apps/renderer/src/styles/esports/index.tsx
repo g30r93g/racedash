@@ -104,10 +104,12 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
       ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
       : EMPTY_TIME
 
-  const allLaps = sessionAllLaps.flat()
+  // Only include laps completed by any driver up to this point in the race
+  const raceElapsed = currentTime - session.timestamps[0].ytSeconds
+  const completedByNow = sessionAllLaps.flat().filter(l => l.cumulative <= raceElapsed)
   const sessionBestTime =
-    allLaps.length > 0
-      ? formatLapTime(Math.min(...allLaps.map(l => l.lapTime)))
+    completedByNow.length > 0
+      ? formatLapTime(Math.min(...completedByNow.map(l => l.lapTime)))
       : EMPTY_TIME
 
   const elapsed = getLapElapsed(currentLap, currentTime)
