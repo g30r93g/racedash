@@ -7,6 +7,9 @@ import type { Lap, SessionMode } from '@racedash/core'
  * Practice/Qualifying: rank by best lap time through lap N (lower = better).
  *
  * Drivers without N laps completed are excluded from comparison.
+ *
+ * @param currentLaps - Must be the same array reference that appears in `sessionAllLaps`.
+ *   The function skips it by reference equality to avoid double-counting the current driver.
  */
 export function getPosition(
   mode: SessionMode,
@@ -27,6 +30,7 @@ export function getPosition(
 }
 
 function computeScore(mode: SessionMode, lapNumber: number, laps: Lap[]): number | null {
+  if (lapNumber < 1) return null
   const slice = laps.slice(0, lapNumber)
   if (slice.length < lapNumber) return null
 

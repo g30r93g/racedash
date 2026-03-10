@@ -49,6 +49,11 @@ describe('getPosition — race mode', () => {
     const allWithShort = [currentLaps, fasterDriver, slowerDriver, shortDriver]
     expect(getPosition('race', 3, currentLaps, allWithShort)).toBe(2)
   })
+
+  it('returns P1 for lapNumber 0 (before race starts)', () => {
+    const allLaps = [currentLaps, fasterDriver, slowerDriver]
+    expect(getPosition('race', 0, currentLaps, allLaps)).toBe(1)
+  })
 })
 
 describe('getPosition — qualifying/practice mode', () => {
@@ -73,5 +78,10 @@ describe('getPosition — qualifying/practice mode', () => {
     const tiedDriver: Lap[] = [lap(1, 68.0, 68.0)]  // same best as currentLaps lap 1
     const allLaps = [currentLaps, tiedDriver]
     expect(getPosition('qualifying', 1, currentLaps, allLaps)).toBe(1)
+  })
+
+  it('returns P1 for lapNumber 0 (before any laps complete)', () => {
+    const allLaps = [currentLaps, fasterDriver, slowerDriver]
+    expect(getPosition('qualifying', 0, currentLaps, allLaps)).toBe(1)
   })
 })
