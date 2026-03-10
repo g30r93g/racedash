@@ -158,7 +158,7 @@ pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "
 | Style | Description | Recommended placement (1080p) |
 |-------|-------------|-------------------------------|
 | `banner` | Full-width top strip with trapezoid lap timer. Flashes purple/green/red on lap completion based on session best. | `--overlay-x 0 --overlay-y 0` |
-| `esports` | Full-width bottom strip with icon panels showing last lap (green) and session best (purple), plus a current-lap ticker. | `--overlay-x 0 --overlay-y 852` |
+| `esports` | Bottom-left box with icon panels showing last lap (green) and session best (purple), plus a current-lap ticker. | `--overlay-x 20 --overlay-y 832` |
 | `minimal` | Compact dark card with lap number badge, large elapsed timer, and last lap / session best stats. | `--overlay-x 48 --overlay-y 882` |
 | `modern` | Slim translucent bar with a subtle banner stripe pattern. Shows elapsed time alongside last lap and session best. | `--overlay-x 0 --overlay-y 984` |
 

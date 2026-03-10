@@ -28,8 +28,8 @@ export const registry: Record<string, RegistryEntry> = {
     component: Esports,
     width: 480,
     height: 228,
-    overlayX: 48,
-    overlayY: 804,
+    overlayX: 20,
+    overlayY: 832,
   },
   minimal: {
     component: Minimal,
