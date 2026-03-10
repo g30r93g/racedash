@@ -4,9 +4,9 @@ import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid } from '@racedash/scr
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
-import { access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { BoxPosition, OverlayProps, SessionData, SessionMode } from '@racedash/core'
+import type { BoxPosition, OverlayProps, SessionData, SessionMode, SessionSegment } from '@racedash/core'
 
 program
   .name('racedash')
@@ -66,110 +66,179 @@ program
   })
 
 interface RenderOpts {
-  offset: string
+  config?: string
+  url?: string
+  offset?: string
+  mode?: string
+  label?: string
+  driver: string
   video: string
   output: string
   fps: string
   style: string
   overlayX: string
   overlayY: string
-  mode: string
   boxPosition: string
   accentColor?: string
   textColor?: string
   timerTextColor?: string
   timerBgColor?: string
+  labelWindow?: string
 }
 
 program
-  .command('render <url> [driver]')
-  .description('Render geometric overlay onto video')
-  .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15')
+  .command('render')
+  .description('Render overlay onto video')
+  .option('--config <path>', 'Path to JSON session config file')
+  .option('--url <url>', 'Session URL (inline single-segment)')
+  .option('--mode <mode>', 'Session mode for inline segment: practice, qualifying, or race')
+  .option('--offset <time>', 'Video timestamp at session start, e.g. 0:02:15.500 (inline single-segment)')
+  .option('--label <text>', 'Segment label shown around offset (inline single-segment)')
+  .requiredOption('--driver <name>', 'Driver name (partial, case-insensitive)')
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--fps <n>', 'Output framerate', '60')
   .option('--style <name>', 'Overlay style', 'banner')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
-  .option('--mode <mode>', 'Session mode: practice, qualifying, or race')
   .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
-  .option('--accent-color <color>', 'Accent color for the overlay style (CSS color or hex, e.g. #3DD73D)')
-  .option('--text-color <color>', 'Text color for the overlay (CSS color or hex, default: white)')
+  .option('--accent-color <color>', 'Accent color (CSS color or hex, e.g. #3DD73D)')
+  .option('--text-color <color>', 'Text color for the overlay (default: white)')
   .option('--timer-text-color <color>', 'Text color for the lap timer (default: white)')
   .option('--timer-bg-color <color>', 'Background color for the lap timer (default: #111111)')
-  .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
+  .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', '5')
+  .action(async (opts: RenderOpts) => {
     try {
       const fps = parseInt(opts.fps, 10)
       if (isNaN(fps)) {
         console.error('Error: --fps must be a valid integer')
         process.exit(1)
       }
-      const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
-      const normalised = opts.mode?.toLowerCase()
-      if (!normalised || !validModes.includes(normalised as SessionMode)) {
-        console.error(`Error: --mode must be one of: ${validModes.join(', ')}`)
-        process.exit(1)
-      }
-      const mode = normalised as SessionMode
-
       const validBoxPositions: BoxPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
       if (!validBoxPositions.includes(opts.boxPosition as BoxPosition)) {
         console.error(`Error: --box-position must be one of: ${validBoxPositions.join(', ')}`)
         process.exit(1)
       }
       const boxPosition = opts.boxPosition as BoxPosition
-      const rawOffsetSeconds = parseOffset(opts.offset)
+      const labelWindowSeconds = parseFloat(opts.labelWindow ?? '5')
+      if (isNaN(labelWindowSeconds) || labelWindowSeconds < 0) {
+        console.error('Error: --label-window must be a non-negative number')
+        process.exit(1)
+      }
       const frameDuration = 1 / fps
-      // Snap to nearest frame, then strip floating-point drift
-      const offsetSeconds = Math.round(Math.round(rawOffsetSeconds / frameDuration) * frameDuration * 1e6) / 1e6
-      const offsetSnapped = Math.abs(offsetSeconds - rawOffsetSeconds) >= 0.0001
 
-      process.stderr.write('\n  Fetching session data and probing video...\n')
-      const [html, gridHtml, durationSeconds, videoResolution] = await Promise.all([
-        fetchHtml(url),
-        mode === 'race' ? fetchGridHtml(url) : Promise.resolve(null),
-        getVideoDuration(opts.video),
-        getVideoResolution(opts.video),
-      ])
-      const durationInFrames = Math.ceil(durationSeconds * fps)
+      const { segments: segmentConfigs, driverQuery } = await loadRenderConfig(opts)
 
-      const drivers = parseDrivers(html)
-      const driver = await selectDriver(drivers, driverQuery)
-      const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
-
-      let startingGridPosition: number | undefined
-      if (gridHtml) {
-        const grid = parseGrid(gridHtml)
-        const gridEntry = grid.find(e => e.kart === driver.kart)
-        if (gridEntry) {
-          startingGridPosition = gridEntry.position
-        } else {
-          process.stderr.write(`\n  ⚠  kart ${driver.kart} not found in starting grid\n`)
+      // Validate all modes up front
+      const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
+      for (const sc of segmentConfigs) {
+        const normalised = sc.mode?.toLowerCase()
+        if (!normalised || !validModes.includes(normalised as SessionMode)) {
+          console.error(`Error: segment mode "${sc.mode}" must be one of: ${validModes.join(', ')}`)
+          process.exit(1)
         }
       }
 
-      const session: SessionData = {
-        driver: { kart: driver.kart, name: driver.name },
-        laps: driver.laps,
-        timestamps,
+      process.stderr.write('\n  Fetching session data and probing video...\n')
+
+      // Parse and snap each segment's offset
+      const rawOffsets = segmentConfigs.map(sc => parseOffset(sc.offset))
+      const snappedOffsets = rawOffsets.map(raw => {
+        const snapped = Math.round(Math.round(raw / frameDuration) * frameDuration * 1e6) / 1e6
+        return snapped
+      })
+
+      // Fetch all segment HTMLs + race grid + video metadata in parallel
+      const raceSegmentIndices = segmentConfigs
+        .map((sc, i) => (sc.mode.toLowerCase() === 'race' ? i : -1))
+        .filter(i => i >= 0)
+
+      const [durationSeconds, videoResolution, ...fetchResults] = await Promise.all([
+        getVideoDuration(opts.video),
+        getVideoResolution(opts.video),
+        ...segmentConfigs.map(sc => fetchHtml(sc.url)),
+        ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
+      ])
+
+      const htmls = fetchResults.slice(0, segmentConfigs.length) as string[]
+      const gridHtmls = fetchResults.slice(segmentConfigs.length) as string[]
+
+      // Build SessionSegment[] — find driver in each segment independently
+      const segments: SessionSegment[] = []
+      let startingGridPosition: number | undefined
+
+      for (let i = 0; i < segmentConfigs.length; i++) {
+        const sc = segmentConfigs[i]
+        const mode = sc.mode.toLowerCase() as SessionMode
+        const html = htmls[i]
+        const offsetSeconds = snappedOffsets[i]
+
+        const allDrivers = parseDrivers(html)
+        // Driver matching: partial, case-insensitive; error on 0 or 2+ matches
+        const matches = allDrivers.filter(d =>
+          d.name.toLowerCase().includes(driverQuery.toLowerCase()),
+        )
+        if (matches.length === 0) {
+          console.error(`Error: no driver matching "${driverQuery}" found in segment ${i + 1} (${sc.url})`)
+          process.exit(1)
+        }
+        if (matches.length > 1) {
+          console.error(
+            `Error: "${driverQuery}" is ambiguous in segment ${i + 1}. Matches:\n` +
+              matches.map(d => `  [${d.kart}] ${d.name}`).join('\n'),
+          )
+          process.exit(1)
+        }
+        const driver = matches[0]
+        const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
+
+        const session: SessionData = {
+          driver: { kart: driver.kart, name: driver.name },
+          laps: driver.laps,
+          timestamps,
+        }
+
+        // Grid position from first race segment
+        if (mode === 'race' && startingGridPosition === undefined) {
+          const raceIdx = raceSegmentIndices.indexOf(i)
+          if (raceIdx >= 0 && gridHtmls[raceIdx]) {
+            const grid = parseGrid(gridHtmls[raceIdx])
+            const entry = grid.find(e => e.kart === driver.kart)
+            if (entry) startingGridPosition = entry.position
+            else process.stderr.write(`\n  ⚠  kart ${driver.kart} not found in starting grid\n`)
+          }
+        }
+
+        const rawOffset = rawOffsets[i]
+        const snapped = snappedOffsets[i]
+        const offsetSnapped = Math.abs(snapped - rawOffset) >= 0.0001
+
+        stat(`Segment ${i + 1}`, `[${mode}]  ${driver.name}  [${driver.kart}]  ·  ${driver.laps.length} laps`)
+        if (offsetSnapped) {
+          stat('  Offset', `${formatOffsetTime(rawOffset)} → ${formatOffsetTime(snapped)}  (snapped)`)
+        } else {
+          stat('  Offset', formatOffsetTime(snapped))
+        }
+        if (sc.label) stat('  Label', sc.label)
+
+        segments.push({
+          mode,
+          session,
+          sessionAllLaps: allDrivers.map(d => d.laps),
+          label: sc.label,
+        })
       }
 
-      const resolvedAccent      = opts.accentColor    ?? '#3DD73D'
-      const resolvedText        = opts.textColor      ?? 'white'
-      const resolvedTimerText   = opts.timerTextColor ?? resolvedText
-      const resolvedTimerBg     = opts.timerBgColor   ?? '#111111'
+      const durationInFrames = Math.ceil(durationSeconds * fps)
 
       process.stderr.write('\n')
-      stat('Driver',      `${driver.name}  [${driver.kart}]  ·  ${driver.laps.length} laps`)
-      stat('Mode',        mode)
+      stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${fps} fps`)
       if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
-      stat('Video',       `${videoResolution.width}×${videoResolution.height}  ·  ${fps} fps`)
-      if (offsetSnapped) {
-        stat('Offset', `${formatOffsetTime(rawOffsetSeconds)} → ${formatOffsetTime(offsetSeconds)}  (snapped to nearest frame)`)
-      } else {
-        stat('Offset', formatOffsetTime(offsetSeconds))
-      }
-      stat('Style',       opts.style)
+      stat('Style', opts.style)
+      const resolvedAccent    = opts.accentColor    ?? '#3DD73D'
+      const resolvedText      = opts.textColor      ?? 'white'
+      const resolvedTimerText = opts.timerTextColor ?? resolvedText
+      const resolvedTimerBg   = opts.timerBgColor   ?? '#111111'
       stat('Accent',      `${colorSwatch(resolvedAccent)}${resolvedAccent}`)
       stat('Text',        `${colorSwatch(resolvedText)}${resolvedText}`)
       stat('Timer text',  `${colorSwatch(resolvedTimerText)}${resolvedTimerText}`)
@@ -177,9 +246,7 @@ program
       process.stderr.write('\n')
 
       const overlayProps: OverlayProps = {
-        session,
-        sessionAllLaps: drivers.map(d => d.laps),
-        mode,
+        segments,
         startingGridPosition,
         fps,
         durationInFrames,
@@ -190,14 +257,10 @@ program
         textColor: opts.textColor,
         timerTextColor: opts.timerTextColor,
         timerBgColor: opts.timerBgColor,
+        labelWindowSeconds,
       }
 
-      // Resolves to apps/renderer/src/index.ts from apps/cli/dist/ at runtime.
-      // This only works when run from within the monorepo working tree (dev use).
-      const rendererEntry = path.resolve(
-        __dirname,
-        '../../../apps/renderer/src/index.ts',
-      )
+      const rendererEntry = path.resolve(__dirname, '../../../apps/renderer/src/index.ts')
       const overlayPath = opts.output.replace(/\.[^.]+$/, '-overlay.mov')
       const workStart = Date.now()
 
@@ -225,9 +288,6 @@ program
         process.exit(1)
       }
 
-      // Box-style overlays render a short strip (not full-height canvas) to avoid wasting
-      // Chromium rendering time on transparent pixels. Auto-calculate the vertical offset
-      // so bottom-anchored boxes land at the correct position in the video.
       const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 250, minimal: 190 }
       const stripHeight = BOX_STRIP_HEIGHTS[opts.style]
       if (stripHeight != null) {
@@ -317,37 +377,80 @@ function colorSwatch(color: string): string {
 
 function makeProgressCallback(label: string): (progress: number) => void {
   const tag = label.padEnd(16)
-  let lastProgress = 0
-  let lastTime = Date.now()
-  let smoothedRate = 0   // EMA of progress-per-second
+  const wallStart = Date.now()
+
+  // Sliding window rate estimation: sample progress every SAMPLE_MS,
+  // keep the last WINDOW samples. Rate = (newest - oldest) / time span.
+  // This adapts to recent speed without being dominated by early fast/slow
+  // startup periods, and only updates ETA once per second to avoid jitter.
+  const SAMPLE_MS = 1000
+  const WINDOW = 10
+  const samples: Array<[number, number]> = [] // [timestamp ms, progress]
+  let lastSampleTime = 0
   let etaStr = ''
 
   return (progress: number) => {
     const now = Date.now()
     const pct = `${Math.round(progress * 100)}%`.padStart(4)
     const bar = progressBar(progress)
+    const et = formatSeconds(Math.round((now - wallStart) / 1000))
 
     if (progress > 0.001 && progress < 0.999) {
-      const dt = (now - lastTime) / 1000
-      if (dt > 0) {
-        const instantRate = (progress - lastProgress) / dt
-        // EMA: weight recent samples lightly so the estimate stabilises quickly
-        // but doesn't overreact to individual fast/slow ticks
-        smoothedRate = smoothedRate === 0
-          ? instantRate
-          : 0.05 * instantRate + 0.95 * smoothedRate
-      }
-      if (smoothedRate > 0) {
-        const remaining = Math.max(0, (1 - progress) / smoothedRate)
-        etaStr = `  ETA ${formatSeconds(Math.round(remaining))}`
+      if (now - lastSampleTime >= SAMPLE_MS) {
+        samples.push([now, progress])
+        if (samples.length > WINDOW) samples.shift()
+        lastSampleTime = now
+
+        if (samples.length >= 2) {
+          const [t0, p0] = samples[0]
+          const [tN, pN] = samples[samples.length - 1]
+          const rate = (pN - p0) / ((tN - t0) / 1000)
+          if (rate > 0) {
+            const remaining = (1 - progress) / rate
+            etaStr = `  ETA ${formatSeconds(Math.round(remaining))}`
+          }
+        }
       }
     } else if (progress >= 0.999) {
       etaStr = ''
     }
 
-    lastProgress = progress
-    lastTime = now
-    process.stderr.write(`\r  ${tag}  [${bar}]  ${pct}${etaStr}   `)
+    process.stderr.write(`\r  ${tag}  [${bar}]  ${pct}  ET ${et}${etaStr}   `)
+  }
+}
+
+interface SegmentConfig {
+  mode: string
+  url: string
+  offset: string
+  label?: string
+}
+
+interface RenderConfig {
+  segments: SegmentConfig[]
+  driver?: string
+}
+
+async function loadRenderConfig(opts: RenderOpts): Promise<{ segments: SegmentConfig[]; driverQuery: string }> {
+  if (opts.config) {
+    const raw = JSON.parse(await readFile(opts.config, 'utf8'))
+    const config = raw as RenderConfig
+    if (!Array.isArray(config.segments) || config.segments.length === 0) {
+      throw new Error('Config file must contain a non-empty "segments" array')
+    }
+    const driverQuery = opts.driver ?? config.driver
+    if (!driverQuery) throw new Error('--driver is required (or set "driver" in config file)')
+    return { segments: config.segments, driverQuery }
+  }
+
+  // Inline single-segment
+  if (!opts.url || !opts.mode || !opts.offset) {
+    throw new Error('Provide --config <path> or all of --url, --mode, and --offset for a single segment')
+  }
+  if (!opts.driver) throw new Error('--driver is required')
+  return {
+    segments: [{ mode: opts.mode, url: opts.url, offset: opts.offset, label: opts.label }],
+    driverQuery: opts.driver,
   }
 }
 
