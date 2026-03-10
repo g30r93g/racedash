@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
+import { useActiveSegment } from '../../activeSegment'
+import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 
-const EMPTY_TIME = '\u2014:--.---'
+const EMPTY_TIME = '—:--.---'
 
 interface StatColumnProps {
   label: string
@@ -13,15 +15,9 @@ interface StatColumnProps {
   scale: number
 }
 
-function StatColumn({ label, value, scale }: StatColumnProps) {
+const StatColumn = React.memo(function StatColumn({ label, value, scale }: StatColumnProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4 * scale,
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 * scale }}>
       <span
         style={{
           fontSize: 10 * scale,
@@ -46,140 +42,130 @@ function StatColumn({ label, value, scale }: StatColumnProps) {
       </span>
     </div>
   )
-}
+})
 
-export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, boxPosition = 'bottom-left' }) => {
+export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = 'bottom-left', labelWindowSeconds }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
 
   const currentTime = frame / fps
+  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
+  const { session } = segment
 
-  // Pre-race guard
   const raceStart = session.timestamps[0].ytSeconds
-  if (currentTime < raceStart) return null
+  const segEnd = useMemo(() => {
+    const lastTs = session.timestamps[session.timestamps.length - 1]
+    return lastTs.ytSeconds + lastTs.lap.lapTime
+  }, [session.timestamps])
 
-  // Post-race guard
-  const lastTs = session.timestamps[session.timestamps.length - 1]
-  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
-  if (currentTime >= raceEnd) return null
+  const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
 
-  const currentLap = getLapAtTime(session.timestamps, currentTime)
-  const currentIdx = session.timestamps.indexOf(currentLap)
-
-  const completedLaps = getCompletedLaps(session.timestamps, currentIdx)
-  const lastLapTime =
-    completedLaps.length > 0
+  const currentLap = useMemo(
+    () => getLapAtTime(session.timestamps, effectiveTime),
+    [session.timestamps, effectiveTime],
+  )
+  const currentIdx = useMemo(
+    () => session.timestamps.indexOf(currentLap),
+    [session.timestamps, currentLap],
+  )
+  const completedLaps = useMemo(
+    () => getCompletedLaps(session.timestamps, currentIdx),
+    [session.timestamps, currentIdx],
+  )
+  const lastLapTime = useMemo(
+    () => completedLaps.length > 0
       ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
-      : EMPTY_TIME
-  const best = getSessionBest(completedLaps)
-  const sessionBestTime = best !== null ? formatLapTime(best) : EMPTY_TIME
+      : EMPTY_TIME,
+    [completedLaps],
+  )
+  const sessionBestTime = useMemo(() => {
+    const best = getSessionBest(completedLaps)
+    return best !== null ? formatLapTime(best) : EMPTY_TIME
+  }, [completedLaps])
 
-  // Current lap elapsed formatted as m:ss.mmm
-  const elapsed = getLapElapsed(currentLap, currentTime)
+  const styles = useMemo(() => {
+    const margin = 20 * scale
+    const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+    const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
+    const padV = 14 * scale
+    const padH = 20 * scale
+    const badgeSize = 36 * scale
+    return {
+      card: {
+        position: 'absolute' as const,
+        ...vPos,
+        ...hPos,
+        width: 440 * scale,
+        height: 150 * scale,
+        background: 'rgba(20, 22, 28, 0.88)',
+        borderRadius: 12 * scale,
+        padding: `${padV}px ${padH}px`,
+        boxSizing: 'border-box' as const,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        justifyContent: 'space-between',
+        fontFamily,
+        userSelect: 'none' as const,
+      },
+      row: {
+        display: 'flex',
+        flexDirection: 'row' as const,
+        alignItems: 'center',
+        gap: 12 * scale,
+      },
+      badge: {
+        width: badgeSize,
+        height: badgeSize,
+        background: 'white',
+        borderRadius: 4 * scale,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      },
+      badgeText: {
+        fontSize: 18 * scale,
+        fontWeight: 700,
+        color: '#222222',
+        lineHeight: 1,
+      },
+      elapsed: {
+        fontSize: 58 * scale,
+        fontWeight: 700,
+        fontStyle: 'italic',
+        color: 'white',
+        lineHeight: 1,
+        letterSpacing: -0.5 * scale,
+      },
+      statRow: {
+        display: 'flex',
+        flexDirection: 'row' as const,
+        gap: 28 * scale,
+      },
+    }
+  }, [scale, boxPosition])
+
+  if (currentTime < raceStart && !isEnd) return null
+
+  const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
-
-  // Lap number
-  const lapNumber = currentLap.lap.number
-
-  // Dimensions
-  const cardW = 440 * scale
-  const cardH = 150 * scale
-  const borderRadius = 12 * scale
-  const padV = 14 * scale
-  const padH = 20 * scale
-  const rowGap = 12 * scale
-  const statRowGap = 28 * scale
-
-  // Lap badge
-  const badgeSize = 36 * scale
-  const badgeBorderRadius = 4 * scale
-
-  const margin = 20 * scale
-  const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
-  const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
 
   return (
     <AbsoluteFill>
-      <div
-        style={{
-          position: 'absolute',
-          ...vPos,
-          ...hPos,
-          width: cardW,
-          height: cardH,
-          background: 'rgba(20, 22, 28, 0.88)',
-          borderRadius,
-          padding: `${padV}px ${padH}px`,
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          fontFamily,
-          userSelect: 'none',
-        }}
-      >
-        {/* Row 1: Lap badge + elapsed time */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: rowGap,
-          }}
-        >
-          {/* Lap number badge */}
-          <div
-            style={{
-              width: badgeSize,
-              height: badgeSize,
-              background: 'white',
-              borderRadius: badgeBorderRadius,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 18 * scale,
-                fontWeight: 700,
-                color: '#222222',
-                lineHeight: 1,
-              }}
-            >
-              {lapNumber}
-            </span>
+      <div style={styles.card}>
+        <div style={styles.row}>
+          <div style={styles.badge}>
+            <span style={styles.badgeText}>{currentLap.lap.number}</span>
           </div>
-
-          {/* Elapsed time — large bold italic ticker */}
-          <span
-            style={{
-              fontSize: 58 * scale,
-              fontWeight: 700,
-              fontStyle: 'italic',
-              color: 'white',
-              lineHeight: 1,
-              letterSpacing: -0.5 * scale,
-            }}
-          >
-            {elapsedFormatted}
-          </span>
+          <span style={styles.elapsed}>{elapsedFormatted}</span>
         </div>
-
-        {/* Row 2: Stat columns */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            gap: statRowGap,
-          }}
-        >
+        <div style={styles.statRow}>
           <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} />
           <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} />
         </div>
       </div>
+      {label && <SegmentLabel label={label} scale={scale} />}
     </AbsoluteFill>
   )
 }
