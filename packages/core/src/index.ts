@@ -20,4 +20,6 @@ export interface OverlayProps {
   sessionAllLaps: Lap[][]   // one Lap[] per driver, used for session-best comparison
   fps: number
   durationInFrames: number
+  videoWidth?: number
+  videoHeight?: number
 }

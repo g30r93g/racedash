@@ -1,5 +1,5 @@
 import React from 'react'
-import { useCurrentFrame } from 'remotion'
+import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import type { LapColor } from './lapColor'
 import { getLapAtTime, getLapElapsed } from '../../timing'
@@ -29,6 +29,8 @@ function formatTime(seconds: number): string {
 
 export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) => {
   const frame = useCurrentFrame()
+  const { width } = useVideoConfig()
+  const scale = width / 1920
   const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
@@ -71,8 +73,8 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) =>
   return (
     <div
       style={{
-        width: 300,
-        height: 80,
+        width: 300 * scale,
+        height: 80 * scale,
         clipPath: 'polygon(0 0, 100% 0, 83% 100%, 17% 100%)',
         background: BACKGROUND[bgKey],
         display: 'flex',
@@ -83,10 +85,10 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) =>
       <span
         style={{
           fontFamily,
-          fontSize: 36,
+          fontSize: 36 * scale,
           fontWeight: 400,
           color: 'white',
-          letterSpacing: 1,
+          letterSpacing: 1 * scale,
           userSelect: 'none',
         }}
       >

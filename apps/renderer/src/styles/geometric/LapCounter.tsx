@@ -1,5 +1,5 @@
 import React from 'react'
-import { useCurrentFrame } from 'remotion'
+import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import { getLapAtTime } from '../../timing'
 import { fontFamily } from '../../Root'
@@ -11,6 +11,8 @@ interface Props {
 
 export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
   const frame = useCurrentFrame()
+  const { width } = useVideoConfig()
+  const scale = width / 1920
   const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
@@ -25,24 +27,24 @@ export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
   return (
     <div
       style={{
-        width: 180,
-        height: 80,
+        width: 180 * scale,
+        height: 80 * scale,
         // Right-angle trapezium: right edge vertical, left edge angled inward at bottom
         clipPath: 'polygon(0 0, 100% 0, 100% 100%, 17% 100%)',
         background: 'rgba(0,0,0,0.65)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingRight: 16,
+        paddingRight: 16 * scale,
       }}
     >
       <span
         style={{
           fontFamily,
-          fontSize: 28,
+          fontSize: 28 * scale,
           fontWeight: 400,
           color: 'white',
-          letterSpacing: 1,
+          letterSpacing: 1 * scale,
           userSelect: 'none',
         }}
       >

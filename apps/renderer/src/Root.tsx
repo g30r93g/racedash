@@ -39,10 +39,16 @@ function OverlayComposition({ id, entry }: { id: string; entry: RegistryEntry })
       component={entry.component}
       width={entry.width}
       height={entry.height}
-      calculateMetadata={({ props }: { props: OverlayProps }) => ({
-        durationInFrames: props.durationInFrames,
-        fps: props.fps,
-      })}
+      calculateMetadata={({ props }: { props: OverlayProps }) => {
+        const width = props.videoWidth ?? entry.width
+        const scale = width / entry.width
+        return {
+          durationInFrames: props.durationInFrames,
+          fps: props.fps,
+          width,
+          height: Math.round(entry.height * scale),
+        }
+      }}
       defaultProps={defaultProps}
     />
   )

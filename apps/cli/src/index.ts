@@ -4,7 +4,7 @@ import { fetchHtml, parseDrivers } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
-import { compositeVideo, getVideoDuration, renderOverlay, joinVideos } from '@racedash/compositor'
+import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
 import type { OverlayProps, SessionData } from '@racedash/core'
 
 program
@@ -94,9 +94,10 @@ program
       const offsetSeconds = parseOffset(opts.offset)
 
       console.error('Fetching laptimes and probing video...')
-      const [html, durationSeconds] = await Promise.all([
+      const [html, durationSeconds, videoResolution] = await Promise.all([
         fetchHtml(url),
         getVideoDuration(opts.video),
+        getVideoResolution(opts.video),
       ])
       const durationInFrames = Math.ceil(durationSeconds * fps)
 
@@ -111,11 +112,14 @@ program
         laps: driver.laps,
         timestamps,
       }
+      console.error(`Video resolution: ${videoResolution.width}×${videoResolution.height}`)
       const overlayProps: OverlayProps = {
         session,
         sessionAllLaps: drivers.map(d => d.laps),
         fps,
         durationInFrames,
+        videoWidth: videoResolution.width,
+        videoHeight: videoResolution.height,
       }
 
       // Resolves to apps/renderer/src/index.ts from apps/cli/dist/ at runtime.
