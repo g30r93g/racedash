@@ -27,7 +27,7 @@ export const registry: Record<string, RegistryEntry> = {
   esports: {
     component: Esports,
     width: 1920,
-    height: 1080,
+    height: 250,   // box (210) + top/bottom margin (20 each) at 1920-reference scale
     overlayX: 0,
     overlayY: 0,
     scaleWithVideo: true,
@@ -35,7 +35,7 @@ export const registry: Record<string, RegistryEntry> = {
   minimal: {
     component: Minimal,
     width: 1920,
-    height: 1080,
+    height: 190,   // card (150) + top/bottom margin (20 each) at 1920-reference scale
     overlayX: 0,
     overlayY: 0,
     scaleWithVideo: true,

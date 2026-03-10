@@ -29,5 +29,8 @@ export interface OverlayProps {
   videoWidth?: number
   videoHeight?: number
   boxPosition?: BoxPosition
-  accentColor?: string   // hex/CSS color for style accent (e.g. banner green band)
+  accentColor?: string    // hex/CSS color for style accent (e.g. banner green band)
+  textColor?: string      // hex/CSS color for overlay text (default: white)
+  timerTextColor?: string // hex/CSS color for the lap timer text (default: white)
+  timerBgColor?: string   // hex/CSS color for the lap timer background (default: #111111)
 }

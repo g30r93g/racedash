@@ -42,7 +42,7 @@ export async function renderOverlay(
     outputLocation: outputPath,
     inputProps,
     chromiumOptions: { gl: 'angle' },
-    concurrency: Math.max(1, cpus().length - 1),
+    concurrency: cpus().length,
     onProgress: onProgress ? ({ progress }) => onProgress(progress) : undefined,
   })
 }
