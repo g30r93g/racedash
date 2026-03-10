@@ -6,6 +6,7 @@ import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '.
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
+import { QualifyingTable } from '../../components/shared/QualifyingTable'
 
 const EMPTY_TIME = '—:--.---'
 
@@ -51,7 +52,9 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
-  const { session } = segment
+  const { session, mode } = segment
+
+  const showQualTable = (mode === 'qualifying' || mode === 'practice') && segment.qualifyingDrivers != null
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {
@@ -165,6 +168,14 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
           <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} />
         </div>
       </div>
+      {showQualTable && (
+        <QualifyingTable
+          qualifyingDrivers={segment.qualifyingDrivers!}
+          ourKart={session.driver.kart}
+          fps={fps}
+          accentColor={undefined}
+        />
+      )}
       {label && <SegmentLabel label={label} scale={scale} />}
     </AbsoluteFill>
   )

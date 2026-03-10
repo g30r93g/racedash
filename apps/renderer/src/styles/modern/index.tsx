@@ -6,6 +6,7 @@ import { getLapAtTime, getLapElapsed } from '../../timing'
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
+import { QualifyingTable } from '../../components/shared/QualifyingTable'
 
 const PLACEHOLDER = '—:--.---'
 
@@ -16,7 +17,9 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
-  const { session, sessionAllLaps } = segment
+  const { session, sessionAllLaps, mode } = segment
+
+  const showQualTable = (mode === 'qualifying' || mode === 'practice') && segment.qualifyingDrivers != null
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {
@@ -140,6 +143,14 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
           </div>
         </div>
       </div>
+      {showQualTable && (
+        <QualifyingTable
+          qualifyingDrivers={segment.qualifyingDrivers!}
+          ourKart={session.driver.kart}
+          fps={fps}
+          accentColor={undefined}
+        />
+      )}
       {label && <SegmentLabel label={label} scale={scale} />}
     </AbsoluteFill>
   )
