@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import type { OverlayProps } from '@racedash/core'
-import { Geometric } from './styles/geometric'
+import { Banner } from './styles/banner'
 import { Esports } from './styles/esports'
 import { Minimal } from './styles/minimal'
 import { Modern } from './styles/modern'
@@ -14,8 +14,8 @@ export interface RegistryEntry {
 }
 
 export const registry: Record<string, RegistryEntry> = {
-  geometric: {
-    component: Geometric,
+  banner: {
+    component: Banner,
     width: 1920,
     height: 120,
     overlayX: 0,

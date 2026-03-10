@@ -82,7 +82,7 @@ program
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--fps <n>', 'Output framerate', '60')
-  .option('--style <name>', 'Overlay style', 'geometric')
+  .option('--style <name>', 'Overlay style', 'banner')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .option('--mode <mode>', 'Session mode: practice, qualifying, or race')

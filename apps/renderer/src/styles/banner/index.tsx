@@ -7,7 +7,7 @@ import { LapCounter } from './LapCounter'
 import { PositionCounter } from './PositionCounter'
 import { TimeLabelPanel } from './TimeLabelPanel'
 
-export const Geometric: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, mode, startingGridPosition }) => {
+export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, mode, startingGridPosition }) => {
   const lapColors = computeLapColors(session.laps, sessionAllLaps)
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
 
