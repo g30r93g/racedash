@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
+import { useActiveSegment } from '../../activeSegment'
+import { SegmentLabel } from '../../SegmentLabel'
 import { getLapAtTime } from '../../timing'
 import { computeLapColors } from './lapColor'
 import { LapTimerTrap } from './LapTimerTrap'
@@ -11,13 +13,16 @@ import { TimeLabelPanel } from './TimeLabelPanel'
 const DEFAULT_ACCENT = '#3DD73D'
 
 export const Banner: React.FC<OverlayProps> = ({
-  session, sessionAllLaps, fps, mode, startingGridPosition,
-  accentColor, textColor, timerTextColor, timerBgColor,
+  segments, fps, startingGridPosition,
+  accentColor, textColor, timerTextColor, timerBgColor, labelWindowSeconds,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
   const currentTime = frame / fps
+
+  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
+  const { session, sessionAllLaps, mode } = segment
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
@@ -51,6 +56,9 @@ export const Banner: React.FC<OverlayProps> = ({
     position: 'relative',
     display: 'flex',
   }), [])
+
+  const raceStart = session.timestamps[0].ytSeconds
+  if (currentTime < raceStart && !isEnd) return null
 
   if (showTimePanels) {
     return (
@@ -104,6 +112,7 @@ export const Banner: React.FC<OverlayProps> = ({
             />
           </div>
         </div>
+        {label && <SegmentLabel label={label} scale={scale} />}
       </AbsoluteFill>
     )
   }
@@ -143,6 +152,7 @@ export const Banner: React.FC<OverlayProps> = ({
           textColor={text}
         />
       </div>
+      {label && <SegmentLabel label={label} scale={scale} />}
     </AbsoluteFill>
   )
 }
