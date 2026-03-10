@@ -114,6 +114,12 @@ describe('selectWindow', () => {
     const rows = selectWindow(lb, 'UNKNOWN')
     expect(rows.map(d => d.position)).toEqual([1, 2, 3, 4])
   })
+
+  it('3-driver leaderboard, our driver last: shows [P1, P2, P3]', () => {
+    const small = lb.slice(0, 3)
+    const rows = selectWindow(small, '3')
+    expect(rows.map(d => d.position)).toEqual([1, 2, 3])
+  })
 })
 
 describe('formatDelta', () => {
@@ -123,5 +129,9 @@ describe('formatDelta', () => {
 
   it('returns +0.000 when times are equal (P1 calling formatDelta on themselves)', () => {
     expect(formatDelta(59.5, 59.5)).toBe('+0.000')
+  })
+
+  it('clamps to +0.000 if lapTime is less than p1Time (defensive)', () => {
+    expect(formatDelta(59.0, 60.0)).toBe('+0.000')
   })
 })

@@ -63,6 +63,6 @@ export function selectWindow(leaderboard: RankedDriver[], ourKart: string): Rank
 
 /** Format a delta to P1 as "+0.456". */
 export function formatDelta(lapTime: number, p1Time: number): string {
-  const delta = lapTime - p1Time
+  const delta = Math.max(0, lapTime - p1Time)
   return `+${delta.toFixed(3)}`
 }
