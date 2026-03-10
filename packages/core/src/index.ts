@@ -15,9 +15,12 @@ export interface SessionData {
   timestamps: LapTimestamp[]
 }
 
+export type SessionMode = 'practice' | 'qualifying' | 'race'
+
 export interface OverlayProps {
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, used for session-best comparison
+  mode: SessionMode
   fps: number
   durationInFrames: number
   videoWidth?: number
