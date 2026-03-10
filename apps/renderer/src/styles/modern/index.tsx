@@ -3,40 +3,46 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed } from '../../timing'
+import { useActiveSegment } from '../../activeSegment'
+import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 
 const PLACEHOLDER = '—:--.---'
 
-export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
+export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSeconds }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 520
 
   const currentTime = frame / fps
+  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
+  const { session, sessionAllLaps } = segment
 
   const raceStart = session.timestamps[0].ytSeconds
-  const raceEnd = useMemo(() => {
+  const segEnd = useMemo(() => {
     const lastTs = session.timestamps[session.timestamps.length - 1]
     return lastTs.ytSeconds + lastTs.lap.lapTime
   }, [session.timestamps])
 
+  const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
+
   const currentLap = useMemo(
-    () => getLapAtTime(session.timestamps, currentTime),
-    [session.timestamps, currentTime],
+    () => getLapAtTime(session.timestamps, effectiveTime),
+    [session.timestamps, effectiveTime],
   )
   const currentIdx = useMemo(
     () => session.timestamps.indexOf(currentLap),
     [session.timestamps, currentLap],
   )
 
-  // Session best across all drivers — only recomputes when input data changes
   const allLaps = useMemo(() => sessionAllLaps.flat(), [sessionAllLaps])
   const sessionBestTime = useMemo(
-    () => allLaps.length > 0 ? formatLapTime(Math.min(...allLaps.map(l => l.lapTime))) : PLACEHOLDER,
+    () => allLaps.length > 0
+      ? formatLapTime(allLaps.reduce((min, l) => Math.min(min, l.lapTime), Infinity))
+      : PLACEHOLDER,
     [allLaps],
   )
 
-  // Last completed lap time
   const lastLapTime = useMemo(
     () => currentIdx >= 1
       ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
@@ -44,147 +50,97 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
     [currentIdx, session.timestamps],
   )
 
-  // Elapsed time for current lap
-  const elapsed = getLapElapsed(currentLap, currentTime)
+  const styles = useMemo(() => {
+    const padX = 28 * scale
+    const statGap = 24 * scale
+    const dividerMargin = 20 * scale
+    return {
+      container: {
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'row' as const,
+        alignItems: 'center',
+        fontFamily,
+        userSelect: 'none' as const,
+        paddingLeft: padX,
+        paddingRight: padX,
+        boxSizing: 'border-box' as const,
+        background: [
+          'repeating-linear-gradient(-55deg, rgba(255,255,255,0.035), rgba(255,255,255,0.035) 2px, transparent 2px, transparent 18px)',
+          'rgba(13, 15, 20, 0.88)',
+        ].join(', '),
+      },
+      elapsed: {
+        flex: 1,
+        fontSize: 52 * scale,
+        fontWeight: 700,
+        color: 'white',
+        lineHeight: 1,
+        letterSpacing: 1 * scale,
+      },
+      divider: {
+        width: 1 * scale,
+        height: 40 * scale,
+        background: 'rgba(255,255,255,0.2)',
+        flexShrink: 0,
+        marginLeft: dividerMargin,
+        marginRight: dividerMargin,
+      },
+      statGroup: {
+        display: 'flex',
+        flexDirection: 'row' as const,
+        alignItems: 'center',
+        gap: statGap,
+      },
+      statCol: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'flex-start' as const,
+        gap: 2 * scale,
+      },
+      label: {
+        fontSize: 11 * scale,
+        fontWeight: 400,
+        color: 'rgba(255,255,255,0.5)',
+        textTransform: 'uppercase' as const,
+        letterSpacing: 2 * scale,
+        lineHeight: 1,
+      },
+      statValue: {
+        fontSize: 22 * scale,
+        fontWeight: 700,
+        color: 'white',
+        lineHeight: 1,
+      },
+    }
+  }, [scale])
+
+  if (currentTime < raceStart && !isEnd) return null
+
+  const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
-
-  // Guards must come after all hooks
-  if (currentTime < raceStart) return null
-  if (currentTime >= raceEnd) return null
-
-  const elapsedFontSize = 52 * scale
-  const statFontSize = 22 * scale
-  const labelFontSize = 11 * scale
-  const dividerHeight = 40 * scale
-  const padX = 28 * scale
-  const statGap = 24 * scale
-  const dividerMargin = 20 * scale
 
   return (
     <AbsoluteFill>
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          fontFamily,
-          userSelect: 'none',
-          paddingLeft: padX,
-          paddingRight: padX,
-          boxSizing: 'border-box',
-          background: [
-            'repeating-linear-gradient(-55deg, rgba(255,255,255,0.035), rgba(255,255,255,0.035) 2px, transparent 2px, transparent 18px)',
-            'rgba(13, 15, 20, 0.88)',
-          ].join(', '),
-        }}
-      >
-        {/* Left: large elapsed ticker */}
-        <span
-          style={{
-            flex: 1,
-            fontSize: elapsedFontSize,
-            fontWeight: 700,
-            color: 'white',
-            lineHeight: 1,
-            letterSpacing: 1 * scale,
-          }}
-        >
-          {elapsedFormatted}
-        </span>
-
-        {/* Vertical divider */}
-        <div
-          style={{
-            width: 1 * scale,
-            height: dividerHeight,
-            background: 'rgba(255,255,255,0.2)',
-            flexShrink: 0,
-            marginLeft: dividerMargin,
-            marginRight: dividerMargin,
-          }}
-        />
-
-        {/* Right: LAST + BEST stat columns */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: statGap,
-          }}
-        >
-          {/* LAST stat */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: 2 * scale,
-            }}
-          >
-            <span
-              style={{
-                fontSize: labelFontSize,
-                fontWeight: 400,
-                color: 'rgba(255,255,255,0.5)',
-                textTransform: 'uppercase',
-                letterSpacing: 2 * scale,
-                lineHeight: 1,
-              }}
-            >
-              LAST
-            </span>
-            <span
-              style={{
-                fontSize: statFontSize,
-                fontWeight: 700,
-                color: 'white',
-                lineHeight: 1,
-              }}
-            >
-              {lastLapTime}
-            </span>
+      <div style={styles.container}>
+        <span style={styles.elapsed}>{elapsedFormatted}</span>
+        <div style={styles.divider} />
+        <div style={styles.statGroup}>
+          <div style={styles.statCol}>
+            <span style={styles.label}>LAST</span>
+            <span style={styles.statValue}>{lastLapTime}</span>
           </div>
-
-          {/* BEST stat */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: 2 * scale,
-            }}
-          >
-            <span
-              style={{
-                fontSize: labelFontSize,
-                fontWeight: 400,
-                color: 'rgba(255,255,255,0.5)',
-                textTransform: 'uppercase',
-                letterSpacing: 2 * scale,
-                lineHeight: 1,
-              }}
-            >
-              BEST
-            </span>
-            <span
-              style={{
-                fontSize: statFontSize,
-                fontWeight: 700,
-                color: 'white',
-                lineHeight: 1,
-              }}
-            >
-              {sessionBestTime}
-            </span>
+          <div style={styles.statCol}>
+            <span style={styles.label}>BEST</span>
+            <span style={styles.statValue}>{sessionBestTime}</span>
           </div>
         </div>
       </div>
+      {label && <SegmentLabel label={label} scale={scale} />}
     </AbsoluteFill>
   )
 }
