@@ -5,7 +5,7 @@ import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/time
 import { selectDriver } from './select'
 import path from 'node:path'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { OverlayProps, SessionData } from '@racedash/core'
+import type { OverlayProps, SessionData, SessionMode } from '@racedash/core'
 
 program
   .name('racedash')
@@ -85,7 +85,7 @@ program
   .option('--style <name>', 'Overlay style', 'geometric')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
-  .requiredOption('--mode <mode>', 'Session mode: practice, qualifying, or race')
+  .option('--mode <mode>', 'Session mode: practice, qualifying, or race')
   .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
     try {
       const fps = parseInt(opts.fps, 10)
@@ -93,13 +93,13 @@ program
         console.error('Error: --fps must be a valid integer')
         process.exit(1)
       }
-      const validModes = ['practice', 'qualifying', 'race'] as const
-      type ValidMode = typeof validModes[number]
-      if (!validModes.includes(opts.mode as ValidMode)) {
+      const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
+      const normalised = opts.mode?.toLowerCase()
+      if (!normalised || !validModes.includes(normalised as SessionMode)) {
         console.error(`Error: --mode must be one of: ${validModes.join(', ')}`)
         process.exit(1)
       }
-      const mode = opts.mode as ValidMode
+      const mode = normalised as SessionMode
       const offsetSeconds = parseOffset(opts.offset)
 
       console.error('Fetching laptimes and probing video...')
