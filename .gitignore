@@ -5,6 +5,9 @@ __pycache__/
 *.egg-info/
 .worktrees/
 
+# Local docs / ideas
+docs/pricing-idea.md
+
 # Node / TypeScript
 node_modules/
 dist/
