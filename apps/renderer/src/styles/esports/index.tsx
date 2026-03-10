@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
+import { useActiveSegment } from '../../activeSegment'
+import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 
 const EMPTY_TIME = '—:--.---'
@@ -34,7 +36,7 @@ interface TimePanelProps {
   sc: number
 }
 
-function TimePanel({ iconBg, label, time, sc }: TimePanelProps) {
+const TimePanel = React.memo(function TimePanel({ iconBg, label, time, sc }: TimePanelProps) {
   const iconBgSize = 40 * sc
   const iconSize = 22 * sc
 
@@ -80,133 +82,140 @@ function TimePanel({ iconBg, label, time, sc }: TimePanelProps) {
       </div>
     </div>
   )
-}
+})
 
-export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, boxPosition = 'bottom-left' }) => {
+export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = 'bottom-left', labelWindowSeconds }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
 
   const currentTime = frame / fps
+  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
+  const { session, sessionAllLaps } = segment
 
   const raceStart = session.timestamps[0].ytSeconds
-  if (currentTime < raceStart) return null
+  const segEnd = useMemo(() => {
+    const lastTs = session.timestamps[session.timestamps.length - 1]
+    return lastTs.ytSeconds + lastTs.lap.lapTime
+  }, [session.timestamps])
 
-  const lastTs = session.timestamps[session.timestamps.length - 1]
-  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
-  if (currentTime >= raceEnd) return null
+  // Freeze time at last moment of session when in END state (between segments)
+  const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
 
-  const currentLap = getLapAtTime(session.timestamps, currentTime)
-  const currentIdx = session.timestamps.indexOf(currentLap)
-
-  const completedLaps = getCompletedLaps(session.timestamps, currentIdx)
-  const lastLapTime =
-    completedLaps.length > 0
+  const currentLap = useMemo(
+    () => getLapAtTime(session.timestamps, effectiveTime),
+    [session.timestamps, effectiveTime],
+  )
+  const currentIdx = useMemo(
+    () => session.timestamps.indexOf(currentLap),
+    [session.timestamps, currentLap],
+  )
+  const completedLaps = useMemo(
+    () => getCompletedLaps(session.timestamps, currentIdx),
+    [session.timestamps, currentIdx],
+  )
+  const lastLapTime = useMemo(
+    () => completedLaps.length > 0
       ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
-      : EMPTY_TIME
-  const best = getSessionBest(completedLaps)
-  const sessionBestTime = best !== null ? formatLapTime(best) : EMPTY_TIME
+      : EMPTY_TIME,
+    [completedLaps],
+  )
+  const sessionBestTime = useMemo(() => {
+    const best = getSessionBest(completedLaps)
+    return best !== null ? formatLapTime(best) : EMPTY_TIME
+  }, [completedLaps])
 
-  const elapsed = getLapElapsed(currentLap, currentTime)
+  const styles = useMemo(() => {
+    const margin = 20 * sc
+    const pad = 16 * sc
+    const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+    const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
+    return {
+      container: {
+        position: 'absolute' as const,
+        ...vPos,
+        ...hPos,
+        width: 400 * sc,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        fontFamily,
+        userSelect: 'none' as const,
+      },
+      accentBar: {
+        height: 28 * sc,
+        background: 'linear-gradient(to right, #2563eb, #7c3aed)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        paddingRight: pad,
+      },
+      accentText: {
+        fontSize: 12 * sc,
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.9)',
+        letterSpacing: 1.5 * sc,
+        textTransform: 'uppercase' as const,
+      },
+      timePanels: {
+        background: '#3f4755',
+        padding: `${pad}px ${pad}px`,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: 14 * sc,
+      },
+      currentBar: {
+        background: '#111',
+        height: 56 * sc,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10 * sc,
+        paddingLeft: pad,
+        paddingRight: pad,
+        boxSizing: 'border-box' as const,
+      },
+      currentLabel: {
+        fontSize: 12 * sc,
+        fontWeight: 400,
+        color: '#9ca3af',
+        letterSpacing: 2 * sc,
+        textTransform: 'uppercase' as const,
+      },
+      currentTime: {
+        marginLeft: 'auto',
+        fontSize: 26 * sc,
+        fontWeight: 400,
+        color: 'white',
+        letterSpacing: 0.5 * sc,
+      },
+      stopwatchSize: 18 * sc,
+    }
+  }, [sc, boxPosition])
+
+  // Hidden before the active segment starts (and not in END state from a prior segment)
+  if (currentTime < raceStart && !isEnd) return null
+
+  const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
-
-  const margin = 20 * sc
-  const boxW = 400 * sc
-  const pad = 16 * sc
-
-  const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
-  const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
 
   return (
     <AbsoluteFill>
-      <div
-        style={{
-          position: 'absolute',
-          ...vPos,
-          ...hPos,
-          width: boxW,
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily,
-          userSelect: 'none',
-        }}
-      >
-        {/* Accent bar with lap count */}
-        <div
-          style={{
-            height: 28 * sc,
-            background: 'linear-gradient(to right, #2563eb, #7c3aed)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingRight: pad,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 12 * sc,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.9)',
-              letterSpacing: 1.5 * sc,
-              textTransform: 'uppercase',
-            }}
-          >
+      <div style={styles.container}>
+        <div style={styles.accentBar}>
+          <span style={styles.accentText}>
             LAP {currentLap.lap.number} / {session.timestamps.length}
           </span>
         </div>
-
-        {/* Gray section: two stacked time panels */}
-        <div
-          style={{
-            background: '#3f4755',
-            padding: `${pad}px ${pad}px`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14 * sc,
-          }}
-        >
+        <div style={styles.timePanels}>
           <TimePanel iconBg="#16a34a" label="LAST LAP" time={lastLapTime} sc={sc} />
           <TimePanel iconBg="#7c3aed" label="SESSION BEST" time={sessionBestTime} sc={sc} />
         </div>
-
-        {/* Black current-lap bar */}
-        <div
-          style={{
-            background: '#111',
-            height: 56 * sc,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10 * sc,
-            paddingLeft: pad,
-            paddingRight: pad,
-            boxSizing: 'border-box',
-          }}
-        >
-          <StopwatchIcon size={18 * sc} color="#9ca3af" />
-          <span
-            style={{
-              fontSize: 12 * sc,
-              fontWeight: 400,
-              color: '#9ca3af',
-              letterSpacing: 2 * sc,
-              textTransform: 'uppercase',
-            }}
-          >
-            CURRENT
-          </span>
-          <span
-            style={{
-              marginLeft: 'auto',
-              fontSize: 26 * sc,
-              fontWeight: 400,
-              color: 'white',
-              letterSpacing: 0.5 * sc,
-            }}
-          >
-            {elapsedFormatted}
-          </span>
+        <div style={styles.currentBar}>
+          <StopwatchIcon size={styles.stopwatchSize} color="#9ca3af" />
+          <span style={styles.currentLabel}>CURRENT</span>
+          <span style={styles.currentTime}>{elapsedFormatted}</span>
         </div>
       </div>
+      {label && <SegmentLabel label={label} scale={sc} />}
     </AbsoluteFill>
   )
 }
