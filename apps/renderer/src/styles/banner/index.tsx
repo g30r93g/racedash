@@ -72,7 +72,6 @@ export const Banner: React.FC<OverlayProps> = ({
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
                 timestamps={session.timestamps}
-                currentLap={currentLap}
                 currentIdx={currentIdx}
                 currentTime={currentTime}
                 variant="last"
@@ -92,7 +91,6 @@ export const Banner: React.FC<OverlayProps> = ({
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
                 timestamps={session.timestamps}
-                currentLap={currentLap}
                 currentIdx={currentIdx}
                 currentTime={currentTime}
                 variant="best"

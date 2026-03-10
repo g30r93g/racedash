@@ -41,6 +41,15 @@ export const LapTimerTrap: React.FC<Props> = ({
   const { width } = useVideoConfig()
   const scale = width / 1920
 
+  const spanStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily,
+    fontSize: 36 * scale,
+    fontWeight: 400,
+    color: textColor,
+    letterSpacing: 1 * scale,
+    userSelect: 'none',
+  }), [scale, textColor])
+
   const raceStart = timestamps[0].ytSeconds
   if (currentTime < raceStart) return null
 
@@ -80,15 +89,6 @@ export const LapTimerTrap: React.FC<Props> = ({
     alignItems: 'center',
     justifyContent: 'center',
   }
-
-  const spanStyle = useMemo<React.CSSProperties>(() => ({
-    fontFamily,
-    fontSize: 36 * scale,
-    fontWeight: 400,
-    color: textColor,
-    letterSpacing: 1 * scale,
-    userSelect: 'none',
-  }), [scale, textColor])
 
   return (
     <div style={containerStyle}>

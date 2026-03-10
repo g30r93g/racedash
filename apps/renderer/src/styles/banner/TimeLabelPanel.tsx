@@ -6,7 +6,6 @@ import { fontFamily } from '../../Root'
 
 interface Props {
   timestamps: LapTimestamp[]
-  currentLap: LapTimestamp
   currentIdx: number
   currentTime: number
   variant: 'last' | 'best'
