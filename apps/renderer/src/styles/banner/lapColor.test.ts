@@ -22,7 +22,7 @@ describe('computeLapColors', () => {
 
   it('returns green when lap is a new PB but not the session best', () => {
     const target = [lap(1, 60, 60), lap(2, 55, 115)]
-    const other = [lap(1, 50, 50)]  // other driver beats target at both laps: cumulative 50 <= 60 (lap 1) and 50 <= 115 (lap 2)
+    const other = [lap(1, 50, 50)]  // other's lap (lapTime=50) is the session best at both windows: cum 50 <= 60 (lap 1 window) and 50 <= 115 (lap 2 window); target lap 1 (60 > 50) and lap 2 (55 > 50) are each new PBs but never beat the session best → green
     expect(computeLapColors(target, [target, other])).toEqual(['green', 'green'])
   })
 

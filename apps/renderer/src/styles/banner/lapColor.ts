@@ -14,6 +14,9 @@ export type LapColor = 'purple' | 'green' | 'red'
  */
 /**
  * @param targetLaps - Must be in ascending cumulative-time order (session.laps always satisfies this).
+ * @param sessionAllLaps - Must include the target driver's own laps; because the session-best window
+ *   uses a `<=` boundary on cumulative time, the target's lap is itself part of the window and must
+ *   be present so the `purple` (session-best) check works correctly.
  */
 export function computeLapColors(targetLaps: Lap[], sessionAllLaps: Lap[][]): LapColor[] {
   if (targetLaps.length === 0) return []
