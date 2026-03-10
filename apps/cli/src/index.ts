@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { program } from 'commander'
-import { fetchHtml, parseDrivers } from '@racedash/scraper'
+import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
@@ -103,8 +103,9 @@ program
       const offsetSeconds = parseOffset(opts.offset)
 
       console.error('Fetching laptimes and probing video...')
-      const [html, durationSeconds, videoResolution] = await Promise.all([
+      const [html, gridHtml, durationSeconds, videoResolution] = await Promise.all([
         fetchHtml(url),
+        mode === 'race' ? fetchGridHtml(url) : Promise.resolve(null),
         getVideoDuration(opts.video),
         getVideoResolution(opts.video),
       ])
@@ -116,6 +117,18 @@ program
 
       console.error(`Driver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps`)
 
+      let startingGridPosition: number | undefined
+      if (gridHtml) {
+        const grid = parseGrid(gridHtml)
+        const gridEntry = grid.find(e => e.kart === driver.kart)
+        if (gridEntry) {
+          startingGridPosition = gridEntry.position
+          console.error(`Starting grid position: P${startingGridPosition}`)
+        } else {
+          console.error(`Warning: kart ${driver.kart} not found in grid`)
+        }
+      }
+
       const session: SessionData = {
         driver: { kart: driver.kart, name: driver.name },
         laps: driver.laps,
@@ -126,6 +139,7 @@ program
         session,
         sessionAllLaps: drivers.map(d => d.laps),
         mode,
+        startingGridPosition,
         fps,
         durationInFrames,
         videoWidth: videoResolution.width,

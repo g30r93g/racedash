@@ -21,6 +21,7 @@ export interface OverlayProps {
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, used for session-best comparison
   mode: SessionMode
+  startingGridPosition?: number  // race only: grid position at race start
   fps: number
   durationInFrames: number
   videoWidth?: number
