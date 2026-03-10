@@ -29,7 +29,7 @@ export interface SessionSegment {
   mode: SessionMode
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, segment-isolated (no cross-segment data)
-  qualifyingDrivers?: QualifyingDriver[]  // all drivers; populated for qualifying + practice
+  qualifyingDrivers?: QualifyingDriver[]  // drives QualifyingTable; populated for qualifying + practice
   label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
 }
 
