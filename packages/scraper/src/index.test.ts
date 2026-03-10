@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { parseDrivers } from './index'
+import { parseDrivers, parseGrid } from './index'
 
 const sampleHtml = readFileSync(
   join(__dirname, '__fixtures__/laptimes_sample.html'),
+  'utf8',
+)
+
+const gridHtml = readFileSync(
+  join(__dirname, '__fixtures__/grid_sample.html'),
   'utf8',
 )
 
@@ -41,6 +46,29 @@ describe('parseDrivers', () => {
 
   it('throws when table is missing', () => {
     expect(() => parseDrivers('<html></html>')).toThrow('Could not find laptimes table')
+  })
+})
+
+describe('parseGrid', () => {
+  it('returns three entries', () => {
+    expect(parseGrid(gridHtml)).toHaveLength(3)
+  })
+
+  it('parses position, kart, and name', () => {
+    const grid = parseGrid(gridHtml)
+    expect(grid[0]).toMatchObject({ position: 1, kart: '51', name: 'Reading C' })
+    expect(grid[1]).toMatchObject({ position: 2, kart: '81', name: 'Surrey C' })
+    expect(grid[2]).toMatchObject({ position: 3, kart: '27', name: 'Coventry C' })
+  })
+
+  it('handles penalty notes in qualification column', () => {
+    const grid = parseGrid(gridHtml)
+    // Coventry C has "(-2 places)" in qualification — position should still be 3
+    expect(grid[2].position).toBe(3)
+  })
+
+  it('throws when grid table is missing', () => {
+    expect(() => parseGrid('<html></html>')).toThrow('Could not find grid table')
   })
 
   it('skips non-time cells like DNF — driver laps contain no NaN and DNF lap is excluded', () => {

@@ -37,6 +37,8 @@ export async function renderOverlay(
     composition: comp,
     codec: 'prores',
     proResProfile: '4444',
+    pixelFormat: 'yuva444p10le',
+    imageFormat: 'png',
     outputLocation: outputPath,
     inputProps,
     chromiumOptions: { gl: 'angle' },
@@ -93,6 +95,22 @@ export async function getVideoDuration(videoPath: string): Promise<number> {
   const seconds = parseFloat(stdout.trim())
   if (isNaN(seconds)) throw new Error(`ffprobe returned no duration for: ${videoPath}`)
   return seconds
+}
+
+/**
+ * Get video width and height in pixels using ffprobe.
+ */
+export async function getVideoResolution(videoPath: string): Promise<{ width: number; height: number }> {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v', 'error',
+    '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height',
+    '-of', 'csv=s=x:p=0',
+    videoPath,
+  ])
+  const [w, h] = stdout.trim().split('x').map(Number)
+  if (isNaN(w) || isNaN(h)) throw new Error(`ffprobe returned no resolution for: ${videoPath}`)
+  return { width: w, height: h }
 }
 
 /**

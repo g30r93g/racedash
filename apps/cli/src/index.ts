@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { program } from 'commander'
-import { fetchHtml, parseDrivers } from '@racedash/scraper'
+import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
-import { compositeVideo, getVideoDuration, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { OverlayProps, SessionData } from '@racedash/core'
+import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
+import type { OverlayProps, SessionData, SessionMode } from '@racedash/core'
 
 program
   .name('racedash')
-  .description('Alpha Timing → YouTube chapters + GT7 overlay')
+  .description('Alpha Timing → YouTube chapters + geometric overlay')
   .version('0.1.0')
 
 program
@@ -72,18 +72,20 @@ interface RenderOpts {
   style: string
   overlayX: string
   overlayY: string
+  mode: string
 }
 
 program
   .command('render <url> [driver]')
-  .description('Render GT7-style overlay onto video')
+  .description('Render geometric overlay onto video')
   .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15')
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--fps <n>', 'Output framerate', '60')
-  .option('--style <name>', 'Overlay style', 'gt7')
+  .option('--style <name>', 'Overlay style', 'banner')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
+  .option('--mode <mode>', 'Session mode: practice, qualifying, or race')
   .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
     try {
       const fps = parseInt(opts.fps, 10)
@@ -91,12 +93,21 @@ program
         console.error('Error: --fps must be a valid integer')
         process.exit(1)
       }
+      const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
+      const normalised = opts.mode?.toLowerCase()
+      if (!normalised || !validModes.includes(normalised as SessionMode)) {
+        console.error(`Error: --mode must be one of: ${validModes.join(', ')}`)
+        process.exit(1)
+      }
+      const mode = normalised as SessionMode
       const offsetSeconds = parseOffset(opts.offset)
 
       console.error('Fetching laptimes and probing video...')
-      const [html, durationSeconds] = await Promise.all([
+      const [html, gridHtml, durationSeconds, videoResolution] = await Promise.all([
         fetchHtml(url),
+        mode === 'race' ? fetchGridHtml(url) : Promise.resolve(null),
         getVideoDuration(opts.video),
+        getVideoResolution(opts.video),
       ])
       const durationInFrames = Math.ceil(durationSeconds * fps)
 
@@ -106,12 +117,34 @@ program
 
       console.error(`Driver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps`)
 
+      let startingGridPosition: number | undefined
+      if (gridHtml) {
+        const grid = parseGrid(gridHtml)
+        const gridEntry = grid.find(e => e.kart === driver.kart)
+        if (gridEntry) {
+          startingGridPosition = gridEntry.position
+          console.error(`Starting grid position: P${startingGridPosition}`)
+        } else {
+          console.error(`Warning: kart ${driver.kart} not found in grid`)
+        }
+      }
+
       const session: SessionData = {
         driver: { kart: driver.kart, name: driver.name },
         laps: driver.laps,
         timestamps,
       }
-      const overlayProps: OverlayProps = { session, fps, durationInFrames }
+      console.error(`Video resolution: ${videoResolution.width}×${videoResolution.height}`)
+      const overlayProps: OverlayProps = {
+        session,
+        sessionAllLaps: drivers.map(d => d.laps),
+        mode,
+        startingGridPosition,
+        fps,
+        durationInFrames,
+        videoWidth: videoResolution.width,
+        videoHeight: videoResolution.height,
+      }
 
       // Resolves to apps/renderer/src/index.ts from apps/cli/dist/ at runtime.
       // This only works when run from within the monorepo working tree (dev use).

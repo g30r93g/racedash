@@ -8,18 +8,32 @@ export interface DriverRow {
   laps: Lap[]
 }
 
+export interface GridEntry {
+  position: number
+  kart: string
+  name: string
+}
+
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
   'AppleWebKit/537.36 (KHTML, like Gecko) ' +
   'Chrome/121.0.0.0 Safari/537.36'
 
 export async function fetchHtml(url: string): Promise<string> {
-  const laptimesUrl = normaliseUrl(url)
-  const res = await fetch(laptimesUrl, {
+  return fetchTab(url, '/laptimes')
+}
+
+export async function fetchGridHtml(url: string): Promise<string> {
+  return fetchTab(url, '/grid')
+}
+
+async function fetchTab(url: string, tab: string): Promise<string> {
+  const resolved = normaliseUrl(url, tab)
+  const res = await fetch(resolved, {
     headers: { 'User-Agent': USER_AGENT },
     signal: AbortSignal.timeout(10_000),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${laptimesUrl}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${resolved}`)
   return res.text()
 }
 
@@ -61,10 +75,27 @@ function parseLapTimeStr(s: string): number | null {
   return result
 }
 
-function normaliseUrl(url: string): string {
+export function parseGrid(html: string): GridEntry[] {
+  const $ = cheerio.load(html)
+  const tbody = $('table.at-session-results-table tbody')
+  if (!tbody.length) throw new Error('Could not find grid table in HTML')
+  return tbody
+    .find('tr')
+    .map((_, row) => {
+      const cells = $(row).find('td')
+      const position = parseInt(cells.eq(0).text().trim(), 10)
+      const kart = cells.eq(1).find('span').text().trim()
+      const name = cells.eq(2).text().trim()
+      return { position, kart, name }
+    })
+    .get()
+    .filter((e: GridEntry) => !isNaN(e.position))
+}
+
+function normaliseUrl(url: string, tab: string): string {
   const tabs = ['/result', '/laptimes', '/lapchart', '/replay', '/grid']
-  for (const tab of tabs) {
-    if (url.endsWith(tab)) return url.slice(0, -tab.length) + '/laptimes'
+  for (const t of tabs) {
+    if (url.endsWith(t)) return url.slice(0, -t.length) + tab
   }
-  return url.replace(/\/$/, '') + '/laptimes'
+  return url.replace(/\/$/, '') + tab
 }

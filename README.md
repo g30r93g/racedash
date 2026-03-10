@@ -133,7 +133,7 @@ pnpm racedash join GH010001.MP4 GH020001.MP4 GH030001.MP4 --output race.mp4
 
 ### `racedash render <url> [driver] --offset <time> --video <path>`
 
-Renders a GT7-style lap timer overlay onto your video. This takes a few minutes depending on video length.
+Renders a lap timer overlay onto your video. This takes a few minutes depending on video length.
 
 ```bash
 pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "Surrey A" \
@@ -148,9 +148,21 @@ pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "
 | `--video <path>` | Path to your source video file | _(required)_ |
 | `--output <path>` | Where to save the rendered video | `./out.mp4` |
 | `--fps <n>` | Output framerate | `60` |
-| `--style <name>` | Overlay style | `gt7` |
+| `--style <name>` | Overlay style (see below) | `banner` |
+| `--mode <mode>` | Session type: `practice`, `qualifying`, or `race` | `race` |
 | `--overlay-x <n>` | Horizontal position of the overlay in pixels | `0` |
 | `--overlay-y <n>` | Vertical position of the overlay in pixels | `0` |
+
+#### Available styles
+
+| Style | Description | Recommended placement (1080p) |
+|-------|-------------|-------------------------------|
+| `banner` | Full-width top strip with trapezoid lap timer. Flashes purple/green/red on lap completion based on session best. | `--overlay-x 0 --overlay-y 0` |
+| `esports` | Full-width bottom strip with icon panels showing last lap (green) and session best (purple), plus a current-lap ticker. | `--overlay-x 0 --overlay-y 852` |
+| `minimal` | Compact dark card with lap number badge, large elapsed timer, and last lap / session best stats. | `--overlay-x 48 --overlay-y 882` |
+| `modern` | Slim translucent bar with a subtle banner stripe pattern. Shows elapsed time alongside last lap and session best. | `--overlay-x 0 --overlay-y 984` |
+
+**`--mode` affects the `banner` style layout:** in `practice` or `qualifying` mode it renders a full-width banner including last-lap and session-best panels; in `race` mode it shows just the central lap timer with position and lap counter at the edges.
 
 ---
 
