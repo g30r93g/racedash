@@ -30,13 +30,14 @@ export function getPosition(
 }
 
 function computeScore(mode: SessionMode, lapNumber: number, laps: Lap[]): number | null {
-  if (lapNumber < 1) return null
-  const slice = laps.slice(0, lapNumber)
-  if (slice.length < lapNumber) return null
+  if (lapNumber < 1 || laps.length < lapNumber) return null
 
   if (mode === 'race') {
-    return slice[slice.length - 1].cumulative
-  } else {
-    return Math.min(...slice.map(l => l.lapTime))
+    return laps[lapNumber - 1].cumulative
   }
+
+  // practice / qualifying: best lap time through lapNumber
+  let best = Infinity
+  for (let i = 0; i < lapNumber; i++) best = Math.min(best, laps[i].lapTime)
+  return best
 }
