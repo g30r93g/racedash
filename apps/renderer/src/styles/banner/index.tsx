@@ -16,37 +16,52 @@ export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, m
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const accent = accentColor ?? DEFAULT_ACCENT
 
-  const wrapperStyle: React.CSSProperties = {
+  // Outer clip — no background here so only the content layer gets rounded corners
+  const outerStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    display: 'flex',
-    background: accent,
     borderRadius: 10 * scale,
     overflow: 'hidden',
+  }
+
+  // Semi-transparent accent fill behind the content (opacity doesn't bleed onto text)
+  const bgStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    background: accent,
+    opacity: 0.82,
+  }
+
+  const wrapperStyle: React.CSSProperties = {
+    position: 'relative',
+    display: 'flex',
   }
 
   if (showTimePanels) {
     return (
       <AbsoluteFill>
-        <div style={wrapperStyle}>
-          <PositionCounter
-            timestamps={session.timestamps}
-            currentLaps={session.laps}
-            sessionAllLaps={sessionAllLaps}
-            fps={fps}
-            mode={mode}
-            startingGridPosition={startingGridPosition}
-          />
-          <div style={{ flex: 1 }}>
-            <TimeLabelPanel timestamps={session.timestamps} fps={fps} variant="last" />
+        <div style={outerStyle}>
+          <div style={bgStyle} />
+          <div style={wrapperStyle}>
+            <PositionCounter
+              timestamps={session.timestamps}
+              currentLaps={session.laps}
+              sessionAllLaps={sessionAllLaps}
+              fps={fps}
+              mode={mode}
+              startingGridPosition={startingGridPosition}
+            />
+            <div style={{ flex: 1 }}>
+              <TimeLabelPanel timestamps={session.timestamps} fps={fps} variant="last" />
+            </div>
+            <LapTimerTrap timestamps={session.timestamps} lapColors={lapColors} fps={fps} />
+            <div style={{ flex: 1 }}>
+              <TimeLabelPanel timestamps={session.timestamps} fps={fps} variant="best" />
+            </div>
+            <LapCounter timestamps={session.timestamps} fps={fps} />
           </div>
-          <LapTimerTrap timestamps={session.timestamps} lapColors={lapColors} fps={fps} />
-          <div style={{ flex: 1 }}>
-            <TimeLabelPanel timestamps={session.timestamps} fps={fps} variant="best" />
-          </div>
-          <LapCounter timestamps={session.timestamps} fps={fps} />
         </div>
       </AbsoluteFill>
     )
