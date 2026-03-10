@@ -30,23 +30,42 @@ function formatTime(seconds: number): string {
 export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) => {
   const frame = useCurrentFrame()
   const currentTime = frame / fps
-  const currentLap = getLapAtTime(timestamps, currentTime)
-  const lapElapsed = getLapElapsed(currentLap, currentTime)
 
-  const lapIndex = currentLap.lap.number - 1  // 0-indexed
-  const isFlashing = lapElapsed < FLASH_DURATION_SECONDS && lapIndex > 0
+  const raceStart = timestamps[0].ytSeconds
+  const lastTs = timestamps[timestamps.length - 1]
+  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
 
-  let displayTime: string
+  // Hidden before race starts
+  if (currentTime < raceStart) return null
+
+  let displayText: string
   let bgKey: 'neutral' | LapColor
 
-  if (isFlashing) {
-    // Show the just-completed lap's time (frozen) and its color
-    const prevLap = timestamps[lapIndex - 1]
-    displayTime = formatTime(prevLap.lap.lapTime)
-    bgKey = lapColors[lapIndex - 1]
+  if (currentTime >= raceEnd) {
+    const timeSinceEnd = currentTime - raceEnd
+    if (timeSinceEnd < FLASH_DURATION_SECONDS) {
+      // Flash the last completed lap's time and color
+      const lastIndex = timestamps.length - 1
+      displayText = formatTime(lastTs.lap.lapTime)
+      bgKey = lapColors[lastIndex]
+    } else {
+      displayText = 'END'
+      bgKey = 'neutral'
+    }
   } else {
-    displayTime = formatTime(lapElapsed)
-    bgKey = 'neutral'
+    const currentLap = getLapAtTime(timestamps, currentTime)
+    const lapElapsed = getLapElapsed(currentLap, currentTime)
+    const lapIndex = currentLap.lap.number - 1  // 0-indexed
+    const isFlashing = lapElapsed < FLASH_DURATION_SECONDS && lapIndex > 0
+
+    if (isFlashing) {
+      // Show the just-completed lap's time (frozen) and its color
+      displayText = formatTime(timestamps[lapIndex - 1].lap.lapTime)
+      bgKey = lapColors[lapIndex - 1]
+    } else {
+      displayText = formatTime(lapElapsed)
+      bgKey = 'neutral'
+    }
   }
 
   return (
@@ -71,7 +90,7 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) =>
           userSelect: 'none',
         }}
       >
-        {displayTime}
+        {displayText}
       </span>
     </div>
   )
