@@ -17,6 +17,8 @@ export interface SessionData {
 
 export type SessionMode = 'practice' | 'qualifying' | 'race'
 
+export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+
 export interface OverlayProps {
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, used for session-best comparison
@@ -26,4 +28,6 @@ export interface OverlayProps {
   durationInFrames: number
   videoWidth?: number
   videoHeight?: number
+  boxPosition?: BoxPosition
+  accentColor?: string   // hex/CSS color for style accent (e.g. banner green band)
 }

@@ -22,16 +22,13 @@ export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
   if (currentTime < raceStart) return null
 
   const currentLap = getLapAtTime(timestamps, currentTime)
-  const displayText = `${currentLap.lap.number}/${total}`
+  const displayText = `${String(currentLap.lap.number).padStart(2, '0')}/${total}`
 
   return (
     <div
       style={{
         width: 180 * scale,
         height: 80 * scale,
-        // Right-angle trapezium: right edge vertical, left edge angled inward at bottom
-        clipPath: 'polygon(0 0, 100% 0, 100% 100%, 17% 100%)',
-        background: 'rgba(0,0,0,0.65)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -42,7 +39,7 @@ export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
         style={{
           fontFamily,
           fontSize: 28 * scale,
-          fontWeight: 400,
+          fontWeight: 700,
           color: 'white',
           letterSpacing: 1 * scale,
           userSelect: 'none',

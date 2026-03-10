@@ -2,7 +2,7 @@ import React from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
-import { getLapAtTime, getLapElapsed } from '../../timing'
+import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
 import { fontFamily } from '../../Root'
 
 const EMPTY_TIME = '\u2014:--.---'
@@ -48,7 +48,7 @@ function StatColumn({ label, value, scale }: StatColumnProps) {
   )
 }
 
-export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
+export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, boxPosition = 'bottom-left' }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -67,19 +67,13 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const currentLap = getLapAtTime(session.timestamps, currentTime)
   const currentIdx = session.timestamps.indexOf(currentLap)
 
-  // Last completed lap time
+  const completedLaps = getCompletedLaps(session.timestamps, currentIdx)
   const lastLapTime =
-    currentIdx >= 1
-      ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
+    completedLaps.length > 0
+      ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
       : EMPTY_TIME
-
-  // Only include laps completed before the current lap started (excludes in-progress laps)
-  const lapStartElapsed = currentLap.ytSeconds - session.timestamps[0].ytSeconds
-  const completedByNow = sessionAllLaps.flat().filter(l => l.cumulative <= lapStartElapsed)
-  const sessionBestTime =
-    completedByNow.length > 0
-      ? formatLapTime(Math.min(...completedByNow.map(l => l.lapTime)))
-      : EMPTY_TIME
+  const best = getSessionBest(completedLaps)
+  const sessionBestTime = best !== null ? formatLapTime(best) : EMPTY_TIME
 
   // Current lap elapsed formatted as m:ss.mmm
   const elapsed = getLapElapsed(currentLap, currentTime)
@@ -101,13 +95,17 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const badgeSize = 36 * scale
   const badgeBorderRadius = 4 * scale
 
+  const margin = 20 * scale
+  const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+  const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
+
   return (
     <AbsoluteFill>
       <div
         style={{
           position: 'absolute',
-          bottom: 20 * scale,
-          left: 20 * scale,
+          ...vPos,
+          ...hPos,
           width: cardW,
           height: cardH,
           background: 'rgba(20, 22, 28, 0.88)',

@@ -5,7 +5,7 @@ import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/time
 import { selectDriver } from './select'
 import path from 'node:path'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { OverlayProps, SessionData, SessionMode } from '@racedash/core'
+import type { BoxPosition, OverlayProps, SessionData, SessionMode } from '@racedash/core'
 
 program
   .name('racedash')
@@ -73,6 +73,8 @@ interface RenderOpts {
   overlayX: string
   overlayY: string
   mode: string
+  boxPosition: string
+  accentColor?: string
 }
 
 program
@@ -86,6 +88,8 @@ program
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .option('--mode <mode>', 'Session mode: practice, qualifying, or race')
+  .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
+  .option('--accent-color <color>', 'Accent color for the overlay style (CSS color or hex, e.g. #3DD73D)')
   .action(async (url: string, driverQuery: string | undefined, opts: RenderOpts) => {
     try {
       const fps = parseInt(opts.fps, 10)
@@ -100,6 +104,13 @@ program
         process.exit(1)
       }
       const mode = normalised as SessionMode
+
+      const validBoxPositions: BoxPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
+      if (!validBoxPositions.includes(opts.boxPosition as BoxPosition)) {
+        console.error(`Error: --box-position must be one of: ${validBoxPositions.join(', ')}`)
+        process.exit(1)
+      }
+      const boxPosition = opts.boxPosition as BoxPosition
       const offsetSeconds = parseOffset(opts.offset)
 
       console.error('Fetching laptimes and probing video...')
@@ -144,6 +155,8 @@ program
         durationInFrames,
         videoWidth: videoResolution.width,
         videoHeight: videoResolution.height,
+        boxPosition,
+        accentColor: opts.accentColor,
       }
 
       // Resolves to apps/renderer/src/index.ts from apps/cli/dist/ at runtime.

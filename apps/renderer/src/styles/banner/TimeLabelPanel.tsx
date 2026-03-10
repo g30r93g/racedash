@@ -1,14 +1,24 @@
 import React from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
-import { formatLapTime } from '@racedash/timestamps'
-import { getLapAtTime } from '../../timing'
+import { getLapAtTime, getCompletedLaps, getSessionBest } from '../../timing'
 import { fontFamily } from '../../Root'
 
 interface Props {
   timestamps: LapTimestamp[]
   fps: number
   variant: 'last' | 'best'
+}
+
+function formatBannerTime(seconds: number): string {
+  const totalMs = Math.round(seconds * 1000)
+  const ms = totalMs % 1000
+  const totalS = Math.floor(totalMs / 1000)
+  const m = Math.floor(totalS / 60)
+  const s = totalS % 60
+  const sStr = String(s).padStart(2, '0')
+  const msStr = String(ms).padStart(3, '0')
+  return m > 0 ? `${m}:${sStr}.${msStr}` : `${sStr}.${msStr}`
 }
 
 export const TimeLabelPanel: React.FC<Props> = ({ timestamps, fps, variant }) => {
@@ -26,59 +36,49 @@ export const TimeLabelPanel: React.FC<Props> = ({ timestamps, fps, variant }) =>
   // Need at least 1 completed lap to show anything
   if (currentIdx < 1) return null
 
-  const completedLaps = timestamps.slice(0, currentIdx)
+  const completedLaps = getCompletedLaps(timestamps, currentIdx)
 
   const displayTime = variant === 'last'
     ? completedLaps[completedLaps.length - 1].lap.lapTime
-    : Math.min(...completedLaps.map(ts => ts.lap.lapTime))
+    : getSessionBest(completedLaps)!
 
   const label = variant === 'last' ? 'LAST' : 'BEST'
-  // Parallelogram with long edge at bottom:
-  //   last: outer (left) top corner angled, inner (right) edge vertical
-  //   best: inner (left) edge vertical, outer (right) top corner angled
-  const slant = 80 * scale
-  const clipPath = variant === 'last'
-    ? `polygon(${slant}px 0, 100% 0, 100% 100%, 0 100%)`
-    : `polygon(0 0, calc(100% - ${slant}px) 0, 100% 100%, 0 100%)`
+
+  const labelStyle: React.CSSProperties = {
+    fontFamily,
+    fontSize: 13 * scale,
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 2 * scale,
+    userSelect: 'none',
+  }
 
   return (
     <div
       style={{
         width: '100%',
         height: 80 * scale,
-        clipPath,
-        background: 'rgba(0,0,0,0.65)',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 2 * scale,
+        gap: 10 * scale,
       }}
     >
+      <span style={labelStyle}>{label}</span>
       <span
         style={{
           fontFamily,
-          fontSize: 13 * scale,
-          fontWeight: 400,
-          color: 'rgba(255,255,255,0.6)',
-          letterSpacing: 2 * scale,
-          userSelect: 'none',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontFamily,
-          fontSize: 26 * scale,
-          fontWeight: 400,
+          fontSize: 28 * scale,
+          fontWeight: 700,
           color: 'white',
           letterSpacing: 1 * scale,
           userSelect: 'none',
         }}
       >
-        {formatLapTime(displayTime)}
+        {formatBannerTime(displayTime)}
       </span>
+      <span style={labelStyle}>LAP</span>
     </div>
   )
 }

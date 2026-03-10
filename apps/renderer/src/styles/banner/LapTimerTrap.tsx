@@ -8,10 +8,10 @@ import { fontFamily } from '../../Root'
 const FLASH_DURATION_SECONDS = 2
 
 const BACKGROUND: Record<'neutral' | LapColor, string> = {
-  neutral: 'rgba(0,0,0,0.65)',
-  purple:  'rgba(107,33,168,0.85)',
-  green:   'rgba(21,128,61,0.85)',
-  red:     'rgba(185,28,28,0.85)',
+  neutral: '#111111',
+  purple:  'rgba(107,33,168,0.95)',
+  green:   'rgba(21,128,61,0.95)',
+  red:     'rgba(185,28,28,0.95)',
 }
 
 interface Props {
@@ -24,7 +24,9 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
   const ms = Math.floor((seconds % 1) * 1000)
-  return `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
+  const sStr = String(s).padStart(2, '0')
+  const msStr = String(ms).padStart(3, '0')
+  return m > 0 ? `${m}:${sStr}.${msStr}` : `${sStr}.${msStr}`
 }
 
 export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps }) => {

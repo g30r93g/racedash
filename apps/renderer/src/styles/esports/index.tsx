@@ -2,7 +2,7 @@ import React from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
-import { getLapAtTime, getLapElapsed } from '../../timing'
+import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
 import { fontFamily } from '../../Root'
 
 const EMPTY_TIME = '—:--.---'
@@ -82,7 +82,7 @@ function TimePanel({ iconBg, label, time, sc }: TimePanelProps) {
   )
 }
 
-export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
+export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, boxPosition = 'bottom-left' }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
@@ -99,18 +99,13 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const currentLap = getLapAtTime(session.timestamps, currentTime)
   const currentIdx = session.timestamps.indexOf(currentLap)
 
+  const completedLaps = getCompletedLaps(session.timestamps, currentIdx)
   const lastLapTime =
-    currentIdx >= 1
-      ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
+    completedLaps.length > 0
+      ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
       : EMPTY_TIME
-
-  // Only include laps completed before the current lap started (excludes in-progress laps)
-  const lapStartElapsed = currentLap.ytSeconds - session.timestamps[0].ytSeconds
-  const completedByNow = sessionAllLaps.flat().filter(l => l.cumulative <= lapStartElapsed)
-  const sessionBestTime =
-    completedByNow.length > 0
-      ? formatLapTime(Math.min(...completedByNow.map(l => l.lapTime)))
-      : EMPTY_TIME
+  const best = getSessionBest(completedLaps)
+  const sessionBestTime = best !== null ? formatLapTime(best) : EMPTY_TIME
 
   const elapsed = getLapElapsed(currentLap, currentTime)
   const elapsedFormatted = formatLapTime(elapsed)
@@ -119,13 +114,16 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const boxW = 400 * sc
   const pad = 16 * sc
 
+  const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+  const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
+
   return (
     <AbsoluteFill>
       <div
         style={{
           position: 'absolute',
-          bottom: margin,
-          left: margin,
+          ...vPos,
+          ...hPos,
           width: boxW,
           display: 'flex',
           flexDirection: 'column',

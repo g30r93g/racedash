@@ -33,40 +33,39 @@ export const PositionCounter: React.FC<Props> = ({
   const currentIdx = timestamps.indexOf(currentLap)
 
   // Before/during lap 1: use starting grid position; after that: computed position
-  let position: number
+  let position: number | null = null
   if (currentTime < raceStart || currentIdx === 0) {
-    if (startingGridPosition == null) return null
-    position = startingGridPosition
+    position = startingGridPosition ?? null
   } else {
     position = getPosition(mode, currentLap.lap.number, currentLaps, sessionAllLaps)
   }
 
+  // Always render at full width so the flex layout keeps the centre element centred
   return (
     <div
       style={{
         width: 180 * scale,
         height: 80 * scale,
-        // Right-angle trapezium: left edge vertical, right edge angled inward at bottom
-        clipPath: 'polygon(0 0, 100% 0, 83% 100%, 0 100%)',
-        background: 'rgba(0,0,0,0.65)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingRight: 16 * scale,
+        paddingLeft: 16 * scale,
       }}
     >
-      <span
-        style={{
-          fontFamily,
-          fontSize: 28 * scale,
-          fontWeight: 400,
-          color: 'white',
-          letterSpacing: 1 * scale,
-          userSelect: 'none',
-        }}
-      >
-        P{position}
-      </span>
+      {position != null && (
+        <span
+          style={{
+            fontFamily,
+            fontSize: 44 * scale,
+            fontWeight: 700,
+            color: 'white',
+            letterSpacing: 1 * scale,
+            userSelect: 'none',
+          }}
+        >
+          P{position}
+        </span>
+      )}
     </div>
   )
 }

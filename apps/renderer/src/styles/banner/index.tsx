@@ -1,5 +1,5 @@
 import React from 'react'
-import { AbsoluteFill } from 'remotion'
+import { AbsoluteFill, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { computeLapColors } from './lapColor'
 import { LapTimerTrap } from './LapTimerTrap'
@@ -7,15 +7,30 @@ import { LapCounter } from './LapCounter'
 import { PositionCounter } from './PositionCounter'
 import { TimeLabelPanel } from './TimeLabelPanel'
 
-export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, mode, startingGridPosition }) => {
+const DEFAULT_ACCENT = '#3DD73D'
+
+export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, mode, startingGridPosition, accentColor }) => {
+  const { width } = useVideoConfig()
+  const scale = width / 1920
   const lapColors = computeLapColors(session.laps, sessionAllLaps)
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
+  const accent = accentColor ?? DEFAULT_ACCENT
+
+  const wrapperStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    display: 'flex',
+    background: accent,
+    borderRadius: 10 * scale,
+    overflow: 'hidden',
+  }
 
   if (showTimePanels) {
-    // Practice/qualifying: full-width banner — all panels in one flex row with no gaps
     return (
       <AbsoluteFill>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex' }}>
+        <div style={wrapperStyle}>
           <PositionCounter
             timestamps={session.timestamps}
             currentLaps={session.laps}
