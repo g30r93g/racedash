@@ -4,8 +4,6 @@ import type { LapTimestamp } from '@racedash/core'
 import { getLapAtTime } from '../../timing'
 import { fontFamily } from '../../Root'
 
-const FLASH_DURATION_SECONDS = 2
-
 interface Props {
   timestamps: LapTimestamp[]
   fps: number
@@ -16,23 +14,13 @@ export const LapCounter: React.FC<Props> = ({ timestamps, fps }) => {
   const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
-  const lastTs = timestamps[timestamps.length - 1]
-  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
+  const total = timestamps.length
 
   // Hidden before race starts
   if (currentTime < raceStart) return null
 
-  let displayText: string
-
-  if (currentTime >= raceEnd) {
-    const timeSinceEnd = currentTime - raceEnd
-    displayText = timeSinceEnd < FLASH_DURATION_SECONDS
-      ? `LAP ${lastTs.lap.number}`
-      : 'END'
-  } else {
-    const currentLap = getLapAtTime(timestamps, currentTime)
-    displayText = `LAP ${currentLap.lap.number}`
-  }
+  const currentLap = getLapAtTime(timestamps, currentTime)
+  const displayText = `${currentLap.lap.number}/${total}`
 
   return (
     <div
