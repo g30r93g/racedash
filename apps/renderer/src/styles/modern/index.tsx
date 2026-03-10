@@ -43,7 +43,13 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
       ? formatLapTime(Math.min(...allLaps.map(l => l.lapTime)))
       : PLACEHOLDER
 
+  const elapsedFontSize = 52 * scale
+  const statFontSize = 22 * scale
+  const labelFontSize = 11 * scale
+  const dividerHeight = 40 * scale
   const padX = 28 * scale
+  const statGap = 24 * scale
+  const dividerMargin = 20 * scale
 
   return (
     <AbsoluteFill>
@@ -72,7 +78,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
         <span
           style={{
             flex: 1,
-            fontSize: 52 * scale,
+            fontSize: elapsedFontSize,
             fontWeight: 700,
             color: 'white',
             lineHeight: 1,
@@ -85,12 +91,12 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
         {/* Vertical divider */}
         <div
           style={{
-            width: 1,
-            height: 40 * scale,
+            width: 1 * scale,
+            height: dividerHeight,
             background: 'rgba(255,255,255,0.2)',
             flexShrink: 0,
-            marginLeft: 20 * scale,
-            marginRight: 20 * scale,
+            marginLeft: dividerMargin,
+            marginRight: dividerMargin,
           }}
         />
 
@@ -100,7 +106,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 24 * scale,
+            gap: statGap,
           }}
         >
           {/* LAST stat */}
@@ -114,7 +120,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
           >
             <span
               style={{
-                fontSize: 11 * scale,
+                fontSize: labelFontSize,
                 fontWeight: 400,
                 color: 'rgba(255,255,255,0.5)',
                 textTransform: 'uppercase',
@@ -126,7 +132,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
             </span>
             <span
               style={{
-                fontSize: 22 * scale,
+                fontSize: statFontSize,
                 fontWeight: 700,
                 color: 'white',
                 lineHeight: 1,
@@ -147,7 +153,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
           >
             <span
               style={{
-                fontSize: 11 * scale,
+                fontSize: labelFontSize,
                 fontWeight: 400,
                 color: 'rgba(255,255,255,0.5)',
                 textTransform: 'uppercase',
@@ -159,7 +165,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
             </span>
             <span
               style={{
-                fontSize: 22 * scale,
+                fontSize: statFontSize,
                 fontWeight: 700,
                 color: 'white',
                 lineHeight: 1,
