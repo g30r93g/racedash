@@ -5,29 +5,29 @@ import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { fontFamily } from '../../Root'
 
-const EMPTY_TIME = '\u2014:\u2014\u2014.\u2014\u2014\u2014'
+const EMPTY_TIME = '\u2014:--.---'
 
 interface StatColumnProps {
   label: string
   value: string
-  sc: number
+  scale: number
 }
 
-function StatColumn({ label, value, sc }: StatColumnProps) {
+function StatColumn({ label, value, scale }: StatColumnProps) {
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 4 * sc,
+        gap: 4 * scale,
       }}
     >
       <span
         style={{
-          fontSize: 10 * sc,
+          fontSize: 10 * scale,
           fontWeight: 400,
           color: '#aaaaaa',
-          letterSpacing: 1.5 * sc,
+          letterSpacing: 1.5 * scale,
           textTransform: 'uppercase',
         }}
       >
@@ -35,10 +35,10 @@ function StatColumn({ label, value, sc }: StatColumnProps) {
       </span>
       <span
         style={{
-          fontSize: 18 * sc,
+          fontSize: 18 * scale,
           fontWeight: 700,
           color: 'white',
-          letterSpacing: 0.5 * sc,
+          letterSpacing: 0.5 * scale,
           lineHeight: 1,
         }}
       >
@@ -51,7 +51,7 @@ function StatColumn({ label, value, sc }: StatColumnProps) {
 export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
-  const sc = width / 440
+  const scale = width / 440
 
   const currentTime = frame / fps
 
@@ -88,15 +88,17 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const lapNumber = currentLap.lap.number
 
   // Dimensions
-  const cardW = 440 * sc
-  const cardH = 150 * sc
-  const borderRadius = 12 * sc
-  const padV = 14 * sc
-  const padH = 20 * sc
+  const cardW = 440 * scale
+  const cardH = 150 * scale
+  const borderRadius = 12 * scale
+  const padV = 14 * scale
+  const padH = 20 * scale
+  const rowGap = 12 * scale
+  const statRowGap = 28 * scale
 
   // Lap badge
-  const badgeSize = 36 * sc
-  const badgeBorderRadius = 4 * sc
+  const badgeSize = 36 * scale
+  const badgeBorderRadius = 4 * scale
 
   return (
     <AbsoluteFill>
@@ -124,7 +126,7 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 12 * sc,
+            gap: rowGap,
           }}
         >
           {/* Lap number badge */}
@@ -142,7 +144,7 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
           >
             <span
               style={{
-                fontSize: 18 * sc,
+                fontSize: 18 * scale,
                 fontWeight: 700,
                 color: '#222222',
                 lineHeight: 1,
@@ -155,12 +157,12 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
           {/* Elapsed time — large bold italic ticker */}
           <span
             style={{
-              fontSize: 58 * sc,
+              fontSize: 58 * scale,
               fontWeight: 700,
               fontStyle: 'italic',
               color: 'white',
               lineHeight: 1,
-              letterSpacing: -0.5 * sc,
+              letterSpacing: -0.5 * scale,
             }}
           >
             {elapsedFormatted}
@@ -172,11 +174,11 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
           style={{
             display: 'flex',
             flexDirection: 'row',
-            gap: 28 * sc,
+            gap: statRowGap,
           }}
         >
-          <StatColumn label="Last Lap" value={lastLapTime} sc={sc} />
-          <StatColumn label="Session Best" value={sessionBestTime} sc={sc} />
+          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} />
+          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} />
         </div>
       </div>
     </AbsoluteFill>
