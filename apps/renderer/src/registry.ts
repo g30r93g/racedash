@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { OverlayProps } from '@racedash/core'
 import { Geometric } from './styles/geometric'
 import { Esports } from './styles/esports'
+import { Minimal } from './styles/minimal'
 
 export interface RegistryEntry {
   component: ComponentType<OverlayProps>
@@ -25,5 +26,12 @@ export const registry: Record<string, RegistryEntry> = {
     height: 228,
     overlayX: 0,
     overlayY: 0,
+  },
+  minimal: {
+    component: Minimal,
+    width: 440,
+    height: 150,
+    overlayX: 48,
+    overlayY: 882,
   },
 }
