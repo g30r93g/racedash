@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react'
-import { useCurrentFrame, useVideoConfig } from 'remotion'
+import { useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
-import { getLapAtTime, getCompletedLaps, getSessionBest } from '../../timing'
+import { getCompletedLaps, getSessionBest } from '../../timing'
 import { fontFamily } from '../../Root'
 
 interface Props {
   timestamps: LapTimestamp[]
-  fps: number
+  currentLap: LapTimestamp
+  currentIdx: number
+  currentTime: number
   variant: 'last' | 'best'
   textColor?: string
 }
@@ -22,16 +24,14 @@ function formatBannerTime(seconds: number): string {
   return m > 0 ? `${m}:${sStr}.${msStr}` : `${sStr}.${msStr}`
 }
 
-export const TimeLabelPanel: React.FC<Props> = ({ timestamps, fps, variant, textColor = 'white' }) => {
-  const frame = useCurrentFrame()
+export const TimeLabelPanel: React.FC<Props> = ({
+  timestamps, currentIdx, currentTime, variant, textColor = 'white',
+}) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
-  const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
 
-  const currentLap = useMemo(() => getLapAtTime(timestamps, currentTime), [timestamps, currentTime])
-  const currentIdx = useMemo(() => timestamps.indexOf(currentLap), [timestamps, currentLap])
   const completedLaps = useMemo(
     () => currentIdx >= 1 ? getCompletedLaps(timestamps, currentIdx) : [],
     [timestamps, currentIdx],
@@ -75,7 +75,6 @@ export const TimeLabelPanel: React.FC<Props> = ({ timestamps, fps, variant, text
   }), [scale])
 
   if (currentTime < raceStart) return null
-  // Need at least 1 completed lap to show anything
   if (currentIdx < 1 || displayTime == null) return null
 
   return (

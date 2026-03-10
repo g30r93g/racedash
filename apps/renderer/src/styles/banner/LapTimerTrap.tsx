@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react'
-import { useCurrentFrame, useVideoConfig } from 'remotion'
+import { useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import type { LapColor } from './lapColor'
-import { getLapAtTime, getLapElapsed } from '../../timing'
+import { getLapElapsed } from '../../timing'
 import { fontFamily } from '../../Root'
 
 const FLASH_DURATION_SECONDS = 2
@@ -17,7 +17,10 @@ const BACKGROUND: Record<'neutral' | LapColor, string> = {
 interface Props {
   timestamps: LapTimestamp[]
   lapColors: LapColor[]
-  fps: number
+  currentLap: LapTimestamp
+  currentIdx: number
+  currentTime: number
+  raceEnd: number
   textColor?: string
   bgColor?: string
 }
@@ -31,19 +34,14 @@ function formatTime(seconds: number): string {
   return m > 0 ? `${m}:${sStr}.${msStr}` : `${sStr}.${msStr}`
 }
 
-export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps, textColor = 'white', bgColor }) => {
-  const frame = useCurrentFrame()
+export const LapTimerTrap: React.FC<Props> = ({
+  timestamps, lapColors, currentLap, currentIdx, currentTime, raceEnd,
+  textColor = 'white', bgColor,
+}) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
-  const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
-  const raceEnd = useMemo(() => {
-    const lastTs = timestamps[timestamps.length - 1]
-    return lastTs.ytSeconds + lastTs.lap.lapTime
-  }, [timestamps])
-
-  // Hidden before race starts
   if (currentTime < raceStart) return null
 
   let displayText: string
@@ -52,24 +50,20 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps, text
   if (currentTime >= raceEnd) {
     const timeSinceEnd = currentTime - raceEnd
     if (timeSinceEnd < FLASH_DURATION_SECONDS) {
-      // Flash the last completed lap's time and color
       const lastIndex = timestamps.length - 1
-      displayText = formatTime(timestamps[timestamps.length - 1].lap.lapTime)
+      displayText = formatTime(timestamps[lastIndex].lap.lapTime)
       bgKey = lapColors[lastIndex]
     } else {
       displayText = 'END'
       bgKey = 'neutral'
     }
   } else {
-    const currentLap = getLapAtTime(timestamps, currentTime)
     const lapElapsed = getLapElapsed(currentLap, currentTime)
-    const lapIndex = currentLap.lap.number - 1  // 0-indexed
-    const isFlashing = lapElapsed < FLASH_DURATION_SECONDS && lapIndex > 0
+    const isFlashing = lapElapsed < FLASH_DURATION_SECONDS && currentIdx > 0
 
     if (isFlashing) {
-      // Show the just-completed lap's time (frozen) and its color
-      displayText = formatTime(timestamps[lapIndex - 1].lap.lapTime)
-      bgKey = lapColors[lapIndex - 1]
+      displayText = formatTime(timestamps[currentIdx - 1].lap.lapTime)
+      bgKey = lapColors[currentIdx - 1]
     } else {
       displayText = formatTime(lapElapsed)
       bgKey = 'neutral'
@@ -77,7 +71,6 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps, text
   }
 
   const background = bgKey === 'neutral' && bgColor ? bgColor : BACKGROUND[bgKey]
-  // containerStyle depends on bgKey (per-frame), so it is not memoized
   const containerStyle: React.CSSProperties = {
     width: 300 * scale,
     height: 80 * scale,
@@ -88,20 +81,18 @@ export const LapTimerTrap: React.FC<Props> = ({ timestamps, lapColors, fps, text
     justifyContent: 'center',
   }
 
+  const spanStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily,
+    fontSize: 36 * scale,
+    fontWeight: 400,
+    color: textColor,
+    letterSpacing: 1 * scale,
+    userSelect: 'none',
+  }), [scale, textColor])
+
   return (
     <div style={containerStyle}>
-      <span
-        style={{
-          fontFamily,
-          fontSize: 36 * scale,
-          fontWeight: 400,
-          color: textColor,
-          letterSpacing: 1 * scale,
-          userSelect: 'none',
-        }}
-      >
-        {displayText}
-      </span>
+      <span style={spanStyle}>{displayText}</span>
     </div>
   )
 }

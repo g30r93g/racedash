@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
+import { getLapAtTime } from '../../timing'
 import { computeLapColors } from './lapColor'
 import { LapTimerTrap } from './LapTimerTrap'
 import { LapCounter } from './LapCounter'
@@ -9,15 +10,27 @@ import { TimeLabelPanel } from './TimeLabelPanel'
 
 const DEFAULT_ACCENT = '#3DD73D'
 
-export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, mode, startingGridPosition, accentColor, textColor, timerTextColor, timerBgColor }) => {
+export const Banner: React.FC<OverlayProps> = ({
+  session, sessionAllLaps, fps, mode, startingGridPosition,
+  accentColor, textColor, timerTextColor, timerBgColor,
+}) => {
+  const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
+  const currentTime = frame / fps
+
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const accent = useMemo(() => accentColor ?? DEFAULT_ACCENT, [accentColor])
-  const text = useMemo(() => textColor ?? 'white', [textColor])
+  const accent = accentColor ?? DEFAULT_ACCENT
+  const text = textColor ?? 'white'
 
-  // Outer clip — no background here so only the content layer gets rounded corners
+  const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
+  const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
+  const raceEnd = useMemo(() => {
+    const lastTs = session.timestamps[session.timestamps.length - 1]
+    return lastTs.ytSeconds + lastTs.lap.lapTime
+  }, [session.timestamps])
+
   const outerStyle: React.CSSProperties = useMemo(() => ({
     position: 'absolute',
     top: 0,
@@ -27,7 +40,6 @@ export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, m
     overflow: 'hidden',
   }), [scale])
 
-  // Semi-transparent accent fill behind the content (opacity doesn't bleed onto text)
   const bgStyle: React.CSSProperties = useMemo(() => ({
     position: 'absolute',
     inset: 0,
@@ -50,26 +62,56 @@ export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, m
               timestamps={session.timestamps}
               currentLaps={session.laps}
               sessionAllLaps={sessionAllLaps}
-              fps={fps}
+              currentLap={currentLap}
+              currentIdx={currentIdx}
+              currentTime={currentTime}
               mode={mode}
               startingGridPosition={startingGridPosition}
               textColor={text}
             />
             <div style={{ flex: 1 }}>
-              <TimeLabelPanel timestamps={session.timestamps} fps={fps} variant="last" textColor={text} />
+              <TimeLabelPanel
+                timestamps={session.timestamps}
+                currentLap={currentLap}
+                currentIdx={currentIdx}
+                currentTime={currentTime}
+                variant="last"
+                textColor={text}
+              />
             </div>
-            <LapTimerTrap timestamps={session.timestamps} lapColors={lapColors} fps={fps} textColor={timerTextColor ?? text} bgColor={timerBgColor} />
+            <LapTimerTrap
+              timestamps={session.timestamps}
+              lapColors={lapColors}
+              currentLap={currentLap}
+              currentIdx={currentIdx}
+              currentTime={currentTime}
+              raceEnd={raceEnd}
+              textColor={timerTextColor ?? text}
+              bgColor={timerBgColor}
+            />
             <div style={{ flex: 1 }}>
-              <TimeLabelPanel timestamps={session.timestamps} fps={fps} variant="best" textColor={text} />
+              <TimeLabelPanel
+                timestamps={session.timestamps}
+                currentLap={currentLap}
+                currentIdx={currentIdx}
+                currentTime={currentTime}
+                variant="best"
+                textColor={text}
+              />
             </div>
-            <LapCounter timestamps={session.timestamps} fps={fps} textColor={text} />
+            <LapCounter
+              timestamps={session.timestamps}
+              currentLap={currentLap}
+              currentTime={currentTime}
+              textColor={text}
+            />
           </div>
         </div>
       </AbsoluteFill>
     )
   }
 
-  // Race: fixed-size panels anchored to edges with the lap timer centered
+  // Race layout
   return (
     <AbsoluteFill>
       <div style={{ position: 'absolute', top: 0, left: 0 }}>
@@ -77,17 +119,33 @@ export const Banner: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps, m
           timestamps={session.timestamps}
           currentLaps={session.laps}
           sessionAllLaps={sessionAllLaps}
-          fps={fps}
+          currentLap={currentLap}
+          currentIdx={currentIdx}
+          currentTime={currentTime}
           mode={mode}
           startingGridPosition={startingGridPosition}
           textColor={text}
         />
       </div>
       <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)' }}>
-        <LapTimerTrap timestamps={session.timestamps} lapColors={lapColors} fps={fps} textColor={timerTextColor ?? text} bgColor={timerBgColor} />
+        <LapTimerTrap
+          timestamps={session.timestamps}
+          lapColors={lapColors}
+          currentLap={currentLap}
+          currentIdx={currentIdx}
+          currentTime={currentTime}
+          raceEnd={raceEnd}
+          textColor={timerTextColor ?? text}
+          bgColor={timerBgColor}
+        />
       </div>
       <div style={{ position: 'absolute', top: 0, right: 0 }}>
-        <LapCounter timestamps={session.timestamps} fps={fps} textColor={text} />
+        <LapCounter
+          timestamps={session.timestamps}
+          currentLap={currentLap}
+          currentTime={currentTime}
+          textColor={text}
+        />
       </div>
     </AbsoluteFill>
   )

@@ -1,25 +1,22 @@
 import React, { useMemo } from 'react'
-import { useCurrentFrame, useVideoConfig } from 'remotion'
+import { useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
-import { getLapAtTime } from '../../timing'
 import { fontFamily } from '../../Root'
 
 interface Props {
   timestamps: LapTimestamp[]
-  fps: number
+  currentLap: LapTimestamp
+  currentTime: number
   textColor?: string
 }
 
-export const LapCounter: React.FC<Props> = ({ timestamps, fps, textColor = 'white' }) => {
-  const frame = useCurrentFrame()
+export const LapCounter: React.FC<Props> = ({ timestamps, currentLap, currentTime, textColor = 'white' }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
-  const currentTime = frame / fps
 
   const raceStart = timestamps[0].ytSeconds
   const total = timestamps.length
 
-  const currentLap = useMemo(() => getLapAtTime(timestamps, currentTime), [timestamps, currentTime])
   const displayText = useMemo(
     () => `${String(currentLap.lap.number).padStart(2, '0')}/${total}`,
     [currentLap, total],
@@ -55,7 +52,6 @@ export const LapCounter: React.FC<Props> = ({ timestamps, fps, textColor = 'whit
     userSelect: 'none',
   }), [scale, textColor])
 
-  // Hidden before race starts
   if (currentTime < raceStart) return null
 
   return (
