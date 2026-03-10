@@ -11,6 +11,8 @@ export interface RegistryEntry {
   height: number
   overlayX: number
   overlayY: number
+  /** If true, the composition canvas scales to match videoWidth at render time. Use for full-width overlays only. */
+  scaleWithVideo?: boolean
 }
 
 export const registry: Record<string, RegistryEntry> = {
@@ -20,6 +22,7 @@ export const registry: Record<string, RegistryEntry> = {
     height: 120,
     overlayX: 0,
     overlayY: 0,
+    scaleWithVideo: true,
   },
   esports: {
     component: Esports,
