@@ -22,8 +22,8 @@ export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-rig
 export interface SessionSegment {
   mode: SessionMode
   session: SessionData
-  sessionAllLaps: Lap[][]   // one Lap[] per driver; segment-isolated (no cross-segment data)
-  label?: string            // shown ±labelWindowSeconds around this segment's offset
+  sessionAllLaps: Lap[][]   // one Lap[] per driver, segment-isolated (no cross-segment data)
+  label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
 }
 
 export interface OverlayProps {
@@ -34,9 +34,9 @@ export interface OverlayProps {
   videoWidth?: number
   videoHeight?: number
   boxPosition?: BoxPosition
-  accentColor?: string
-  textColor?: string
-  timerTextColor?: string
-  timerBgColor?: string
+  accentColor?: string    // hex/CSS color for style accent (e.g. banner green band)
+  textColor?: string      // hex/CSS color for overlay text (default: white)
+  timerTextColor?: string // hex/CSS color for the lap timer text (default: white)
+  timerBgColor?: string   // hex/CSS color for the lap timer background (default: #111111)
   labelWindowSeconds?: number     // default 5
 }
