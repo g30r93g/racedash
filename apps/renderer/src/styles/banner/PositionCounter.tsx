@@ -8,7 +8,6 @@ interface Props {
   timestamps: LapTimestamp[]
   currentLaps: Lap[]
   sessionAllLaps: Lap[][]
-  currentLap: LapTimestamp
   currentIdx: number
   currentTime: number
   mode: SessionMode
@@ -18,7 +17,7 @@ interface Props {
 
 export const PositionCounter: React.FC<Props> = ({
   timestamps, currentLaps, sessionAllLaps,
-  currentLap, currentIdx, currentTime,
+  currentIdx, currentTime,
   mode, startingGridPosition, textColor = 'white',
 }) => {
   const { width } = useVideoConfig()
