@@ -73,9 +73,9 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
       ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
       : EMPTY_TIME
 
-  // Best lap from any driver completed up to this point in the race
-  const raceElapsed = currentTime - session.timestamps[0].ytSeconds
-  const completedByNow = sessionAllLaps.flat().filter(l => l.cumulative <= raceElapsed)
+  // Only include laps completed before the current lap started (excludes in-progress laps)
+  const lapStartElapsed = currentLap.ytSeconds - session.timestamps[0].ytSeconds
+  const completedByNow = sessionAllLaps.flat().filter(l => l.cumulative <= lapStartElapsed)
   const sessionBestTime =
     completedByNow.length > 0
       ? formatLapTime(Math.min(...completedByNow.map(l => l.lapTime)))
