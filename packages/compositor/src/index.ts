@@ -37,6 +37,8 @@ export async function renderOverlay(
     composition: comp,
     codec: 'prores',
     proResProfile: '4444',
+    pixelFormat: 'yuva444p10le',
+    imageFormat: 'png',
     outputLocation: outputPath,
     inputProps,
     chromiumOptions: { gl: 'angle' },
