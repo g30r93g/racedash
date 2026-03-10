@@ -3,6 +3,7 @@ import type { OverlayProps } from '@racedash/core'
 import { Geometric } from './styles/geometric'
 import { Esports } from './styles/esports'
 import { Minimal } from './styles/minimal'
+import { Modern } from './styles/modern'
 
 export interface RegistryEntry {
   component: ComponentType<OverlayProps>
@@ -33,5 +34,12 @@ export const registry: Record<string, RegistryEntry> = {
     height: 150,
     overlayX: 48,
     overlayY: 882,
+  },
+  modern: {
+    component: Modern,
+    width: 520,
+    height: 96,
+    overlayX: 0,
+    overlayY: 984,
   },
 }
