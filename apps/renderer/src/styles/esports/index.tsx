@@ -30,14 +30,94 @@ function StopwatchIcon({ size, color = 'white' }: { size: number; color?: string
   )
 }
 
+interface TimePanelProps {
+  iconBg: string
+  label: string
+  time: string
+  sc: number
+  iconBgSize: number
+  iconSize: number
+}
+
+function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelProps) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16 * sc,
+      }}
+    >
+      {/* Icon square */}
+      <div
+        style={{
+          width: iconBgSize,
+          height: iconBgSize,
+          background: iconBg,
+          borderRadius: 6 * sc,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <StopwatchIcon size={iconSize} />
+      </div>
+
+      {/* Label + time */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4 * sc,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12 * sc,
+            fontWeight: 400,
+            color: '#9ca3af',
+            letterSpacing: 2 * sc,
+            textTransform: 'uppercase',
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            fontSize: 36 * sc,
+            fontWeight: 400,
+            color: 'white',
+            letterSpacing: 1 * sc,
+            lineHeight: 1,
+          }}
+        >
+          {time}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
 
   const currentTime = frame / fps
+
+  // Pre-race guard
+  const raceStart = session.timestamps[0].ytSeconds
+  if (currentTime < raceStart) return null
+
+  // Post-race guard
+  const lastTs = session.timestamps[session.timestamps.length - 1]
+  const raceEnd = lastTs.ytSeconds + lastTs.lap.lapTime
+  if (currentTime >= raceEnd) return null
+
   const currentLap = getLapAtTime(session.timestamps, currentTime)
-  const currentIdx = currentLap.lap.number - 1 // 0-indexed
+  const currentIdx = session.timestamps.indexOf(currentLap)
 
   // Last completed lap time
   const lastLapTime =
@@ -71,6 +151,9 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
 
   // Bottom section padding
   const bottomPadX = 32 * sc
+
+  // Icon-label gap in bottom bar
+  const iconLabelGap = 10 * sc
 
   return (
     <AbsoluteFill>
@@ -154,8 +237,8 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
             boxSizing: 'border-box',
           }}
         >
-          {/* Left: stopwatch icon + "Current" label */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 * sc }}>
+          {/* Left: stopwatch icon + "CURRENT" label */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: iconLabelGap }}>
             <StopwatchIcon size={22 * sc} color="#9ca3af" />
             <span
               style={{
@@ -166,7 +249,7 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
                 textTransform: 'uppercase',
               }}
             >
-              Current
+              CURRENT
             </span>
           </div>
 
@@ -185,75 +268,5 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
         </div>
       </div>
     </AbsoluteFill>
-  )
-}
-
-interface TimePanelProps {
-  iconBg: string
-  label: string
-  time: string
-  sc: number
-  iconBgSize: number
-  iconSize: number
-}
-
-function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16 * sc,
-      }}
-    >
-      {/* Icon square */}
-      <div
-        style={{
-          width: iconBgSize,
-          height: iconBgSize,
-          background: iconBg,
-          borderRadius: 6 * sc,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <StopwatchIcon size={iconSize} />
-      </div>
-
-      {/* Label + time */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4 * sc,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12 * sc,
-            fontWeight: 400,
-            color: '#9ca3af',
-            letterSpacing: 2 * sc,
-            textTransform: 'uppercase',
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            fontSize: 36 * sc,
-            fontWeight: 400,
-            color: 'white',
-            letterSpacing: 1 * sc,
-            lineHeight: 1,
-          }}
-        >
-          {time}
-        </span>
-      </div>
-    </div>
   )
 }
