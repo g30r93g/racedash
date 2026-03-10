@@ -1,5 +1,5 @@
 import React from 'react'
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
+import { useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed } from '../../timing'
@@ -103,7 +103,7 @@ function TimePanel({ iconBg, label, time, sc, iconBgSize, iconSize }: TimePanelP
 export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
-  const sc = width / 1920
+  const sc = width / 480
 
   const currentTime = frame / fps
 
@@ -156,21 +156,16 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
   const iconLabelGap = 10 * sc
 
   return (
-    <AbsoluteFill>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          width: '100%',
-          height: totalH,
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily,
-          userSelect: 'none',
-        }}
-      >
+    <div
+      style={{
+        width: '100%',
+        height: totalH,
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily,
+        userSelect: 'none',
+      }}
+    >
         {/* 1. Accent bar — blue-to-purple gradient */}
         <div
           style={{
@@ -266,7 +261,6 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
             {elapsedFormatted}
           </span>
         </div>
-      </div>
-    </AbsoluteFill>
+    </div>
   )
 }

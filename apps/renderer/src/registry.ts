@@ -23,10 +23,10 @@ export const registry: Record<string, RegistryEntry> = {
   },
   esports: {
     component: Esports,
-    width: 1920,
+    width: 480,
     height: 228,
-    overlayX: 0,
-    overlayY: 0,
+    overlayX: 48,
+    overlayY: 804,
   },
   minimal: {
     component: Minimal,
