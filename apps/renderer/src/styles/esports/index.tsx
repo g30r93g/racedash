@@ -133,13 +133,29 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
           userSelect: 'none',
         }}
       >
-        {/* Accent bar */}
+        {/* Accent bar with lap count */}
         <div
           style={{
-            height: 8 * sc,
+            height: 28 * sc,
             background: 'linear-gradient(to right, #2563eb, #7c3aed)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            paddingRight: pad,
           }}
-        />
+        >
+          <span
+            style={{
+              fontSize: 12 * sc,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.9)',
+              letterSpacing: 1.5 * sc,
+              textTransform: 'uppercase',
+            }}
+          >
+            LAP {currentLap.lap.number} / {session.timestamps.length}
+          </span>
+        </div>
 
         {/* Gray section: two stacked time panels */}
         <div
