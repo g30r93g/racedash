@@ -9,6 +9,7 @@ import { LapTimerTrap } from './LapTimerTrap'
 import { LapCounter } from './LapCounter'
 import { PositionCounter } from './PositionCounter'
 import { TimeLabelPanel } from './TimeLabelPanel'
+import { QualifyingTable } from '../../components/shared/QualifyingTable'
 
 const DEFAULT_ACCENT = '#3DD73D'
 
@@ -26,6 +27,7 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
+  const showQualTable = (mode === 'qualifying' || mode === 'practice') && segment.qualifyingDrivers != null
   const accent = accentColor ?? DEFAULT_ACCENT
   const text = textColor ?? 'white'
 
@@ -112,6 +114,14 @@ export const Banner: React.FC<OverlayProps> = ({
             />
           </div>
         </div>
+        {showQualTable && (
+          <QualifyingTable
+            qualifyingDrivers={segment.qualifyingDrivers!}
+            ourKart={session.driver.kart}
+            fps={fps}
+            accentColor={accent}
+          />
+        )}
         {label && <SegmentLabel label={label} scale={scale} />}
       </AbsoluteFill>
     )
@@ -152,6 +162,14 @@ export const Banner: React.FC<OverlayProps> = ({
           textColor={text}
         />
       </div>
+      {showQualTable && (
+        <QualifyingTable
+          qualifyingDrivers={segment.qualifyingDrivers!}
+          ourKart={session.driver.kart}
+          fps={fps}
+          accentColor={accent}
+        />
+      )}
       {label && <SegmentLabel label={label} scale={scale} />}
     </AbsoluteFill>
   )

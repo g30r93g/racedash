@@ -1,12 +1,39 @@
 #!/usr/bin/env node
 import { program } from 'commander'
 import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid } from '@racedash/scraper'
+import type { DriverRow } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver } from './select'
 import path from 'node:path'
 import { access, readFile } from 'node:fs/promises'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { BoxPosition, OverlayProps, SessionData, SessionMode, SessionSegment } from '@racedash/core'
+import type { BoxPosition, LapTimestamp, OverlayProps, QualifyingDriver, SessionData, SessionMode, SessionSegment } from '@racedash/core'
+
+function buildQualifyingDrivers(
+  allDrivers: DriverRow[],
+  ourKart: string,
+  offsetSeconds: number,
+): QualifyingDriver[] {
+  const ourDriver = allDrivers.find(d => d.kart === ourKart)
+  if (!ourDriver) return []
+
+  const ourTotal = ourDriver.laps.reduce((s, l) => s + l.lapTime, 0)
+  const sessionEnd = offsetSeconds + ourTotal
+
+  return allDrivers.map(d => {
+    const driverTotal = d.laps.reduce((s, l) => s + l.lapTime, 0)
+    const driverStart = sessionEnd - driverTotal
+
+    let ytSeconds = driverStart
+    const timestamps: LapTimestamp[] = d.laps.map(lap => {
+      const ts = { lap, ytSeconds }
+      ytSeconds += lap.lapTime
+      return ts
+    })
+
+    return { kart: d.kart, name: d.name, timestamps }
+  })
+}
 
 program
   .name('racedash')
@@ -226,6 +253,9 @@ program
           mode,
           session,
           sessionAllLaps: allDrivers.map(d => d.laps),
+          qualifyingDrivers: (mode === 'qualifying' || mode === 'practice')
+            ? buildQualifyingDrivers(allDrivers, driver.kart, offsetSeconds)
+            : undefined,
           label: sc.label,
         })
       }
