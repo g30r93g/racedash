@@ -142,6 +142,28 @@ pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "
   --output ./race-out.mp4
 ```
 
+While running, racedash shows a progress bar for each step and a total time on completion:
+
+```
+  Fetching session data and probing video...
+
+  Driver      Jane Smith  [43]  ·  26 laps
+  Mode        qualifying
+  Video       1920×1080  ·  60 fps
+  Style       banner
+  Accent      ██ #3DD73D
+  Text        ██ white
+  Timer text  ██ white
+  Timer bg    ██ #111111
+
+  Rendering overlay   [████████████████░░░░░░░░░░░░░░]   54%  ETA 1:12
+  Compositing         [████████████████████████████░░]   93%  ETA 0:08
+
+  ✓  ./race-out.mp4  ·  3:42
+```
+
+#### Flags
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--offset <time>` | Video timestamp at the start of lap 1 | _(required)_ |
@@ -149,20 +171,25 @@ pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "
 | `--output <path>` | Where to save the rendered video | `./out.mp4` |
 | `--fps <n>` | Output framerate | `60` |
 | `--style <name>` | Overlay style (see below) | `banner` |
-| `--mode <mode>` | Session type: `practice`, `qualifying`, or `race` | `race` |
+| `--mode <mode>` | Session type: `practice`, `qualifying`, or `race` | _(required)_ |
 | `--overlay-x <n>` | Horizontal position of the overlay in pixels | `0` |
 | `--overlay-y <n>` | Vertical position of the overlay in pixels | `0` |
+| `--box-position <pos>` | Corner for box-style overlays: `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-left` |
+| `--accent-color <color>` | Accent colour for the overlay (hex or CSS colour name) | `#3DD73D` |
+| `--text-color <color>` | Text colour for the overlay | `white` |
+| `--timer-text-color <color>` | Text colour for the centre lap timer specifically | _(falls back to `--text-color`)_ |
+| `--timer-bg-color <color>` | Background colour for the centre lap timer | `#111111` |
 
 #### Available styles
 
-| Style | Description | Recommended placement (1080p) |
-|-------|-------------|-------------------------------|
-| `banner` | Full-width top strip with trapezoid lap timer. Flashes purple/green/red on lap completion based on session best. | `--overlay-x 0 --overlay-y 0` |
-| `esports` | Bottom-left box with icon panels showing last lap (green) and session best (purple), plus a current-lap ticker. Positions itself — use `--overlay-x 0 --overlay-y 0`. | `--overlay-x 0 --overlay-y 0` |
-| `minimal` | Compact dark card with lap number badge, large elapsed timer, and last lap / session best stats. | `--overlay-x 48 --overlay-y 882` |
-| `modern` | Slim translucent bar with a subtle banner stripe pattern. Shows elapsed time alongside last lap and session best. | `--overlay-x 0 --overlay-y 984` |
+| Style | Description |
+|-------|-------------|
+| `banner` | Full-width top strip with a coloured accent band and a dark centre trap for the lap timer. In `practice`/`qualifying` mode the band also shows last-lap and session-best panels; in `race` mode it shows a position counter and lap fraction at the edges. Flashes purple/green/red on lap completion. Colours are fully configurable via `--accent-color`, `--text-color`, `--timer-text-color`, and `--timer-bg-color`. |
+| `esports` | Box with icon panels showing last lap and session best, plus a current-lap ticker. Position controlled by `--box-position`. |
+| `minimal` | Compact dark card with lap number badge, large elapsed timer, and last lap / session best stats. Position controlled by `--box-position`. |
+| `modern` | Slim translucent bar with a subtle diagonal stripe pattern. Shows elapsed time alongside last lap and session best. |
 
-**`--mode` affects the `banner` style layout:** in `practice` or `qualifying` mode it renders a full-width banner including last-lap and session-best panels; in `race` mode it shows just the central lap timer with position and lap counter at the edges.
+**`--mode` affects the `banner` style layout:** in `practice` or `qualifying` mode it renders a full-width banner including last-lap and session-best panels with a `LAST · time · LAP` / `BEST · time · LAP` layout; in `race` mode it shows just the central lap timer with a `POSITION` label and position counter on the left and a `LAP` label with the lap fraction on the right.
 
 ---
 
