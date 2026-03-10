@@ -5,7 +5,7 @@ import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { fontFamily } from '../../Root'
 
-const EMPTY_TIME = '\u2014:\u2014\u2014.\u2014\u2014\u2014'
+const EMPTY_TIME = '—:--.---'
 
 function StopwatchIcon({ size, color = 'white' }: { size: number; color?: string }) {
   return (
@@ -121,7 +121,7 @@ export const Esports: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
 
   // Last completed lap time
   const lastLapTime =
-    currentIdx > 0
+    currentIdx >= 1
       ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
       : EMPTY_TIME
 

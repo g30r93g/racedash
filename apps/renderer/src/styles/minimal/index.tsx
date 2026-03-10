@@ -109,7 +109,7 @@ export const Minimal: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps }
           left: 0,
           width: cardW,
           height: cardH,
-          background: '#555555',
+          background: 'rgba(20, 22, 28, 0.88)',
           borderRadius,
           padding: `${padV}px ${padH}px`,
           boxSizing: 'border-box',

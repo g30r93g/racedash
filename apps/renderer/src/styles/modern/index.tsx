@@ -114,7 +114,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
             style={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'flex-end',
+              alignItems: 'flex-start',
               gap: 2 * scale,
             }}
           >
@@ -147,7 +147,7 @@ export const Modern: React.FC<OverlayProps> = ({ session, sessionAllLaps, fps })
             style={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'flex-end',
+              alignItems: 'flex-start',
               gap: 2 * scale,
             }}
           >
