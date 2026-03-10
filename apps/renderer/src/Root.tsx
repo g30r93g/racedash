@@ -1,13 +1,13 @@
 import React from 'react'
 import { Composition } from 'remotion'
 import { loadFont } from '@remotion/google-fonts/AtkinsonHyperlegibleMono'
-import type { OverlayProps } from '@racedash/core'
+import type { OverlayProps, SessionData } from '@racedash/core'
 import type { RegistryEntry } from './registry'
 import { registry } from './registry'
 
 export const { fontFamily } = loadFont('normal', { weights: ['400', '700'], subsets: ['latin'] })
 
-const defaultSession: OverlayProps['session'] = {
+const defaultSession: SessionData = {
   driver: { kart: '0', name: 'Preview Driver' },
   laps: [
     { number: 1, lapTime: 68.588, cumulative: 68.588 },
@@ -22,9 +22,14 @@ const defaultSession: OverlayProps['session'] = {
 }
 
 const defaultProps: OverlayProps = {
-  session: defaultSession,
-  sessionAllLaps: [defaultSession.laps],
-  mode: 'race',
+  segments: [
+    {
+      mode: 'race',
+      session: defaultSession,
+      sessionAllLaps: [defaultSession.laps],
+      label: 'Race Start',
+    },
+  ],
   fps: 60,
   durationInFrames: 300,
 }
@@ -44,12 +49,11 @@ function OverlayComposition({ id, entry }: { id: string; entry: RegistryEntry })
         if (entry.scaleWithVideo) {
           const width = props.videoWidth ?? entry.width
           const scale = width / entry.width
-          const height = props.videoHeight ?? Math.round(entry.height * scale)
           return {
             durationInFrames: props.durationInFrames,
             fps: props.fps,
             width,
-            height,
+            height: Math.round(entry.height * scale),
           }
         }
         return {
