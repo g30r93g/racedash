@@ -15,6 +15,12 @@ export interface SessionData {
   timestamps: LapTimestamp[]
 }
 
+export interface QualifyingDriver {
+  kart: string
+  name: string
+  timestamps: LapTimestamp[]   // absolute ytSeconds for each lap start
+}
+
 export type SessionMode = 'practice' | 'qualifying' | 'race'
 
 export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
@@ -23,6 +29,7 @@ export interface SessionSegment {
   mode: SessionMode
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, segment-isolated (no cross-segment data)
+  qualifyingDrivers?: QualifyingDriver[]  // all drivers; populated for qualifying + practice
   label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
 }
 
