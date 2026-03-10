@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LapTimestamp } from '@racedash/core'
-import { getLapAtTime, getLapElapsed } from './timing'
+import { getLapAtTime, getLapElapsed, getSessionBest } from './timing'
 
 const timestamps: LapTimestamp[] = [
   { lap: { number: 1, lapTime: 68.588, cumulative: 68.588 }, ytSeconds: 135.0 },
@@ -27,5 +27,19 @@ describe('getLapElapsed', () => {
   it('returns time elapsed within the current lap', () => {
     const ts = timestamps[1] // lap 2 starts at 203.588
     expect(getLapElapsed(ts, 210.0)).toBeCloseTo(6.412)
+  })
+})
+
+describe('getSessionBest', () => {
+  it('returns null for empty array', () => {
+    expect(getSessionBest([])).toBeNull()
+  })
+
+  it('returns the single lap time for one lap', () => {
+    expect(getSessionBest([timestamps[0]])).toBeCloseTo(68.588)
+  })
+
+  it('returns the minimum lap time across multiple laps', () => {
+    expect(getSessionBest(timestamps)).toBeCloseTo(64.776)
   })
 })

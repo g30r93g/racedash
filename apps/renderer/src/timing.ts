@@ -31,5 +31,5 @@ export function getCompletedLaps(timestamps: LapTimestamp[], currentIdx: number)
  */
 export function getSessionBest(completedLaps: LapTimestamp[]): number | null {
   if (completedLaps.length === 0) return null
-  return Math.min(...completedLaps.map(ts => ts.lap.lapTime))
+  return completedLaps.reduce((min, ts) => Math.min(min, ts.lap.lapTime), Infinity)
 }
