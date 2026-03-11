@@ -127,6 +127,23 @@ describe('parseReplayLapData', () => {
     expect(p1.intervalToAhead).toBe('')
   })
 
+  it('maps P2 fields correctly in snapshot 1', () => {
+    const result = parseReplayLapData(replayHtml)
+    const snap1 = result[1]
+    const p2 = snap1.find(e => e.position === 2)!
+    expect(p2.intervalToAhead).toBe('0.099')
+    expect(p2.gapToLeader).toBe('0.099')
+  })
+
+  it('maps P3 (lapped driver) fields correctly in snapshot 1', () => {
+    const result = parseReplayLapData(replayHtml)
+    const snap1 = result[1]
+    const p3 = snap1.find(e => e.position === 3)!
+    expect(p3.gapToLeader).toBe('1 L')
+    expect(p3.intervalToAhead).toBe('5.200')
+    expect(p3.lapsCompleted).toBe(0)
+  })
+
   it('totalSeconds is null for empty string time in snapshot 0', () => {
     const result = parseReplayLapData(replayHtml)
     const snapshot0 = result[0]
