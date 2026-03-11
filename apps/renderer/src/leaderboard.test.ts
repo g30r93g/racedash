@@ -364,13 +364,13 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 1. raceLapSnapshots: undefined falls back to timing path
   it('raceLapSnapshots: undefined falls back to timing path', () => {
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     expect(() => buildLeaderboard([], 0, 'race', undefined, undefined)).not.toThrow()
   })
 
   // 2. raceLapSnapshots: [] returns [] without fallback
   it('raceLapSnapshots: [] returns [] without fallback', () => {
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, [])
     expect(result).toEqual([])
   })
@@ -378,7 +378,7 @@ describe('buildLeaderboard – snapshot path', () => {
   // 3. Returns [] when currentTime is before first snapshot
   it('returns [] when currentTime is before first snapshot', () => {
     const snapshots = [makeSnapshot(100, [entry('1', 1, 1, '')])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 50, 'race', undefined, snapshots)
     expect(result).toEqual([])
   })
@@ -386,7 +386,7 @@ describe('buildLeaderboard – snapshot path', () => {
   // 4. Selects snapshot at exact boundary (inclusive)
   it('selects snapshot at exact boundary (inclusive)', () => {
     const snapshots = [makeSnapshot(100, [entry('1', 1, 1, ''), entry('2', 2, 1, '0.500')])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 100, 'race', undefined, snapshots)
     expect(result.length).toBeGreaterThan(0)
   })
@@ -395,7 +395,7 @@ describe('buildLeaderboard – snapshot path', () => {
   it('selects the latest snapshot where videoTimestamp <= currentTime', () => {
     const snap1 = makeSnapshot(50, [entry('10', 1, 1, ''), entry('11', 2, 1, '1.000')])
     const snap2 = makeSnapshot(100, [entry('20', 1, 2, ''), entry('21', 2, 2, '2.000')])
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 75, 'race', undefined, [snap1, snap2])
     // currentTime=75 → only snap1 (t=50) qualifies; snap2 (t=100) does not
     expect(result[0].kart).toBe('10')
@@ -408,7 +408,7 @@ describe('buildLeaderboard – snapshot path', () => {
       entry('2', 2, 3, '1.000'),
       entry('3', 3, 3, '2.000'),
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[0].interval).toBeNull()
   })
@@ -419,7 +419,7 @@ describe('buildLeaderboard – snapshot path', () => {
       entry('1', 1, 5, ''),
       entry('2', 2, 5, '0.333'),
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+0.333')
   })
@@ -430,7 +430,7 @@ describe('buildLeaderboard – snapshot path', () => {
       entry('1', 1, 1, ''),
       entry('2', 2, 0, '0.000'),
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+1L')
   })
@@ -441,7 +441,7 @@ describe('buildLeaderboard – snapshot path', () => {
       entry('1', 1, 3, ''),
       entry('2', 2, 0, '0.000'),
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+3L')
   })
@@ -452,7 +452,7 @@ describe('buildLeaderboard – snapshot path', () => {
       entry('1', 1, 5, ''),
       entry('2', 2, 5, ''),
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+0.000')
   })
@@ -461,7 +461,7 @@ describe('buildLeaderboard – snapshot path', () => {
   it('uses entry.position for P1 check, not array index', () => {
     // Only one entry with position=3 (not P1) — should NOT get null interval
     const snapshots = [makeSnapshot(0, [entry('3', 3, 5, '1.234')])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[0].interval).not.toBeNull()
   })
@@ -472,7 +472,7 @@ describe('buildLeaderboard – snapshot path', () => {
       entry('1', 1, 5, ''),
       entry('2', 2, 5, '0.500'),
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', '2', snapshots)
     expect(result[0].kart).toBe('1')
     expect(result[1].kart).toBe('2')
@@ -483,7 +483,7 @@ describe('buildLeaderboard – snapshot path', () => {
     const snapshots = [makeSnapshot(0, [
       { kart: '42', name: 'Alice', position: 1, lapsCompleted: 7, gapToLeader: '0.000', intervalToAhead: '' },
     ])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[0].kart).toBe('42')
     expect(result[0].name).toBe('Alice')
@@ -494,7 +494,7 @@ describe('buildLeaderboard – snapshot path', () => {
   // 14. timestamps: [], best: Infinity, cumulativeTime: 0 are set as placeholders
   it('sets timestamps=[], best=Infinity, cumulativeTime=0 as placeholder values', () => {
     const snapshots = [makeSnapshot(0, [entry('1', 1, 5, '')])]
-    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[0].timestamps).toEqual([])
     expect(result[0].best).toBe(Infinity)

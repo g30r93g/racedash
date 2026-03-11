@@ -1,4 +1,4 @@
-import type { LeaderboardDriver } from '@racedash/core'
+import type { LeaderboardDriver, RaceLapEntry, RaceLapSnapshot } from '@racedash/core'
 
 export type LeaderboardMode = 'qualifying' | 'practice' | 'race'
 
@@ -14,13 +14,24 @@ export interface RankedDriver extends LeaderboardDriver {
  * Build the leaderboard at `currentTime`.
  * Only drivers with at least one completed lap are included.
  * A lap is complete when ts.ytSeconds + ts.lap.lapTime <= currentTime.
+ *
+ * In race mode, pass `ourKart` to align ranking with PositionCounter: positions are
+ * computed at lap (ourLapsCompleted + 1), matching getPosition(race, currentIdx+1, …).
+ * Drivers without that lap's data (retired, short race) are sorted to the back.
  */
 export function buildLeaderboard(
   drivers: LeaderboardDriver[],
   currentTime: number,
   mode: LeaderboardMode,
+  ourKart?: string,
+  raceLapSnapshots?: RaceLapSnapshot[],
 ): RankedDriver[] {
-  if (mode === 'race') return buildRaceLeaderboard(drivers, currentTime)
+  if (mode === 'race') {
+    if (raceLapSnapshots !== undefined) {
+      return buildRaceLeaderboardFromSnapshots(raceLapSnapshots, currentTime, ourKart)
+    }
+    return buildRaceLeaderboard(drivers, currentTime, ourKart)
+  }
 
   // qualifying / practice: rank by best lap time
   const ranked: RankedDriver[] = []
@@ -108,23 +119,145 @@ export function formatInterval(current: RankedDriver, ahead: RankedDriver): stri
   return `+${timeDiff.toFixed(3)}`
 }
 
-function buildRaceLeaderboard(drivers: LeaderboardDriver[], currentTime: number): RankedDriver[] {
-  const ranked: RankedDriver[] = []
+function buildRaceLeaderboardFromSnapshots(
+  snapshots: RaceLapSnapshot[],
+  currentTime: number,
+  ourKart?: string,
+): RankedDriver[] {
+  // Find the last snapshot where videoTimestamp <= currentTime
+  let active: RaceLapSnapshot | undefined
+  for (const snap of snapshots) {
+    if (snap.videoTimestamp <= currentTime) active = snap
+  }
+  if (!active) return []
+
+  const { entries } = active
+  return entries.map((entry, i) => {
+    let interval: string | null
+    if (entry.position === 1) {
+      interval = null
+    } else {
+      const ahead = entries[i - 1]
+      if (!ahead) {
+        interval = entry.intervalToAhead === '' ? '+0.000' : `+${entry.intervalToAhead}`
+      } else {
+        const lapDiff = ahead.lapsCompleted - entry.lapsCompleted
+        if (lapDiff > 0) {
+          interval = `+${lapDiff}L`
+        } else if (lapDiff < 0) {
+          // Impossible in well-formed data; defensive fallback
+          interval = '+0.000'
+        } else if (entry.intervalToAhead === '') {
+          // Malformed non-P1 data
+          interval = '+0.000'
+        } else {
+          interval = `+${entry.intervalToAhead}`
+        }
+      }
+    }
+    return {
+      kart: entry.kart,
+      name: entry.name,
+      timestamps: [],
+      position: entry.position,
+      best: Infinity,
+      lapsCompleted: entry.lapsCompleted,
+      cumulativeTime: 0,
+      interval,
+    }
+  })
+}
+
+function buildRaceLeaderboard(
+  drivers: LeaderboardDriver[],
+  currentTime: number,
+  ourKart?: string,
+): RankedDriver[] {
+  // First pass: determine how many laps each driver has completed by currentTime.
+  const driverState: Array<{
+    driver: LeaderboardDriver
+    lapsCompleted: number
+    lastCumulative: number  // race-relative cumulative of last completed lap
+    lastEndTime: number     // absolute video end-time of last completed lap (for fallback)
+  }> = []
 
   for (const d of drivers) {
     let lapsCompleted = 0
-    let cumulativeTime = 0
+    let lastCumulative = 0
+    let lastEndTime = 0
     for (const ts of d.timestamps) {
       const endTime = ts.ytSeconds + ts.lap.lapTime
       if (endTime <= currentTime) {
         lapsCompleted++
-        cumulativeTime = endTime
+        lastCumulative = ts.lap.cumulative
+        lastEndTime = endTime
       }
     }
     if (lapsCompleted > 0) {
-      ranked.push({ ...d, best: Infinity, lapsCompleted, cumulativeTime, position: 0, interval: null })
+      driverState.push({ driver: d, lapsCompleted, lastCumulative, lastEndTime })
     }
   }
+
+  if (driverState.length === 0) return []
+
+  // When ourKart is provided and found, mirror PositionCounter's look-ahead: rank by
+  // lap (ourLapsCompleted + 1) cumulative — the lap currently being driven.  This
+  // matches getPosition(race, currentIdx+1, …) so that retired/short-lap drivers who
+  // beat us in lap N but lack lap N+1 data don't rank above us.
+  const ourState = ourKart ? driverState.find(s => s.driver.kart === ourKart) : undefined
+
+  if (ourState) {
+    const ourLapsCompleted = ourState.lapsCompleted
+    // targetLapIdx (0-based) = ourLapsCompleted; the 1-based lap number is ourLapsCompleted+1.
+    const targetLapIdx = ourLapsCompleted
+
+    type Scored = (typeof driverState)[number] & { score: number }
+    const scored: Scored[] = driverState.map(s => ({
+      ...s,
+      score: s.driver.timestamps[targetLapIdx]?.lap.cumulative ?? Infinity,
+    }))
+
+    // Finite-score drivers (have target-lap data) sort by score ASC.
+    // Infinity-score drivers (retired/short) sort by lapsCompleted DESC then lastCumulative ASC.
+    scored.sort((a, b) => {
+      const aFin = isFinite(a.score)
+      const bFin = isFinite(b.score)
+      if (aFin !== bFin) return aFin ? -1 : 1
+      if (aFin) return a.score - b.score
+      if (a.lapsCompleted !== b.lapsCompleted) return b.lapsCompleted - a.lapsCompleted
+      return a.lastCumulative - b.lastCumulative
+    })
+
+    // Normalise lapsCompleted for the finite group so that formatInterval shows time
+    // gaps (not "+NL") between two finite-group drivers, while Infinity-group drivers
+    // still show the correct lap delta relative to the finite group.
+    const normLaps = ourLapsCompleted + 1
+
+    const ranked: RankedDriver[] = scored.map(({ driver, lapsCompleted, lastCumulative, score }, i) => ({
+      ...driver,
+      best: Infinity,
+      lapsCompleted: isFinite(score) ? normLaps : lapsCompleted,
+      cumulativeTime: isFinite(score) ? score : lastCumulative,
+      position: i + 1,
+      interval: null,
+    }))
+
+    for (let i = 1; i < ranked.length; i++) {
+      ranked[i].interval = formatInterval(ranked[i], ranked[i - 1])
+    }
+
+    return ranked
+  }
+
+  // Fallback (no ourKart): original "most laps first, then endTime" ranking.
+  const ranked: RankedDriver[] = driverState.map(({ driver, lapsCompleted, lastEndTime }) => ({
+    ...driver,
+    best: Infinity,
+    lapsCompleted,
+    cumulativeTime: lastEndTime,
+    position: 0,
+    interval: null,
+  }))
 
   ranked.sort((a, b) =>
     b.lapsCompleted !== a.lapsCompleted
