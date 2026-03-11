@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { LeaderboardDriver } from '@racedash/core'
+import type { LeaderboardDriver, RaceLapEntry, RaceLapSnapshot } from '@racedash/core'
 import { buildLeaderboard, selectWindow, formatDelta, formatInterval } from './leaderboard'
 import type { RankedDriver } from './leaderboard'
 
@@ -290,5 +290,214 @@ describe('buildLeaderboard (race mode)', () => {
     // At t=130: C has 1 lap, B has 2 laps → C is 1 lap behind B
     const lb = buildLeaderboard(DRIVERS, 130.0, 'race')
     expect(lb[2].interval).toBe('+1L')
+  })
+})
+
+// --- Race leaderboard with ourKart (look-ahead mode) ---
+// All drivers start at t=0 (as buildRaceDrivers produces).
+// lap.cumulative = running sum of lap times.
+function raceDriver(kart: string, lapTimes: number[]): LeaderboardDriver {
+  let ytSeconds = 0
+  let cumulative = 0
+  const timestamps = lapTimes.map((lapTime, i) => {
+    cumulative += lapTime
+    const ts = { lap: { number: i + 1, lapTime, cumulative }, ytSeconds }
+    ytSeconds += lapTime
+    return ts
+  })
+  return { kart, name: `Driver ${kart}`, timestamps }
+}
+
+describe('buildLeaderboard (race mode, ourKart)', () => {
+  // 7 drivers starting at t=0.  We are P7 on the grid (kart "7").
+  // After lap 1 our position should be P6: 5 drivers beat us, one retired driver (kart "8")
+  // had a faster lap 1 but only has 1 lap (no lap 2 data).
+  const faster = ['1','2','3','4','5'].map(k => raceDriver(k, [50 + Number(k), 55 + Number(k)]))
+  const us       = raceDriver('7', [58.0, 60.0])  // lap1=58s, lap2=60s → cumulative: 58, 118
+  const retired  = raceDriver('8', [57.0])          // lap1=57s only (retired) → cumulative: 57
+
+  const allDrivers = [...faster, us, retired]
+  // currentTime = our lap 1 end = 0 + 58 = 58s
+  const t = 58.0
+
+  it('ranks us P6 (not P7) when a retired driver beat our lap 1 time', () => {
+    const lb = buildLeaderboard(allDrivers, t, 'race', '7')
+    const ourRow = lb.find(d => d.kart === '7')
+    expect(ourRow?.position).toBe(6)
+  })
+
+  it('retired driver is ranked behind us (no lap 2 data)', () => {
+    const lb = buildLeaderboard(allDrivers, t, 'race', '7')
+    const retiredRow = lb.find(d => d.kart === '8')
+    const ourRow     = lb.find(d => d.kart === '7')
+    expect(retiredRow?.position).toBeGreaterThan(ourRow?.position ?? 0)
+  })
+
+  it('interval to retired driver shows "+1L"', () => {
+    const lb = buildLeaderboard(allDrivers, t, 'race', '7')
+    const retiredRow = lb.find(d => d.kart === '8')
+    expect(retiredRow?.interval).toBe('+1L')
+  })
+
+  it('two finite-group drivers show a time interval, not "+NL"', () => {
+    const lb = buildLeaderboard(allDrivers, t, 'race', '7')
+    const ourRow = lb.find(d => d.kart === '7')!
+    // P5 driver (kart "5") lap1=55, lap2=60 → cumulativeTime = 115
+    // our cumulativeTime = 118 → gap = 118 - 115 = 3.000
+    expect(ourRow.interval).toMatch(/^\+\d+\.\d{3}$/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Snapshot path tests
+// ---------------------------------------------------------------------------
+
+function makeSnapshot(videoTimestamp: number, entries: RaceLapEntry[]): RaceLapSnapshot {
+  return { leaderLap: 1, videoTimestamp, entries }
+}
+
+describe('buildLeaderboard – snapshot path', () => {
+  // Minimal entry helpers
+  function entry(kart: string, position: number, lapsCompleted: number, intervalToAhead = '0.000'): RaceLapEntry {
+    return { kart, name: `Driver ${kart}`, position, lapsCompleted, gapToLeader: '0.000', intervalToAhead }
+  }
+
+  // 1. raceLapSnapshots: undefined falls back to timing path
+  it('raceLapSnapshots: undefined falls back to timing path', () => {
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    expect(() => buildLeaderboard([], 0, 'race', undefined, undefined)).not.toThrow()
+  })
+
+  // 2. raceLapSnapshots: [] returns [] without fallback
+  it('raceLapSnapshots: [] returns [] without fallback', () => {
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, [])
+    expect(result).toEqual([])
+  })
+
+  // 3. Returns [] when currentTime is before first snapshot
+  it('returns [] when currentTime is before first snapshot', () => {
+    const snapshots = [makeSnapshot(100, [entry('1', 1, 1, '')])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 50, 'race', undefined, snapshots)
+    expect(result).toEqual([])
+  })
+
+  // 4. Selects snapshot at exact boundary (inclusive)
+  it('selects snapshot at exact boundary (inclusive)', () => {
+    const snapshots = [makeSnapshot(100, [entry('1', 1, 1, ''), entry('2', 2, 1, '0.500')])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 100, 'race', undefined, snapshots)
+    expect(result.length).toBeGreaterThan(0)
+  })
+
+  // 5. Selects the latest snapshot where videoTimestamp <= currentTime
+  it('selects the latest snapshot where videoTimestamp <= currentTime', () => {
+    const snap1 = makeSnapshot(50, [entry('10', 1, 1, ''), entry('11', 2, 1, '1.000')])
+    const snap2 = makeSnapshot(100, [entry('20', 1, 2, ''), entry('21', 2, 2, '2.000')])
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 75, 'race', undefined, [snap1, snap2])
+    // currentTime=75 → only snap1 (t=50) qualifies; snap2 (t=100) does not
+    expect(result[0].kart).toBe('10')
+  })
+
+  // 6. P1 interval is null
+  it('P1 interval is null', () => {
+    const snapshots = [makeSnapshot(0, [
+      entry('1', 1, 3, ''),
+      entry('2', 2, 3, '1.000'),
+      entry('3', 3, 3, '2.000'),
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[0].interval).toBeNull()
+  })
+
+  // 7. Same-lap interval: `+${intervalToAhead}`
+  it('same-lap interval uses intervalToAhead from entry', () => {
+    const snapshots = [makeSnapshot(0, [
+      entry('1', 1, 5, ''),
+      entry('2', 2, 5, '0.333'),
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[1].interval).toBe('+0.333')
+  })
+
+  // 8. Lapped by 1: "+1L"
+  it('lapped by 1 lap shows "+1L"', () => {
+    const snapshots = [makeSnapshot(0, [
+      entry('1', 1, 1, ''),
+      entry('2', 2, 0, '0.000'),
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[1].interval).toBe('+1L')
+  })
+
+  // 9. Lapped by multiple: "+3L"
+  it('lapped by 3 laps shows "+3L"', () => {
+    const snapshots = [makeSnapshot(0, [
+      entry('1', 1, 3, ''),
+      entry('2', 2, 0, '0.000'),
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[1].interval).toBe('+3L')
+  })
+
+  // 10. Empty intervalToAhead for non-P1 (malformed) → "+0.000"
+  it('empty intervalToAhead for non-P1 falls back to "+0.000"', () => {
+    const snapshots = [makeSnapshot(0, [
+      entry('1', 1, 5, ''),
+      entry('2', 2, 5, ''),
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[1].interval).toBe('+0.000')
+  })
+
+  // 11. entry.position === 1 used for P1 check, not array index
+  it('uses entry.position for P1 check, not array index', () => {
+    // Only one entry with position=3 (not P1) — should NOT get null interval
+    const snapshots = [makeSnapshot(0, [entry('3', 3, 5, '1.234')])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[0].interval).not.toBeNull()
+  })
+
+  // 12. ourKart has no effect on ordering
+  it('ourKart has no effect on snapshot ordering', () => {
+    const snapshots = [makeSnapshot(0, [
+      entry('1', 1, 5, ''),
+      entry('2', 2, 5, '0.500'),
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', '2', snapshots)
+    expect(result[0].kart).toBe('1')
+    expect(result[1].kart).toBe('2')
+  })
+
+  // 13. Result has correct kart, name, position, lapsCompleted fields
+  it('maps kart, name, position, lapsCompleted directly from snapshot entry', () => {
+    const snapshots = [makeSnapshot(0, [
+      { kart: '42', name: 'Alice', position: 1, lapsCompleted: 7, gapToLeader: '0.000', intervalToAhead: '' },
+    ])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[0].kart).toBe('42')
+    expect(result[0].name).toBe('Alice')
+    expect(result[0].position).toBe(1)
+    expect(result[0].lapsCompleted).toBe(7)
+  })
+
+  // 14. timestamps: [], best: Infinity, cumulativeTime: 0 are set as placeholders
+  it('sets timestamps=[], best=Infinity, cumulativeTime=0 as placeholder values', () => {
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 5, '')])]
+    // @ts-expect-error 5th param not yet accepted by buildLeaderboard
+    const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
+    expect(result[0].timestamps).toEqual([])
+    expect(result[0].best).toBe(Infinity)
+    expect(result[0].cumulativeTime).toBe(0)
   })
 })
