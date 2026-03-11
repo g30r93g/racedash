@@ -1,23 +1,30 @@
 import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
-import type { QualifyingDriver } from '@racedash/core'
+import type { BoxPosition, QualifyingDriver } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
-import { buildLeaderboard, selectWindow, formatDelta } from '../../qualifying'
+import { buildLeaderboard, selectWindow, LeaderboardMode } from '../../leaderboard'
 import { fontFamily } from '../../Root'
 
-interface QualifyingTableProps {
+interface LeaderboardTableProps {
   qualifyingDrivers: QualifyingDriver[]
   ourKart: string
+  mode: LeaderboardMode
   fps: number
   accentColor?: string
+  position?: BoxPosition
+  /** Anchor top in 1920-reference pixels; overrides vertical position from `position` */
+  anchorTop?: number
 }
 
-export const QualifyingTable = React.memo(function QualifyingTable({
+export const LeaderboardTable = React.memo(function LeaderboardTable({
   qualifyingDrivers,
   ourKart,
+  mode,
   fps,
   accentColor = '#3DD73D',
-}: QualifyingTableProps) {
+  position = 'bottom-right',
+  anchorTop,
+}: LeaderboardTableProps) {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
@@ -25,13 +32,13 @@ export const QualifyingTable = React.memo(function QualifyingTable({
   const currentTime = frame / fps
 
   const leaderboard = useMemo(
-    () => buildLeaderboard(qualifyingDrivers, currentTime),
-    [qualifyingDrivers, currentTime],
+    () => buildLeaderboard(qualifyingDrivers, currentTime, mode),
+    [qualifyingDrivers, currentTime, mode],
   )
 
   const rows = useMemo(
-    () => selectWindow(leaderboard, ourKart),
-    [leaderboard, ourKart],
+    () => selectWindow(leaderboard, ourKart, mode),
+    [leaderboard, ourKart, mode],
   )
 
   if (rows.length === 0) return null
@@ -39,10 +46,15 @@ export const QualifyingTable = React.memo(function QualifyingTable({
   const p1Time = rows[0].best
   const hasSeparator = rows.length > 1 && rows[1].position > 2
 
+  const vPos = anchorTop !== undefined
+    ? { top: anchorTop * sc }
+    : position.startsWith('top') ? { top: 20 * sc } : { bottom: 20 * sc }
+  const hPos = position.endsWith('left') ? { left: 20 * sc } : { right: 20 * sc }
+
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
-    bottom: 20 * sc,
-    right: 20 * sc,
+    ...vPos,
+    ...hPos,
     width: 360 * sc,
     fontFamily,
     userSelect: 'none',
@@ -56,9 +68,13 @@ export const QualifyingTable = React.memo(function QualifyingTable({
         const isOurs = row.kart === ourKart
         const isP1 = row.position === 1
         const showSeparator = hasSeparator && i === 1
-        const lapDisplay = isP1
-          ? formatLapTime(row.best)
-          : formatDelta(row.best, p1Time)
+
+        let lapDisplay: string
+        if (mode === 'race') {
+          lapDisplay = isP1 ? 'Interval' : (row.interval ?? '')
+        } else {
+          lapDisplay = isP1 ? formatLapTime(p1Time) : (row.interval ?? '')
+        }
 
         return (
           <React.Fragment key={row.kart}>
@@ -102,7 +118,7 @@ const TableRow = React.memo(function TableRow({
     gap: 8 * sc,
     padding: `${6 * sc}px ${10 * sc}px`,
     background: isOurs
-      ? `${accentColor}33`
+      ? `linear-gradient(${accentColor}30, ${accentColor}30), rgba(0,0,0,0.82)`
       : 'rgba(0,0,0,0.65)',
     borderLeft: isOurs ? `3px solid ${accentColor}` : '3px solid transparent',
     backdropFilter: 'blur(8px)',
