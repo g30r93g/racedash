@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { QualifyingDriver } from '@racedash/core'
-import { buildLeaderboard, selectWindow, formatDelta } from './leaderboard'
+import { buildLeaderboard, selectWindow, formatDelta, formatInterval } from './leaderboard'
+import type { RankedDriver } from './leaderboard'
 
 // Helper: driver with laps starting at videoStart
 function driver(kart: string, videoStart: number, lapTimes: number[]): QualifyingDriver {
@@ -66,6 +67,21 @@ describe('buildLeaderboard', () => {
     const lb = buildLeaderboard(DRIVERS, 126.0, 'qualifying')
     const bEntry = lb.find(d => d.kart === '2')
     expect(bEntry?.best).toBeCloseTo(59.5)
+  })
+
+  it('computes lapsCompleted for each driver in qualifying mode', () => {
+    // At t=200, all 3 have completed all 3 laps
+    const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
+    expect(lb.find(d => d.kart === '1')?.lapsCompleted).toBe(3) // A: 3 laps
+    expect(lb.find(d => d.kart === '2')?.lapsCompleted).toBe(3) // B: 3 laps
+    expect(lb.find(d => d.kart === '3')?.lapsCompleted).toBe(3) // C: 3 laps
+  })
+
+  it('sets interval to null for P1, delta string for others in qualifying mode', () => {
+    const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
+    expect(lb[0].interval).toBeNull()       // P1 (B: best 59.5)
+    expect(lb[1].interval).toBe('+0.500')   // A: best 60.0, delta = +0.500
+    expect(lb[2].interval).toBe('+1.000')   // C: best 60.5, delta = +1.000
   })
 })
 
@@ -136,5 +152,94 @@ describe('formatDelta', () => {
 
   it('clamps to +0.000 if lapTime is less than p1Time (defensive)', () => {
     expect(formatDelta(59.0, 60.0)).toBe('+0.000')
+  })
+})
+
+describe('formatInterval', () => {
+  function makeEntry(lapsCompleted: number, cumulativeTime: number): RankedDriver {
+    return { kart: 'X', name: 'X', timestamps: [], best: Infinity, lapsCompleted, cumulativeTime, position: 0, interval: null }
+  }
+
+  it('same lap count: returns time gap with + prefix and 3 decimals', () => {
+    const current = makeEntry(5, 126.0)
+    const ahead   = makeEntry(5, 123.0)
+    expect(formatInterval(current, ahead)).toBe('+3.000')
+  })
+
+  it('one lap behind: returns "+1L"', () => {
+    const current = makeEntry(4, 200.0)
+    const ahead   = makeEntry(5, 123.0)
+    expect(formatInterval(current, ahead)).toBe('+1L')
+  })
+
+  it('two laps behind: returns "+2L"', () => {
+    const current = makeEntry(3, 180.0)
+    const ahead   = makeEntry(5, 123.0)
+    expect(formatInterval(current, ahead)).toBe('+2L')
+  })
+
+  it('clamps to +0.000 if current cumulative is somehow less than ahead (defensive)', () => {
+    const current = makeEntry(5, 120.0)
+    const ahead   = makeEntry(5, 123.0)
+    expect(formatInterval(current, ahead)).toBe('+0.000')
+  })
+})
+
+// --- Race leaderboard tests ---
+// Same drivers, but now treated as a race.
+// A starts at t=0, B at t=5, C at t=10 (same timestamps as above).
+// In a race: rank by laps completed desc, then cumulative time asc.
+
+describe('buildLeaderboard (race mode)', () => {
+  it('returns empty array before any driver completes a lap', () => {
+    expect(buildLeaderboard(DRIVERS, 60.0, 'race')).toEqual([])
+  })
+
+  it('includes only drivers with at least one completed lap', () => {
+    // At t=65, only A has completed lap 1 (ends at 62.0)
+    const lb = buildLeaderboard(DRIVERS, 65.0, 'race')
+    expect(lb).toHaveLength(1)
+    expect(lb[0].kart).toBe('1')
+    expect(lb[0].lapsCompleted).toBe(1)
+    expect(lb[0].cumulativeTime).toBeCloseTo(62.0)
+  })
+
+  it('ranks by laps completed descending', () => {
+    // At t=100: A has 1 lap (ends 62.0), B has 1 lap (ends 66.5)
+    // A has lower cumulative, so A leads
+    const lb = buildLeaderboard(DRIVERS, 100.0, 'race')
+    expect(lb[0].kart).toBe('1') // A: 1 lap, 62.0s
+    expect(lb[1].kart).toBe('2') // B: 1 lap, 66.5s
+  })
+
+  it('tiebreaks equal lap counts by cumulative time ascending', () => {
+    // At t=130: A laps 1+2 (ends 62+61=123.0), B laps 1+2 (ends 66.5+59.5=126.0), C lap 1 (ends 73.0)
+    const lb = buildLeaderboard(DRIVERS, 130.0, 'race')
+    expect(lb[0].kart).toBe('1') // A: 2 laps, 123.0s cumulative
+    expect(lb[1].kart).toBe('2') // B: 2 laps, 126.0s cumulative
+    expect(lb[2].kart).toBe('3') // C: 1 lap, 63.0s cumulative (lapped)
+  })
+
+  it('assigns 1-indexed positions', () => {
+    const lb = buildLeaderboard(DRIVERS, 200.0, 'race')
+    expect(lb.map(d => d.position)).toEqual([1, 2, 3])
+  })
+
+  it('P1 interval is null', () => {
+    const lb = buildLeaderboard(DRIVERS, 200.0, 'race')
+    expect(lb[0].interval).toBeNull()
+  })
+
+  it('P2 interval shows gap to P1 in seconds when same laps', () => {
+    // At t=130: A 2 laps 123.0s, B 2 laps 126.0s
+    const lb = buildLeaderboard(DRIVERS, 130.0, 'race')
+    // B interval = B cumulative - A cumulative = 126.0 - 123.0 = 3.0
+    expect(lb[1].interval).toBe('+3.000')
+  })
+
+  it('shows "+NL" when a driver is laps behind the car ahead', () => {
+    // At t=130: C has 1 lap, B has 2 laps → C is 1 lap behind B
+    const lb = buildLeaderboard(DRIVERS, 130.0, 'race')
+    expect(lb[2].interval).toBe('+1L')
   })
 })

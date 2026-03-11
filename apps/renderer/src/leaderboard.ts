@@ -84,6 +84,42 @@ export function formatDelta(lapTime: number, p1Time: number): string {
   return `+${delta.toFixed(3)}`
 }
 
-function buildRaceLeaderboard(_drivers: QualifyingDriver[], _currentTime: number): RankedDriver[] {
-  return []
+/** Format interval to car directly ahead. Same laps → "+X.XXX". Laps behind → "+NL". */
+export function formatInterval(current: RankedDriver, ahead: RankedDriver): string {
+  const lapDiff = ahead.lapsCompleted - current.lapsCompleted
+  if (lapDiff > 0) return `+${lapDiff}L`
+  const timeDiff = Math.max(0, current.cumulativeTime - ahead.cumulativeTime)
+  return `+${timeDiff.toFixed(3)}`
+}
+
+function buildRaceLeaderboard(drivers: QualifyingDriver[], currentTime: number): RankedDriver[] {
+  const ranked: RankedDriver[] = []
+
+  for (const d of drivers) {
+    let lapsCompleted = 0
+    let cumulativeTime = 0
+    for (const ts of d.timestamps) {
+      const endTime = ts.ytSeconds + ts.lap.lapTime
+      if (endTime <= currentTime) {
+        lapsCompleted++
+        cumulativeTime = endTime
+      }
+    }
+    if (lapsCompleted > 0) {
+      ranked.push({ ...d, best: Infinity, lapsCompleted, cumulativeTime, position: 0, interval: null })
+    }
+  }
+
+  ranked.sort((a, b) =>
+    b.lapsCompleted !== a.lapsCompleted
+      ? b.lapsCompleted - a.lapsCompleted
+      : a.cumulativeTime - b.cumulativeTime,
+  )
+
+  for (let i = 0; i < ranked.length; i++) {
+    ranked[i].position = i + 1
+    ranked[i].interval = i === 0 ? null : formatInterval(ranked[i], ranked[i - 1])
+  }
+
+  return ranked
 }
