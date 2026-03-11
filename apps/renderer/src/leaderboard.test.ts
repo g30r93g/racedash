@@ -185,6 +185,55 @@ describe('formatInterval', () => {
   })
 })
 
+// Build a 15-driver leaderboard for window tests (race mode)
+function makeRaceLb(count: number): RankedDriver[] {
+  return Array.from({ length: count }, (_, i) => ({
+    kart: String(i + 1),
+    name: `Driver ${i + 1}`,
+    timestamps: [],
+    best: Infinity,
+    lapsCompleted: 10 - Math.floor(i / 5), // rough lap buckets
+    cumulativeTime: 100 + i * 3,
+    position: i + 1,
+    interval: i === 0 ? null : `+${(i * 3).toFixed(3)}`,
+  }))
+}
+
+describe('selectWindow (race mode)', () => {
+  const lb15 = makeRaceLb(15)
+
+  it('driver in top 10: returns positions 1-10', () => {
+    const rows = selectWindow(lb15, '5', 'race')
+    expect(rows.map(d => d.position)).toEqual([1,2,3,4,5,6,7,8,9,10])
+  })
+
+  it('driver at P10: still returns top 10', () => {
+    const rows = selectWindow(lb15, '10', 'race')
+    expect(rows.map(d => d.position)).toEqual([1,2,3,4,5,6,7,8,9,10])
+  })
+
+  it('driver at P11: P1 + P6..P10 + P11 + P12..P14 = 10 rows', () => {
+    const rows = selectWindow(lb15, '11', 'race')
+    expect(rows.map(d => d.position)).toEqual([1, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+  })
+
+  it('driver at P15 (last): P1 + P10..P14 + P15 + [] = 7 rows (fewer than 3 below)', () => {
+    const rows = selectWindow(lb15, '15', 'race')
+    expect(rows.map(d => d.position)).toEqual([1, 10, 11, 12, 13, 14, 15])
+  })
+
+  it('returns empty when our kart not in leaderboard (race gate)', () => {
+    const rows = selectWindow(lb15, 'UNKNOWN', 'race')
+    expect(rows).toEqual([])
+  })
+
+  it('leaderboard of exactly 10: returns all', () => {
+    const lb10 = makeRaceLb(10)
+    const rows = selectWindow(lb10, '10', 'race')
+    expect(rows.map(d => d.position)).toEqual([1,2,3,4,5,6,7,8,9,10])
+  })
+})
+
 // --- Race leaderboard tests ---
 // Same drivers, but now treated as a race.
 // A starts at t=0, B at t=5, C at t=10 (same timestamps as above).

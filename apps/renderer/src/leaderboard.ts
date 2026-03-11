@@ -48,33 +48,49 @@ export function buildLeaderboard(
 }
 
 /**
- * Select the 4-row display window:
+ * Select the display window for the overlay.
+ *
+ * Race mode (10-row):
+ * - P1-P10: show the first 10 entries
+ * - P11+: [P1] + 5 entries directly above + our entry + up to 3 below
+ * - Driver not in leaderboard: return [] (gates display until first lap completes)
+ *
+ * Qualifying / practice mode (4-row):
  * - Row 1: always P1 (pinned)
  * - Rows 2-4: 3-row window around ourKart, never duplicating P1
  * - If our driver IS P1: show [P1, P2, P3, P4]
  * - Falls back to top-4 if ourKart not in leaderboard
  */
-export function selectWindow(leaderboard: RankedDriver[], ourKart: string): RankedDriver[] {
+export function selectWindow(
+  leaderboard: RankedDriver[],
+  ourKart: string,
+  mode: LeaderboardMode = 'qualifying',
+): RankedDriver[] {
   if (leaderboard.length === 0) return []
 
-  const ourIdx = leaderboard.findIndex(d => d.kart === ourKart)
+  if (mode === 'race') {
+    const ourIdx = leaderboard.findIndex(d => d.kart === ourKart)
+    if (ourIdx === -1) return []
+    // Within top 10: show 1-10
+    if (ourIdx < 10) return leaderboard.slice(0, Math.min(10, leaderboard.length))
+    // P11+: P1 + 5 above + our driver + 3 below
+    const above = leaderboard.slice(Math.max(1, ourIdx - 5), ourIdx)
+    const below = leaderboard.slice(ourIdx + 1, ourIdx + 4)
+    return [leaderboard[0], ...above, leaderboard[ourIdx], ...below]
+  }
 
-  // Fallback or P1: show top-4
+  // qualifying / practice: existing 4-row logic
+  const ourIdx = leaderboard.findIndex(d => d.kart === ourKart)
   if (ourIdx <= 0) return leaderboard.slice(0, Math.min(4, leaderboard.length))
 
   const last = leaderboard.length - 1
-
-  // Window: one above our driver (min index 1 to avoid P1 duplication), our driver, one below
   let windowStart = Math.max(1, ourIdx - 1)
   let windowEnd = Math.min(last, ourIdx + 1)
-
-  // Expand window to fill 3 slots if at boundary
   while (windowEnd - windowStart < 2) {
     if (windowStart > 1) windowStart--
     else if (windowEnd < last) windowEnd++
     else break
   }
-
   return [leaderboard[0], ...leaderboard.slice(windowStart, windowEnd + 1)]
 }
 
