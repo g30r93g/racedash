@@ -16,7 +16,7 @@ const DEFAULT_ACCENT = '#3DD73D'
 
 export const Banner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
-  accentColor, textColor, timerTextColor, timerBgColor, labelWindowSeconds,
+  styling, labelWindowSeconds,
   qualifyingTablePosition,
 }) => {
   const frame = useCurrentFrame()
@@ -37,8 +37,8 @@ export const Banner: React.FC<OverlayProps> = ({
     const leaderboard = buildLeaderboard(segment.leaderboardDrivers!, currentTime, mode)
     return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
   }, [showTable, mode, segment.leaderboardDrivers, currentTime, session.driver.kart])
-  const accent = accentColor ?? DEFAULT_ACCENT
-  const text = textColor ?? 'white'
+  const accent = styling?.accentColor ?? DEFAULT_ACCENT
+  const text = styling?.textColor ?? 'white'
 
   const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
   const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
@@ -104,8 +104,8 @@ export const Banner: React.FC<OverlayProps> = ({
               currentIdx={currentIdx}
               currentTime={currentTime}
               raceEnd={raceEnd}
-              textColor={timerTextColor ?? text}
-              bgColor={timerBgColor}
+              textColor={styling?.banner?.timerTextColor ?? text}
+              bgColor={styling?.banner?.timerBgColor}
             />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
@@ -131,6 +131,7 @@ export const Banner: React.FC<OverlayProps> = ({
             ourKart={session.driver.kart}
             fps={fps}
             accentColor={accent}
+            leaderboardStyling={styling?.leaderboard}
             anchorTop={140}
             position={qualifyingTablePosition ?? 'top-right'}
             raceLapSnapshots={segment.raceLapSnapshots}
@@ -165,8 +166,8 @@ export const Banner: React.FC<OverlayProps> = ({
               currentIdx={currentIdx}
               currentTime={currentTime}
               raceEnd={raceEnd}
-              textColor={timerTextColor ?? text}
-              bgColor={timerBgColor}
+              textColor={styling?.banner?.timerTextColor ?? text}
+              bgColor={styling?.banner?.timerBgColor}
             />
           </div>
           <LapCounter
@@ -184,6 +185,7 @@ export const Banner: React.FC<OverlayProps> = ({
           ourKart={session.driver.kart}
           fps={fps}
           accentColor={accent}
+          leaderboardStyling={styling?.leaderboard}
           position={qualifyingTablePosition}
           raceLapSnapshots={segment.raceLapSnapshots}
         />
