@@ -13,7 +13,7 @@ const PLACEHOLDER = '—:--.---'
 export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSeconds, qualifyingTablePosition }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
-  const scale = width / 520
+  const scale = width / 1920
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
@@ -54,16 +54,17 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
   )
 
   const styles = useMemo(() => {
-    const padX = 28 * scale
-    const statGap = 24 * scale
-    const dividerMargin = 20 * scale
+    const padX = 103 * scale       // was 28 in 520-ref → 28*(1920/520) ≈ 103
+    const statGap = 89 * scale     // was 24 → 89
+    const dividerMargin = 74 * scale // was 20 → 74
     return {
       container: {
         position: 'absolute' as const,
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 520 * scale,          // 520px at 1920-ref scale → same physical width as before
+        height: 96 * scale,          // 96px at 1920-ref scale → same physical height as before
         display: 'flex',
         flexDirection: 'row' as const,
         alignItems: 'center',
@@ -79,15 +80,15 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
       },
       elapsed: {
         flex: 1,
-        fontSize: 52 * scale,
+        fontSize: 192 * scale,    // was 52 → 192
         fontWeight: 700,
         color: 'white',
         lineHeight: 1,
-        letterSpacing: 1 * scale,
+        letterSpacing: 4 * scale, // was 1 → 4
       },
       divider: {
-        width: 1 * scale,
-        height: 40 * scale,
+        width: 4 * scale,         // was 1 → 4
+        height: 148 * scale,      // was 40 → 148
         background: 'rgba(255,255,255,0.2)',
         flexShrink: 0,
         marginLeft: dividerMargin,
@@ -103,18 +104,18 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'flex-start' as const,
-        gap: 2 * scale,
+        gap: 7 * scale,           // was 2 → 7
       },
       label: {
-        fontSize: 11 * scale,
+        fontSize: 41 * scale,     // was 11 → 41
         fontWeight: 400,
         color: 'rgba(255,255,255,0.5)',
         textTransform: 'uppercase' as const,
-        letterSpacing: 2 * scale,
+        letterSpacing: 7 * scale, // was 2 → 7
         lineHeight: 1,
       },
       statValue: {
-        fontSize: 22 * scale,
+        fontSize: 81 * scale,     // was 22 → 81
         fontWeight: 700,
         color: 'white',
         lineHeight: 1,

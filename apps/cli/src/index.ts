@@ -341,7 +341,7 @@ program
         process.exit(1)
       }
 
-      const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 250, minimal: 190 }
+      const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 400, minimal: 400 }
       const stripHeight = BOX_STRIP_HEIGHTS[opts.style]
       if (stripHeight != null) {
         const scaledStrip = Math.round(stripHeight * videoResolution.width / 1920)
