@@ -9,7 +9,7 @@ import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { BoxPosition, LapTimestamp, OverlayProps, LeaderboardDriver, SessionData, SessionMode, SessionSegment, RaceLapEntry, RaceLapSnapshot } from '@racedash/core'
+import type { BoxPosition, LapTimestamp, OverlayProps, LeaderboardDriver, SessionData, SessionMode, SessionSegment, RaceLapEntry, RaceLapSnapshot, OverlayStyling } from '@racedash/core'
 
 function buildRaceDrivers(
   allDrivers: DriverRow[],
@@ -146,10 +146,6 @@ interface RenderOpts {
   overlayY: string
   boxPosition: string
   qualifyingTablePosition?: string
-  accentColor?: string
-  textColor?: string
-  timerTextColor?: string
-  timerBgColor?: string
   labelWindow?: string
 }
 
@@ -170,10 +166,6 @@ program
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
   .option('--qualifying-table-position <pos>', 'Corner for qualifying table: bottom-left, bottom-right, top-left, top-right')
-  .option('--accent-color <color>', 'Accent color (CSS color or hex, e.g. #3DD73D)')
-  .option('--text-color <color>', 'Text color for the overlay (default: white)')
-  .option('--timer-text-color <color>', 'Text color for the lap timer (default: white)')
-  .option('--timer-bg-color <color>', 'Background color for the lap timer (default: #111111)')
   .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', '5')
   .action(async (opts: RenderOpts) => {
     try {
@@ -201,7 +193,7 @@ program
       }
       const frameDuration = 1 / fps
 
-      const { segments: segmentConfigs, driverQuery, configTablePosition, configAccentColor, configTextColor, configTimerTextColor, configTimerBgColor } = await loadRenderConfig(opts)
+      const { segments: segmentConfigs, driverQuery, configTablePosition, styling } = await loadRenderConfig(opts)
       // CLI flags take precedence over config file values
       const resolvedTablePosition = qualifyingTablePosition ?? configTablePosition
 
@@ -343,15 +335,6 @@ program
       stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${fps} fps`)
       if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
       stat('Style', opts.style)
-      const resolvedAccent    = opts.accentColor    ?? configAccentColor    ?? '#3DD73D'
-      const resolvedText      = opts.textColor      ?? configTextColor      ?? 'white'
-      const resolvedTimerText = opts.timerTextColor ?? configTimerTextColor ?? 'white'
-      const resolvedTimerBg   = opts.timerBgColor   ?? configTimerBgColor   ?? '#111111'
-      stat('Accent',      `${colorSwatch(resolvedAccent)}${resolvedAccent}`)
-      stat('Text',        `${colorSwatch(resolvedText)}${resolvedText}`)
-      stat('Timer text',  `${colorSwatch(resolvedTimerText)}${resolvedTimerText}`)
-      stat('Timer bg',    `${colorSwatch(resolvedTimerBg)}${resolvedTimerBg}`)
-      process.stderr.write('\n')
 
       const overlayProps: OverlayProps = {
         segments,
@@ -362,10 +345,7 @@ program
         videoHeight: videoResolution.height,
         boxPosition,
         qualifyingTablePosition: resolvedTablePosition,
-        accentColor: resolvedAccent,
-        textColor: resolvedText,
-        timerTextColor: resolvedTimerText,
-        timerBgColor: resolvedTimerBg,
+        styling,
         labelWindowSeconds,
       }
 
@@ -456,34 +436,6 @@ function stat(label: string, value: string): void {
   process.stderr.write(`  ${label.padEnd(10)}  ${value}\n`)
 }
 
-// Named CSS colours → hex (covers the most likely values users would pass)
-const NAMED_COLORS: Record<string, string> = {
-  white: '#ffffff', black: '#000000', red: '#ff0000', green: '#008000',
-  lime: '#00ff00', blue: '#0000ff', yellow: '#ffff00', orange: '#ffa500',
-  purple: '#800080', cyan: '#00ffff', magenta: '#ff00ff', pink: '#ffc0cb',
-  gray: '#808080', grey: '#808080', silver: '#c0c0c0', gold: '#ffd700',
-}
-
-function parseColor(color: string): [number, number, number] | null {
-  const hex = NAMED_COLORS[color.toLowerCase()] ?? color
-  const m6 = hex.match(/^#([0-9a-f]{6})$/i)
-  if (m6) {
-    const n = parseInt(m6[1], 16)
-    return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]
-  }
-  const m3 = hex.match(/^#([0-9a-f]{3})$/i)
-  if (m3) {
-    return m3[1].split('').map(c => parseInt(c + c, 16)) as [number, number, number]
-  }
-  return null
-}
-
-function colorSwatch(color: string): string {
-  const rgb = parseColor(color)
-  if (!rgb) return ''
-  const [r, g, b] = rgb
-  return `\x1b[48;2;${r};${g};${b}m  \x1b[0m `
-}
 
 function makeProgressCallback(label: string): (progress: number) => void {
   const tag = label.padEnd(16)
@@ -540,20 +492,14 @@ interface RenderConfig {
   segments: SegmentConfig[]
   driver?: string
   qualifyingTablePosition?: BoxPosition
-  accentColor?: string
-  textColor?: string
-  timerTextColor?: string
-  timerBgColor?: string
+  styling?: OverlayStyling
 }
 
 interface LoadedConfig {
   segments: SegmentConfig[]
   driverQuery: string
   configTablePosition?: BoxPosition
-  configAccentColor?: string
-  configTextColor?: string
-  configTimerTextColor?: string
-  configTimerBgColor?: string
+  styling?: OverlayStyling
 }
 
 async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
@@ -575,10 +521,7 @@ async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
       segments: config.segments,
       driverQuery,
       configTablePosition: config.qualifyingTablePosition,
-      configAccentColor: config.accentColor,
-      configTextColor: config.textColor,
-      configTimerTextColor: config.timerTextColor,
-      configTimerBgColor: config.timerBgColor,
+      styling: config.styling,
     }
   }
 
