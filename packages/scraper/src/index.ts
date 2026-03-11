@@ -99,3 +99,42 @@ function normaliseUrl(url: string, tab: string): string {
   }
   return url.replace(/\/$/, '') + tab
 }
+
+export interface ReplayLapEntry {
+  driverId: number
+  position: number
+  kart: string
+  name: string
+  lapsCompleted: number
+  totalSeconds: number | null
+  gapToLeader: string
+  intervalToAhead: string
+}
+
+// Index 0 = pre-race; index N (N >= 1) = after leader's Nth lap
+export type ReplayLapData = ReplayLapEntry[][]
+
+export async function fetchReplayHtml(url: string): Promise<string> {
+  return fetchTab(url, '/replay')
+}
+
+export function parseReplayLapData(html: string): ReplayLapData {
+  const $ = cheerio.load(html)
+  const tag = $('script[type="application/json"]#lapData')
+  if (!tag.length) throw new Error('Could not find lapData script tag in HTML')
+  const raw = JSON.parse(tag.text()) as { laps?: unknown }
+  if (!Array.isArray(raw.laps)) throw new Error('lapData JSON is missing a "laps" array')
+  if (raw.laps.length === 0) return []
+  return (raw.laps as Array<Array<{ C: number; D: [string, string][] }>>) .map(snapshot =>
+    snapshot.map(entry => ({
+      driverId: entry.C,
+      position: parseInt(entry.D[1][0], 10),
+      kart: entry.D[2][0],
+      name: entry.D[3][0],
+      lapsCompleted: parseInt(entry.D[4][0], 10),
+      totalSeconds: parseLapTimeStr(entry.D[5][0]),
+      gapToLeader: entry.D[8][0],
+      intervalToAhead: entry.D[9][0],
+    })),
+  )
+}
