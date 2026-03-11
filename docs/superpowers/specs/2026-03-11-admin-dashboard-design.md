@@ -62,12 +62,12 @@ To grant admin access: set `publicMetadata: { role: 'admin' }` on the relevant C
 
 ### IAM additions
 
-Three read-only permissions added to the existing Vercel IAM user policy:
+Two read-only permissions added to the existing Vercel IAM user policy:
 
 ```json
 {
   "Effect": "Allow",
-  "Action": ["cloudwatch:GetMetricData", "cloudwatch:ListMetrics", "ce:GetCostAndUsage"],
+  "Action": ["cloudwatch:GetMetricData", "ce:GetCostAndUsage"],
   "Resource": "*"
 }
 ```
@@ -88,7 +88,7 @@ Three read-only permissions added to the existing Vercel IAM user policy:
 **CloudWatch data** (via `GetMetricData`, last 24h, 1-hour resolution):
 - `AWS/Lambda` → `Errors` sum per function, one `MetricDataQuery` per function name. Function names are known at deploy time (pipeline Lambdas, relay Lambda, validation Lambda) and stored in a `LAMBDA_FUNCTION_NAMES` env var (comma-separated list, populated from CDK stack outputs). Tag-based filtering is not supported for `AWS/Lambda` namespace metrics — dimension is `FunctionName` only.
 - `AWS/States` → `ExecutionsFailed` + `ExecutionsTimedOut` dimensioned by `StateMachineArn` (uses existing `STEP_FUNCTIONS_STATE_MACHINE_ARN` env var)
-- `AWS/SQS` → `ApproximateNumberOfMessagesVisible` dimensioned by `QueueName` on the social upload DLQ (uses new `SQS_SOCIAL_UPLOAD_DLQ_NAME` env var)
+- `AWS/SQS` → `ApproximateNumberOfMessagesVisible` dimensioned by `QueueName` on the social upload DLQ. Queue name extracted at runtime from `SQS_SOCIAL_UPLOAD_DLQ_URL` as the last path segment (SQS URL format: `https://sqs.{region}.amazonaws.com/{accountId}/{queueName}`).
 - **Joining tasks** (DB-derived, not CloudWatch): count of jobs with `status = 'joining'` — `AWS/ECS` `RunningTaskCount` is only emitted for ECS Services, not for one-off `RunTask` invocations. The DB status is the correct signal here and is already present in the in-flight DB data section above.
 
 **Layout**: metric cards row (in-flight by status, completed today, failed today, failure rate), then a CloudWatch health row (Lambda errors, SFN failures, DLQ depth). Below: a table of the 10 most recent failed jobs with their `error_message`.
@@ -129,8 +129,8 @@ Each bucket shows: number of packs, total RC remaining, estimated £ liability a
 
 **All-time totals**:
 - Total RC sold: `SUM(rc_total)` across all `credit_packs`
-- Total RC consumed: `SUM(rc_total - rc_remaining)` across all `credit_packs` minus forfeited
-- Total RC expired (forfeited): `SUM(rc_remaining) WHERE expires_at < now()` — credits remaining in expired packs that were never consumed and cannot be restored
+- Total RC consumed (authoritative): `SUM(crp.rc_deducted) FROM credit_reservation_packs crp JOIN credit_reservations cr ON crp.reservation_id = cr.id WHERE cr.status = 'consumed'` — using the reservation ledger rather than pack arithmetic avoids double-counting with forfeited credits
+- Total RC expired (forfeited): `SUM(rc_remaining) FROM credit_packs WHERE expires_at < now() AND rc_remaining > 0` — credits remaining in expired packs that can no longer be restored
 
 **Purchase history table**: `pack_name`, `rc_total`, `price_gbp`, `purchased_at`, user email — newest first, paginated 50 rows.
 
@@ -165,7 +165,9 @@ Each bucket shows: number of packs, total RC remaining, estimated £ liability a
 - Service cost breakdown table (Lambda / MediaConvert / ECS / S3 / SES) — display names mapped from the Cost Explorer billing strings above
 - Daily revenue vs spend table (rendered as an HTML table — no chart library dependency in v1)
 
-**Limitation noted in UI**: Lambda costs cannot be attributed per job (Lambda doesn't support per-invocation tagging). MediaConvert and ECS task costs are tagged with `racedash:job-id` and are attributable individually. Lambda costs are shown as a fleet total for the period.
+**Limitations noted in UI**:
+- Lambda costs cannot be attributed per job (Lambda doesn't support per-invocation tagging). MediaConvert and ECS task costs are tagged with `racedash:job-id` and are attributable individually. Lambda costs are shown as a fleet total for the period.
+- The `racedash:project=racedash` tag filter in Cost Explorer returns Lambda costs only if the AWS account is dedicated to RaceDash (no other Lambda workloads). For shared accounts, Lambda costs appear as an aggregate service line regardless of tag filtering. The spec assumes a dedicated AWS account for v1 — revisit if the account hosts other workloads.
 
 ---
 
@@ -224,8 +226,9 @@ These changes to existing infrastructure are required for the admin dashboard:
 1. **CDK stack tags** — `Tags.of(stack)` calls in `infra/bin/app.ts` (described above)
 2. **MediaConvert job tags** — `UserMetadata` added in `CreateMediaConvertJob` Lambda
 3. **ECS RunTask tags** — `Tags` array in the `JoinFootage` Step Functions state definition
-4. **IAM policy** — `cloudwatch:GetMetricData`, `cloudwatch:ListMetrics`, and `ce:GetCostAndUsage` added to Vercel IAM user
+4. **IAM policy** — `cloudwatch:GetMetricData` and `ce:GetCostAndUsage` added to Vercel IAM user
 5. **Clerk admin user** — set `publicMetadata: { role: 'admin' }` on the operator's Clerk account post-deploy
+6. **CDK CfnOutputs** — `PipelineStack` exports two new outputs: (a) `LambdaFunctionNames` (comma-separated real function names for `LAMBDA_FUNCTION_NAMES`); (b) `SocialUploadDlqUrl` (for `SQS_SOCIAL_UPLOAD_DLQ_URL`)
 
 ---
 
@@ -245,25 +248,29 @@ Both SDK clients are instantiated in server components only — never shipped to
 New variables required (added to Vercel, populated from CDK stack outputs):
 
 ```
-LAMBDA_FUNCTION_NAMES          (comma-separated list of pipeline Lambda function names for CloudWatch error monitoring)
-                                Canonical list (12 functions):
-                                  validation, start-render-overlay, wait-for-remotion,
-                                  create-mediaconvert-job, wait-for-mediaconvert,
-                                  finalise-job, release-credits-and-fail,
-                                  notify-user, log-notify-error,
-                                  eventbridge-relay, social-upload-dispatch, social-upload-dlq
-                                CDK exports one CfnOutput per function with key matching these names.
-SQS_SOCIAL_UPLOAD_DLQ_URL     (URL of the social upload dead-letter queue — consistent with
-                                SQS_SOCIAL_UPLOAD_QUEUE_URL naming convention; queue name
-                                extracted at runtime as the last path segment of the URL)
-ECS_CLUSTER_NAME               (name of the RaceDash ECS cluster)
+LAMBDA_FUNCTION_NAMES     Comma-separated string of actual Lambda function names for CloudWatch
+                          error monitoring. Value is a single CDK CfnOutput exported from
+                          PipelineStack containing all monitored function names joined with ",".
+                          The 12 monitored functions (CDK logical IDs → actual names at deploy time):
+                            validation, start-render-overlay, wait-for-remotion,
+                            create-mediaconvert-job, wait-for-mediaconvert,
+                            finalise-job, release-credits-and-fail,
+                            notify-user, log-notify-error,
+                            eventbridge-relay, social-upload-dispatch, social-upload-dlq
+                          CDK auto-generates actual function names (e.g. "racedash-validation-prod").
+                          The single CfnOutput value must contain the real generated names, not
+                          logical IDs. The admin page splits on "," and issues one MetricDataQuery
+                          per name — no name-to-ID mapping needed.
+
+SQS_SOCIAL_UPLOAD_DLQ_URL URL of the social upload dead-letter queue (consistent with the
+                          SQS_SOCIAL_UPLOAD_QUEUE_URL naming convention). Queue name is extracted
+                          at runtime as the last path segment of the URL.
+                          Added as a new CDK CfnOutput in PipelineStack (cross-cutting change #6).
 ```
 
 Reused from existing productionisation spec:
 - `DATABASE_URL`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 - `STEP_FUNCTIONS_STATE_MACHINE_ARN` (used for CloudWatch `AWS/States` dimension)
-
-Note: `ECS_CLUSTER_NAME` is no longer required — the ECS running task count metric was replaced with the DB-derived `jobs.status = 'joining'` count.
 
 ---
 
