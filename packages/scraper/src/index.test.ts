@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { parseDrivers, parseGrid } from './index'
+import { parseDrivers, parseGrid, parseReplayLapData } from './index'
+
+const replayHtml = readFileSync(
+  join(__dirname, '__fixtures__/replay_sample.html'),
+  'utf-8',
+)
 
 const sampleHtml = readFileSync(
   join(__dirname, '__fixtures__/laptimes_sample.html'),
@@ -92,5 +97,61 @@ describe('parseGrid', () => {
     expect(drivers[0].laps).toHaveLength(2)
     expect(drivers[0].laps.every(l => !isNaN(l.lapTime))).toBe(true)
     expect(drivers[0].laps.every(l => !isNaN(l.cumulative))).toBe(true)
+  })
+})
+
+describe('parseReplayLapData', () => {
+  it('returns correct number of snapshots', () => {
+    const result = parseReplayLapData(replayHtml)
+    expect(result).toHaveLength(2)
+  })
+
+  it('preserves snapshot 0 verbatim — 2 entries with lapsCompleted=0', () => {
+    const result = parseReplayLapData(replayHtml)
+    const snapshot0 = result[0]
+    expect(snapshot0).toHaveLength(2)
+    expect(snapshot0[0].lapsCompleted).toBe(0)
+    expect(snapshot0[1].lapsCompleted).toBe(0)
+  })
+
+  it('maps all fields correctly in snapshot 1 for P1 driver', () => {
+    const result = parseReplayLapData(replayHtml)
+    const p1 = result[1][0]
+    expect(p1.driverId).toBe(101)
+    expect(p1.position).toBe(1)
+    expect(p1.kart).toBe('71')
+    expect(p1.name).toBe('Alice Smith')
+    expect(p1.lapsCompleted).toBe(1)
+    expect(p1.totalSeconds).toBeCloseTo(69.707)
+    expect(p1.gapToLeader).toBe('0.000')
+    expect(p1.intervalToAhead).toBe('')
+  })
+
+  it('totalSeconds is null for empty string time in snapshot 0', () => {
+    const result = parseReplayLapData(replayHtml)
+    const snapshot0 = result[0]
+    expect(snapshot0[0].totalSeconds).toBeNull()
+    expect(snapshot0[1].totalSeconds).toBeNull()
+  })
+
+  it('totalSeconds is null for time string without colon', () => {
+    const html = `<html><body><script type="application/json" id="lapData">{"laps":[[{"C":201,"D":[["",""],["1",""],["55",""],["No Colon",""],["1",""],["139707",""],["",""],["",""],["0.000",""],["",""]]}]]}</script></body></html>`
+    const result = parseReplayLapData(html)
+    expect(result[0][0].totalSeconds).toBeNull()
+  })
+
+  it('returns [] for empty laps array', () => {
+    const html = `<html><body><script type="application/json" id="lapData">{"laps":[]}</script></body></html>`
+    const result = parseReplayLapData(html)
+    expect(result).toEqual([])
+  })
+
+  it('throws if lapData script tag is absent', () => {
+    expect(() => parseReplayLapData('<html><body></body></html>')).toThrow('lapData')
+  })
+
+  it('throws if JSON has no laps array', () => {
+    const html = `<html><body><script type="application/json" id="lapData">{"other":true}</script></body></html>`
+    expect(() => parseReplayLapData(html)).toThrow('laps')
   })
 })
