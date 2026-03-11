@@ -3,9 +3,11 @@ import { program } from 'commander'
 import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid } from '@racedash/scraper'
 import type { DriverRow } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
-import { selectDriver } from './select'
+import { selectDriver, resolveVideoFiles } from './select'
 import path from 'node:path'
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, unlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { randomUUID } from 'node:crypto'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
 import type { BoxPosition, LapTimestamp, OverlayProps, QualifyingDriver, SessionData, SessionMode, SessionSegment } from '@racedash/core'
 
@@ -106,6 +108,7 @@ interface RenderOpts {
   overlayX: string
   overlayY: string
   boxPosition: string
+  qualifyingTablePosition?: string
   accentColor?: string
   textColor?: string
   timerTextColor?: string
@@ -129,6 +132,7 @@ program
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
+  .option('--qualifying-table-position <pos>', 'Corner for qualifying table: bottom-left, bottom-right, top-left, top-right')
   .option('--accent-color <color>', 'Accent color (CSS color or hex, e.g. #3DD73D)')
   .option('--text-color <color>', 'Text color for the overlay (default: white)')
   .option('--timer-text-color <color>', 'Text color for the lap timer (default: white)')
@@ -147,6 +151,12 @@ program
         process.exit(1)
       }
       const boxPosition = opts.boxPosition as BoxPosition
+      const qualifyingTablePositionRaw = opts.qualifyingTablePosition
+      if (qualifyingTablePositionRaw != null && !validBoxPositions.includes(qualifyingTablePositionRaw as BoxPosition)) {
+        console.error(`Error: --qualifying-table-position must be one of: ${validBoxPositions.join(', ')}`)
+        process.exit(1)
+      }
+      const qualifyingTablePosition = qualifyingTablePositionRaw as BoxPosition | undefined
       const labelWindowSeconds = parseFloat(opts.labelWindow ?? '5')
       if (isNaN(labelWindowSeconds) || labelWindowSeconds < 0) {
         console.error('Error: --label-window must be a non-negative number')
@@ -154,7 +164,9 @@ program
       }
       const frameDuration = 1 / fps
 
-      const { segments: segmentConfigs, driverQuery } = await loadRenderConfig(opts)
+      const { segments: segmentConfigs, driverQuery, configTablePosition, configAccentColor, configTextColor, configTimerTextColor, configTimerBgColor } = await loadRenderConfig(opts)
+      // CLI flags take precedence over config file values
+      const resolvedTablePosition = qualifyingTablePosition ?? configTablePosition
 
       // Validate all modes up front
       const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
@@ -164,6 +176,17 @@ program
           console.error(`Error: segment mode "${sc.mode}" must be one of: ${validModes.join(', ')}`)
           process.exit(1)
         }
+      }
+
+      // Resolve video: if a directory, prompt the user to select files
+      const selectedFiles = await resolveVideoFiles(opts.video)
+      let videoPath = selectedFiles[0]
+      let tempJoinedVideo: string | null = null
+      if (selectedFiles.length > 1) {
+        tempJoinedVideo = path.join(tmpdir(), `racedash-joined-${randomUUID()}.mp4`)
+        process.stderr.write(`\n  Joining ${selectedFiles.length} files...\n`)
+        await joinVideos(selectedFiles, tempJoinedVideo)
+        videoPath = tempJoinedVideo
       }
 
       process.stderr.write('\n  Fetching session data and probing video...\n')
@@ -181,7 +204,7 @@ program
         .filter(i => i >= 0)
 
       const [[durationSeconds, videoResolution], fetchResults] = await Promise.all([
-        Promise.all([getVideoDuration(opts.video), getVideoResolution(opts.video)]),
+        Promise.all([getVideoDuration(videoPath), getVideoResolution(videoPath)]),
         Promise.all([
           ...segmentConfigs.map(sc => fetchHtml(sc.url)),
           ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
@@ -253,9 +276,7 @@ program
           mode,
           session,
           sessionAllLaps: allDrivers.map(d => d.laps),
-          qualifyingDrivers: (mode === 'qualifying' || mode === 'practice')
-            ? buildQualifyingDrivers(allDrivers, driver.kart, offsetSeconds)
-            : undefined,
+          qualifyingDrivers: buildQualifyingDrivers(allDrivers, driver.kart, offsetSeconds),
           label: sc.label,
         })
       }
@@ -266,10 +287,10 @@ program
       stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${fps} fps`)
       if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
       stat('Style', opts.style)
-      const resolvedAccent    = opts.accentColor    ?? '#3DD73D'
-      const resolvedText      = opts.textColor      ?? 'white'
-      const resolvedTimerText = opts.timerTextColor ?? resolvedText
-      const resolvedTimerBg   = opts.timerBgColor   ?? '#111111'
+      const resolvedAccent    = opts.accentColor    ?? configAccentColor    ?? '#3DD73D'
+      const resolvedText      = opts.textColor      ?? configTextColor      ?? 'white'
+      const resolvedTimerText = opts.timerTextColor ?? configTimerTextColor ?? 'white'
+      const resolvedTimerBg   = opts.timerBgColor   ?? configTimerBgColor   ?? '#111111'
       stat('Accent',      `${colorSwatch(resolvedAccent)}${resolvedAccent}`)
       stat('Text',        `${colorSwatch(resolvedText)}${resolvedText}`)
       stat('Timer text',  `${colorSwatch(resolvedTimerText)}${resolvedTimerText}`)
@@ -284,6 +305,7 @@ program
         videoWidth: videoResolution.width,
         videoHeight: videoResolution.height,
         boxPosition,
+        qualifyingTablePosition: resolvedTablePosition,
         accentColor: opts.accentColor,
         textColor: opts.textColor,
         timerTextColor: opts.timerTextColor,
@@ -328,7 +350,7 @@ program
 
       try {
         await compositeVideo(
-          opts.video,
+          videoPath,
           overlayPath,
           opts.output,
           { fps, overlayX, overlayY, durationSeconds },
@@ -336,6 +358,7 @@ program
         )
       } finally {
         process.stderr.write('\n')
+        if (tempJoinedVideo) await unlink(tempJoinedVideo).catch(() => {})
       }
 
       const totalSeconds = Math.round((Date.now() - workStart) / 1000)
@@ -460,9 +483,24 @@ interface SegmentConfig {
 interface RenderConfig {
   segments: SegmentConfig[]
   driver?: string
+  qualifyingTablePosition?: BoxPosition
+  accentColor?: string
+  textColor?: string
+  timerTextColor?: string
+  timerBgColor?: string
 }
 
-async function loadRenderConfig(opts: RenderOpts): Promise<{ segments: SegmentConfig[]; driverQuery: string }> {
+interface LoadedConfig {
+  segments: SegmentConfig[]
+  driverQuery: string
+  configTablePosition?: BoxPosition
+  configAccentColor?: string
+  configTextColor?: string
+  configTimerTextColor?: string
+  configTimerBgColor?: string
+}
+
+async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
   if (opts.config) {
     const raw = JSON.parse(await readFile(opts.config, 'utf8'))
     const config = raw as RenderConfig
@@ -477,7 +515,15 @@ async function loadRenderConfig(opts: RenderOpts): Promise<{ segments: SegmentCo
     }
     const driverQuery = opts.driver ?? config.driver
     if (!driverQuery) throw new Error('--driver is required (or set "driver" in config file)')
-    return { segments: config.segments, driverQuery }
+    return {
+      segments: config.segments,
+      driverQuery,
+      configTablePosition: config.qualifyingTablePosition,
+      configAccentColor: config.accentColor,
+      configTextColor: config.textColor,
+      configTimerTextColor: config.timerTextColor,
+      configTimerBgColor: config.timerBgColor,
+    }
   }
 
   // Inline single-segment
