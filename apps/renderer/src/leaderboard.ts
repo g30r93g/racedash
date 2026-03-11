@@ -1,8 +1,8 @@
-import type { QualifyingDriver } from '@racedash/core'
+import type { LeaderboardDriver } from '@racedash/core'
 
 export type LeaderboardMode = 'qualifying' | 'practice' | 'race'
 
-export interface RankedDriver extends QualifyingDriver {
+export interface RankedDriver extends LeaderboardDriver {
   position: number
   best: number           // best completed lap time (qualifying/practice); Infinity if none
   lapsCompleted: number  // total completed laps at currentTime
@@ -16,7 +16,7 @@ export interface RankedDriver extends QualifyingDriver {
  * A lap is complete when ts.ytSeconds + ts.lap.lapTime <= currentTime.
  */
 export function buildLeaderboard(
-  drivers: QualifyingDriver[],
+  drivers: LeaderboardDriver[],
   currentTime: number,
   mode: LeaderboardMode,
 ): RankedDriver[] {
@@ -108,7 +108,7 @@ export function formatInterval(current: RankedDriver, ahead: RankedDriver): stri
   return `+${timeDiff.toFixed(3)}`
 }
 
-function buildRaceLeaderboard(drivers: QualifyingDriver[], currentTime: number): RankedDriver[] {
+function buildRaceLeaderboard(drivers: LeaderboardDriver[], currentTime: number): RankedDriver[] {
   const ranked: RankedDriver[] = []
 
   for (const d of drivers) {

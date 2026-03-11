@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import type { QualifyingDriver } from '@racedash/core'
+import type { LeaderboardDriver } from '@racedash/core'
 import { buildLeaderboard, selectWindow, formatDelta, formatInterval } from './leaderboard'
 import type { RankedDriver } from './leaderboard'
 
 // Helper: driver with laps starting at videoStart
-function driver(kart: string, videoStart: number, lapTimes: number[]): QualifyingDriver {
+function driver(kart: string, videoStart: number, lapTimes: number[]): LeaderboardDriver {
   let ytSeconds = videoStart
   const timestamps = lapTimes.map((lapTime, i) => {
     const ts = { lap: { number: i + 1, lapTime, cumulative: lapTime }, ytSeconds }

@@ -6,7 +6,7 @@ import { joinVideos, getVideoDuration, compositeVideo } from './index'
 // execFile mock: used by getVideoDuration (ffprobe calls).
 // Returns a valid duration by default so joinVideos can probe inputs.
 vi.mock('node:child_process', () => ({
-  execFile: vi.fn((_cmd: string, _args: string[], callback: Function) => {
+  execFile: vi.fn((_cmd: string, _args: string[], callback: (err: Error | null, result: { stdout: string; stderr: string }) => void) => {
     callback(null, { stdout: '60\n', stderr: '' })
   }),
   spawn: vi.fn(() => makeSpawnResult(0)),
@@ -41,21 +41,21 @@ describe('getVideoDuration', () => {
 
   it('returns parsed seconds from ffprobe stdout', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as Function)(null, { stdout: '120.5\n', stderr: '' })
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '120.5\n', stderr: '' })
     })
     await expect(getVideoDuration('/clip.mp4')).resolves.toBeCloseTo(120.5)
   })
 
   it('throws when ffprobe returns no duration', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as Function)(null, { stdout: '\n', stderr: '' })
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '\n', stderr: '' })
     })
     await expect(getVideoDuration('/clip.mp4')).rejects.toThrow('ffprobe returned no duration')
   })
 
   it('calls ffprobe with the correct path', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as Function)(null, { stdout: '60\n', stderr: '' })
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '60\n', stderr: '' })
     })
     await getVideoDuration('/my/video.mp4')
     const [cmd, args] = vi.mocked(execFile).mock.calls[0] as [string, string[]]

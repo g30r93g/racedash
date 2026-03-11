@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
-import type { BoxPosition, QualifyingDriver } from '@racedash/core'
+import type { BoxPosition, LeaderboardDriver } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { buildLeaderboard, selectWindow, LeaderboardMode } from '../../leaderboard'
 import { fontFamily } from '../../Root'
 
 interface LeaderboardTableProps {
-  qualifyingDrivers: QualifyingDriver[]
+  leaderboardDrivers: LeaderboardDriver[]
   ourKart: string
   mode: LeaderboardMode
   fps: number
@@ -17,7 +17,7 @@ interface LeaderboardTableProps {
 }
 
 export const LeaderboardTable = React.memo(function LeaderboardTable({
-  qualifyingDrivers,
+  leaderboardDrivers,
   ourKart,
   mode,
   fps,
@@ -32,8 +32,8 @@ export const LeaderboardTable = React.memo(function LeaderboardTable({
   const currentTime = frame / fps
 
   const leaderboard = useMemo(
-    () => buildLeaderboard(qualifyingDrivers, currentTime, mode),
-    [qualifyingDrivers, currentTime, mode],
+    () => buildLeaderboard(leaderboardDrivers, currentTime, mode),
+    [leaderboardDrivers, currentTime, mode],
   )
 
   const rows = useMemo(

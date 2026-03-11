@@ -9,13 +9,30 @@ import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { BoxPosition, LapTimestamp, OverlayProps, QualifyingDriver, SessionData, SessionMode, SessionSegment } from '@racedash/core'
+import type { BoxPosition, LapTimestamp, OverlayProps, LeaderboardDriver, SessionData, SessionMode, SessionSegment } from '@racedash/core'
 
-function buildQualifyingDrivers(
+function buildRaceDrivers(
+  allDrivers: DriverRow[],
+  offsetSeconds: number,
+): LeaderboardDriver[] {
+  // All drivers start simultaneously at offsetSeconds
+  return allDrivers.map(d => {
+    let ytSeconds = offsetSeconds
+    const timestamps: LapTimestamp[] = d.laps.map(lap => {
+      const ts = { lap, ytSeconds }
+      ytSeconds += lap.lapTime
+      return ts
+    })
+    return { kart: d.kart, name: d.name, timestamps }
+  })
+}
+
+function buildLeaderboardDrivers(
   allDrivers: DriverRow[],
   ourKart: string,
   offsetSeconds: number,
-): QualifyingDriver[] {
+): LeaderboardDriver[] {
+  // Align everyone to finish at the same time as our driver
   const ourDriver = allDrivers.find(d => d.kart === ourKart)
   if (!ourDriver) return []
 
@@ -276,7 +293,9 @@ program
           mode,
           session,
           sessionAllLaps: allDrivers.map(d => d.laps),
-          qualifyingDrivers: buildQualifyingDrivers(allDrivers, driver.kart, offsetSeconds),
+          leaderboardDrivers: mode === 'race'
+            ? buildRaceDrivers(allDrivers, offsetSeconds)
+            : buildLeaderboardDrivers(allDrivers, driver.kart, offsetSeconds),
           label: sc.label,
         })
       }
@@ -306,10 +325,10 @@ program
         videoHeight: videoResolution.height,
         boxPosition,
         qualifyingTablePosition: resolvedTablePosition,
-        accentColor: opts.accentColor,
-        textColor: opts.textColor,
-        timerTextColor: opts.timerTextColor,
-        timerBgColor: opts.timerBgColor,
+        accentColor: resolvedAccent,
+        textColor: resolvedText,
+        timerTextColor: resolvedTimerText,
+        timerBgColor: resolvedTimerBg,
         labelWindowSeconds,
       }
 

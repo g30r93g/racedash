@@ -1,0 +1,15 @@
+{
+  "driver": "Surrey C",
+  "accentColor": "#0c2233",
+  "textColor": "#bd8a26",
+  "timerTextColor": "white",
+  "timerBgColor": "#111111",
+  "segments": [
+    {
+      "mode": "race",
+      "url": "https://results.alphatiming.co.uk/bukc/e/358384/s/741340/laptimes",
+      "offset": "0:20.27",
+      "label": "Race"
+    }
+  ]
+}

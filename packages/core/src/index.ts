@@ -15,7 +15,7 @@ export interface SessionData {
   timestamps: LapTimestamp[]
 }
 
-export interface QualifyingDriver {
+export interface LeaderboardDriver {
   kart: string
   name: string
   timestamps: LapTimestamp[]   // absolute ytSeconds for each lap start
@@ -29,7 +29,7 @@ export interface SessionSegment {
   mode: SessionMode
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, segment-isolated (no cross-segment data)
-  qualifyingDrivers?: QualifyingDriver[]  // drives QualifyingTable; populated for qualifying + practice
+  leaderboardDrivers?: LeaderboardDriver[]  // drives QualifyingTable; populated for qualifying + practice
   label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
 }
 
@@ -41,6 +41,7 @@ export interface OverlayProps {
   videoWidth?: number
   videoHeight?: number
   boxPosition?: BoxPosition
+  qualifyingTablePosition?: BoxPosition  // corner for the qualifying table overlay; default varies by style
   accentColor?: string    // hex/CSS color for style accent (e.g. banner green band)
   textColor?: string      // hex/CSS color for overlay text (default: white)
   timerTextColor?: string // hex/CSS color for the lap timer text (default: white)

@@ -29,14 +29,14 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const showTable = segment.qualifyingDrivers != null
+  const showTable = segment.leaderboardDrivers != null
 
   // Live position from the qualifying table leaderboard (qualifying/practice only).
   const livePosition = useMemo<number | null>(() => {
     if (!showTable) return null
-    const leaderboard = buildLeaderboard(segment.qualifyingDrivers!, currentTime, mode)
+    const leaderboard = buildLeaderboard(segment.leaderboardDrivers!, currentTime, mode)
     return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
-  }, [showTable, segment.qualifyingDrivers, currentTime, mode, session.driver.kart])
+  }, [showTable, segment.leaderboardDrivers, currentTime, mode, session.driver.kart])
   const accent = accentColor ?? DEFAULT_ACCENT
   const text = textColor ?? 'white'
 
@@ -127,7 +127,7 @@ export const Banner: React.FC<OverlayProps> = ({
         {showTable && (
           <LeaderboardTable
             mode={mode}
-            qualifyingDrivers={segment.qualifyingDrivers!}
+            leaderboardDrivers={segment.leaderboardDrivers!}
             ourKart={session.driver.kart}
             fps={fps}
             accentColor={accent}
@@ -143,42 +143,43 @@ export const Banner: React.FC<OverlayProps> = ({
   // Race layout
   return (
     <AbsoluteFill>
-      <div style={{ position: 'absolute', top: 0, left: 0 }}>
-        <PositionCounter
-          timestamps={session.timestamps}
-          currentLaps={session.laps}
-          sessionAllLaps={sessionAllLaps}
-          currentIdx={currentIdx}
-          currentTime={currentTime}
-          mode={mode}
-          startingGridPosition={startingGridPosition}
-          textColor={text}
-        />
-      </div>
-      <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)' }}>
-        <LapTimerTrap
-          timestamps={session.timestamps}
-          lapColors={lapColors}
-          currentLap={currentLap}
-          currentIdx={currentIdx}
-          currentTime={currentTime}
-          raceEnd={raceEnd}
-          textColor={timerTextColor ?? text}
-          bgColor={timerBgColor}
-        />
-      </div>
-      <div style={{ position: 'absolute', top: 0, right: 0 }}>
-        <LapCounter
-          timestamps={session.timestamps}
-          currentLap={currentLap}
-          currentTime={currentTime}
-          textColor={text}
-        />
+      <div style={outerStyle}>
+        <div style={bgStyle} />
+        <div style={wrapperStyle}>
+          <PositionCounter
+            timestamps={session.timestamps}
+            currentLaps={session.laps}
+            sessionAllLaps={sessionAllLaps}
+            currentIdx={currentIdx}
+            currentTime={currentTime}
+            mode={mode}
+            startingGridPosition={startingGridPosition}
+            textColor={text}
+          />
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <LapTimerTrap
+              timestamps={session.timestamps}
+              lapColors={lapColors}
+              currentLap={currentLap}
+              currentIdx={currentIdx}
+              currentTime={currentTime}
+              raceEnd={raceEnd}
+              textColor={timerTextColor ?? text}
+              bgColor={timerBgColor}
+            />
+          </div>
+          <LapCounter
+            timestamps={session.timestamps}
+            currentLap={currentLap}
+            currentTime={currentTime}
+            textColor={text}
+          />
+        </div>
       </div>
       {showTable && (
         <LeaderboardTable
           mode={mode}
-          qualifyingDrivers={segment.qualifyingDrivers!}
+          leaderboardDrivers={segment.leaderboardDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
           accentColor={accent}

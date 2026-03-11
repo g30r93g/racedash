@@ -54,7 +54,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
   const { session, mode } = segment
 
-  const showTable = segment.qualifyingDrivers != null
+  const showTable = segment.leaderboardDrivers != null
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {
@@ -171,7 +171,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
       {showTable && (
         <LeaderboardTable
           mode={mode}
-          qualifyingDrivers={segment.qualifyingDrivers!}
+          leaderboardDrivers={segment.leaderboardDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
           accentColor={undefined}

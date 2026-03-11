@@ -13,12 +13,15 @@ interface Props {
   mode: SessionMode
   startingGridPosition?: number
   textColor?: string
+  /** When provided, overrides the computed position (e.g. from the live qualifying table). */
+  livePosition?: number | null
 }
 
 export const PositionCounter: React.FC<Props> = ({
   timestamps, currentLaps, sessionAllLaps,
   currentIdx, currentTime,
   mode, startingGridPosition, textColor = 'white',
+  livePosition,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -37,10 +40,12 @@ export const PositionCounter: React.FC<Props> = ({
   // O(1) lookup per lap change.
   // positions[0] = pre-race; positions[n] = getPosition(..., n, ...) for n=1..N.
   // currentIdx is 0-based → currentLap.lap.number = currentIdx+1 → positions[currentIdx+1].
-  const position: number | null =
+  const computedPosition: number | null =
     currentTime < raceStart || currentIdx === 0
       ? positions[0]
       : positions[currentIdx + 1] ?? null
+
+  const position = livePosition !== undefined && livePosition !== null ? livePosition : computedPosition
 
   const containerStyle = useMemo<React.CSSProperties>(() => ({
     width: 180 * scale,
@@ -48,7 +53,8 @@ export const PositionCounter: React.FC<Props> = ({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 11 * scale,
     paddingLeft: 16 * scale,
     gap: 2 * scale,
   }), [scale])

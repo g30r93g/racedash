@@ -18,7 +18,7 @@ export const LapCounter: React.FC<Props> = ({ timestamps, currentLap, currentTim
   const total = timestamps.length
 
   const displayText = useMemo(
-    () => `${String(currentLap.lap.number).padStart(2, '0')}/${total}`,
+    () => `${currentLap.lap.number}/${total}`,
     [currentLap, total],
   )
 
@@ -28,7 +28,8 @@ export const LapCounter: React.FC<Props> = ({ timestamps, currentLap, currentTim
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 11 * scale,
     paddingRight: 16 * scale,
     gap: 2 * scale,
   }), [scale])

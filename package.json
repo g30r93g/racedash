@@ -5,13 +5,19 @@
   "scripts": {
     "build": "turbo build",
     "test": "turbo test",
+    "lint": "eslint .",
     "racedash": "tsx apps/cli/src/index.ts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "eslint": "^10.0.3",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "tsx": "^4.7.0",
     "turbo": "^2.3.0",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.57.0",
     "vitest": "^1.6.0"
   }
 }
