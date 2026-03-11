@@ -45,7 +45,7 @@ const StatColumn = React.memo(function StatColumn({ label, value, scale }: StatC
   )
 })
 
-export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
+export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -174,7 +174,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
           leaderboardDrivers={segment.leaderboardDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
-          accentColor={undefined}
+          leaderboardStyling={styling?.leaderboard}
           position={qualifyingTablePosition}
           raceLapSnapshots={segment.raceLapSnapshots}
         />

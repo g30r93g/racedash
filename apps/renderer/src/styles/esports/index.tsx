@@ -85,7 +85,7 @@ const TimePanel = React.memo(function TimePanel({ iconBg, label, time, sc }: Tim
   )
 })
 
-export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
+export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
@@ -224,7 +224,7 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
           leaderboardDrivers={segment.leaderboardDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
-          accentColor={undefined}
+          leaderboardStyling={styling?.leaderboard}
           position={qualifyingTablePosition}
           raceLapSnapshots={segment.raceLapSnapshots}
         />

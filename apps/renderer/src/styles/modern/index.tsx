@@ -10,7 +10,7 @@ import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 
 const PLACEHOLDER = '—:--.---'
 
-export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSeconds, qualifyingTablePosition }) => {
+export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWindowSeconds, qualifyingTablePosition }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -150,7 +150,7 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
           leaderboardDrivers={segment.leaderboardDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
-          accentColor={undefined}
+          leaderboardStyling={styling?.leaderboard}
           position={qualifyingTablePosition}
           raceLapSnapshots={segment.raceLapSnapshots}
         />
