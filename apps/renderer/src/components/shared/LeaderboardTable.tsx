@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
-import type { BoxPosition, LeaderboardDriver } from '@racedash/core'
+import type { BoxPosition, LeaderboardDriver, RaceLapSnapshot } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { buildLeaderboard, selectWindow, LeaderboardMode } from '../../leaderboard'
 import { fontFamily } from '../../Root'
@@ -14,6 +14,7 @@ interface LeaderboardTableProps {
   position?: BoxPosition
   /** Anchor top in 1920-reference pixels; overrides vertical position from `position` */
   anchorTop?: number
+  raceLapSnapshots?: RaceLapSnapshot[]
 }
 
 export const LeaderboardTable = React.memo(function LeaderboardTable({
@@ -24,6 +25,7 @@ export const LeaderboardTable = React.memo(function LeaderboardTable({
   accentColor = '#3DD73D',
   position = 'bottom-right',
   anchorTop,
+  raceLapSnapshots,
 }: LeaderboardTableProps) {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -32,8 +34,8 @@ export const LeaderboardTable = React.memo(function LeaderboardTable({
   const currentTime = frame / fps
 
   const leaderboard = useMemo(
-    () => buildLeaderboard(leaderboardDrivers, currentTime, mode),
-    [leaderboardDrivers, currentTime, mode],
+    () => buildLeaderboard(leaderboardDrivers, currentTime, mode, ourKart, raceLapSnapshots),
+    [leaderboardDrivers, currentTime, mode, ourKart, raceLapSnapshots],
   )
 
   const rows = useMemo(

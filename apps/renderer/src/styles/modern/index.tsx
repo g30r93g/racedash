@@ -152,6 +152,7 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
           fps={fps}
           accentColor={undefined}
           position={qualifyingTablePosition}
+          raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
       {label && <SegmentLabel label={label} scale={scale} />}

@@ -33,10 +33,10 @@ export const Banner: React.FC<OverlayProps> = ({
 
   // Live position from the qualifying table leaderboard (qualifying/practice only).
   const livePosition = useMemo<number | null>(() => {
-    if (!showTable) return null
+    if (!showTable || mode === 'race') return null
     const leaderboard = buildLeaderboard(segment.leaderboardDrivers!, currentTime, mode)
     return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
-  }, [showTable, segment.leaderboardDrivers, currentTime, mode, session.driver.kart])
+  }, [showTable, mode, segment.leaderboardDrivers, currentTime, session.driver.kart])
   const accent = accentColor ?? DEFAULT_ACCENT
   const text = textColor ?? 'white'
 
@@ -133,6 +133,7 @@ export const Banner: React.FC<OverlayProps> = ({
             accentColor={accent}
             anchorTop={140}
             position={qualifyingTablePosition ?? 'top-right'}
+            raceLapSnapshots={segment.raceLapSnapshots}
           />
         )}
         {label && <SegmentLabel label={label} scale={scale} />}
@@ -184,6 +185,7 @@ export const Banner: React.FC<OverlayProps> = ({
           fps={fps}
           accentColor={accent}
           position={qualifyingTablePosition}
+          raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
       {label && <SegmentLabel label={label} scale={scale} />}

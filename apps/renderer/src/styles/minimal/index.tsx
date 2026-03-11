@@ -176,6 +176,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
           fps={fps}
           accentColor={undefined}
           position={qualifyingTablePosition}
+          raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
       {label && <SegmentLabel label={label} scale={scale} />}
