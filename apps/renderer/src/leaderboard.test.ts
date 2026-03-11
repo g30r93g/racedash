@@ -217,7 +217,7 @@ describe('buildLeaderboard (race mode)', () => {
     const lb = buildLeaderboard(DRIVERS, 130.0, 'race')
     expect(lb[0].kart).toBe('1') // A: 2 laps, 123.0s cumulative
     expect(lb[1].kart).toBe('2') // B: 2 laps, 126.0s cumulative
-    expect(lb[2].kart).toBe('3') // C: 1 lap, 63.0s cumulative (lapped)
+    expect(lb[2].kart).toBe('3') // C: 1 lap, 73.0s end-time (lapped)
   })
 
   it('assigns 1-indexed positions', () => {

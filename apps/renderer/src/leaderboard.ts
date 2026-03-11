@@ -6,7 +6,7 @@ export interface RankedDriver extends QualifyingDriver {
   position: number
   best: number           // best completed lap time (qualifying/practice); Infinity if none
   lapsCompleted: number  // total completed laps at currentTime
-  cumulativeTime: number // sum of completed lap times
+  cumulativeTime: number // qualifying/practice: sum of completed lap durations; race: absolute video end-time of last completed lap
   interval: string | null // pre-computed time column string; null for P1
 }
 
