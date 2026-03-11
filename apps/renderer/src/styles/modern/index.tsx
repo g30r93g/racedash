@@ -6,11 +6,11 @@ import { getLapAtTime, getLapElapsed } from '../../timing'
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
-import { QualifyingTable } from '../../components/shared/QualifyingTable'
+import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 
 const PLACEHOLDER = '—:--.---'
 
-export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSeconds }) => {
+export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSeconds, qualifyingTablePosition }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 520
@@ -19,7 +19,7 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
   const { session, sessionAllLaps, mode } = segment
 
-  const showQualTable = (mode === 'qualifying' || mode === 'practice') && segment.qualifyingDrivers != null
+  const showTable = segment.qualifyingDrivers != null
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {
@@ -143,12 +143,14 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, labelWindowSecon
           </div>
         </div>
       </div>
-      {showQualTable && (
-        <QualifyingTable
+      {showTable && (
+        <LeaderboardTable
+          mode={mode}
           qualifyingDrivers={segment.qualifyingDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
           accentColor={undefined}
+          position={qualifyingTablePosition}
         />
       )}
       {label && <SegmentLabel label={label} scale={scale} />}

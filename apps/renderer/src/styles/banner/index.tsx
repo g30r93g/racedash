@@ -9,13 +9,15 @@ import { LapTimerTrap } from './LapTimerTrap'
 import { LapCounter } from './LapCounter'
 import { PositionCounter } from './PositionCounter'
 import { TimeLabelPanel } from './TimeLabelPanel'
-import { QualifyingTable } from '../../components/shared/QualifyingTable'
+import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { buildLeaderboard } from '../../leaderboard'
 
 const DEFAULT_ACCENT = '#3DD73D'
 
 export const Banner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
   accentColor, textColor, timerTextColor, timerBgColor, labelWindowSeconds,
+  qualifyingTablePosition,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -27,7 +29,14 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const showQualTable = (mode === 'qualifying' || mode === 'practice') && segment.qualifyingDrivers != null
+  const showTable = segment.qualifyingDrivers != null
+
+  // Live position from the qualifying table leaderboard (qualifying/practice only).
+  const livePosition = useMemo<number | null>(() => {
+    if (!showTable) return null
+    const leaderboard = buildLeaderboard(segment.qualifyingDrivers!, currentTime, mode)
+    return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
+  }, [showTable, segment.qualifyingDrivers, currentTime, mode, session.driver.kart])
   const accent = accentColor ?? DEFAULT_ACCENT
   const text = textColor ?? 'white'
 
@@ -77,6 +86,7 @@ export const Banner: React.FC<OverlayProps> = ({
               mode={mode}
               startingGridPosition={startingGridPosition}
               textColor={text}
+              livePosition={livePosition}
             />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
@@ -114,12 +124,15 @@ export const Banner: React.FC<OverlayProps> = ({
             />
           </div>
         </div>
-        {showQualTable && (
-          <QualifyingTable
+        {showTable && (
+          <LeaderboardTable
+            mode={mode}
             qualifyingDrivers={segment.qualifyingDrivers!}
             ourKart={session.driver.kart}
             fps={fps}
             accentColor={accent}
+            anchorTop={140}
+            position={qualifyingTablePosition ?? 'top-right'}
           />
         )}
         {label && <SegmentLabel label={label} scale={scale} />}
@@ -162,12 +175,14 @@ export const Banner: React.FC<OverlayProps> = ({
           textColor={text}
         />
       </div>
-      {showQualTable && (
-        <QualifyingTable
+      {showTable && (
+        <LeaderboardTable
+          mode={mode}
           qualifyingDrivers={segment.qualifyingDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
           accentColor={accent}
+          position={qualifyingTablePosition}
         />
       )}
       {label && <SegmentLabel label={label} scale={scale} />}

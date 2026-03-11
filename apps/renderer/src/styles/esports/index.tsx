@@ -6,7 +6,7 @@ import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '.
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
-import { QualifyingTable } from '../../components/shared/QualifyingTable'
+import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 
 const EMPTY_TIME = '—:--.---'
 
@@ -85,7 +85,7 @@ const TimePanel = React.memo(function TimePanel({ iconBg, label, time, sc }: Tim
   )
 })
 
-export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = 'bottom-left', labelWindowSeconds }) => {
+export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
@@ -94,7 +94,7 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
   const { session, mode } = segment
 
-  const showQualTable = (mode === 'qualifying' || mode === 'practice') && segment.qualifyingDrivers != null
+  const showTable = segment.qualifyingDrivers != null
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {
@@ -218,12 +218,14 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, boxPosition = '
           <span style={styles.currentTime}>{elapsedFormatted}</span>
         </div>
       </div>
-      {showQualTable && (
-        <QualifyingTable
+      {showTable && (
+        <LeaderboardTable
+          mode={mode}
           qualifyingDrivers={segment.qualifyingDrivers!}
           ourKart={session.driver.kart}
           fps={fps}
           accentColor={undefined}
+          position={qualifyingTablePosition}
         />
       )}
       {label && <SegmentLabel label={label} scale={sc} />}
