@@ -21,6 +21,21 @@ export interface LeaderboardDriver {
   timestamps: LapTimestamp[]   // absolute ytSeconds for each lap start
 }
 
+export interface RaceLapEntry {
+  kart: string
+  name: string
+  position: number
+  lapsCompleted: number
+  gapToLeader: string      // verbatim from wire; reserved for future display use
+  intervalToAhead: string  // "" for P1, otherwise unsigned decimal e.g. "0.333"
+}
+
+export interface RaceLapSnapshot {
+  leaderLap: number        // 1-based (1 = after leader's first lap)
+  videoTimestamp: number   // absolute seconds into video when this snapshot activates
+  entries: RaceLapEntry[]  // ordered P1 → last place
+}
+
 export type SessionMode = 'practice' | 'qualifying' | 'race'
 
 export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
@@ -29,7 +44,8 @@ export interface SessionSegment {
   mode: SessionMode
   session: SessionData
   sessionAllLaps: Lap[][]   // one Lap[] per driver, segment-isolated (no cross-segment data)
-  leaderboardDrivers?: LeaderboardDriver[]  // drives QualifyingTable; populated for qualifying + practice
+  leaderboardDrivers?: LeaderboardDriver[]  // populated for all modes; used by PositionCounter (all modes) and LeaderboardTable (qualifying + practice only)
+  raceLapSnapshots?: RaceLapSnapshot[]
   label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
 }
 
