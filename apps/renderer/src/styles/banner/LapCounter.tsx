@@ -48,6 +48,7 @@ export const LapCounter: React.FC<Props> = ({ timestamps, currentLap, currentTim
     fontFamily,
     fontSize: 28 * scale,
     fontWeight: 700,
+    lineHeight: 1,
     color: textColor,
     letterSpacing: 1 * scale,
     userSelect: 'none',

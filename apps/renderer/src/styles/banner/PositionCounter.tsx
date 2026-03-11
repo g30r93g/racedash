@@ -73,6 +73,7 @@ export const PositionCounter: React.FC<Props> = ({
     fontFamily,
     fontSize: 44 * scale,
     fontWeight: 700,
+    lineHeight: 1,
     color: textColor,
     letterSpacing: 1 * scale,
     userSelect: 'none',
