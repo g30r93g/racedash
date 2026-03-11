@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { program } from 'commander'
-import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid } from '@racedash/scraper'
-import type { DriverRow } from '@racedash/scraper'
+import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid, fetchReplayHtml, parseReplayLapData } from '@racedash/scraper'
+import type { DriverRow, ReplayLapData } from '@racedash/scraper'
 import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
 import { selectDriver, resolveVideoFiles } from './select'
 import path from 'node:path'
@@ -9,7 +9,7 @@ import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { BoxPosition, LapTimestamp, OverlayProps, LeaderboardDriver, SessionData, SessionMode, SessionSegment } from '@racedash/core'
+import type { BoxPosition, LapTimestamp, OverlayProps, LeaderboardDriver, SessionData, SessionMode, SessionSegment, RaceLapEntry, RaceLapSnapshot } from '@racedash/core'
 
 function buildRaceDrivers(
   allDrivers: DriverRow[],
@@ -52,6 +52,26 @@ function buildLeaderboardDrivers(
 
     return { kart: d.kart, name: d.name, timestamps }
   })
+}
+
+export function buildRaceLapSnapshots(replayData: ReplayLapData, offsetSeconds: number): RaceLapSnapshot[] {
+  const result: RaceLapSnapshot[] = []
+  for (let i = 1; i < replayData.length; i++) {
+    const snapshot = replayData[i]
+    const p1 = snapshot.find(e => e.position === 1)
+    if (!p1 || p1.totalSeconds === null) continue
+    const videoTimestamp = offsetSeconds + p1.totalSeconds
+    const entries: RaceLapEntry[] = snapshot.map(e => ({
+      kart: e.kart,
+      name: e.name,
+      position: e.position,
+      lapsCompleted: e.lapsCompleted,
+      gapToLeader: e.gapToLeader,
+      intervalToAhead: e.intervalToAhead,
+    }))
+    result.push({ leaderLap: i, videoTimestamp, entries })
+  }
+  return result
 }
 
 program
@@ -220,16 +240,21 @@ program
         .map((sc, i) => (sc.mode.toLowerCase() === 'race' ? i : -1))
         .filter(i => i >= 0)
 
+      const N = segmentConfigs.length
+      const R = raceSegmentIndices.length
+
       const [[durationSeconds, videoResolution], fetchResults] = await Promise.all([
         Promise.all([getVideoDuration(videoPath), getVideoResolution(videoPath)]),
         Promise.all([
           ...segmentConfigs.map(sc => fetchHtml(sc.url)),
           ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
+          ...raceSegmentIndices.map(i => fetchReplayHtml(segmentConfigs[i].url).then(parseReplayLapData)),
         ]),
       ])
 
-      const htmls     = fetchResults.slice(0, segmentConfigs.length)
-      const gridHtmls = fetchResults.slice(segmentConfigs.length)
+      const htmls         = fetchResults.slice(0, N) as string[]
+      const gridHtmls     = fetchResults.slice(N, N + R) as string[]
+      const replayDataArr = fetchResults.slice(N + R) as ReplayLapData[]
 
       // Build SessionSegment[] — find driver in each segment independently
       const segments: SessionSegment[] = []
@@ -289,6 +314,17 @@ program
         }
         if (sc.label) stat('  Label', sc.label)
 
+        let raceLapSnapshots: RaceLapSnapshot[] | undefined
+        if (mode === 'race') {
+          const raceIdx = raceSegmentIndices.indexOf(i)
+          if (raceIdx >= 0 && replayDataArr[raceIdx]) {
+            raceLapSnapshots = buildRaceLapSnapshots(replayDataArr[raceIdx], snappedOffsets[i])
+            if (raceLapSnapshots.length === 0) {
+              process.stderr.write(`Warning: no valid race lap snapshots for segment ${i}\n`)
+            }
+          }
+        }
+
         segments.push({
           mode,
           session,
@@ -297,6 +333,7 @@ program
             ? buildRaceDrivers(allDrivers, offsetSeconds)
             : buildLeaderboardDrivers(allDrivers, driver.kart, offsetSeconds),
           label: sc.label,
+          raceLapSnapshots,
         })
       }
 
