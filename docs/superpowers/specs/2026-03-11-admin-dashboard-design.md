@@ -89,9 +89,9 @@ Three read-only permissions added to the existing Vercel IAM user policy:
 - `AWS/Lambda` → `Errors` sum per function, one `MetricDataQuery` per function name. Function names are known at deploy time (pipeline Lambdas, relay Lambda, validation Lambda) and stored in a `LAMBDA_FUNCTION_NAMES` env var (comma-separated list, populated from CDK stack outputs). Tag-based filtering is not supported for `AWS/Lambda` namespace metrics — dimension is `FunctionName` only.
 - `AWS/States` → `ExecutionsFailed` + `ExecutionsTimedOut` dimensioned by `StateMachineArn` (uses existing `STEP_FUNCTIONS_STATE_MACHINE_ARN` env var)
 - `AWS/SQS` → `ApproximateNumberOfMessagesVisible` dimensioned by `QueueName` on the social upload DLQ (uses new `SQS_SOCIAL_UPLOAD_DLQ_NAME` env var)
-- `AWS/ECS` → `RunningTaskCount` dimensioned by `ClusterName` only (no `ServiceName` — join tasks are one-off `RunTask` calls, not a long-running Service). Uses new `ECS_CLUSTER_NAME` env var. This is a cluster-level count of all running tasks, used as a proxy for active join tasks.
+- **Joining tasks** (DB-derived, not CloudWatch): count of jobs with `status = 'joining'` — `AWS/ECS` `RunningTaskCount` is only emitted for ECS Services, not for one-off `RunTask` invocations. The DB status is the correct signal here and is already present in the in-flight DB data section above.
 
-**Layout**: metric cards row (in-flight, completed today, failed today, failure rate), then a CloudWatch health row (Lambda errors, SFN failures, DLQ depth, ECS tasks). Below: a table of the 10 most recent failed jobs with their `error_message`.
+**Layout**: metric cards row (in-flight by status, completed today, failed today, failure rate), then a CloudWatch health row (Lambda errors, SFN failures, DLQ depth). Below: a table of the 10 most recent failed jobs with their `error_message`.
 
 ---
 
@@ -102,6 +102,7 @@ Three read-only permissions added to the existing Vercel IAM user policy:
 **DB data**:
 - Job counts grouped by status (all-time and filtered by time range)
 - Job table: `id`, user email (join to `users`), `status`, `rc_cost` (shown as `—` for non-terminal jobs where `FinaliseJob` has not yet written the value; `credit_reservations.rc_amount` is not used as a display fallback — the reservation amount is an internal detail), `created_at`, derived duration (`updated_at - created_at` for terminal states), `error_message`
+- The query filters to render jobs only: `WHERE jobs.id NOT LIKE 'su_%'` is not needed on `jobs` (the `jobs` table contains only render job IDs), but any join to `credit_reservations` must use `WHERE credit_reservations.job_id = jobs.id` (bare UUID match) to avoid accidental inclusion of social upload reservation rows (`su_` prefixed `job_id`s have no matching `jobs` row and will be dropped by an inner join — no special handling needed)
 - Time range filter: last 7 days / 30 days / all time (query param `?range=7d|30d|all`)
 
 **No CloudWatch or Cost Explorer on this page** — purely DB-derived.
@@ -126,7 +127,10 @@ Three read-only permissions added to the existing Vercel IAM user policy:
 
 Each bucket shows: number of packs, total RC remaining, estimated £ liability at blended rate.
 
-**All-time totals**: total RC sold, total RC consumed, total RC expired (forfeited).
+**All-time totals**:
+- Total RC sold: `SUM(rc_total)` across all `credit_packs`
+- Total RC consumed: `SUM(rc_total - rc_remaining)` across all `credit_packs` minus forfeited
+- Total RC expired (forfeited): `SUM(rc_remaining) WHERE expires_at < now()` — credits remaining in expired packs that were never consumed and cannot be restored
 
 **Purchase history table**: `pack_name`, `rc_total`, `price_gbp`, `purchased_at`, user email — newest first, paginated 50 rows.
 
@@ -138,13 +142,19 @@ Each bucket shows: number of packs, total RC remaining, estimated £ liability a
 
 **Time range selector**: last 7d / 30d / 90d (query param `?range=7d|30d|90d`). Defaults to 30d.
 
-**DB data** (revenue side):
-- RC consumed per time period from `credit_reservations` (status `consumed`), joined via `credit_reservation_packs` → `credit_packs` to obtain `price_gbp` and `rc_total` per pack. The blended rate per reservation is `price_gbp / rc_total` weighted by `rc_deducted` across packs. Note: a single reservation may span multiple packs (FIFO depletion), so the join must go through `credit_reservation_packs` — a direct `credit_reservations` → `credit_packs` join is not valid.
+**DB data** (revenue side, render jobs only):
+- RC consumed per time period from `credit_reservations` (status `consumed`), filtered to render jobs only: `WHERE credit_reservations.job_id NOT LIKE 'su\_%' ESCAPE '\'`. Social upload RC (10 RC flat at a fixed rate) does not correspond to AWS render spend and must be excluded from the margin calculation to avoid inflating the gross margin figure.
+- Join path: `credit_reservations` → `credit_reservation_packs` → `credit_packs` to obtain `price_gbp` and `rc_total` per pack. A single reservation may span multiple packs (FIFO depletion) — the join must go through `credit_reservation_packs`.
 - Derived £ revenue: `SUM(rc_deducted × (price_gbp / rc_total))` grouped by day
 - Breakdown by resolution tier: join to `jobs` and extract `width` from `jobs.config` JSONB, group RC consumed by `width >= 3840` (UHD) vs below (HD)
 
 **Cost Explorer data** (`GetCostAndUsage`, `GroupBy: SERVICE`, filtered by tag `racedash:project=racedash`):
-- Returns daily spend per AWS service: Lambda, AWS Elemental MediaConvert, Amazon ECS, Amazon S3, Amazon SES
+- Returns daily spend per AWS service. Exact billing service name strings (must match exactly for display mapping):
+  - `"AWS Lambda"`
+  - `"AWS Elemental MediaConvert"`
+  - `"Amazon Elastic Container Service"`
+  - `"Amazon Simple Storage Service"`
+  - `"Amazon Simple Email Service"`
 - 24h delay (Cost Explorer billing data latency) — displayed in UI as "AWS data as of [yesterday's date]"
 - **Currency**: Cost Explorer returns amounts in the AWS account's billing currency (USD for most accounts). Amounts are displayed in USD with a static note "converted at ~0.79 USD/GBP" for v1 margin estimates. No live FX rate fetch. This is a known approximation — revisit if GBP margin accuracy becomes important.
 
@@ -152,7 +162,7 @@ Each bucket shows: number of packs, total RC remaining, estimated £ liability a
 - Total RC revenue (£) for period
 - Total AWS spend (USD, ~GBP equivalent) for period (Cost Explorer)
 - Estimated gross margin (%)
-- Service cost breakdown table (Lambda / MediaConvert / ECS / S3 / SES)
+- Service cost breakdown table (Lambda / MediaConvert / ECS / S3 / SES) — display names mapped from the Cost Explorer billing strings above
 - Daily revenue vs spend table (rendered as an HTML table — no chart library dependency in v1)
 
 **Limitation noted in UI**: Lambda costs cannot be attributed per job (Lambda doesn't support per-invocation tagging). MediaConvert and ECS task costs are tagged with `racedash:job-id` and are attributable individually. Lambda costs are shown as a fleet total for the period.
@@ -235,14 +245,25 @@ Both SDK clients are instantiated in server components only — never shipped to
 New variables required (added to Vercel, populated from CDK stack outputs):
 
 ```
-LAMBDA_FUNCTION_NAMES          (comma-separated list of all pipeline Lambda function names)
-SQS_SOCIAL_UPLOAD_DLQ_NAME    (name of the social upload dead-letter queue)
+LAMBDA_FUNCTION_NAMES          (comma-separated list of pipeline Lambda function names for CloudWatch error monitoring)
+                                Canonical list (12 functions):
+                                  validation, start-render-overlay, wait-for-remotion,
+                                  create-mediaconvert-job, wait-for-mediaconvert,
+                                  finalise-job, release-credits-and-fail,
+                                  notify-user, log-notify-error,
+                                  eventbridge-relay, social-upload-dispatch, social-upload-dlq
+                                CDK exports one CfnOutput per function with key matching these names.
+SQS_SOCIAL_UPLOAD_DLQ_URL     (URL of the social upload dead-letter queue — consistent with
+                                SQS_SOCIAL_UPLOAD_QUEUE_URL naming convention; queue name
+                                extracted at runtime as the last path segment of the URL)
 ECS_CLUSTER_NAME               (name of the RaceDash ECS cluster)
 ```
 
 Reused from existing productionisation spec:
 - `DATABASE_URL`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
 - `STEP_FUNCTIONS_STATE_MACHINE_ARN` (used for CloudWatch `AWS/States` dimension)
+
+Note: `ECS_CLUSTER_NAME` is no longer required — the ECS running task count metric was replaced with the DB-derived `jobs.status = 'joining'` count.
 
 ---
 
