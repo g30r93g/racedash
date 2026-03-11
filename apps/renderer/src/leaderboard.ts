@@ -1,8 +1,13 @@
 import type { QualifyingDriver } from '@racedash/core'
 
+export type LeaderboardMode = 'qualifying' | 'practice' | 'race'
+
 export interface RankedDriver extends QualifyingDriver {
-  best: number     // best completed lap time in seconds
-  position: number // 1-indexed
+  position: number
+  best: number           // best completed lap time (qualifying/practice); Infinity if none
+  lapsCompleted: number  // total completed laps at currentTime
+  cumulativeTime: number // sum of completed lap times
+  interval: string | null // pre-computed time column string; null for P1
 }
 
 /**
@@ -10,23 +15,35 @@ export interface RankedDriver extends QualifyingDriver {
  * Only drivers with at least one completed lap are included.
  * A lap is complete when ts.ytSeconds + ts.lap.lapTime <= currentTime.
  */
-export function buildLeaderboard(drivers: QualifyingDriver[], currentTime: number): RankedDriver[] {
-  const ranked: RankedDriver[] = []
+export function buildLeaderboard(
+  drivers: QualifyingDriver[],
+  currentTime: number,
+  mode: LeaderboardMode,
+): RankedDriver[] {
+  if (mode === 'race') return buildRaceLeaderboard(drivers, currentTime)
 
+  // qualifying / practice: rank by best lap time
+  const ranked: RankedDriver[] = []
   for (const d of drivers) {
     let best = Infinity
+    let lapsCompleted = 0
+    let cumulativeTime = 0
     for (const ts of d.timestamps) {
       if (ts.ytSeconds + ts.lap.lapTime <= currentTime) {
+        lapsCompleted++
+        cumulativeTime += ts.lap.lapTime
         if (ts.lap.lapTime < best) best = ts.lap.lapTime
       }
     }
     if (best !== Infinity) {
-      ranked.push({ ...d, best, position: 0 })
+      ranked.push({ ...d, best, lapsCompleted, cumulativeTime, position: 0, interval: null })
     }
   }
-
   ranked.sort((a, b) => a.best - b.best)
-  for (let i = 0; i < ranked.length; i++) ranked[i].position = i + 1
+  for (let i = 0; i < ranked.length; i++) {
+    ranked[i].position = i + 1
+    ranked[i].interval = i === 0 ? null : formatDelta(ranked[i].best, ranked[0].best)
+  }
   return ranked
 }
 
@@ -65,4 +82,8 @@ export function selectWindow(leaderboard: RankedDriver[], ourKart: string): Rank
 export function formatDelta(lapTime: number, p1Time: number): string {
   const delta = Math.max(0, lapTime - p1Time)
   return `+${delta.toFixed(3)}`
+}
+
+function buildRaceLeaderboard(_drivers: QualifyingDriver[], _currentTime: number): RankedDriver[] {
+  return []
 }

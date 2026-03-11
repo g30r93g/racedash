@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { QualifyingDriver } from '@racedash/core'
-import { buildLeaderboard, selectWindow, formatDelta } from './qualifying'
+import { buildLeaderboard, selectWindow, formatDelta } from './leaderboard'
 
 // Helper: driver with laps starting at videoStart
 function driver(kart: string, videoStart: number, lapTimes: number[]): QualifyingDriver {
@@ -28,12 +28,12 @@ const DRIVERS = [A, B, C]
 
 describe('buildLeaderboard', () => {
   it('returns empty array before any driver completes a lap', () => {
-    expect(buildLeaderboard(DRIVERS, 60.0)).toEqual([])
+    expect(buildLeaderboard(DRIVERS, 60.0, 'qualifying')).toEqual([])
   })
 
   it('includes only drivers with at least one completed lap', () => {
     // At t=65, only A has completed lap 1 (ends at 62.0)
-    const lb = buildLeaderboard(DRIVERS, 65.0)
+    const lb = buildLeaderboard(DRIVERS, 65.0, 'qualifying')
     expect(lb).toHaveLength(1)
     expect(lb[0].kart).toBe('1')
     expect(lb[0].position).toBe(1)
@@ -42,7 +42,7 @@ describe('buildLeaderboard', () => {
 
   it('sorts by best lap time ascending', () => {
     // At t=200, all 3 have completed all laps
-    const lb = buildLeaderboard(DRIVERS, 200.0)
+    const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
     expect(lb).toHaveLength(3)
     expect(lb[0].kart).toBe('2')  // B: best 59.5
     expect(lb[1].kart).toBe('1')  // A: best 60.0
@@ -50,20 +50,20 @@ describe('buildLeaderboard', () => {
   })
 
   it('assigns 1-indexed positions', () => {
-    const lb = buildLeaderboard(DRIVERS, 200.0)
+    const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
     expect(lb.map(d => d.position)).toEqual([1, 2, 3])
   })
 
   it('does not count a lap as complete until ytSeconds + lapTime <= currentTime', () => {
     // B lap2 ends at 5+61.5+59.5=126.0; at t=125.9 it is not yet complete
-    const lb = buildLeaderboard(DRIVERS, 125.9)
+    const lb = buildLeaderboard(DRIVERS, 125.9, 'qualifying')
     const bEntry = lb.find(d => d.kart === '2')
     expect(bEntry?.best).toBeCloseTo(61.5)  // only lap1 (61.5) is complete, not lap2 (59.5)
   })
 
   it('updates best when a faster lap completes', () => {
     // B lap2 ends at 126.0 exactly
-    const lb = buildLeaderboard(DRIVERS, 126.0)
+    const lb = buildLeaderboard(DRIVERS, 126.0, 'qualifying')
     const bEntry = lb.find(d => d.kart === '2')
     expect(bEntry?.best).toBeCloseTo(59.5)
   })
@@ -77,6 +77,9 @@ describe('selectWindow', () => {
     timestamps: [],
     best: 60 + i,
     position: i + 1,
+    lapsCompleted: 1,
+    cumulativeTime: 60 + i,
+    interval: i === 0 ? null : `+${i}.000`,
   }))
 
   it('P1: shows [P1, P2, P3, P4]', () => {
