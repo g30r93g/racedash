@@ -49,6 +49,28 @@ export interface SessionSegment {
   label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
 }
 
+export interface LeaderboardStyling {
+  bgColor?: string           // default row background      (default: rgba(0,0,0,0.65))
+  ourRowBgColor?: string     // our-kart row background     (default: rgba(0,0,0,0.82))
+  textColor?: string         // driver name text            (default: white)
+  positionTextColor?: string // position label (non-P1)     (default: rgba(255,255,255,0.5))
+  kartTextColor?: string     // kart number column          (default: rgba(255,255,255,0.7))
+  lapTimeTextColor?: string  // lap/interval time (non-P1)  (default: rgba(255,255,255,0.8))
+  separatorColor?: string    // thin line between groups    (default: rgba(255,255,255,0.15))
+}
+
+export interface BannerStyling {
+  timerTextColor?: string  // lap timer text color   (default: white)
+  timerBgColor?: string    // lap timer background   (default: #111111)
+}
+
+export interface OverlayStyling {
+  accentColor?: string       // global accent         (default: #3DD73D)
+  textColor?: string         // global text color     (default: white)
+  leaderboard?: LeaderboardStyling
+  banner?: BannerStyling
+}
+
 export interface OverlayProps {
   segments: SessionSegment[]
   startingGridPosition?: number   // race only: grid position at race start
@@ -58,9 +80,6 @@ export interface OverlayProps {
   videoHeight?: number
   boxPosition?: BoxPosition
   qualifyingTablePosition?: BoxPosition  // corner for the qualifying table overlay; default varies by style
-  accentColor?: string    // hex/CSS color for style accent (e.g. banner green band)
-  textColor?: string      // hex/CSS color for overlay text (default: white)
-  timerTextColor?: string // hex/CSS color for the lap timer text (default: white)
-  timerBgColor?: string   // hex/CSS color for the lap timer background (default: #111111)
+  styling?: OverlayStyling
   labelWindowSeconds?: number     // default 5
 }
