@@ -3,7 +3,8 @@ import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remo
 import type { OverlayProps } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
-import { getLapAtTime } from '../../timing'
+import { getLapAtTime, getLapElapsed } from '../../timing'
+import { BannerBackground } from './BannerBackground'
 import { computeLapColors } from './lapColor'
 import { LapTimerTrap } from './LapTimerTrap'
 import { LapCounter } from './LapCounter'
@@ -66,26 +67,48 @@ export const Banner: React.FC<OverlayProps> = ({
     ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
     : 1
 
+  const bannerHeight = 80 * scale
+
   const outerStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    borderRadius: bannerRadius,
+    height: bannerHeight,
+    borderBottomLeftRadius: bannerRadius,
+    borderBottomRightRadius: bannerRadius,
     overflow: 'hidden',
   }
 
-  const bgStyle: React.CSSProperties = {
-    position: 'absolute',
-    inset: 0,
-    background: bannerBg,
-    opacity: bannerOpacity,
-  }
+  const timeLabelPanelWidth = Math.max(0, (width - 180 * scale - 180 * scale - 300 * scale) / 2)
+  const centerStart = 180 * scale + timeLabelPanelWidth
+  const centerEnd = width - 180 * scale - timeLabelPanelWidth
+  const sRise = (styling?.banner?.sRise ?? 18) * scale
 
   const wrapperStyle: React.CSSProperties = {
     position: 'relative',
     display: 'flex',
   }
+
+  // Compute the timer's current background so end caps flash in sync.
+  const flashDurationSeconds = styling?.banner?.flashDuration ?? 2
+  const timerColorMap = {
+    neutral: styling?.banner?.timerBgColor   ?? '#111111',
+    purple:  styling?.banner?.lapColorPurple ?? 'rgba(107,33,168,0.95)',
+    green:   styling?.banner?.lapColorGreen  ?? 'rgba(21,128,61,0.95)',
+    red:     styling?.banner?.lapColorRed    ?? 'rgba(185,28,28,0.95)',
+  }
+  const timerBackground = (() => {
+    if (currentTime >= raceEnd) {
+      const sinceEnd = currentTime - raceEnd
+      return sinceEnd < flashDurationSeconds
+        ? timerColorMap[lapColors[session.timestamps.length - 1] ?? 'neutral']
+        : timerColorMap.neutral
+    }
+    const lapElapsed = getLapElapsed(currentLap, currentTime)
+    const isFlashing = lapElapsed < flashDurationSeconds && currentIdx > 0
+    return isFlashing ? timerColorMap[lapColors[currentIdx - 1] ?? 'neutral'] : timerColorMap.neutral
+  })()
 
   const lapTimerProps = {
     timestamps: session.timestamps,
@@ -106,7 +129,16 @@ export const Banner: React.FC<OverlayProps> = ({
     return (
       <AbsoluteFill style={{ opacity }}>
         <div style={outerStyle}>
-          <div style={bgStyle} />
+          <BannerBackground
+            width={width}
+            height={bannerHeight}
+            accentColor={bannerBg}
+            accentOpacity={bannerOpacity}
+            darkColor={timerBackground}
+            rise={sRise}
+            centerStart={centerStart}
+            centerEnd={centerEnd}
+          />
           <div style={wrapperStyle}>
             <PositionCounter
               timestamps={session.timestamps}
@@ -168,7 +200,16 @@ export const Banner: React.FC<OverlayProps> = ({
   return (
     <AbsoluteFill style={{ opacity }}>
       <div style={outerStyle}>
-        <div style={bgStyle} />
+        <BannerBackground
+          width={width}
+          height={bannerHeight}
+          accentColor={bannerBg}
+          accentOpacity={bannerOpacity}
+          darkColor={timerBackground}
+          rise={sRise}
+          centerStart={centerStart}
+          centerEnd={centerEnd}
+        />
         <div style={wrapperStyle}>
           <PositionCounter
             timestamps={session.timestamps}
