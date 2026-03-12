@@ -501,3 +501,73 @@ describe('buildLeaderboard – snapshot path', () => {
     expect(result[0].cumulativeTime).toBe(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Per-driver crossing tests (live leaderboard update behaviour)
+// ---------------------------------------------------------------------------
+
+describe('buildLeaderboard – snapshot path, per-driver crossing', () => {
+  function entry(kart: string, position: number, lapsCompleted: number, intervalToAhead = '0.000'): RaceLapEntry {
+    return { kart, name: `Driver ${kart}`, position, lapsCompleted, gapToLeader: '0.000', intervalToAhead }
+  }
+
+  // Two snapshots: snap1 activates at t=100 (leader crosses lap 1),
+  // snap2 activates at t=200 (leader crosses lap 2).
+  const snap1 = { leaderLap: 1, videoTimestamp: 100, entries: [entry('1', 1, 1, ''), entry('2', 2, 1, '2.000')] }
+  const snap2 = { leaderLap: 2, videoTimestamp: 200, entries: [entry('1', 1, 2, ''), entry('2', 2, 2, '1.500')] }
+
+  // Driver 1 crosses lap 1 at t=100, lap 2 at t=200.
+  // Driver 2 crosses lap 1 at t=102, lap 2 at t=205.
+  const d1 = driver('1', 0, [100, 100])  // starts t=0, lap1=100s (ends t=100), lap2=100s (ends t=200)
+  const d2 = driver('2', 0, [102, 103])  // starts t=0, lap1=102s (ends t=102), lap2=103s (ends t=205)
+
+  it('before any driver crosses, shows no entries', () => {
+    const result = buildLeaderboard([d1, d2], 50, 'race', undefined, [snap1, snap2])
+    expect(result).toHaveLength(0)
+  })
+
+  it('immediately after leader crosses lap 1 but before P2 crosses, P2 shows prev (no) data', () => {
+    // At t=100: snap1 just activated. d1 crossed at t=100 ✓. d2 crosses at t=102 ✗.
+    // d2's last crossing is t=102 which is > currentTime=100, so no crossing yet → falls back to active entry
+    // (no previous snapshot exists, so d2 keeps active entry as fallback)
+    const result = buildLeaderboard([d1, d2], 100, 'race', undefined, [snap1, snap2])
+    // Both entries exist since snap1 is active; d1 has crossed, d2 has not crossed yet
+    // d2 falls back to active (snap1) entry since no prev snapshot exists
+    expect(result).toHaveLength(2)
+    expect(result[0].kart).toBe('1')
+    expect(result[0].lapsCompleted).toBe(1)
+  })
+
+  it('after P2 crosses lap 1, P2 shows snap1 data (their crossing found snap1)', () => {
+    // At t=103: d2 crossed at t=102 → driverActiveIdx finds snap1 (t=100 <= 102) → snap1 entry for d2
+    const result = buildLeaderboard([d1, d2], 103, 'race', undefined, [snap1, snap2])
+    expect(result[1].kart).toBe('2')
+    expect(result[1].lapsCompleted).toBe(1)
+    expect(result[1].interval).toBe('+2.000')  // from snap1 entry
+  })
+
+  it('after leader crosses lap 2 but before P2 crosses lap 2, P2 still shows snap1 data', () => {
+    // At t=202: snap2 active. d1 crossed lap2 at t=200 ✓ → shows snap2 (lapsCompleted=2).
+    // d2 crossed lap2 at t=205, not yet → last crossing is t=102 → driverActiveIdx=snap1 → shows snap1 (lapsCompleted=1).
+    // lapDiff = d1.lapsCompleted(2) - d2.lapsCompleted(1) = 1 → interval shows "+1L" (d2 hasn't crossed yet).
+    const result = buildLeaderboard([d1, d2], 202, 'race', undefined, [snap1, snap2])
+    const p2 = result.find(r => r.kart === '2')!
+    expect(p2.lapsCompleted).toBe(1)  // snap1 data (not yet updated to snap2)
+    expect(p2.interval).toBe('+1L')   // d1 has completed lap 2, d2 has not yet
+  })
+
+  it('after P2 crosses lap 2, P2 shows snap2 data', () => {
+    // At t=206: d2 crossed at t=205 → driverActiveIdx finds snap2 (t=200 <= 205) → snap2 entry
+    const result = buildLeaderboard([d1, d2], 206, 'race', undefined, [snap1, snap2])
+    const p2 = result.find(r => r.kart === '2')!
+    expect(p2.lapsCompleted).toBe(2)
+    expect(p2.interval).toBe('+1.500') // snap2 interval
+  })
+
+  it('empty drivers array falls back to original active-snapshot-for-all behaviour', () => {
+    // At t=202: snap2 is active. With no drivers, all entries come from snap2.
+    const result = buildLeaderboard([], 202, 'race', undefined, [snap1, snap2])
+    const p2 = result.find(r => r.kart === '2')!
+    expect(p2.lapsCompleted).toBe(2)  // snap2 data for everyone
+  })
+})

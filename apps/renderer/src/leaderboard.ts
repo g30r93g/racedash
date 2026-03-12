@@ -28,7 +28,7 @@ export function buildLeaderboard(
 ): RankedDriver[] {
   if (mode === 'race') {
     if (raceLapSnapshots !== undefined) {
-      return buildRaceLeaderboardFromSnapshots(raceLapSnapshots, currentTime, ourKart)
+      return buildRaceLeaderboardFromSnapshots(raceLapSnapshots, currentTime, ourKart, drivers)
     }
     return buildRaceLeaderboard(drivers, currentTime, ourKart)
   }
@@ -123,21 +123,60 @@ function buildRaceLeaderboardFromSnapshots(
   snapshots: RaceLapSnapshot[],
   currentTime: number,
   ourKart?: string,
+  drivers?: LeaderboardDriver[],
 ): RankedDriver[] {
-  // Find the last snapshot where videoTimestamp <= currentTime
-  let active: RaceLapSnapshot | undefined
-  for (const snap of snapshots) {
-    if (snap.videoTimestamp <= currentTime) active = snap
+  // Find the active snapshot index (latest where videoTimestamp <= currentTime)
+  let activeIdx = -1
+  for (let i = 0; i < snapshots.length; i++) {
+    if (snapshots[i].videoTimestamp <= currentTime) activeIdx = i
   }
-  if (!active) return []
+  if (activeIdx === -1) return []
 
-  const { entries } = active
-  return entries.map((entry, i) => {
+  const active = snapshots[activeIdx]
+
+  // Build per-driver last crossing times so each row updates when that driver
+  // individually crosses the line, not when the leader does.
+  const driverLastCrossing = new Map<string, number>()
+  if (drivers && drivers.length > 0) {
+    for (const d of drivers) {
+      let lastCrossTime = -Infinity
+      for (const ts of d.timestamps) {
+        const crossTime = ts.ytSeconds + ts.lap.lapTime
+        if (crossTime <= currentTime && crossTime > lastCrossTime) {
+          lastCrossTime = crossTime
+        }
+      }
+      if (isFinite(lastCrossTime)) {
+        driverLastCrossing.set(d.kart, lastCrossTime)
+      }
+    }
+  }
+
+  // For each entry in the active snapshot, resolve to the snapshot that was
+  // active when that driver individually crossed the finish line.
+  const resolvedEntries: RaceLapEntry[] = active.entries.map(entry => {
+    if (driverLastCrossing.size === 0) return entry
+
+    const lastCross = driverLastCrossing.get(entry.kart)
+    if (lastCross === undefined) return entry
+
+    // Find the snapshot that was active when this driver last crossed
+    let driverActiveIdx = -1
+    for (let i = 0; i < snapshots.length; i++) {
+      if (snapshots[i].videoTimestamp <= lastCross) driverActiveIdx = i
+    }
+    if (driverActiveIdx === -1) return entry
+
+    const driverEntry = snapshots[driverActiveIdx].entries.find(e => e.kart === entry.kart)
+    return driverEntry ?? entry
+  })
+
+  return resolvedEntries.map((entry, i) => {
     let interval: string | null
     if (entry.position === 1) {
       interval = null
     } else {
-      const ahead = entries[i - 1]
+      const ahead = resolvedEntries[i - 1]
       if (!ahead) {
         interval = entry.intervalToAhead === '' ? '+0.000' : `+${entry.intervalToAhead}`
       } else {

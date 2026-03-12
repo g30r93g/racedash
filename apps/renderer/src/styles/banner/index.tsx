@@ -31,12 +31,15 @@ export const Banner: React.FC<OverlayProps> = ({
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null
 
-  // Live position from the qualifying table leaderboard (qualifying/practice only).
+  // Live position from the leaderboard (all modes, when leaderboard data is present).
   const livePosition = useMemo<number | null>(() => {
-    if (!showTable || mode === 'race') return null
-    const leaderboard = buildLeaderboard(segment.leaderboardDrivers!, currentTime, mode)
+    if (!showTable) return null
+    const leaderboard = buildLeaderboard(
+      segment.leaderboardDrivers!, currentTime, mode,
+      session.driver.kart, segment.raceLapSnapshots,
+    )
     return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
-  }, [showTable, mode, segment.leaderboardDrivers, currentTime, session.driver.kart])
+  }, [showTable, segment.leaderboardDrivers, currentTime, mode, session.driver.kart, segment.raceLapSnapshots])
 
   const accent = styling?.accentColor ?? DEFAULT_ACCENT
   const text = styling?.textColor ?? 'white'
@@ -176,6 +179,7 @@ export const Banner: React.FC<OverlayProps> = ({
             mode={mode}
             startingGridPosition={startingGridPosition}
             textColor={text}
+            livePosition={livePosition}
           />
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
             <LapTimerTrap {...lapTimerProps} />
