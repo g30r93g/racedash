@@ -91,6 +91,7 @@ export interface BannerStyling {
   lapColorGreen?: string   // session best lap flash color   (default: rgba(21,128,61,0.95))
   lapColorRed?: string     // slower lap flash color         (default: rgba(185,28,28,0.95))
   flashDuration?: number   // lap color flash duration in s  (default: 2)
+  sRise?: number           // dark center rise above banner bottom in ref px (default: 18)
 }
 
 export interface EsportsStyling {
