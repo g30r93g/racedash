@@ -80,11 +80,6 @@ export const Banner: React.FC<OverlayProps> = ({
     overflow: 'hidden',
   }
 
-  const timeLabelPanelWidth = Math.max(0, (width - 180 * scale - 180 * scale - 300 * scale) / 2)
-  const centerStart = 180 * scale + timeLabelPanelWidth
-  const centerEnd = width - 180 * scale - timeLabelPanelWidth
-  const sRise = (styling?.banner?.sRise ?? 18) * scale
-
   const wrapperStyle: React.CSSProperties = {
     position: 'relative',
     display: 'flex',
@@ -112,16 +107,11 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const lapTimerProps = {
     timestamps: session.timestamps,
-    lapColors,
     currentLap,
     currentIdx,
     currentTime,
     raceEnd,
     textColor: styling?.banner?.timerTextColor ?? text,
-    bgColor: styling?.banner?.timerBgColor,
-    lapColorPurple: styling?.banner?.lapColorPurple,
-    lapColorGreen: styling?.banner?.lapColorGreen,
-    lapColorRed: styling?.banner?.lapColorRed,
     flashDuration: styling?.banner?.flashDuration,
   }
 
@@ -132,12 +122,9 @@ export const Banner: React.FC<OverlayProps> = ({
           <BannerBackground
             width={width}
             height={bannerHeight}
-            accentColor={bannerBg}
-            accentOpacity={bannerOpacity}
-            darkColor={timerBackground}
-            rise={sRise}
-            centerStart={centerStart}
-            centerEnd={centerEnd}
+            bgFill={bannerBg}
+            opacity={bannerOpacity}
+            timerFill={timerBackground}
           />
           <div style={wrapperStyle}>
             <PositionCounter
@@ -203,12 +190,9 @@ export const Banner: React.FC<OverlayProps> = ({
         <BannerBackground
           width={width}
           height={bannerHeight}
-          accentColor={bannerBg}
-          accentOpacity={bannerOpacity}
-          darkColor={timerBackground}
-          rise={sRise}
-          centerStart={centerStart}
-          centerEnd={centerEnd}
+          bgFill={bannerBg}
+          opacity={bannerOpacity}
+          timerFill={timerBackground}
         />
         <div style={wrapperStyle}>
           <PositionCounter
