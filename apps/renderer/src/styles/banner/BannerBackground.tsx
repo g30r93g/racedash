@@ -17,14 +17,25 @@ export const BannerBackground: React.FC<BannerBackgroundProps> = ({
 }) => {
   const d = buildBannerPath({ width, height, centerStart, centerEnd, rise })
 
+  const scale = width / 1920
+  const curveInset = Math.min(45 * scale, centerStart, width - centerEnd)
+  const r = (n: number) => Math.round(n * 100) / 100
+  const trapezoidD = [
+    `M ${r(centerStart)} 0`,
+    `L ${r(centerEnd)} 0`,
+    `L ${r(centerEnd - curveInset)} ${r(height)}`,
+    `L ${r(centerStart + curveInset)} ${r(height)}`,
+    'Z',
+  ].join(' ')
+
   return (
     <svg
       width={width}
       height={height}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <rect x={0} y={0} width={width} height={height} fill={accentColor} opacity={accentOpacity} />
-      <path d={d} fill={darkColor} />
+      <path d={d} fill={accentColor} opacity={accentOpacity} />
+      <path d={trapezoidD} fill={darkColor} />
     </svg>
   )
 }

@@ -147,6 +147,8 @@ interface RenderOpts {
   boxPosition: string
   qualifyingTablePosition?: string
   labelWindow?: string
+  noCache?: boolean
+  onlyRenderOverlay?: boolean
 }
 
 program
@@ -167,6 +169,8 @@ program
   .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
   .option('--qualifying-table-position <pos>', 'Corner for qualifying table: bottom-left, bottom-right, top-left, top-right')
   .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', '5')
+  .option('--no-cache', 'Force re-render the overlay even if a cached file exists')
+  .option('--only-render-overlay', 'Render the overlay file and skip compositing onto the video')
   .action(async (opts: RenderOpts) => {
     try {
       const fps = parseInt(opts.fps, 10)
@@ -355,11 +359,13 @@ program
       const workStart = Date.now()
 
       let overlayReused = false
-      try {
-        await access(overlayPath)
-        const overlayDuration = await getVideoDuration(overlayPath)
-        overlayReused = overlayDuration > 0
-      } catch { /* no valid overlay on disk */ }
+      if (!opts.noCache) {
+        try {
+          await access(overlayPath)
+          const overlayDuration = await getVideoDuration(overlayPath)
+          overlayReused = overlayDuration > 0
+        } catch { /* no valid overlay on disk */ }
+      }
 
       if (overlayReused) {
         process.stderr.write(`  Reusing overlay        ${overlayPath}\n`)
@@ -369,6 +375,14 @@ program
         } finally {
           process.stderr.write('\n')
         }
+      }
+
+      if (opts.onlyRenderOverlay) {
+        const totalSeconds = Math.round((Date.now() - workStart) / 1000)
+        process.stderr.write(`\n  ✓  ${overlayPath}  ·  ${formatSeconds(totalSeconds)}\n\n`)
+        console.log(overlayPath)
+        if (tempJoinedVideo) await unlink(tempJoinedVideo).catch(() => {})
+        return
       }
 
       const overlayX = parseInt(opts.overlayX, 10)
