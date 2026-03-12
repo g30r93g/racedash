@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
@@ -14,16 +14,17 @@ interface StatColumnProps {
   label: string
   value: string
   scale: number
+  labelColor: string
 }
 
-const StatColumn = React.memo(function StatColumn({ label, value, scale }: StatColumnProps) {
+const StatColumn = React.memo(function StatColumn({ label, value, scale, labelColor }: StatColumnProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 * scale }}>
       <span
         style={{
           fontSize: 10 * scale,
           fontWeight: 400,
-          color: '#aaaaaa',
+          color: labelColor,
           letterSpacing: 1.5 * scale,
           textTransform: 'uppercase',
         }}
@@ -62,6 +63,17 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
     return lastTs.ytSeconds + lastTs.lap.lapTime
   }, [session.timestamps])
 
+  const preRoll = styling?.fade?.preRollSeconds ?? 0
+  const showFrom = raceStart - preRoll
+
+  if (currentTime < showFrom && !isEnd) return null
+
+  const fadeEnabled = styling?.fade?.enabled ?? false
+  const fadeDuration = styling?.fade?.durationSeconds ?? 0.5
+  const opacity = fadeEnabled && !isEnd
+    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+    : 1
+
   const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
 
   const currentLap = useMemo(
@@ -87,6 +99,12 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
     return best !== null ? formatLapTime(best) : EMPTY_TIME
   }, [completedLaps])
 
+  const mn = styling?.minimal
+  const cardBgColor    = mn?.bgColor         ?? 'rgba(20, 22, 28, 0.88)'
+  const badgeBgColor   = mn?.badgeBgColor    ?? 'white'
+  const badgeTextColor = mn?.badgeTextColor  ?? '#222222'
+  const statLabelColor = mn?.statLabelColor  ?? '#aaaaaa'
+
   const styles = useMemo(() => {
     const margin = 20 * scale
     const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
@@ -101,7 +119,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
         ...hPos,
         width: 440 * scale,
         height: 150 * scale,
-        background: 'rgba(20, 22, 28, 0.88)',
+        background: cardBgColor,
         borderRadius: 12 * scale,
         padding: `${padV}px ${padH}px`,
         boxSizing: 'border-box' as const,
@@ -120,7 +138,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
       badge: {
         width: badgeSize,
         height: badgeSize,
-        background: 'white',
+        background: badgeBgColor,
         borderRadius: 4 * scale,
         display: 'flex',
         alignItems: 'center',
@@ -130,7 +148,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
       badgeText: {
         fontSize: 18 * scale,
         fontWeight: 700,
-        color: '#222222',
+        color: badgeTextColor,
         lineHeight: 1,
       },
       elapsed: {
@@ -147,15 +165,13 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
         gap: 28 * scale,
       },
     }
-  }, [scale, boxPosition])
-
-  if (currentTime < raceStart && !isEnd) return null
+  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor])
 
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
 
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ opacity }}>
       <div style={styles.card}>
         <div style={styles.row}>
           <div style={styles.badge}>
@@ -164,8 +180,8 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
           <span style={styles.elapsed}>{elapsedFormatted}</span>
         </div>
         <div style={styles.statRow}>
-          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} />
-          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} />
+          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
+          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={statLabelColor} />
         </div>
       </div>
       {showTable && (
@@ -179,7 +195,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} />}
+      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
     </AbsoluteFill>
   )
 }

@@ -1,16 +1,14 @@
 import React from 'react'
+import type { SegmentLabelStyling } from '@racedash/core'
 import { fontFamily } from './Root'
 
 interface Props {
   label: string
   scale: number
+  styling?: SegmentLabelStyling
 }
 
-/**
- * Renders a centered pill label (e.g. "Qualifying Start") over the overlay.
- * Intended to be placed inside an AbsoluteFill so it covers the full canvas.
- */
-export const SegmentLabel: React.FC<Props> = ({ label, scale }) => (
+export const SegmentLabel: React.FC<Props> = ({ label, scale, styling }) => (
   <div
     style={{
       position: 'absolute',
@@ -26,13 +24,13 @@ export const SegmentLabel: React.FC<Props> = ({ label, scale }) => (
   >
     <div
       style={{
-        background: 'rgba(0, 0, 0, 0.72)',
+        background: styling?.bgColor ?? 'rgba(0, 0, 0, 0.72)',
         padding: `${12 * scale}px ${28 * scale}px`,
-        borderRadius: 8 * scale,
+        borderRadius: (styling?.borderRadius ?? 8) * scale,
         fontFamily,
         fontSize: 36 * scale,
         fontWeight: 700,
-        color: 'white',
+        color: styling?.textColor ?? 'white',
         letterSpacing: 2 * scale,
         textTransform: 'uppercase',
         userSelect: 'none',

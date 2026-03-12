@@ -5,15 +5,6 @@ import type { LapColor } from './lapColor'
 import { getLapElapsed } from '../../timing'
 import { fontFamily } from '../../Root'
 
-const FLASH_DURATION_SECONDS = 2
-
-const BACKGROUND: Record<'neutral' | LapColor, string> = {
-  neutral: '#111111',
-  purple:  'rgba(107,33,168,0.95)',
-  green:   'rgba(21,128,61,0.95)',
-  red:     'rgba(185,28,28,0.95)',
-}
-
 interface Props {
   timestamps: LapTimestamp[]
   lapColors: LapColor[]
@@ -23,6 +14,10 @@ interface Props {
   raceEnd: number
   textColor?: string
   bgColor?: string
+  lapColorPurple?: string
+  lapColorGreen?: string
+  lapColorRed?: string
+  flashDuration?: number
 }
 
 function formatTime(seconds: number): string {
@@ -37,9 +32,19 @@ function formatTime(seconds: number): string {
 export const LapTimerTrap: React.FC<Props> = ({
   timestamps, lapColors, currentLap, currentIdx, currentTime, raceEnd,
   textColor = 'white', bgColor,
+  lapColorPurple, lapColorGreen, lapColorRed, flashDuration,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
+
+  const flashDurationSeconds = flashDuration ?? 2
+
+  const lapColorMap: Record<'neutral' | LapColor, string> = useMemo(() => ({
+    neutral: bgColor ?? '#111111',
+    purple:  lapColorPurple ?? 'rgba(107,33,168,0.95)',
+    green:   lapColorGreen  ?? 'rgba(21,128,61,0.95)',
+    red:     lapColorRed    ?? 'rgba(185,28,28,0.95)',
+  }), [bgColor, lapColorPurple, lapColorGreen, lapColorRed])
 
   const spanStyle = useMemo<React.CSSProperties>(() => ({
     fontFamily,
@@ -58,7 +63,7 @@ export const LapTimerTrap: React.FC<Props> = ({
 
   if (currentTime >= raceEnd) {
     const timeSinceEnd = currentTime - raceEnd
-    if (timeSinceEnd < FLASH_DURATION_SECONDS) {
+    if (timeSinceEnd < flashDurationSeconds) {
       const lastIndex = timestamps.length - 1
       displayText = formatTime(timestamps[lastIndex].lap.lapTime)
       bgKey = lapColors[lastIndex]
@@ -68,7 +73,7 @@ export const LapTimerTrap: React.FC<Props> = ({
     }
   } else {
     const lapElapsed = getLapElapsed(currentLap, currentTime)
-    const isFlashing = lapElapsed < FLASH_DURATION_SECONDS && currentIdx > 0
+    const isFlashing = lapElapsed < flashDurationSeconds && currentIdx > 0
 
     if (isFlashing) {
       displayText = formatTime(timestamps[currentIdx - 1].lap.lapTime)
@@ -79,16 +84,17 @@ export const LapTimerTrap: React.FC<Props> = ({
     }
   }
 
-  const background = bgKey === 'neutral' && bgColor ? bgColor : BACKGROUND[bgKey]
+  const background = lapColorMap[bgKey]
   const containerStyle: React.CSSProperties = {
     width: 300 * scale,
     height: 80 * scale,
-    clipPath: 'polygon(0 0, 100% 0, 83% 100%, 17% 100%)',
     background,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  }
+    borderRadius: `${24 * scale}px`,
+    cornerShape: 'concave',
+  } as React.CSSProperties
 
   return (
     <div style={containerStyle}>

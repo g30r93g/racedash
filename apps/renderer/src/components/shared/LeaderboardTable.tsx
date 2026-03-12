@@ -118,22 +118,28 @@ interface TableRowProps {
 const TableRow = React.memo(function TableRow({
   position, kart, name, lapDisplay, isOurs, isP1, accentColor, leaderboardStyling, sc,
 }: TableRowProps) {
+  const accent = leaderboardStyling?.accentColor ?? accentColor
+  const borderWidth = leaderboardStyling?.ourRowBorderWidth ?? 3
+  const blur = leaderboardStyling?.backdropBlur ?? 8
+  const gradientOpacity = leaderboardStyling?.ourRowGradientOpacity ?? 0.19
+  const hexAlpha = Math.round(gradientOpacity * 255).toString(16).padStart(2, '0')
+
   const rowStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: 8 * sc,
     padding: `${6 * sc}px ${10 * sc}px`,
     background: isOurs
-      ? `linear-gradient(${accentColor}30, ${accentColor}30), ${leaderboardStyling?.ourRowBgColor ?? 'rgba(0,0,0,0.82)'}`
+      ? `linear-gradient(${accent}${hexAlpha}, ${accent}${hexAlpha}), ${leaderboardStyling?.ourRowBgColor ?? 'rgba(0,0,0,0.82)'}`
       : (leaderboardStyling?.bgColor ?? 'rgba(0,0,0,0.65)'),
-    borderLeft: isOurs ? `3px solid ${accentColor}` : '3px solid transparent',
-    backdropFilter: 'blur(8px)',
+    borderLeft: isOurs ? `${borderWidth}px solid ${accent}` : `${borderWidth}px solid transparent`,
+    backdropFilter: `blur(${blur}px)`,
     marginBottom: 2 * sc,
   }
 
   return (
     <div style={rowStyle}>
-      <span style={{ width: 22 * sc, fontSize: 11 * sc, fontWeight: 700, color: isP1 ? accentColor : (leaderboardStyling?.positionTextColor ?? 'rgba(255,255,255,0.5)'), textAlign: 'center' }}>
+      <span style={{ width: 22 * sc, fontSize: 11 * sc, fontWeight: 700, color: isP1 ? accent : (leaderboardStyling?.positionTextColor ?? 'rgba(255,255,255,0.5)'), textAlign: 'center' }}>
         P{position}
       </span>
       <span style={{ width: 28 * sc, fontSize: 11 * sc, fontWeight: 700, color: leaderboardStyling?.kartTextColor ?? 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
@@ -142,7 +148,7 @@ const TableRow = React.memo(function TableRow({
       <span style={{ flex: 1, fontSize: 12 * sc, fontWeight: isOurs ? 700 : 400, color: leaderboardStyling?.textColor ?? 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {name}
       </span>
-      <span style={{ fontSize: 13 * sc, fontWeight: 600, color: isP1 ? accentColor : (leaderboardStyling?.lapTimeTextColor ?? 'rgba(255,255,255,0.8)'), letterSpacing: 0.5 * sc, flexShrink: 0 }}>
+      <span style={{ fontSize: 13 * sc, fontWeight: 600, color: isP1 ? accent : (leaderboardStyling?.lapTimeTextColor ?? 'rgba(255,255,255,0.8)'), letterSpacing: 0.5 * sc, flexShrink: 0 }}>
         {lapDisplay}
       </span>
     </div>

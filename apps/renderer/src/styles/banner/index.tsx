@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
@@ -37,8 +37,16 @@ export const Banner: React.FC<OverlayProps> = ({
     const leaderboard = buildLeaderboard(segment.leaderboardDrivers!, currentTime, mode)
     return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
   }, [showTable, mode, segment.leaderboardDrivers, currentTime, session.driver.kart])
+
   const accent = styling?.accentColor ?? DEFAULT_ACCENT
   const text = styling?.textColor ?? 'white'
+  const bannerBg = styling?.banner?.bgColor ?? accent
+  const bannerOpacity = styling?.banner?.bgOpacity ?? 0.82
+  const bannerRadius = (styling?.banner?.borderRadius ?? 10) * scale
+
+  const raceStart = session.timestamps[0].ytSeconds
+  const preRoll = styling?.fade?.preRollSeconds ?? 0
+  const showFrom = raceStart - preRoll
 
   const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
   const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
@@ -47,33 +55,53 @@ export const Banner: React.FC<OverlayProps> = ({
     return lastTs.ytSeconds + lastTs.lap.lapTime
   }, [session.timestamps])
 
-  const outerStyle: React.CSSProperties = useMemo(() => ({
+  if (currentTime < showFrom && !isEnd) return null
+
+  const fadeEnabled = styling?.fade?.enabled ?? false
+  const fadeDuration = styling?.fade?.durationSeconds ?? 0.5
+  const opacity = fadeEnabled && !isEnd
+    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+    : 1
+
+  const outerStyle: React.CSSProperties = {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    borderRadius: 10 * scale,
+    borderRadius: bannerRadius,
     overflow: 'hidden',
-  }), [scale])
+  }
 
-  const bgStyle: React.CSSProperties = useMemo(() => ({
+  const bgStyle: React.CSSProperties = {
     position: 'absolute',
     inset: 0,
-    background: accent,
-    opacity: 0.82,
-  }), [accent])
+    background: bannerBg,
+    opacity: bannerOpacity,
+  }
 
-  const wrapperStyle: React.CSSProperties = useMemo(() => ({
+  const wrapperStyle: React.CSSProperties = {
     position: 'relative',
     display: 'flex',
-  }), [])
+  }
 
-  const raceStart = session.timestamps[0].ytSeconds
-  if (currentTime < raceStart && !isEnd) return null
+  const lapTimerProps = {
+    timestamps: session.timestamps,
+    lapColors,
+    currentLap,
+    currentIdx,
+    currentTime,
+    raceEnd,
+    textColor: styling?.banner?.timerTextColor ?? text,
+    bgColor: styling?.banner?.timerBgColor,
+    lapColorPurple: styling?.banner?.lapColorPurple,
+    lapColorGreen: styling?.banner?.lapColorGreen,
+    lapColorRed: styling?.banner?.lapColorRed,
+    flashDuration: styling?.banner?.flashDuration,
+  }
 
   if (showTimePanels) {
     return (
-      <AbsoluteFill>
+      <AbsoluteFill style={{ opacity }}>
         <div style={outerStyle}>
           <div style={bgStyle} />
           <div style={wrapperStyle}>
@@ -97,16 +125,7 @@ export const Banner: React.FC<OverlayProps> = ({
                 textColor={text}
               />
             </div>
-            <LapTimerTrap
-              timestamps={session.timestamps}
-              lapColors={lapColors}
-              currentLap={currentLap}
-              currentIdx={currentIdx}
-              currentTime={currentTime}
-              raceEnd={raceEnd}
-              textColor={styling?.banner?.timerTextColor ?? text}
-              bgColor={styling?.banner?.timerBgColor}
-            />
+            <LapTimerTrap {...lapTimerProps} />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
                 timestamps={session.timestamps}
@@ -137,14 +156,14 @@ export const Banner: React.FC<OverlayProps> = ({
             raceLapSnapshots={segment.raceLapSnapshots}
           />
         )}
-        {label && <SegmentLabel label={label} scale={scale} />}
+        {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
       </AbsoluteFill>
     )
   }
 
   // Race layout
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ opacity }}>
       <div style={outerStyle}>
         <div style={bgStyle} />
         <div style={wrapperStyle}>
@@ -159,16 +178,7 @@ export const Banner: React.FC<OverlayProps> = ({
             textColor={text}
           />
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <LapTimerTrap
-              timestamps={session.timestamps}
-              lapColors={lapColors}
-              currentLap={currentLap}
-              currentIdx={currentIdx}
-              currentTime={currentTime}
-              raceEnd={raceEnd}
-              textColor={styling?.banner?.timerTextColor ?? text}
-              bgColor={styling?.banner?.timerBgColor}
-            />
+            <LapTimerTrap {...lapTimerProps} />
           </div>
           <LapCounter
             timestamps={session.timestamps}
@@ -190,7 +200,7 @@ export const Banner: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} />}
+      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
     </AbsoluteFill>
   )
 }

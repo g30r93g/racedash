@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed } from '../../timing'
@@ -27,6 +27,17 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
     return lastTs.ytSeconds + lastTs.lap.lapTime
   }, [session.timestamps])
 
+  const preRoll = styling?.fade?.preRollSeconds ?? 0
+  const showFrom = raceStart - preRoll
+
+  if (currentTime < showFrom && !isEnd) return null
+
+  const fadeEnabled = styling?.fade?.enabled ?? false
+  const fadeDuration = styling?.fade?.durationSeconds ?? 0.5
+  const opacity = fadeEnabled && !isEnd
+    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+    : 1
+
   const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
 
   const currentLap = useMemo(
@@ -53,18 +64,24 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
     [currentIdx, session.timestamps],
   )
 
+  const mo = styling?.modern
+  const stripeOpacity  = mo?.stripeOpacity  ?? 0.035
+  const bgColor        = mo?.bgColor        ?? 'rgba(13, 15, 20, 0.88)'
+  const dividerColor   = mo?.dividerColor   ?? 'rgba(255,255,255,0.2)'
+  const statLabelColor = mo?.statLabelColor ?? 'rgba(255,255,255,0.5)'
+
   const styles = useMemo(() => {
-    const padX = 103 * scale       // was 28 in 520-ref → 28*(1920/520) ≈ 103
-    const statGap = 89 * scale     // was 24 → 89
-    const dividerMargin = 74 * scale // was 20 → 74
+    const padX = 103 * scale
+    const statGap = 89 * scale
+    const dividerMargin = 74 * scale
     return {
       container: {
         position: 'absolute' as const,
         bottom: 0,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 520 * scale,          // 520px at 1920-ref scale → same physical width as before
-        height: 96 * scale,          // 96px at 1920-ref scale → same physical height as before
+        width: 520 * scale,
+        height: 96 * scale,
         display: 'flex',
         flexDirection: 'row' as const,
         alignItems: 'center',
@@ -74,22 +91,22 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
         paddingRight: padX,
         boxSizing: 'border-box' as const,
         background: [
-          'repeating-linear-gradient(-55deg, rgba(255,255,255,0.035), rgba(255,255,255,0.035) 2px, transparent 2px, transparent 18px)',
-          'rgba(13, 15, 20, 0.88)',
+          `repeating-linear-gradient(-55deg, rgba(255,255,255,${stripeOpacity}), rgba(255,255,255,${stripeOpacity}) 2px, transparent 2px, transparent 18px)`,
+          bgColor,
         ].join(', '),
       },
       elapsed: {
         flex: 1,
-        fontSize: 192 * scale,    // was 52 → 192
+        fontSize: 192 * scale,
         fontWeight: 700,
         color: 'white',
         lineHeight: 1,
-        letterSpacing: 4 * scale, // was 1 → 4
+        letterSpacing: 4 * scale,
       },
       divider: {
-        width: 4 * scale,         // was 1 → 4
-        height: 148 * scale,      // was 40 → 148
-        background: 'rgba(255,255,255,0.2)',
+        width: 4 * scale,
+        height: 148 * scale,
+        background: dividerColor,
         flexShrink: 0,
         marginLeft: dividerMargin,
         marginRight: dividerMargin,
@@ -104,32 +121,30 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'flex-start' as const,
-        gap: 7 * scale,           // was 2 → 7
+        gap: 7 * scale,
       },
       label: {
-        fontSize: 41 * scale,     // was 11 → 41
+        fontSize: 41 * scale,
         fontWeight: 400,
-        color: 'rgba(255,255,255,0.5)',
+        color: statLabelColor,
         textTransform: 'uppercase' as const,
-        letterSpacing: 7 * scale, // was 2 → 7
+        letterSpacing: 7 * scale,
         lineHeight: 1,
       },
       statValue: {
-        fontSize: 81 * scale,     // was 22 → 81
+        fontSize: 81 * scale,
         fontWeight: 700,
         color: 'white',
         lineHeight: 1,
       },
     }
-  }, [scale])
-
-  if (currentTime < raceStart && !isEnd) return null
+  }, [scale, stripeOpacity, bgColor, dividerColor, statLabelColor])
 
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
 
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ opacity }}>
       <div style={styles.container}>
         <span style={styles.elapsed}>{elapsedFormatted}</span>
         <div style={styles.divider} />
@@ -155,7 +170,7 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} />}
+      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
     </AbsoluteFill>
   )
 }

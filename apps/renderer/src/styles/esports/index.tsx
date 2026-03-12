@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
@@ -34,10 +34,11 @@ interface TimePanelProps {
   iconBg: string
   label: string
   time: string
+  labelColor: string
   sc: number
 }
 
-const TimePanel = React.memo(function TimePanel({ iconBg, label, time, sc }: TimePanelProps) {
+const TimePanel = React.memo(function TimePanel({ iconBg, label, time, labelColor, sc }: TimePanelProps) {
   const iconBgSize = 40 * sc
   const iconSize = 22 * sc
 
@@ -62,7 +63,7 @@ const TimePanel = React.memo(function TimePanel({ iconBg, label, time, sc }: Tim
           style={{
             fontSize: 10 * sc,
             fontWeight: 400,
-            color: '#9ca3af',
+            color: labelColor,
             letterSpacing: 1.5 * sc,
             textTransform: 'uppercase',
           }}
@@ -102,6 +103,17 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
     return lastTs.ytSeconds + lastTs.lap.lapTime
   }, [session.timestamps])
 
+  const preRoll = styling?.fade?.preRollSeconds ?? 0
+  const showFrom = raceStart - preRoll
+
+  if (currentTime < showFrom && !isEnd) return null
+
+  const fadeEnabled = styling?.fade?.enabled ?? false
+  const fadeDuration = styling?.fade?.durationSeconds ?? 0.5
+  const opacity = fadeEnabled && !isEnd
+    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+    : 1
+
   // Freeze time at last moment of session when in END state (between segments)
   const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
 
@@ -128,6 +140,15 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
     return best !== null ? formatLapTime(best) : EMPTY_TIME
   }, [completedLaps])
 
+  const es = styling?.esports
+  const accentBarColor    = es?.accentBarColor     ?? '#2563eb'
+  const accentBarColorEnd = es?.accentBarColorEnd  ?? '#7c3aed'
+  const timePanelsBgColor = es?.timePanelsBgColor  ?? '#3f4755'
+  const currentBarBgColor = es?.currentBarBgColor  ?? '#111'
+  const labelColor        = es?.labelColor         ?? '#9ca3af'
+  const lastLapIconColor  = es?.lastLapIconColor   ?? '#16a34a'
+  const sessionBestIconColor = es?.sessionBestIconColor ?? '#7c3aed'
+
   const styles = useMemo(() => {
     const margin = 20 * sc
     const pad = 16 * sc
@@ -146,7 +167,7 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
       },
       accentBar: {
         height: 28 * sc,
-        background: 'linear-gradient(to right, #2563eb, #7c3aed)',
+        background: `linear-gradient(to right, ${accentBarColor}, ${accentBarColorEnd})`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
@@ -160,14 +181,14 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
         textTransform: 'uppercase' as const,
       },
       timePanels: {
-        background: '#3f4755',
+        background: timePanelsBgColor,
         padding: `${pad}px ${pad}px`,
         display: 'flex',
         flexDirection: 'column' as const,
         gap: 14 * sc,
       },
       currentBar: {
-        background: '#111',
+        background: currentBarBgColor,
         height: 56 * sc,
         display: 'flex',
         alignItems: 'center',
@@ -179,7 +200,7 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
       currentLabel: {
         fontSize: 12 * sc,
         fontWeight: 400,
-        color: '#9ca3af',
+        color: labelColor,
         letterSpacing: 2 * sc,
         textTransform: 'uppercase' as const,
       },
@@ -192,16 +213,13 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
       },
       stopwatchSize: 18 * sc,
     }
-  }, [sc, boxPosition])
-
-  // Hidden before the active segment starts (and not in END state from a prior segment)
-  if (currentTime < raceStart && !isEnd) return null
+  }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor])
 
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
 
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ opacity }}>
       <div style={styles.container}>
         <div style={styles.accentBar}>
           <span style={styles.accentText}>
@@ -209,11 +227,11 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
           </span>
         </div>
         <div style={styles.timePanels}>
-          <TimePanel iconBg="#16a34a" label="LAST LAP" time={lastLapTime} sc={sc} />
-          <TimePanel iconBg="#7c3aed" label="SESSION BEST" time={sessionBestTime} sc={sc} />
+          <TimePanel iconBg={lastLapIconColor} label="LAST LAP" time={lastLapTime} labelColor={labelColor} sc={sc} />
+          <TimePanel iconBg={sessionBestIconColor} label="SESSION BEST" time={sessionBestTime} labelColor={labelColor} sc={sc} />
         </div>
         <div style={styles.currentBar}>
-          <StopwatchIcon size={styles.stopwatchSize} color="#9ca3af" />
+          <StopwatchIcon size={styles.stopwatchSize} color={labelColor} />
           <span style={styles.currentLabel}>CURRENT</span>
           <span style={styles.currentTime}>{elapsedFormatted}</span>
         </div>
@@ -229,7 +247,7 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={sc} />}
+      {label && <SegmentLabel label={label} scale={sc} styling={styling?.segmentLabel} />}
     </AbsoluteFill>
   )
 }

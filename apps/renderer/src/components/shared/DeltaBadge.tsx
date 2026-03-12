@@ -1,15 +1,16 @@
 import React from 'react'
 import { interpolate, useCurrentFrame } from 'remotion'
-import type { LapTimestamp } from '@racedash/core'
+import type { DeltaBadgeStyling, LapTimestamp } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { getLapAtTime } from '../../timing'
 
 interface Props {
   timestamps: LapTimestamp[]
   fps: number
+  styling?: DeltaBadgeStyling
 }
 
-export const DeltaBadge: React.FC<Props> = ({ timestamps, fps }) => {
+export const DeltaBadge: React.FC<Props> = ({ timestamps, fps, styling }) => {
   const frame = useCurrentFrame()
   const currentTime = frame / fps
   const currentLap = getLapAtTime(timestamps, currentTime)
@@ -23,16 +24,16 @@ export const DeltaBadge: React.FC<Props> = ({ timestamps, fps }) => {
   const delta = completedLap.lap.lapTime - prevLap.lap.lapTime
   const isFaster = delta < 0
 
-  // Flash opacity on lap change (fade in over ~0.5s)
+  const fadeInDuration = styling?.fadeInDuration ?? 0.5
   const lapStartFrame = Math.round(currentLap.ytSeconds * fps)
-  const flashProgress = interpolate(frame - lapStartFrame, [0, fps * 0.5], [0, 1], {
+  const flashProgress = interpolate(frame - lapStartFrame, [0, fps * fadeInDuration], [0, 1], {
     extrapolateRight: 'clamp',
   })
 
   return (
     <div
       style={{
-        color: isFaster ? '#00FF87' : '#FF3B30',
+        color: isFaster ? (styling?.fasterColor ?? '#00FF87') : (styling?.slowerColor ?? '#FF3B30'),
         fontFamily: 'Orbitron, monospace',
         fontSize: 32,
         fontWeight: 600,
