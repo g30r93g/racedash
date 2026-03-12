@@ -31,57 +31,93 @@ This undulation is the "elongated S."
 | Bottom corner radius | Existing `bannerRadius` value |
 | Center section rise (`sRise`) | Default 18px (before scale), configurable |
 | Top corners of dark shape | Flush with banner top edge (y = 0) |
+| `overflow: hidden` on outer container | Retained (clips children to the container boundary) |
+
+### Banner dimensions
+
+The banner height is `80 * scale` where `scale = width / 1920`. The outer container (`outerStyle`) must have an explicit `height: 80 * scale` set so that the absolutely-positioned `<BannerBackground>` SVG has a definite height to fill. `BannerBackground` must **not** call `useVideoConfig` internally — it receives all geometry as plain-number props.
+
+### Boundary calculation — both layouts
+
+The same `centerStart` / `centerEnd` formula is used for both race and practice/qualifying layouts, based on the practice/qualifying fixed widths. This ensures the dark center region has a consistent visual width across both modes (race mode will gain time panels in a future task, at which point both layouts will be identical):
+
+```
+timeLabelPanelWidth = max(0, (totalWidth − 180*scale − 180*scale − 300*scale) / 2)
+centerStart         = 180*scale + timeLabelPanelWidth
+centerEnd           = totalWidth − 180*scale − timeLabelPanelWidth
+```
+
+`timeLabelPanelWidth` is clamped to `0` from below to guard against very narrow widths. At standard 1920px this value is positive and symmetric.
+
+The boundaries are derived purely from fixed-width constants and never from measured DOM layout. When `TimeLabelPanel` renders `null` (before race start or before lap 1), its flex container still occupies the same `flex: 1` space, so the SVG boundaries remain correct.
 
 ### S-curve construction
 
-Each side of the dark center is a single cubic bezier:
+The dark center is a closed SVG path. Define:
 
-- **Left side**: from `(centerStart, 0)` to `(centerStart − curveInset, H − rise)`
-- **Right side**: from `(centerEnd, 0)` to `(centerEnd + curveInset, H − rise)`
+- `H` = `80 * scale`
+- `rise` = `sRise * scale`
+- `curveInset` = `min(45 * scale, centerStart, totalWidth − centerEnd)` — clamped so the curve never exits the banner bounds
+- `cp1y` = `0.3 * H`
+- `cp2y` = `0.7 * H`
 
-Both control points are placed vertically (one at ~30% height, one at ~70% height) to produce a true S-inflection rather than a simple arc. `curveInset` is a fixed proportion of `H` (approximately `H * 0.6`).
-
-### Boundary calculation
+Full SVG path (`d` string):
 
 ```
-centerStart = positionCounterWidth + timeLabelPanelWidth
-centerEnd   = totalWidth − lapCounterWidth − timeLabelPanelWidth
-
-positionCounterWidth = 180 * scale
-lapCounterWidth      = 180 * scale
-timeLabelPanelWidth  = (totalWidth − 180*scale − 180*scale − 300*scale) / 2
+M  centerStart                0
+C  centerStart                cp1y
+   (centerStart − curveInset) cp2y
+   (centerStart − curveInset) (H − rise)
+L  (centerEnd + curveInset)   (H − rise)
+C  (centerEnd + curveInset)   cp2y
+   centerEnd                  cp1y
+   centerEnd                  0
+Z
 ```
 
-`timeLabelPanelWidth` is derived rather than fixed because `TimeLabelPanel` uses `flex: 1`.
+**How the S-curve works:** For the left edge, P0 = `(centerStart, 0)` and P3 = `(centerStart − curveInset, H − rise)`. Control point P1 = `(centerStart, cp1y)` shares the x of P0, and P2 = `(centerStart − curveInset, cp2y)` shares the x of P3. This makes the tangent vertical at both ends, with the horizontal transition occurring in the middle — producing a true S-inflection. The right edge is the mirror image, with `curveInset` added rather than subtracted.
 
 ## Component Structure
 
 ### New file: `BannerBackground.tsx`
 
-```
 Props:
-  width:         number   — rendered banner width in px
-  height:        number   — rendered banner height in px
-  accentColor:   string   — outer zone fill
-  accentOpacity: number   — outer zone opacity
-  darkColor:     string   — center zone fill (bound to timerBackground for flashing)
-  rise:          number   — how many px above banner bottom the center section ends
-  centerStart:   number   — x at which the dark center begins (left boundary)
-  centerEnd:     number   — x at which the dark center ends (right boundary)
+
+```ts
+interface BannerBackgroundProps {
+  width:         number  // rendered banner width in px
+  height:        number  // rendered banner height in px (= 80 * scale)
+  accentColor:   string  // outer zone fill — expected to be an opaque colour value (e.g. '#3DD73D'); opacity is controlled separately via accentOpacity
+  accentOpacity: number  // outer zone opacity (maps from existing bannerOpacity)
+  darkColor:     string  // center zone fill — may include alpha (e.g. 'rgba(107,33,168,0.95)'); SVG path renders at opacity 1 so the colour's own alpha is the sole opacity control
+  rise:          number  // scaled px: how far above banner bottom the center section ends
+  centerStart:   number  // scaled px: x at which the dark center begins
+  centerEnd:     number  // scaled px: x at which the dark center ends
+}
 ```
 
-Renders a single `<svg>` with `width`/`height` matching the container:
+Renders a `<svg width={width} height={height} style={{ position: 'absolute', inset: 0 }}>`:
 
-1. `<rect>` — full-width accent background with `opacity={accentOpacity}`
-2. `<path>` — dark center shape (closed path: straight top, right S-curve, straight bottom, left S-curve reversed)
+1. `<rect x={0} y={0} width={width} height={height} fill={accentColor} opacity={accentOpacity} />` — full-width accent background
+2. `<path d={computedPath} fill={darkColor} />` — dark center shape, no additional opacity attribute
 
 ### Modified: `Banner/index.tsx`
 
-- Replace `bgStyle` div and `EndCaps` with `<BannerBackground>` component.
-- Pass `darkColor={timerBackground}` — no new flashing logic needed.
-- Compute `centerStart` / `centerEnd` from the fixed widths above.
-- Change outer container `borderRadius` to apply only to bottom corners (`borderBottomLeftRadius`, `borderBottomRightRadius`); remove top-corner radius.
-- Add `styling?.banner?.sRise` with default `18` (before scale).
+- Add explicit `height: 80 * scale` to `outerStyle`.
+- Replace `borderRadius: bannerRadius` in `outerStyle` with `borderBottomLeftRadius: bannerRadius, borderBottomRightRadius: bannerRadius`.
+- Retain `overflow: hidden` in `outerStyle`.
+- Remove the `bgStyle` object, the `bgStyle` div, and the `EndCaps` constant entirely.
+- Compute `centerStart` / `centerEnd` once using the shared formula above (same value used for both layouts).
+- Replace the background div and EndCaps with `<BannerBackground width={width} height={80 * scale} accentColor={bannerBg} accentOpacity={bannerOpacity} darkColor={timerBackground} rise={(styling?.banner?.sRise ?? 18) * scale} centerStart={centerStart} centerEnd={centerEnd} />` in both the `showTimePanels` branch and the race layout branch.
+
+### Modified: `packages/core/src/index.ts` — `BannerStyling` interface
+
+Add one optional field to the existing `BannerStyling` interface, following the same pattern as existing fields:
+
+```ts
+/** Pre-scale px height by which the dark center section's bottom sits above the banner bottom. Default 18. */
+sRise?: number
+```
 
 ### Unchanged components
 
@@ -93,7 +129,7 @@ Renders a single `<svg>` with `width`/`height` matching the container:
 |---|---|---|
 | `styling.banner.sRise` | `18` | Pre-scale px height difference between outer and center section bottoms |
 
-All other visual properties (accent colour, timer bg, opacity, flash colours) already exist and continue to work without change.
+All other visual properties (`accentColor`, `bannerBg`, `bannerOpacity`, `timerBgColor`, flash colours) already exist and continue to work without change.
 
 ## Out of Scope
 
