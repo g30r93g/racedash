@@ -13,7 +13,7 @@ import { TimeLabelPanel } from '../banner/TimeLabelPanel'
 
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
-const SVG_H = 110.2687
+const SVG_H = 67.30343
 
 export const GeometricBanner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
