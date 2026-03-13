@@ -93,6 +93,20 @@ export interface BannerStyling {
   flashDuration?: number   // lap color flash duration in s  (default: 2)
 }
 
+export interface GeometricBannerStyling {
+  positionCounterColor?: string  // position-counter fill        (default: #0bc770)
+  lastLapColor?: string          // last-lap fill                (default: #16aa9c)
+  lapTimerNeutralColor?: string  // lap-timer neutral fill       (default: #0e0ab8)
+  previousLapColor?: string      // previous-lap fill            (default: #7c16aa)
+  lapCounterColor?: string       // lap-counter fill             (default: #c70b4d)
+  lapColorPurple?: string        // personal best flash          (default: rgba(107,33,168,0.95))
+  lapColorGreen?: string         // session best flash           (default: rgba(21,128,61,0.95))
+  lapColorRed?: string           // slower lap flash             (default: rgba(185,28,28,0.95))
+  timerTextColor?: string        // timer text colour            (default: white)
+  flashDuration?: number         // flash duration in s          (default: 2)
+  opacity?: number               // background fill opacity      (default: 1)
+}
+
 export interface EsportsStyling {
   accentBarColor?: string        // accent bar gradient start  (default: #2563eb)
   accentBarColorEnd?: string     // accent bar gradient end    (default: #7c3aed)
@@ -125,6 +139,7 @@ export interface OverlayStyling {
   deltaBadge?: DeltaBadgeStyling
   leaderboard?: LeaderboardStyling
   banner?: BannerStyling
+  geometricBanner?: GeometricBannerStyling
   esports?: EsportsStyling
   minimal?: MinimalStyling
   modern?: ModernStyling
