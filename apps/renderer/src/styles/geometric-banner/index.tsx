@@ -10,8 +10,6 @@ import { LapTimerTrap } from '../banner/LapTimerTrap'
 import { LapCounter } from '../banner/LapCounter'
 import { PositionCounter } from '../banner/PositionCounter'
 import { TimeLabelPanel } from '../banner/TimeLabelPanel'
-import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
-import { buildLeaderboard } from '../../leaderboard'
 
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
@@ -20,7 +18,6 @@ const SVG_H = 110.2687
 export const GeometricBanner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
   styling, labelWindowSeconds,
-  qualifyingTablePosition,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -32,16 +29,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const showTable = segment.leaderboardDrivers != null
-
-  const livePosition = useMemo<number | null>(() => {
-    if (!showTable) return null
-    const leaderboard = buildLeaderboard(
-      segment.leaderboardDrivers!, currentTime, mode,
-      session.driver.kart, segment.raceLapSnapshots,
-    )
-    return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
-  }, [showTable, segment.leaderboardDrivers, currentTime, mode, session.driver.kart, segment.raceLapSnapshots])
 
   const gb = styling?.geometricBanner
 
@@ -134,8 +121,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
     flashDuration: gb?.flashDuration,
   }
 
-  const anchorTop = bannerHeight + 30
-
   if (showTimePanels) {
     return (
       <AbsoluteFill style={{ opacity: fadeOpacity }}>
@@ -151,7 +136,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
               mode={mode}
               startingGridPosition={startingGridPosition}
               textColor={text}
-              livePosition={livePosition}
             />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
@@ -180,19 +164,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
             />
           </div>
         </div>
-        {showTable && (
-          <LeaderboardTable
-            mode={mode}
-            leaderboardDrivers={segment.leaderboardDrivers!}
-            ourKart={session.driver.kart}
-            fps={fps}
-            accentColor={styling?.accentColor ?? '#3DD73D'}
-            leaderboardStyling={styling?.leaderboard}
-            anchorTop={anchorTop}
-            position={qualifyingTablePosition ?? 'top-right'}
-            raceLapSnapshots={segment.raceLapSnapshots}
-          />
-        )}
         {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
       </AbsoluteFill>
     )
@@ -213,7 +184,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
             mode={mode}
             startingGridPosition={startingGridPosition}
             textColor={text}
-            livePosition={livePosition}
           />
           <div style={{ flex: 1 }} />
           <LapTimerTrap {...lapTimerProps} />
@@ -226,19 +196,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
           />
         </div>
       </div>
-      {showTable && (
-        <LeaderboardTable
-          mode={mode}
-          leaderboardDrivers={segment.leaderboardDrivers!}
-          ourKart={session.driver.kart}
-          fps={fps}
-          accentColor={styling?.accentColor ?? '#3DD73D'}
-          leaderboardStyling={styling?.leaderboard}
-          anchorTop={anchorTop}
-          position={qualifyingTablePosition}
-          raceLapSnapshots={segment.raceLapSnapshots}
-        />
-      )}
       {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
     </AbsoluteFill>
   )
