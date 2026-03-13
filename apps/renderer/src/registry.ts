@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { OverlayProps } from '@racedash/core'
 import { Banner } from './styles/banner'
 import { Esports } from './styles/esports'
+import { GeometricBanner } from './styles/geometric-banner'
 import { Minimal } from './styles/minimal'
 import { Modern } from './styles/modern'
 
@@ -44,6 +45,14 @@ export const registry: Record<string, RegistryEntry> = {
     component: Modern,
     width: 1920,
     height: 1080,
+    overlayX: 0,
+    overlayY: 0,
+    scaleWithVideo: true,
+  },
+  'geometric-banner': {
+    component: GeometricBanner,
+    width: 1920,
+    height: 500,
     overlayX: 0,
     overlayY: 0,
     scaleWithVideo: true,
