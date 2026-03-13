@@ -35,11 +35,11 @@ export const GeometricBannerBackground: React.FC<GeometricBannerBackgroundProps>
     style={{ position: 'absolute', inset: 0 }}
   >
     <g transform="translate(4.1444685,42.938681)">
-      <path id="position-counter" d={POSITION_COUNTER_D} fill={positionCounterColor} />
-      <path id="last-lap"         d={LAST_LAP_D}         fill={lastLapColor} />
-      <path id="lap-timer"        d={LAP_TIMER_D}        fill={lapTimerFill} />
-      <path id="previous-lap"     d={PREVIOUS_LAP_D}     fill={previousLapColor} />
-      <path id="lap-counter"      d={LAP_COUNTER_D}      fill={lapCounterColor} />
+      <path id="position-counter" d={POSITION_COUNTER_D} fill={positionCounterColor} opacity={opacity} />
+      <path id="last-lap"         d={LAST_LAP_D}         fill={lastLapColor}         opacity={opacity} />
+      <path id="lap-timer"        d={LAP_TIMER_D}        fill={lapTimerFill}         opacity={opacity} />
+      <path id="previous-lap"     d={PREVIOUS_LAP_D}     fill={previousLapColor}     opacity={opacity} />
+      <path id="lap-counter"      d={LAP_COUNTER_D}      fill={lapCounterColor}      opacity={opacity} />
     </g>
   </svg>
 )
