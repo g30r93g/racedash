@@ -234,6 +234,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
           fps={fps}
           accentColor={styling?.accentColor ?? '#3DD73D'}
           leaderboardStyling={styling?.leaderboard}
+          anchorTop={anchorTop}
           position={qualifyingTablePosition}
           raceLapSnapshots={segment.raceLapSnapshots}
         />
