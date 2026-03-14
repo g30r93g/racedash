@@ -31,7 +31,6 @@ export const GeometricBannerBackground: React.FC<GeometricBannerBackgroundProps>
     height={height}
     viewBox="0 0 1010.181 67.30343"
     preserveAspectRatio="none"
-    opacity={opacity}
     style={{ position: 'absolute', inset: 0 }}
   >
     <g transform="translate(4.1444685,42.938681)">
