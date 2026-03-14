@@ -1,15 +1,26 @@
 import type { Lap, LapTimestamp } from '@racedash/core'
 
-export function parseOffset(offsetStr: string): number {
-  const parts = offsetStr.split(':')
-  if (parts.length === 2) {
-    const result = parseInt(parts[0], 10) * 60 + parseFloat(parts[1])
-    if (!isNaN(result)) return result
-  } else if (parts.length === 3) {
-    const result = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2])
-    if (!isNaN(result)) return result
+export function parseOffset(offsetStr: string, fps?: number): number {
+  const trimmed = offsetStr.trim()
+
+  const frameMatch = trimmed.match(/^(\d+)\s*f$/i)
+  if (frameMatch) {
+    if (fps == null || !Number.isFinite(fps) || fps <= 0) {
+      throw new Error(`Invalid offset '${offsetStr}'. Frame offsets require a positive fps.`)
+    }
+    return parseInt(frameMatch[1], 10) / fps
   }
-  throw new Error(`Invalid offset '${offsetStr}'. Use H:MM:SS or M:SS.`)
+
+  const timestampMatch = trimmed.match(/^(?:(\d+):)?(\d+):(\d+(?:\.\d+)?)$/)
+  if (timestampMatch) {
+    const [, hoursStr, minutesStr, secondsStr] = timestampMatch
+    const hours = hoursStr == null ? 0 : parseInt(hoursStr, 10)
+    const minutes = parseInt(minutesStr, 10)
+    const seconds = parseFloat(secondsStr)
+    return hours * 3600 + minutes * 60 + seconds
+  }
+
+  throw new Error(`Invalid offset '${offsetStr}'. Use H:MM:SS(.sss), M:SS(.sss), or '<frames> F'.`)
 }
 
 export function calculateTimestamps(laps: Lap[], offsetSeconds: number): LapTimestamp[] {

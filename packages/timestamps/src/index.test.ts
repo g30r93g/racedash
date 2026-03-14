@@ -14,9 +14,11 @@ describe('parseOffset', () => {
   it('parses M:SS', () => expect(parseOffset('2:15')).toBeCloseTo(135.0))
   it('parses H:MM:SS', () => expect(parseOffset('0:02:15')).toBeCloseTo(135.0))
   it('parses decimal seconds', () => expect(parseOffset('1:23.5')).toBeCloseTo(83.5))
+  it('parses frame counts when fps is provided', () => expect(parseOffset('12345 F', 60)).toBeCloseTo(205.75))
   it('parses zero', () => expect(parseOffset('0:00')).toBeCloseTo(0))
   it('throws on invalid', () => expect(() => parseOffset('not-a-time')).toThrow('Invalid offset'))
   it('throws on malformed segments', () => expect(() => parseOffset('abc:xyz')).toThrow('Invalid offset'))
+  it('throws on frame counts without fps', () => expect(() => parseOffset('12345 F')).toThrow('positive fps'))
 })
 
 // --- calculateTimestamps ---

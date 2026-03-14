@@ -102,7 +102,8 @@ pnpm racedash timestamps "https://results.alphatiming.co.uk/club/e/1/s/2/laptime
 
 | Flag | Description | Required |
 |------|-------------|----------|
-| `--offset <time>` | The video timestamp when the driver crosses the start line for lap 1, e.g. `2:15` or `0:02:15` | Yes |
+| `--offset <time>` | The video timestamp when the driver crosses the start line for lap 1, e.g. `2:15`, `0:02:15`, or `12345 F` | Yes |
+| `--fps <n>` | Video fps used when `--offset` is given as a frame count like `12345 F` | No |
 
 **Example output:**
 ```
@@ -114,6 +115,8 @@ pnpm racedash timestamps "https://results.alphatiming.co.uk/club/e/1/s/2/laptime
 #### What is `--offset`?
 
 It's the point in your video where the driver starts lap 1. For example, if your recording begins in the pits and the car crosses the start line 2 minutes 15 seconds in, use `--offset 2:15`.
+
+If you have a frame number instead of a timestamp, you can also use `--offset 12345 F --fps 60`.
 
 ---
 
@@ -166,7 +169,7 @@ While running, racedash shows a progress bar for each step and a total time on c
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--offset <time>` | Video timestamp at the start of lap 1 | _(required)_ |
+| `--offset <time>` | Video timestamp at the start of lap 1, e.g. `1:23.456` or `12345 F` | _(required)_ |
 | `--video <path>` | Path to your source video file | _(required)_ |
 | `--output <path>` | Where to save the rendered video | `./out.mp4` |
 | `--fps <n>` | Output framerate | `60` |
