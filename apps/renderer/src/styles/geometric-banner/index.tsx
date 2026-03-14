@@ -12,6 +12,7 @@ import { LapCounter, LapTimerTrap, PositionCounter, TimeLabelPanel, computeLapCo
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { GeometricBannerBackground } from './GeometricBannerBackground'
+import { useLivePosition } from '../../livePosition'
 
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
@@ -32,6 +33,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
+  const livePosition = useLivePosition(segment, currentTime)
 
   const gb = styling?.geometricBanner
 
@@ -140,6 +142,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
               mode={mode}
               startingGridPosition={startingGridPosition}
               textColor={text}
+              livePosition={livePosition}
               positionOverrides={segment.positionOverrides}
               placeholderText="P-"
             />
@@ -195,6 +198,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
             mode={mode}
             startingGridPosition={startingGridPosition}
             textColor={text}
+            livePosition={livePosition}
             positionOverrides={segment.positionOverrides}
             placeholderText="P-"
           />

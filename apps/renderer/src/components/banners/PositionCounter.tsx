@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { useVideoConfig } from 'remotion'
 import type { Lap, LapTimestamp, PositionOverride, SessionMode } from '@racedash/core'
-import { getPosition } from '../../position'
+import { useDisplayedPosition } from '../../displayedPosition'
 import { fontFamily } from '../../Root'
 
 interface Props {
@@ -19,41 +19,6 @@ interface Props {
   placeholderText?: string
 }
 
-interface ResolveDisplayedPositionArgs {
-  currentTime: number
-  raceStart: number
-  lastTimingEventTime: number
-  computedPosition: number | null
-  livePosition?: number | null
-  positionOverrides?: PositionOverride[]
-}
-
-export function resolveDisplayedPosition({
-  currentTime,
-  raceStart,
-  lastTimingEventTime,
-  computedPosition,
-  livePosition,
-  positionOverrides,
-}: ResolveDisplayedPositionArgs): number | null {
-  if (currentTime < raceStart) {
-    return livePosition ?? computedPosition
-  }
-
-  if (positionOverrides != null && positionOverrides.length > 0) {
-    for (let i = positionOverrides.length - 1; i >= 0; i--) {
-      if (
-        positionOverrides[i].timestamp <= currentTime &&
-        positionOverrides[i].timestamp > lastTimingEventTime
-      ) {
-        return positionOverrides[i].position
-      }
-    }
-  }
-
-  return livePosition ?? computedPosition
-}
-
 export const PositionCounter: React.FC<Props> = ({
   timestamps, currentLaps, sessionAllLaps,
   currentIdx, currentTime,
@@ -65,28 +30,14 @@ export const PositionCounter: React.FC<Props> = ({
   const { width } = useVideoConfig()
   const scale = width / 1920
 
-  const raceStart = timestamps[0].ytSeconds
-
-  // Precompute position for every lap — fires once per session, not per lap change.
-  const positions = useMemo<(number | null)[]>(() => {
-    const result: (number | null)[] = [startingGridPosition ?? null]
-    for (let n = 1; n <= currentLaps.length; n++) {
-      result.push(getPosition(mode, n, currentLaps, sessionAllLaps))
-    }
-    return result
-  }, [mode, currentLaps, sessionAllLaps, startingGridPosition])
-
-  const computedPosition: number | null =
-    currentTime < raceStart || currentIdx === 0
-      ? positions[0]
-      : positions[currentIdx + 1] ?? null
-  const lastTimingEventTime = currentTime < raceStart ? -Infinity : timestamps[currentIdx].ytSeconds
-
-  const position = resolveDisplayedPosition({
+  const position = useDisplayedPosition({
+    timestamps,
+    currentLaps,
+    sessionAllLaps,
+    currentIdx,
     currentTime,
-    raceStart,
-    lastTimingEventTime,
-    computedPosition,
+    mode,
+    startingGridPosition,
     livePosition,
     positionOverrides,
   })

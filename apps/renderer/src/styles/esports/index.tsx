@@ -13,6 +13,8 @@ import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { useLivePosition } from '../../livePosition'
+import { useDisplayedPosition } from '../../displayedPosition'
 
 const EMPTY_TIME = '—:--.---'
 
@@ -92,14 +94,22 @@ const TimePanel = React.memo(function TimePanel({ iconBg, label, time, labelColo
   )
 })
 
-export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
+export const Esports: React.FC<OverlayProps> = ({
+  segments,
+  fps,
+  styling,
+  startingGridPosition,
+  boxPosition = 'bottom-left',
+  labelWindowSeconds,
+  qualifyingTablePosition,
+}) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
-  const { session, mode } = segment
+  const { session, sessionAllLaps, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null
 
@@ -111,8 +121,6 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
 
   const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom = raceStart - preRoll
-
-  if (currentTime < showFrom && !isEnd) return null
 
   const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
   const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
@@ -131,6 +139,18 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
     () => session.timestamps.indexOf(currentLap),
     [session.timestamps, currentLap],
   )
+  const livePosition = useLivePosition(segment, effectiveTime)
+  const displayedPosition = useDisplayedPosition({
+    timestamps: session.timestamps,
+    currentLaps: session.laps,
+    sessionAllLaps,
+    currentIdx,
+    currentTime: effectiveTime,
+    mode,
+    startingGridPosition,
+    livePosition,
+    positionOverrides: segment.positionOverrides,
+  })
   const completedLaps = useMemo(
     () => getCompletedLaps(session.timestamps, currentIdx),
     [session.timestamps, currentIdx],
@@ -176,8 +196,34 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
         background: `linear-gradient(to right, ${accentBarColor}, ${accentBarColorEnd})`,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
+        paddingLeft: pad,
         paddingRight: pad,
+      },
+      positionBadge: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8 * sc,
+        minWidth: 92 * sc,
+        height: 18 * sc,
+        paddingLeft: 8 * sc,
+        paddingRight: 8 * sc,
+        borderRadius: 999 * sc,
+        background: 'rgba(15,23,42,0.28)',
+      },
+      positionLabel: {
+        fontSize: 9 * sc,
+        fontWeight: 700,
+        color: 'rgba(255,255,255,0.72)',
+        letterSpacing: 1.2 * sc,
+        textTransform: 'uppercase' as const,
+      },
+      positionValue: {
+        fontSize: 12 * sc,
+        fontWeight: 700,
+        color: 'white',
+        letterSpacing: 0.5 * sc,
+        lineHeight: 1,
       },
       accentText: {
         fontSize: 12 * sc,
@@ -224,10 +270,16 @@ export const Esports: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
 
+  if (currentTime < showFrom && !isEnd) return null
+
   return (
     <AbsoluteFill style={{ opacity }}>
       <div style={styles.container}>
         <div style={styles.accentBar}>
+          <div style={styles.positionBadge}>
+            <span style={styles.positionLabel}>Position</span>
+            <span style={styles.positionValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
+          </div>
           <span style={styles.accentText}>
             LAP {currentLap.lap.number} / {session.timestamps.length}
           </span>

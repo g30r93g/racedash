@@ -36,8 +36,6 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
   const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom = raceStart - preRoll
 
-  if (currentTime < showFrom && !isEnd) return null
-
   const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
   const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
   const opacity = fadeEnabled && !isEnd
@@ -148,6 +146,8 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
 
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
+
+  if (currentTime < showFrom && !isEnd) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>

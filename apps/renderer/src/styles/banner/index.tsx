@@ -13,7 +13,7 @@ import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { BannerBackground } from './BannerBackground'
-import { buildLeaderboard } from '../../leaderboard'
+import { useLivePosition } from '../../livePosition'
 
 const DEFAULT_ACCENT = '#3DD73D'
 const TIME_PLACEHOLDER = '-:--.---'
@@ -37,15 +37,7 @@ export const Banner: React.FC<OverlayProps> = ({
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null
 
-  // Live position from the leaderboard (all modes, when leaderboard data is present).
-  const livePosition = useMemo<number | null>(() => {
-    if (!showTable) return null
-    const leaderboard = buildLeaderboard(
-      segment.leaderboardDrivers!, currentTime, mode,
-      session.driver.kart, segment.raceLapSnapshots,
-    )
-    return leaderboard.find(d => d.kart === session.driver.kart)?.position ?? null
-  }, [showTable, segment.leaderboardDrivers, currentTime, mode, session.driver.kart, segment.raceLapSnapshots])
+  const livePosition = useLivePosition(segment, currentTime)
 
   const accent = styling?.accentColor ?? DEFAULT_ACCENT
   const text = styling?.textColor ?? 'white'

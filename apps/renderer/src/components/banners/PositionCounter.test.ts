@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveDisplayedPosition } from './PositionCounter'
+import { resolveDisplayedPosition } from '../../displayedPosition'
 
 describe('resolveDisplayedPosition', () => {
   it('uses live position when no overrides are active', () => {
