@@ -603,6 +603,7 @@ function colorSwatch(css: string): string {
 function printStyling(styling: OverlayStyling | undefined, style: string): void {
   const lb = styling?.leaderboard
   const bn = styling?.banner
+  const gb = styling?.geometricBanner
   const es = styling?.esports
   const mn = styling?.minimal
   const mo = styling?.modern
@@ -667,6 +668,25 @@ function printStyling(styling: OverlayStyling | undefined, style: string): void 
     row('      ', 'lapColorGreen', bn?.lapColorGreen, 'rgba(21,128,61,0.95)')
     row('      ', 'lapColorRed', bn?.lapColorRed, 'rgba(185,28,28,0.95)')
     row('      ', 'flashDuration', bn?.flashDuration?.toString(), '2')
+    row('      ', 'leftSegment', bn?.leftSegment, 'last-lap')
+    row('      ', 'rightSegment', bn?.rightSegment, 'best-lap')
+  }
+
+  if (style === 'geometric-banner') {
+    section('    ', 'geometricBanner')
+    row('      ', 'positionCounterColor', gb?.positionCounterColor, '#0bc770')
+    row('      ', 'lastLapColor', gb?.lastLapColor, '#16aa9c')
+    row('      ', 'lapTimerNeutralColor', gb?.lapTimerNeutralColor, '#0e0ab8')
+    row('      ', 'previousLapColor', gb?.previousLapColor, '#7c16aa')
+    row('      ', 'lapCounterColor', gb?.lapCounterColor, '#c70b4d')
+    row('      ', 'lapColorPurple', gb?.lapColorPurple, 'rgba(107,33,168,0.95)')
+    row('      ', 'lapColorGreen', gb?.lapColorGreen, 'rgba(21,128,61,0.95)')
+    row('      ', 'lapColorRed', gb?.lapColorRed, 'rgba(185,28,28,0.95)')
+    row('      ', 'timerTextColor', gb?.timerTextColor, 'white')
+    row('      ', 'flashDuration', gb?.flashDuration?.toString(), '2')
+    row('      ', 'opacity', gb?.opacity?.toString(), '1')
+    row('      ', 'leftSegment', gb?.leftSegment, 'last-lap')
+    row('      ', 'rightSegment', gb?.rightSegment, 'best-lap')
   }
 
   if (style === 'esports') {

@@ -41,6 +41,8 @@ export interface PositionOverride {
   position: number
 }
 
+export type BannerInfoSegmentContent = 'none' | 'last-lap' | 'best-lap'
+
 export type SessionMode = 'practice' | 'qualifying' | 'race'
 
 export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
@@ -102,6 +104,8 @@ export interface BannerStyling {
   lapColorGreen?: string   // session best lap flash color   (default: rgba(21,128,61,0.95))
   lapColorRed?: string     // slower lap flash color         (default: rgba(185,28,28,0.95))
   flashDuration?: number   // lap color flash duration in s  (default: 2)
+  leftSegment?: BannerInfoSegmentContent  // left info segment  (default: last-lap)
+  rightSegment?: BannerInfoSegmentContent // right info segment (default: best-lap)
 }
 
 export interface GeometricBannerStyling {
@@ -116,6 +120,8 @@ export interface GeometricBannerStyling {
   timerTextColor?: string        // timer text colour            (default: white)
   flashDuration?: number         // flash duration in s          (default: 2)
   opacity?: number               // background fill opacity      (default: 1)
+  leftSegment?: BannerInfoSegmentContent  // left info segment    (default: last-lap)
+  rightSegment?: BannerInfoSegmentContent // right info segment   (default: best-lap)
 }
 
 export interface EsportsStyling {

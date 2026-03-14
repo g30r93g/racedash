@@ -13,17 +13,26 @@ import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { useLivePosition } from '../../livePosition'
+import { useDisplayedPosition } from '../../displayedPosition'
 
 const PLACEHOLDER = '—:--.---'
 
-export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWindowSeconds, qualifyingTablePosition }) => {
+export const Modern: React.FC<OverlayProps> = ({
+  segments,
+  fps,
+  styling,
+  startingGridPosition,
+  labelWindowSeconds,
+  qualifyingTablePosition,
+}) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
-  const { session, mode } = segment
+  const { session, sessionAllLaps, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null
 
@@ -52,6 +61,18 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
     () => session.timestamps.indexOf(currentLap),
     [session.timestamps, currentLap],
   )
+  const livePosition = useLivePosition(segment, effectiveTime)
+  const displayedPosition = useDisplayedPosition({
+    timestamps: session.timestamps,
+    currentLaps: session.laps,
+    sessionAllLaps,
+    currentIdx,
+    currentTime: effectiveTime,
+    mode,
+    startingGridPosition,
+    livePosition,
+    positionOverrides: segment.positionOverrides,
+  })
   const completedLaps = useMemo(
     () => getCompletedLaps(session.timestamps, currentIdx),
     [session.timestamps, currentIdx],
@@ -162,6 +183,10 @@ export const Modern: React.FC<OverlayProps> = ({ segments, fps, styling, labelWi
           <div style={styles.statCol}>
             <span style={styles.label}>BEST</span>
             <span style={styles.statValue}>{sessionBestTime}</span>
+          </div>
+          <div style={styles.statCol}>
+            <span style={styles.label}>POS</span>
+            <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
           </div>
         </div>
       </div>

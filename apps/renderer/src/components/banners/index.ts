@@ -1,5 +1,6 @@
 export * from './LapCounter'
 export * from './LapTimerTrap'
+export * from './InfoSegmentPanel'
 export * from './PositionCounter'
 export * from './TimeLabelPanel'
 export * from './lapColor'

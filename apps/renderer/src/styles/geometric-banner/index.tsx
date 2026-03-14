@@ -8,11 +8,12 @@ import {
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
-import { LapCounter, LapTimerTrap, PositionCounter, TimeLabelPanel, computeLapColors } from '../../components/banners'
+import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter, computeLapColors } from '../../components/banners'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { GeometricBannerBackground } from './GeometricBannerBackground'
 import { useLivePosition } from '../../livePosition'
+import { resolveInfoSegments } from '../../infoSegments'
 
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
@@ -36,12 +37,17 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const livePosition = useLivePosition(segment, currentTime)
 
   const gb = styling?.geometricBanner
+  const infoSegments = resolveInfoSegments({
+    showTimePanels,
+    leftSegment: gb?.leftSegment,
+    rightSegment: gb?.rightSegment,
+  })
 
   // Five section colours
   const positionCounterColor = gb?.positionCounterColor ?? '#0bc770'
   const lapCounterColor      = gb?.lapCounterColor      ?? '#c70b4d'
-  const lastLapColor         = showTimePanels ? (gb?.lastLapColor     ?? '#16aa9c') : 'none'
-  const previousLapColor     = showTimePanels ? (gb?.previousLapColor ?? '#7c16aa') : 'none'
+  const lastLapColor         = infoSegments.leftSegment !== 'none' ? (gb?.lastLapColor     ?? '#16aa9c') : 'none'
+  const previousLapColor     = infoSegments.rightSegment !== 'none' ? (gb?.previousLapColor ?? '#7c16aa') : 'none'
 
   // Timer flash colours
   const timerColorMap = {
@@ -146,29 +152,37 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
               positionOverrides={segment.positionOverrides}
               placeholderText="P-"
             />
-            <div style={{ flex: 1 }}>
-              <TimeLabelPanel
-                timestamps={session.timestamps}
-                currentIdx={currentIdx}
-                currentTime={currentTime}
-                variant="last"
-                textColor={text}
-                yOffset={timePanelYOffset}
-                placeholderText={TIME_PLACEHOLDER}
-              />
-            </div>
+            {infoSegments.leftSegment !== 'none' ? (
+              <div style={{ flex: 1 }}>
+                <InfoSegmentPanel
+                  content={infoSegments.leftSegment}
+                  timestamps={session.timestamps}
+                  currentIdx={currentIdx}
+                  currentTime={currentTime}
+                  textColor={text}
+                  yOffset={timePanelYOffset}
+                  placeholderText={TIME_PLACEHOLDER}
+                />
+              </div>
+            ) : infoSegments.rightSegment !== 'none' ? (
+              <div style={{ flex: 1 }} />
+            ) : null}
             <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
-            <div style={{ flex: 1 }}>
-              <TimeLabelPanel
-                timestamps={session.timestamps}
-                currentIdx={currentIdx}
-                currentTime={currentTime}
-                variant="best"
-                textColor={text}
-                yOffset={timePanelYOffset}
-                placeholderText={TIME_PLACEHOLDER}
-              />
-            </div>
+            {infoSegments.rightSegment !== 'none' ? (
+              <div style={{ flex: 1 }}>
+                <InfoSegmentPanel
+                  content={infoSegments.rightSegment}
+                  timestamps={session.timestamps}
+                  currentIdx={currentIdx}
+                  currentTime={currentTime}
+                  textColor={text}
+                  yOffset={timePanelYOffset}
+                  placeholderText={TIME_PLACEHOLDER}
+                />
+              </div>
+            ) : infoSegments.leftSegment !== 'none' ? (
+              <div style={{ flex: 1 }} />
+            ) : null}
             <LapCounter
               timestamps={session.timestamps}
               currentLap={currentLap}

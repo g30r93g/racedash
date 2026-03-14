@@ -8,12 +8,13 @@ import {
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
-import { LapCounter, LapTimerTrap, PositionCounter, TimeLabelPanel, computeLapColors } from '../../components/banners'
+import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter, computeLapColors } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { BannerBackground } from './BannerBackground'
 import { useLivePosition } from '../../livePosition'
+import { resolveInfoSegments } from '../../infoSegments'
 
 const DEFAULT_ACCENT = '#3DD73D'
 const TIME_PLACEHOLDER = '-:--.---'
@@ -44,6 +45,11 @@ export const Banner: React.FC<OverlayProps> = ({
   const bannerBg = styling?.banner?.bgColor ?? accent
   const bannerOpacity = styling?.banner?.bgOpacity ?? 0.82
   const bannerRadius = (styling?.banner?.borderRadius ?? 10) * scale
+  const infoSegments = resolveInfoSegments({
+    showTimePanels,
+    leftSegment: styling?.banner?.leftSegment,
+    rightSegment: styling?.banner?.rightSegment,
+  })
 
   const raceStart = session.timestamps[0].ytSeconds
   const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
@@ -137,27 +143,35 @@ export const Banner: React.FC<OverlayProps> = ({
               positionOverrides={segment.positionOverrides}
               placeholderText={POSITION_PLACEHOLDER}
             />
-            <div style={{ flex: 1 }}>
-              <TimeLabelPanel
-                timestamps={session.timestamps}
-                currentIdx={currentIdx}
-                currentTime={currentTime}
-                variant="last"
-                textColor={text}
-                placeholderText={TIME_PLACEHOLDER}
-              />
-            </div>
+            {infoSegments.leftSegment !== 'none' ? (
+              <div style={{ flex: 1 }}>
+                <InfoSegmentPanel
+                  content={infoSegments.leftSegment}
+                  timestamps={session.timestamps}
+                  currentIdx={currentIdx}
+                  currentTime={currentTime}
+                  textColor={text}
+                  placeholderText={TIME_PLACEHOLDER}
+                />
+              </div>
+            ) : infoSegments.rightSegment !== 'none' ? (
+              <div style={{ flex: 1 }} />
+            ) : null}
             <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
-            <div style={{ flex: 1 }}>
-              <TimeLabelPanel
-                timestamps={session.timestamps}
-                currentIdx={currentIdx}
-                currentTime={currentTime}
-                variant="best"
-                textColor={text}
-                placeholderText={TIME_PLACEHOLDER}
-              />
-            </div>
+            {infoSegments.rightSegment !== 'none' ? (
+              <div style={{ flex: 1 }}>
+                <InfoSegmentPanel
+                  content={infoSegments.rightSegment}
+                  timestamps={session.timestamps}
+                  currentIdx={currentIdx}
+                  currentTime={currentTime}
+                  textColor={text}
+                  placeholderText={TIME_PLACEHOLDER}
+                />
+              </div>
+            ) : infoSegments.leftSegment !== 'none' ? (
+              <div style={{ flex: 1 }} />
+            ) : null}
             <LapCounter
               timestamps={session.timestamps}
               currentLap={currentLap}
