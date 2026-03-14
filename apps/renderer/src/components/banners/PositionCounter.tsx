@@ -30,16 +30,13 @@ export const PositionCounter: React.FC<Props> = ({
 
   // Precompute position for every lap — fires once per session, not per lap change.
   const positions = useMemo<(number | null)[]>(() => {
-    const result: (number | null)[] = [startingGridPosition ?? null] // index 0 = pre-race
+    const result: (number | null)[] = [startingGridPosition ?? null]
     for (let n = 1; n <= currentLaps.length; n++) {
       result.push(getPosition(mode, n, currentLaps, sessionAllLaps))
     }
     return result
   }, [mode, currentLaps, sessionAllLaps, startingGridPosition])
 
-  // O(1) lookup per lap change.
-  // positions[0] = pre-race; positions[n] = getPosition(..., n, ...) for n=1..N.
-  // currentIdx is 0-based → currentLap.lap.number = currentIdx+1 → positions[currentIdx+1].
   const computedPosition: number | null =
     currentTime < raceStart || currentIdx === 0
       ? positions[0]

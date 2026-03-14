@@ -2,14 +2,10 @@ import React, { useMemo } from 'react'
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import type { OverlayProps } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
+import { LapCounter, LapTimerTrap, PositionCounter, TimeLabelPanel, computeLapColors } from '../../components/banners'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapAtTime, getLapElapsed } from '../../timing'
 import { GeometricBannerBackground } from './GeometricBannerBackground'
-import { computeLapColors } from '../banner/lapColor'
-import { LapTimerTrap } from '../banner/LapTimerTrap'
-import { LapCounter } from '../banner/LapCounter'
-import { PositionCounter } from '../banner/PositionCounter'
-import { TimeLabelPanel } from '../banner/TimeLabelPanel'
 
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
@@ -83,6 +79,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   })()
 
   const bannerHeight = Math.round(width * (SVG_H / SVG_W))
+  const timePanelYOffset = -((bannerHeight / scale) - 80) / 2
 
   const outerStyle: React.CSSProperties = {
     position: 'absolute',
@@ -144,6 +141,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
                 currentTime={currentTime}
                 variant="last"
                 textColor={text}
+                yOffset={timePanelYOffset}
               />
             </div>
             <LapTimerTrap {...lapTimerProps} />
@@ -154,6 +152,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
                 currentTime={currentTime}
                 variant="best"
                 textColor={text}
+                yOffset={timePanelYOffset}
               />
             </div>
             <LapCounter
