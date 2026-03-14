@@ -16,6 +16,8 @@ export interface CompositeOptions {
   overlayX?: number
   overlayY?: number
   durationSeconds?: number
+  outputWidth?: number
+  outputHeight?: number
 }
 
 /**
@@ -75,15 +77,36 @@ export async function compositeVideo(
   opts: CompositeOptions = {},
   onProgress?: (progress: number) => void,
 ): Promise<void> {
-  const { fps = 60, videoBitrate = '50M', overlayX = 0, overlayY = 0, durationSeconds } = opts
+  const {
+    fps = 60,
+    videoBitrate = '50M',
+    overlayX = 0,
+    overlayY = 0,
+    durationSeconds,
+    outputWidth,
+    outputHeight,
+  } = opts
   const totalSeconds = durationSeconds ?? await getVideoDuration(sourcePath)
   if (totalSeconds <= 0) throw new Error(`Video duration must be positive, got ${totalSeconds}`)
+  if ((outputWidth == null) !== (outputHeight == null)) {
+    throw new Error('outputWidth and outputHeight must be provided together')
+  }
+
+  const filterParts: string[] = []
+  let sourceLabel = '0:v'
+  if (outputWidth != null && outputHeight != null) {
+    filterParts.push(`[0:v]scale=${outputWidth}:${outputHeight}[src]`)
+    sourceLabel = 'src'
+  }
+  filterParts.push('[1:v]format=rgba[ov]')
+  filterParts.push(`[${sourceLabel}][ov]overlay=x=${overlayX}:y=${overlayY}`)
+
   await runFFmpegWithProgress(
     [
       '-hwaccel', 'videotoolbox',
       '-i', sourcePath,
       '-i', overlayPath,
-      '-filter_complex', `[1:v]format=rgba[ov];[0:v][ov]overlay=x=${overlayX}:y=${overlayY}`,
+      '-filter_complex', filterParts.join(';'),
       '-r', String(fps),
       '-pix_fmt', 'yuv420p',
       '-c:v', 'hevc_videotoolbox',

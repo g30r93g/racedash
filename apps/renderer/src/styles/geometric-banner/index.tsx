@@ -140,6 +140,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
               mode={mode}
               startingGridPosition={startingGridPosition}
               textColor={text}
+              positionOverrides={segment.positionOverrides}
               placeholderText="P-"
             />
             <div style={{ flex: 1 }}>
@@ -194,6 +195,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
             mode={mode}
             startingGridPosition={startingGridPosition}
             textColor={text}
+            positionOverrides={segment.positionOverrides}
             placeholderText="P-"
           />
           <div style={{ flex: 1 }} />

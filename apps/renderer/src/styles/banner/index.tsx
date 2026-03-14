@@ -142,6 +142,7 @@ export const Banner: React.FC<OverlayProps> = ({
               startingGridPosition={startingGridPosition}
               textColor={text}
               livePosition={livePosition}
+              positionOverrides={segment.positionOverrides}
               placeholderText={POSITION_PLACEHOLDER}
             />
             <div style={{ flex: 1 }}>
@@ -214,6 +215,7 @@ export const Banner: React.FC<OverlayProps> = ({
             startingGridPosition={startingGridPosition}
             textColor={text}
             livePosition={livePosition}
+            positionOverrides={segment.positionOverrides}
             placeholderText={POSITION_PLACEHOLDER}
           />
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>

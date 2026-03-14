@@ -134,41 +134,37 @@ function buildRaceLeaderboardFromSnapshots(
 
   const active = snapshots[activeIdx]
 
-  // Build per-driver last crossing times so each row updates when that driver
-  // individually crosses the line, not when the leader does.
-  const driverLastCrossing = new Map<string, number>()
+  // Build per-driver completed-lap counts at currentTime. We then resolve each
+  // row from the latest active snapshot that still matches that driver's
+  // completed-lap count, so position updates surface as soon as Alpha replay
+  // publishes them without jumping ahead to a future lap.
+  const driverLapsCompleted = new Map<string, number>()
   if (drivers && drivers.length > 0) {
     for (const d of drivers) {
-      let lastCrossTime = -Infinity
+      let lapsCompleted = 0
       for (const ts of d.timestamps) {
-        const crossTime = ts.ytSeconds + ts.lap.lapTime
-        if (crossTime <= currentTime && crossTime > lastCrossTime) {
-          lastCrossTime = crossTime
-        }
+        if (ts.ytSeconds + ts.lap.lapTime <= currentTime) lapsCompleted++
       }
-      if (isFinite(lastCrossTime)) {
-        driverLastCrossing.set(d.kart, lastCrossTime)
-      }
+      driverLapsCompleted.set(d.kart, lapsCompleted)
     }
   }
 
-  // For each entry in the active snapshot, resolve to the snapshot that was
-  // active when that driver individually crossed the finish line.
+  // For each entry in the active snapshot, resolve to the latest snapshot up to
+  // currentTime that still matches that driver's completed-lap count.
   const resolvedEntries: RaceLapEntry[] = active.entries.map(entry => {
-    if (driverLastCrossing.size === 0) return entry
+    if (driverLapsCompleted.size === 0) return entry
 
-    const lastCross = driverLastCrossing.get(entry.kart)
-    if (lastCross === undefined) return entry
+    const lapsCompleted = driverLapsCompleted.get(entry.kart)
+    if (lapsCompleted === undefined) return entry
 
-    // Find the snapshot that was active when this driver last crossed
-    let driverActiveIdx = -1
-    for (let i = 0; i < snapshots.length; i++) {
-      if (snapshots[i].videoTimestamp <= lastCross) driverActiveIdx = i
+    for (let i = activeIdx; i >= 0; i--) {
+      const driverEntry = snapshots[i].entries.find(e => e.kart === entry.kart)
+      if (driverEntry && driverEntry.lapsCompleted === lapsCompleted) {
+        return driverEntry
+      }
     }
-    if (driverActiveIdx === -1) return entry
 
-    const driverEntry = snapshots[driverActiveIdx].entries.find(e => e.kart === entry.kart)
-    return driverEntry ?? entry
+    return entry
   })
 
   return resolvedEntries.map((entry, i) => {

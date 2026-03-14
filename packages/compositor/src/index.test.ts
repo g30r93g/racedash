@@ -200,4 +200,19 @@ describe('compositeVideo', () => {
     expect(hwIdx).toBeGreaterThan(-1)
     expect(args[hwIdx + 1]).toBe('videotoolbox')
   })
+
+  it('adds a scale filter when an output resolution is requested', async () => {
+    vi.mocked(spawn).mockImplementationOnce(
+      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
+    )
+    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+      durationSeconds: 60,
+      outputWidth: 2560,
+      outputHeight: 1440,
+    })
+    const [, args] = vi.mocked(spawn).mock.calls[0] as [string, string[]]
+    const filterIdx = args.indexOf('-filter_complex')
+    expect(filterIdx).toBeGreaterThan(-1)
+    expect(args[filterIdx + 1]).toContain('[0:v]scale=2560:1440[src]')
+  })
 })

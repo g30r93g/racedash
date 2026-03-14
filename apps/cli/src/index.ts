@@ -21,6 +21,7 @@ import {
   type SessionData,
   type SessionMode,
   type SessionSegment,
+  type PositionOverride,
   type RaceLapEntry,
   type RaceLapSnapshot,
   type OverlayStyling,
@@ -87,6 +88,92 @@ export function buildRaceLapSnapshots(replayData: ReplayLapData, offsetSeconds: 
     result.push({ leaderLap: i, videoTimestamp, entries })
   }
   return result
+}
+
+interface PositionOverrideConfig {
+  timestamp: string
+  position: number
+}
+
+type OutputResolutionPreset = '1080p' | '1440p' | '2160p'
+
+const OUTPUT_RESOLUTIONS: Record<OutputResolutionPreset, { width: number; height: number }> = {
+  '1080p': { width: 1920, height: 1080 },
+  '1440p': { width: 2560, height: 1440 },
+  '2160p': { width: 3840, height: 2160 },
+}
+
+export function resolveOutputResolutionPreset(
+  preset: string | undefined,
+): { preset: OutputResolutionPreset; width: number; height: number } | undefined {
+  if (preset == null) return undefined
+  if (!(preset in OUTPUT_RESOLUTIONS)) {
+    throw new Error('--output-resolution must be one of: 1080p, 1440p, 2160p')
+  }
+  const typedPreset = preset as OutputResolutionPreset
+  return { preset: typedPreset, ...OUTPUT_RESOLUTIONS[typedPreset] }
+}
+
+export function validatePositionOverrideConfig(
+  positionOverrides: unknown,
+  mode: string,
+  segmentIndex: number,
+): PositionOverrideConfig[] | undefined {
+  if (positionOverrides === undefined) return undefined
+  if (!Array.isArray(positionOverrides)) {
+    throw new Error(`segments[${segmentIndex}].positionOverrides must be an array`)
+  }
+  if (positionOverrides.length === 0) return []
+
+  if (mode.toLowerCase() !== 'race') {
+    throw new Error(`segments[${segmentIndex}].positionOverrides is only valid for race segments`)
+  }
+
+  return positionOverrides.map((entry, entryIndex) => {
+    if (entry == null || typeof entry !== 'object') {
+      throw new Error(`segments[${segmentIndex}].positionOverrides[${entryIndex}] must be an object`)
+    }
+
+    const { timestamp } = entry as Partial<PositionOverrideConfig>
+    const positionValue = (entry as { position?: unknown }).position
+    if (typeof timestamp !== 'string' || !timestamp) {
+      throw new Error(`segments[${segmentIndex}].positionOverrides[${entryIndex}] is missing "timestamp"`)
+    }
+    if (typeof positionValue !== 'number' || !Number.isInteger(positionValue) || positionValue < 1) {
+      throw new Error(`segments[${segmentIndex}].positionOverrides[${entryIndex}].position must be an integer >= 1`)
+    }
+
+    return { timestamp, position: positionValue }
+  })
+}
+
+export function resolvePositionOverrides(
+  positionOverrides: PositionOverrideConfig[] | undefined,
+  offsetSeconds: number,
+  segmentIndex: number,
+  fps?: number,
+): PositionOverride[] | undefined {
+  if (positionOverrides == null) return undefined
+  if (positionOverrides.length === 0) return []
+
+  let previousTimestamp = -Infinity
+  for (let i = 0; i < positionOverrides.length; i++) {
+    const resolvedTimestamp = parseOffset(positionOverrides[i].timestamp, fps)
+    if (resolvedTimestamp < offsetSeconds) {
+      throw new Error(
+        `segments[${segmentIndex}].positionOverrides[${i}].timestamp must be >= the segment offset`,
+      )
+    }
+    if (resolvedTimestamp <= previousTimestamp) {
+      throw new Error(`segments[${segmentIndex}].positionOverrides must be sorted ascending by timestamp`)
+    }
+    previousTimestamp = resolvedTimestamp
+  }
+
+  return positionOverrides.map(entry => ({
+    timestamp: parseOffset(entry.timestamp, fps),
+    position: entry.position,
+  }))
 }
 
 program
@@ -165,6 +252,7 @@ interface RenderOpts {
   video: string
   output: string
   style: string
+  outputResolution?: string
   overlayX: string
   overlayY: string
   boxPosition: string
@@ -186,6 +274,7 @@ program
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--style <name>', 'Overlay style', 'banner')
+  .option('--output-resolution <preset>', 'Output resolution preset: 1080p, 1440p, or 2160p')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
@@ -195,6 +284,7 @@ program
   .option('--only-render-overlay', 'Render the overlay file and skip compositing onto the video')
   .action(async (opts: RenderOpts) => {
     try {
+      const requestedOutputResolution = resolveOutputResolutionPreset(opts.outputResolution)
       const validBoxPositions: BoxPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
       if (!validBoxPositions.includes(opts.boxPosition as BoxPosition)) {
         console.error(`Error: --box-position must be one of: ${validBoxPositions.join(', ')}`)
@@ -245,9 +335,13 @@ program
         getVideoResolution(videoPath),
         getVideoFps(videoPath),
       ])
+      const outputResolution = requestedOutputResolution ?? videoResolution
       const frameDuration = 1 / fps
       // Parse and snap each segment's offset
       const rawOffsets = segmentConfigs.map(sc => parseOffset(sc.offset, fps))
+      const resolvedPositionOverrides = segmentConfigs.map((sc, i) =>
+        resolvePositionOverrides(sc.positionOverrides, rawOffsets[i], i, fps),
+      )
       const snappedOffsets = rawOffsets.map(raw => {
         const snapped = Math.round(Math.round(raw / frameDuration) * frameDuration * 1e6) / 1e6
         return snapped
@@ -348,6 +442,7 @@ program
             ? buildRaceDrivers(allDrivers, offsetSeconds)
             : buildLeaderboardDrivers(allDrivers, driver.kart, offsetSeconds),
           label: sc.label,
+          positionOverrides: resolvedPositionOverrides[i],
           raceLapSnapshots,
         })
       }
@@ -356,6 +451,9 @@ program
 
       process.stderr.write('\n')
       stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${formatFps(fps)} fps`)
+      if (requestedOutputResolution != null) {
+        stat('Output', `${outputResolution.width}×${outputResolution.height}  ·  ${requestedOutputResolution.preset}`)
+      }
       if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
       stat('Style', opts.style)
       printStyling(styling, opts.style)
@@ -365,8 +463,8 @@ program
         startingGridPosition,
         fps,
         durationInFrames,
-        videoWidth: videoResolution.width,
-        videoHeight: videoResolution.height,
+        videoWidth: outputResolution.width,
+        videoHeight: outputResolution.height,
         boxPosition,
         qualifyingTablePosition: resolvedTablePosition,
         styling,
@@ -414,8 +512,8 @@ program
       const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 400, minimal: 400 }
       const stripHeight = BOX_STRIP_HEIGHTS[opts.style]
       if (stripHeight != null) {
-        const scaledStrip = Math.round(stripHeight * videoResolution.width / 1920)
-        overlayY = boxPosition.startsWith('bottom') ? videoResolution.height - scaledStrip : 0
+        const scaledStrip = Math.round(stripHeight * outputResolution.width / 1920)
+        overlayY = boxPosition.startsWith('bottom') ? outputResolution.height - scaledStrip : 0
       }
 
       try {
@@ -423,7 +521,14 @@ program
           videoPath,
           overlayPath,
           opts.output,
-          { fps, overlayX, overlayY, durationSeconds },
+          {
+            fps,
+            overlayX,
+            overlayY,
+            durationSeconds,
+            outputWidth: requestedOutputResolution?.width,
+            outputHeight: requestedOutputResolution?.height,
+          },
           makeProgressCallback('Compositing'),
         )
       } finally {
@@ -642,6 +747,15 @@ interface SegmentConfig {
   url: string
   offset: string
   label?: string
+  positionOverrides?: PositionOverrideConfig[]
+}
+
+interface ResolvedSegmentConfig {
+  mode: string
+  url: string
+  offset: string
+  label?: string
+  positionOverrides?: PositionOverrideConfig[]
 }
 
 interface RenderConfig {
@@ -652,7 +766,7 @@ interface RenderConfig {
 }
 
 interface LoadedConfig {
-  segments: SegmentConfig[]
+  segments: ResolvedSegmentConfig[]
   driverQuery: string
   configTablePosition?: BoxPosition
   styling?: OverlayStyling
@@ -674,7 +788,10 @@ async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
     const driverQuery = opts.driver ?? config.driver
     if (!driverQuery) throw new Error('--driver is required (or set "driver" in config file)')
     return {
-      segments: config.segments,
+      segments: config.segments.map((segment, i) => ({
+        ...segment,
+        positionOverrides: validatePositionOverrideConfig(segment.positionOverrides, segment.mode, i),
+      })),
       driverQuery,
       configTablePosition: config.qualifyingTablePosition,
       styling: config.styling,
@@ -687,12 +804,19 @@ async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
   }
   if (!opts.driver) throw new Error('--driver is required')
   return {
-    segments: [{ mode: opts.mode, url: opts.url, offset: opts.offset, label: opts.label }],
+    segments: [{
+      mode: opts.mode,
+      url: opts.url,
+      offset: opts.offset,
+      label: opts.label,
+    }],
     driverQuery: opts.driver,
   }
 }
 
-program.parseAsync(process.argv).catch((err: Error) => {
-  console.error('Error:', err.message)
-  process.exit(1)
-})
+if (require.main === module) {
+  program.parseAsync(process.argv).catch((err: Error) => {
+    console.error('Error:', err.message)
+    process.exit(1)
+  })
+}

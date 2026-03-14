@@ -36,6 +36,11 @@ export interface RaceLapSnapshot {
   entries: RaceLapEntry[]  // ordered P1 → last place
 }
 
+export interface PositionOverride {
+  timestamp: number
+  position: number
+}
+
 export type SessionMode = 'practice' | 'qualifying' | 'race'
 
 export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
@@ -47,6 +52,7 @@ export interface SessionSegment {
   leaderboardDrivers?: LeaderboardDriver[]  // populated for all modes; used by PositionCounter (all modes) and LeaderboardTable (qualifying + practice only)
   raceLapSnapshots?: RaceLapSnapshot[]
   label?: string            // shown ±labelWindowSeconds around session.timestamps[0].ytSeconds
+  positionOverrides?: PositionOverride[]
 }
 
 export interface FadeStyling {

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useVideoConfig } from 'remotion'
-import type { Lap, LapTimestamp, SessionMode } from '@racedash/core'
+import type { Lap, LapTimestamp, PositionOverride, SessionMode } from '@racedash/core'
 import { getPosition } from '../../position'
 import { fontFamily } from '../../Root'
 
@@ -15,7 +15,43 @@ interface Props {
   textColor?: string
   /** When provided, overrides the computed position (e.g. from the live qualifying table). */
   livePosition?: number | null
+  positionOverrides?: PositionOverride[]
   placeholderText?: string
+}
+
+interface ResolveDisplayedPositionArgs {
+  currentTime: number
+  raceStart: number
+  lastTimingEventTime: number
+  computedPosition: number | null
+  livePosition?: number | null
+  positionOverrides?: PositionOverride[]
+}
+
+export function resolveDisplayedPosition({
+  currentTime,
+  raceStart,
+  lastTimingEventTime,
+  computedPosition,
+  livePosition,
+  positionOverrides,
+}: ResolveDisplayedPositionArgs): number | null {
+  if (currentTime < raceStart) {
+    return livePosition ?? computedPosition
+  }
+
+  if (positionOverrides != null && positionOverrides.length > 0) {
+    for (let i = positionOverrides.length - 1; i >= 0; i--) {
+      if (
+        positionOverrides[i].timestamp <= currentTime &&
+        positionOverrides[i].timestamp > lastTimingEventTime
+      ) {
+        return positionOverrides[i].position
+      }
+    }
+  }
+
+  return livePosition ?? computedPosition
 }
 
 export const PositionCounter: React.FC<Props> = ({
@@ -23,6 +59,7 @@ export const PositionCounter: React.FC<Props> = ({
   currentIdx, currentTime,
   mode, startingGridPosition, textColor = 'white',
   livePosition,
+  positionOverrides,
   placeholderText,
 }) => {
   const { width } = useVideoConfig()
@@ -43,8 +80,16 @@ export const PositionCounter: React.FC<Props> = ({
     currentTime < raceStart || currentIdx === 0
       ? positions[0]
       : positions[currentIdx + 1] ?? null
+  const lastTimingEventTime = currentTime < raceStart ? -Infinity : timestamps[currentIdx].ytSeconds
 
-  const position = livePosition !== undefined && livePosition !== null ? livePosition : computedPosition
+  const position = resolveDisplayedPosition({
+    currentTime,
+    raceStart,
+    lastTimingEventTime,
+    computedPosition,
+    livePosition,
+    positionOverrides,
+  })
 
   const containerStyle = useMemo<React.CSSProperties>(() => ({
     width: 180 * scale,
