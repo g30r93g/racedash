@@ -186,30 +186,11 @@ export const Minimal: React.FC<OverlayProps> = ({
         letterSpacing: -0.5 * scale,
         flex: 1,
       },
-      positionChip: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'flex-end',
-        gap: 4 * scale,
-        flexShrink: 0,
-      },
-      positionLabel: {
-        fontSize: 10 * scale,
-        fontWeight: 400,
-        color: statLabelColor,
-        letterSpacing: 1.5 * scale,
-        textTransform: 'uppercase' as const,
-      },
-      positionValue: {
-        fontSize: 26 * scale,
-        fontWeight: 700,
-        color: 'white',
-        lineHeight: 1,
-      },
       statRow: {
         display: 'flex',
         flexDirection: 'row' as const,
-        gap: 28 * scale,
+        justifyContent: 'space-between' as const,
+        gap: 20 * scale,
       },
     }
   }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor, statLabelColor])
@@ -227,14 +208,11 @@ export const Minimal: React.FC<OverlayProps> = ({
             <span style={styles.badgeText}>{currentLap.lap.number}</span>
           </div>
           <span style={styles.elapsed}>{elapsedFormatted}</span>
-          <div style={styles.positionChip}>
-            <span style={styles.positionLabel}>Position</span>
-            <span style={styles.positionValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
-          </div>
         </div>
         <div style={styles.statRow}>
           <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
           <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={statLabelColor} />
+          <StatColumn label="POSITION" value={displayedPosition != null ? `P${displayedPosition}` : 'P-'} scale={scale} labelColor={statLabelColor} />
         </div>
       </div>
       {showTable && (
