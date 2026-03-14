@@ -1,5 +1,3 @@
-import React, { useMemo } from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
@@ -8,13 +6,15 @@ import {
   type OverlayProps,
 } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
-import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
+import React, { useMemo } from 'react'
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import { useActiveSegment } from '../../activeSegment'
-import { SegmentLabel } from '../../SegmentLabel'
-import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
-import { useLivePosition } from '../../livePosition'
 import { useDisplayedPosition } from '../../displayedPosition'
+import { useLivePosition } from '../../livePosition'
+import { fontFamily } from '../../Root'
+import { SegmentLabel } from '../../SegmentLabel'
+import { getCompletedLaps, getLapAtTime, getLapElapsed, getSessionBest } from '../../timing'
 
 const EMPTY_TIME = '—:--.---'
 
@@ -210,9 +210,9 @@ export const Minimal: React.FC<OverlayProps> = ({
           <span style={styles.elapsed}>{elapsedFormatted}</span>
         </div>
         <div style={styles.statRow}>
+          <StatColumn label="POSITION" value={displayedPosition != null ? `P${displayedPosition}` : 'P-'} scale={scale} labelColor={statLabelColor} />
           <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
           <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={statLabelColor} />
-          <StatColumn label="POSITION" value={displayedPosition != null ? `P${displayedPosition}` : 'P-'} scale={scale} labelColor={statLabelColor} />
         </div>
       </div>
       {showTable && (
