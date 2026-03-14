@@ -13,6 +13,8 @@ import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { useLivePosition } from '../../livePosition'
+import { useDisplayedPosition } from '../../displayedPosition'
 
 const EMPTY_TIME = '—:--.---'
 
@@ -52,14 +54,22 @@ const StatColumn = React.memo(function StatColumn({ label, value, scale, labelCo
   )
 })
 
-export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPosition = 'bottom-left', labelWindowSeconds, qualifyingTablePosition }) => {
+export const Minimal: React.FC<OverlayProps> = ({
+  segments,
+  fps,
+  styling,
+  startingGridPosition,
+  boxPosition = 'bottom-left',
+  labelWindowSeconds,
+  qualifyingTablePosition,
+}) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
-  const { session, mode } = segment
+  const { session, sessionAllLaps, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null
 
@@ -88,6 +98,18 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
     () => session.timestamps.indexOf(currentLap),
     [session.timestamps, currentLap],
   )
+  const livePosition = useLivePosition(segment, effectiveTime)
+  const displayedPosition = useDisplayedPosition({
+    timestamps: session.timestamps,
+    currentLaps: session.laps,
+    sessionAllLaps,
+    currentIdx,
+    currentTime: effectiveTime,
+    mode,
+    startingGridPosition,
+    livePosition,
+    positionOverrides: segment.positionOverrides,
+  })
   const completedLaps = useMemo(
     () => getCompletedLaps(session.timestamps, currentIdx),
     [session.timestamps, currentIdx],
@@ -162,6 +184,27 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
         color: 'white',
         lineHeight: 1,
         letterSpacing: -0.5 * scale,
+        flex: 1,
+      },
+      positionChip: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'flex-end',
+        gap: 4 * scale,
+        flexShrink: 0,
+      },
+      positionLabel: {
+        fontSize: 10 * scale,
+        fontWeight: 400,
+        color: statLabelColor,
+        letterSpacing: 1.5 * scale,
+        textTransform: 'uppercase' as const,
+      },
+      positionValue: {
+        fontSize: 26 * scale,
+        fontWeight: 700,
+        color: 'white',
+        lineHeight: 1,
       },
       statRow: {
         display: 'flex',
@@ -169,7 +212,7 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
         gap: 28 * scale,
       },
     }
-  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor])
+  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor, statLabelColor])
 
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
@@ -184,6 +227,10 @@ export const Minimal: React.FC<OverlayProps> = ({ segments, fps, styling, boxPos
             <span style={styles.badgeText}>{currentLap.lap.number}</span>
           </div>
           <span style={styles.elapsed}>{elapsedFormatted}</span>
+          <div style={styles.positionChip}>
+            <span style={styles.positionLabel}>Position</span>
+            <span style={styles.positionValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
+          </div>
         </div>
         <div style={styles.statRow}>
           <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
