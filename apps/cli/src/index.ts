@@ -8,7 +8,7 @@ import path from 'node:path'
 import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
-import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
+import { compositeVideo, getVideoDuration, getVideoFps, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
@@ -114,10 +114,19 @@ program
 program
   .command('timestamps <url> [driver]')
   .description('Output YouTube chapter timestamps to stdout')
-  .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15')
-  .action(async (url: string, driverQuery: string | undefined, opts: { offset: string }) => {
+  .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15.500 or 12345 F')
+  .option('--fps <n>', 'Video fps used when --offset is given as "<frames> F"')
+  .action(async (url: string, driverQuery: string | undefined, opts: { offset: string, fps?: string }) => {
     try {
-      const offsetSeconds = parseOffset(opts.offset)
+      let fps: number | undefined
+      if (opts.fps != null) {
+        const parsedFps = parseFloat(opts.fps)
+        if (!Number.isFinite(parsedFps) || parsedFps <= 0) {
+          throw new Error('--fps must be a positive number')
+        }
+        fps = parsedFps
+      }
+      const offsetSeconds = parseOffset(opts.offset, fps)
       console.error('Fetching...')
       const html = await fetchHtml(url)
       const drivers = parseDrivers(html)
@@ -155,7 +164,6 @@ interface RenderOpts {
   driver?: string
   video: string
   output: string
-  fps: string
   style: string
   overlayX: string
   overlayY: string
@@ -172,12 +180,11 @@ program
   .option('--config <path>', 'Path to JSON session config file')
   .option('--url <url>', 'Session URL (inline single-segment)')
   .option('--mode <mode>', 'Session mode for inline segment: practice, qualifying, or race')
-  .option('--offset <time>', 'Video timestamp at session start, e.g. 0:02:15.500 (inline single-segment)')
+  .option('--offset <time>', 'Video timestamp at session start, e.g. 0:02:15.500 or 12345 F (inline single-segment)')
   .option('--label <text>', 'Segment label shown around offset (inline single-segment)')
   .option('--driver <name>', 'Driver name (partial, case-insensitive)')
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
-  .option('--fps <n>', 'Output framerate', '60')
   .option('--style <name>', 'Overlay style', 'banner')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
@@ -188,11 +195,6 @@ program
   .option('--only-render-overlay', 'Render the overlay file and skip compositing onto the video')
   .action(async (opts: RenderOpts) => {
     try {
-      const fps = parseInt(opts.fps, 10)
-      if (isNaN(fps)) {
-        console.error('Error: --fps must be a valid integer')
-        process.exit(1)
-      }
       const validBoxPositions: BoxPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
       if (!validBoxPositions.includes(opts.boxPosition as BoxPosition)) {
         console.error(`Error: --box-position must be one of: ${validBoxPositions.join(', ')}`)
@@ -210,7 +212,6 @@ program
         console.error('Error: --label-window must be a non-negative number')
         process.exit(1)
       }
-      const frameDuration = 1 / fps
 
       const { segments: segmentConfigs, driverQuery, configTablePosition, styling } = await loadRenderConfig(opts)
       // CLI flags take precedence over config file values
@@ -239,8 +240,14 @@ program
 
       process.stderr.write('\n  Fetching session data and probing video...\n')
 
+      const [durationSeconds, videoResolution, fps] = await Promise.all([
+        getVideoDuration(videoPath),
+        getVideoResolution(videoPath),
+        getVideoFps(videoPath),
+      ])
+      const frameDuration = 1 / fps
       // Parse and snap each segment's offset
-      const rawOffsets = segmentConfigs.map(sc => parseOffset(sc.offset))
+      const rawOffsets = segmentConfigs.map(sc => parseOffset(sc.offset, fps))
       const snappedOffsets = rawOffsets.map(raw => {
         const snapped = Math.round(Math.round(raw / frameDuration) * frameDuration * 1e6) / 1e6
         return snapped
@@ -254,13 +261,10 @@ program
       const N = segmentConfigs.length
       const R = raceSegmentIndices.length
 
-      const [[durationSeconds, videoResolution], fetchResults] = await Promise.all([
-        Promise.all([getVideoDuration(videoPath), getVideoResolution(videoPath)]),
-        Promise.all([
-          ...segmentConfigs.map(sc => fetchHtml(sc.url)),
-          ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
-          ...raceSegmentIndices.map(i => fetchReplayHtml(segmentConfigs[i].url).then(parseReplayLapData)),
-        ]),
+      const fetchResults = await Promise.all([
+        ...segmentConfigs.map(sc => fetchHtml(sc.url)),
+        ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
+        ...raceSegmentIndices.map(i => fetchReplayHtml(segmentConfigs[i].url).then(parseReplayLapData)),
       ])
 
       const htmls         = fetchResults.slice(0, N) as string[]
@@ -351,7 +355,7 @@ program
       const durationInFrames = Math.ceil(durationSeconds * fps)
 
       process.stderr.write('\n')
-      stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${fps} fps`)
+      stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${formatFps(fps)} fps`)
       if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
       stat('Style', opts.style)
       printStyling(styling, opts.style)
@@ -460,6 +464,10 @@ function formatSeconds(seconds: number): string {
   const s = seconds % 60
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function formatFps(fps: number): string {
+  return fps.toFixed(3).replace(/\.?0+$/, '')
 }
 
 function stat(label: string, value: string): void {

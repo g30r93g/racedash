@@ -48,6 +48,22 @@ export async function renderOverlay(
   })
 }
 
+function parseFpsValue(raw: string, videoPath: string): number {
+  const value = raw.trim()
+  const fractionMatch = value.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/)
+  if (fractionMatch) {
+    const numerator = parseFloat(fractionMatch[1])
+    const denominator = parseFloat(fractionMatch[2])
+    const fps = numerator / denominator
+    if (Number.isFinite(fps) && fps > 0) return fps
+  }
+
+  const fps = parseFloat(value)
+  if (Number.isFinite(fps) && fps > 0) return fps
+
+  throw new Error(`ffprobe returned no fps for: ${videoPath}`)
+}
+
 /**
  * Composite overlay.mov onto source.mp4 using FFmpeg with hardware encoding.
  * Requires FFmpeg with h264_videotoolbox (macOS).
@@ -80,6 +96,33 @@ export async function compositeVideo(
     totalSeconds,
     onProgress,
   )
+}
+
+/**
+ * Get video fps using ffprobe. Prefers avg_frame_rate and falls back to r_frame_rate.
+ */
+export async function getVideoFps(videoPath: string): Promise<number> {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v', 'error',
+    '-select_streams', 'v:0',
+    '-show_entries', 'stream=avg_frame_rate,r_frame_rate',
+    '-of', 'default=noprint_wrappers=1:nokey=1',
+    videoPath,
+  ])
+  const lines = stdout
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  for (const line of lines) {
+    try {
+      return parseFpsValue(line, videoPath)
+    } catch {
+      continue
+    }
+  }
+
+  throw new Error(`ffprobe returned no fps for: ${videoPath}`)
 }
 
 /**

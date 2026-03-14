@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { execFile, spawn } from 'node:child_process'
 import * as fsp from 'node:fs/promises'
-import { joinVideos, getVideoDuration, compositeVideo } from './index'
+import { joinVideos, getVideoDuration, getVideoFps, compositeVideo } from './index'
 
 // execFile mock: used by getVideoDuration (ffprobe calls).
 // Returns a valid duration by default so joinVideos can probe inputs.
@@ -61,6 +61,37 @@ describe('getVideoDuration', () => {
     const [cmd, args] = vi.mocked(execFile).mock.calls[0] as [string, string[]]
     expect(cmd).toBe('ffprobe')
     expect(args[args.length - 1]).toBe('/my/video.mp4')
+  })
+})
+
+describe('getVideoFps', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('parses fractional fps from ffprobe stdout', async () => {
+    vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
+        null,
+        { stdout: '60000/1001\n60000/1001\n', stderr: '' },
+      )
+    })
+    await expect(getVideoFps('/clip.mp4')).resolves.toBeCloseTo(60000 / 1001)
+  })
+
+  it('falls back to the second fps value when the first is invalid', async () => {
+    vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
+        null,
+        { stdout: '0/0\n30000/1001\n', stderr: '' },
+      )
+    })
+    await expect(getVideoFps('/clip.mp4')).resolves.toBeCloseTo(30000 / 1001)
+  })
+
+  it('throws when ffprobe returns no fps', async () => {
+    vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '\n', stderr: '' })
+    })
+    await expect(getVideoFps('/clip.mp4')).rejects.toThrow('ffprobe returned no fps')
   })
 })
 
