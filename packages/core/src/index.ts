@@ -50,10 +50,15 @@ export interface SessionSegment {
 }
 
 export interface FadeStyling {
-  enabled?: boolean        // whether to fade in the overlay          (default: false)
-  durationSeconds?: number // fade-in duration in seconds             (default: 0.5)
-  preRollSeconds?: number  // seconds before first timestamp to show  (default: 0)
+  enabled?: boolean        // whether to fade in the overlay          (default: true)
+  durationSeconds?: number // fade-in duration in seconds             (default: 1)
+  preRollSeconds?: number  // seconds before first timestamp to show  (default: 3)
 }
+
+export const DEFAULT_FADE_ENABLED = true
+export const DEFAULT_FADE_DURATION_SECONDS = 1
+export const DEFAULT_FADE_PRE_ROLL_SECONDS = 3
+export const DEFAULT_LABEL_WINDOW_SECONDS = 2
 
 export interface SegmentLabelStyling {
   bgColor?: string         // pill background    (default: rgba(0,0,0,0.72))
@@ -155,5 +160,5 @@ export interface OverlayProps {
   boxPosition?: BoxPosition
   qualifyingTablePosition?: BoxPosition  // corner for the qualifying table overlay; default varies by style
   styling?: OverlayStyling
-  labelWindowSeconds?: number     // default 5
+  labelWindowSeconds?: number     // default 2
 }

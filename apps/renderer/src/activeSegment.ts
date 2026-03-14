@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { SessionSegment } from '@racedash/core'
+import { DEFAULT_LABEL_WINDOW_SECONDS, type SessionSegment } from '@racedash/core'
 
 export interface ActiveSegmentResult {
   segment: SessionSegment
@@ -65,7 +65,7 @@ export function resolveActiveSegment(
 export function useActiveSegment(
   segments: SessionSegment[],
   currentTime: number,
-  labelWindowSeconds = 5,
+  labelWindowSeconds = DEFAULT_LABEL_WINDOW_SECONDS,
 ): ActiveSegmentResult {
   return useMemo(
     () => resolveActiveSegment(segments, currentTime, labelWindowSeconds),

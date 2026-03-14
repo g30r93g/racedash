@@ -1,6 +1,12 @@
 import React, { useMemo } from 'react'
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
-import type { OverlayProps } from '@racedash/core'
+import {
+  DEFAULT_FADE_DURATION_SECONDS,
+  DEFAULT_FADE_ENABLED,
+  DEFAULT_FADE_PRE_ROLL_SECONDS,
+  DEFAULT_LABEL_WINDOW_SECONDS,
+  type OverlayProps,
+} from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { LapCounter, LapTimerTrap, PositionCounter, TimeLabelPanel, computeLapColors } from '../../components/banners'
 import { SegmentLabel } from '../../SegmentLabel'
@@ -21,7 +27,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const currentTime = frame / fps
   const scale = width / 1920
 
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
+  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
   const { session, sessionAllLaps, mode } = segment
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
@@ -47,7 +53,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const bgOpacity = gb?.opacity ?? 1
 
   const raceStart  = session.timestamps[0].ytSeconds
-  const preRoll    = styling?.fade?.preRollSeconds ?? 0
+  const preRoll    = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom   = raceStart - preRoll
 
   const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
@@ -59,8 +65,8 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
 
   if (currentTime < showFrom && !isEnd) return null
 
-  const fadeEnabled   = styling?.fade?.enabled ?? false
-  const fadeDuration  = styling?.fade?.durationSeconds ?? 0.5
+  const fadeEnabled   = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
+  const fadeDuration  = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
   const fadeOpacity   = fadeEnabled && !isEnd
     ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
     : 1

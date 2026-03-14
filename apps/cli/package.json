@@ -6,6 +6,7 @@
     "racedash": "./dist/index.js"
   },
   "scripts": {
+    "prebuild": "pnpm --filter @racedash/core build",
     "build": "tsc",
     "dev": "tsx src/index.ts"
   },

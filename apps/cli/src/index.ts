@@ -9,7 +9,22 @@ import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { compositeVideo, getVideoDuration, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
-import type { BoxPosition, LapTimestamp, OverlayProps, LeaderboardDriver, SessionData, SessionMode, SessionSegment, RaceLapEntry, RaceLapSnapshot, OverlayStyling } from '@racedash/core'
+import {
+  DEFAULT_FADE_DURATION_SECONDS,
+  DEFAULT_FADE_ENABLED,
+  DEFAULT_FADE_PRE_ROLL_SECONDS,
+  DEFAULT_LABEL_WINDOW_SECONDS,
+  type BoxPosition,
+  type LapTimestamp,
+  type OverlayProps,
+  type LeaderboardDriver,
+  type SessionData,
+  type SessionMode,
+  type SessionSegment,
+  type RaceLapEntry,
+  type RaceLapSnapshot,
+  type OverlayStyling,
+} from '@racedash/core'
 
 function buildRaceDrivers(
   allDrivers: DriverRow[],
@@ -168,7 +183,7 @@ program
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
   .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
   .option('--qualifying-table-position <pos>', 'Corner for qualifying table: bottom-left, bottom-right, top-left, top-right')
-  .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', '5')
+  .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', DEFAULT_LABEL_WINDOW_SECONDS.toString())
   .option('--no-cache', 'Force re-render the overlay even if a cached file exists')
   .option('--only-render-overlay', 'Render the overlay file and skip compositing onto the video')
   .action(async (opts: RenderOpts) => {
@@ -190,7 +205,7 @@ program
         process.exit(1)
       }
       const qualifyingTablePosition = qualifyingTablePositionRaw as BoxPosition | undefined
-      const labelWindowSeconds = parseFloat(opts.labelWindow ?? '5')
+      const labelWindowSeconds = parseFloat(opts.labelWindow ?? DEFAULT_LABEL_WINDOW_SECONDS.toString())
       if (isNaN(labelWindowSeconds) || labelWindowSeconds < 0) {
         console.error('Error: --label-window must be a non-negative number')
         process.exit(1)
@@ -501,9 +516,9 @@ function printStyling(styling: OverlayStyling | undefined, style: string): void 
   row('    ', 'textColor', styling?.textColor, 'white')
 
   section('    ', 'fade')
-  row('      ', 'enabled', fd?.enabled?.toString(), 'false')
-  row('      ', 'durationSeconds', fd?.durationSeconds?.toString(), '0.5')
-  row('      ', 'preRollSeconds', fd?.preRollSeconds?.toString(), '0')
+  row('      ', 'enabled', fd?.enabled?.toString(), DEFAULT_FADE_ENABLED.toString())
+  row('      ', 'durationSeconds', fd?.durationSeconds?.toString(), DEFAULT_FADE_DURATION_SECONDS.toString())
+  row('      ', 'preRollSeconds', fd?.preRollSeconds?.toString(), DEFAULT_FADE_PRE_ROLL_SECONDS.toString())
 
   section('    ', 'segmentLabel')
   row('      ', 'bgColor', sl?.bgColor, 'rgba(0,0,0,0.72)')

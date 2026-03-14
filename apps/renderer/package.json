@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm --filter @racedash/core build",
     "build": "tsc --noEmit",
+    "pretest": "pnpm --filter @racedash/core build",
     "test": "vitest run",
     "remotion": "remotion",
     "preview": "remotion preview src/index.ts"

@@ -1,6 +1,12 @@
 import React, { useMemo } from 'react'
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
-import type { OverlayProps } from '@racedash/core'
+import {
+  DEFAULT_FADE_DURATION_SECONDS,
+  DEFAULT_FADE_ENABLED,
+  DEFAULT_FADE_PRE_ROLL_SECONDS,
+  DEFAULT_LABEL_WINDOW_SECONDS,
+  type OverlayProps,
+} from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { LapCounter, LapTimerTrap, PositionCounter, TimeLabelPanel, computeLapColors } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
@@ -10,6 +16,9 @@ import { BannerBackground } from './BannerBackground'
 import { buildLeaderboard } from '../../leaderboard'
 
 const DEFAULT_ACCENT = '#3DD73D'
+const TIME_PLACEHOLDER = '-:--.---'
+const LAP_PLACEHOLDER = '-/-'
+const POSITION_PLACEHOLDER = 'P-'
 
 export const Banner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
@@ -21,7 +30,7 @@ export const Banner: React.FC<OverlayProps> = ({
   const scale = width / 1920
   const currentTime = frame / fps
 
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? 5)
+  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
   const { session, sessionAllLaps, mode } = segment
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
@@ -45,7 +54,7 @@ export const Banner: React.FC<OverlayProps> = ({
   const bannerRadius = (styling?.banner?.borderRadius ?? 10) * scale
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? 0
+  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom = raceStart - preRoll
 
   const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
@@ -57,8 +66,8 @@ export const Banner: React.FC<OverlayProps> = ({
 
   if (currentTime < showFrom && !isEnd) return null
 
-  const fadeEnabled = styling?.fade?.enabled ?? false
-  const fadeDuration = styling?.fade?.durationSeconds ?? 0.5
+  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
+  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
   const opacity = fadeEnabled && !isEnd
     ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
     : 1
@@ -133,6 +142,7 @@ export const Banner: React.FC<OverlayProps> = ({
               startingGridPosition={startingGridPosition}
               textColor={text}
               livePosition={livePosition}
+              placeholderText={POSITION_PLACEHOLDER}
             />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
@@ -141,9 +151,10 @@ export const Banner: React.FC<OverlayProps> = ({
                 currentTime={currentTime}
                 variant="last"
                 textColor={text}
+                placeholderText={TIME_PLACEHOLDER}
               />
             </div>
-            <LapTimerTrap {...lapTimerProps} />
+            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
                 timestamps={session.timestamps}
@@ -151,6 +162,7 @@ export const Banner: React.FC<OverlayProps> = ({
                 currentTime={currentTime}
                 variant="best"
                 textColor={text}
+                placeholderText={TIME_PLACEHOLDER}
               />
             </div>
             <LapCounter
@@ -158,6 +170,7 @@ export const Banner: React.FC<OverlayProps> = ({
               currentLap={currentLap}
               currentTime={currentTime}
               textColor={text}
+              placeholderText={LAP_PLACEHOLDER}
             />
           </div>
         </div>
@@ -201,15 +214,17 @@ export const Banner: React.FC<OverlayProps> = ({
             startingGridPosition={startingGridPosition}
             textColor={text}
             livePosition={livePosition}
+            placeholderText={POSITION_PLACEHOLDER}
           />
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <LapTimerTrap {...lapTimerProps} />
+            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
           </div>
           <LapCounter
             timestamps={session.timestamps}
             currentLap={currentLap}
             currentTime={currentTime}
             textColor={text}
+            placeholderText={LAP_PLACEHOLDER}
           />
         </div>
       </div>
