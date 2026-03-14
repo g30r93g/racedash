@@ -11,6 +11,7 @@ interface Props {
   variant: 'last' | 'best'
   textColor?: string
   yOffset?: number
+  placeholderText?: string
 }
 
 function formatBannerTime(seconds: number): string {
@@ -25,7 +26,7 @@ function formatBannerTime(seconds: number): string {
 }
 
 export const TimeLabelPanel: React.FC<Props> = ({
-  timestamps, currentIdx, currentTime, variant, textColor = 'white', yOffset = 0,
+  timestamps, currentIdx, currentTime, variant, textColor = 'white', yOffset = 0, placeholderText,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -75,13 +76,18 @@ export const TimeLabelPanel: React.FC<Props> = ({
     transform: `translateY(${yOffset * scale}px)`,
   }), [scale, yOffset])
 
-  if (currentTime < raceStart) return null
-  if (currentIdx < 1 || displayTime == null) return null
+  const displayText = displayTime != null
+    ? formatBannerTime(displayTime)
+    : placeholderText
+
+  if (currentTime < raceStart && placeholderText == null) return null
+  if (currentIdx < 1 && displayTime == null && placeholderText == null) return null
+  if (displayText == null) return null
 
   return (
     <div style={containerStyle}>
       <span style={labelStyle}>{label}</span>
-      <span style={valueStyle}>{formatBannerTime(displayTime)}</span>
+      <span style={valueStyle}>{displayText}</span>
       <span style={labelStyle}>LAP</span>
     </div>
   )

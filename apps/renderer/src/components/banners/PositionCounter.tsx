@@ -15,6 +15,7 @@ interface Props {
   textColor?: string
   /** When provided, overrides the computed position (e.g. from the live qualifying table). */
   livePosition?: number | null
+  placeholderText?: string
 }
 
 export const PositionCounter: React.FC<Props> = ({
@@ -22,6 +23,7 @@ export const PositionCounter: React.FC<Props> = ({
   currentIdx, currentTime,
   mode, startingGridPosition, textColor = 'white',
   livePosition,
+  placeholderText,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -76,12 +78,14 @@ export const PositionCounter: React.FC<Props> = ({
     userSelect: 'none',
   }), [scale, textColor])
 
+  const displayText = position != null ? `P${position}` : placeholderText
+
   return (
     <div style={containerStyle}>
-      {position != null && (
+      {displayText != null && (
         <>
           <span style={labelStyle}>POSITION</span>
-          <span style={valueStyle}>P{position}</span>
+          <span style={valueStyle}>{displayText}</span>
         </>
       )}
     </div>

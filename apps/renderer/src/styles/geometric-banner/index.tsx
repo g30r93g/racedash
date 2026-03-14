@@ -10,6 +10,7 @@ import { GeometricBannerBackground } from './GeometricBannerBackground'
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
 const SVG_H = 67.30343
+const TIME_PLACEHOLDER = '-:--.---'
 
 export const GeometricBanner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
@@ -133,6 +134,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
               mode={mode}
               startingGridPosition={startingGridPosition}
               textColor={text}
+              placeholderText="P-"
             />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
@@ -142,9 +144,10 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
                 variant="last"
                 textColor={text}
                 yOffset={timePanelYOffset}
+                placeholderText={TIME_PLACEHOLDER}
               />
             </div>
-            <LapTimerTrap {...lapTimerProps} />
+            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
             <div style={{ flex: 1 }}>
               <TimeLabelPanel
                 timestamps={session.timestamps}
@@ -153,6 +156,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
                 variant="best"
                 textColor={text}
                 yOffset={timePanelYOffset}
+                placeholderText={TIME_PLACEHOLDER}
               />
             </div>
             <LapCounter
@@ -160,6 +164,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
               currentLap={currentLap}
               currentTime={currentTime}
               textColor={text}
+              placeholderText="-/-"
             />
           </div>
         </div>
@@ -183,15 +188,17 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
             mode={mode}
             startingGridPosition={startingGridPosition}
             textColor={text}
+            placeholderText="P-"
           />
           <div style={{ flex: 1 }} />
-          <LapTimerTrap {...lapTimerProps} />
+          <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
           <div style={{ flex: 1 }} />
           <LapCounter
             timestamps={session.timestamps}
             currentLap={currentLap}
             currentTime={currentTime}
             textColor={text}
+            placeholderText="-/-"
           />
         </div>
       </div>

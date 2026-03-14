@@ -8,9 +8,12 @@ interface Props {
   currentLap: LapTimestamp
   currentTime: number
   textColor?: string
+  placeholderText?: string
 }
 
-export const LapCounter: React.FC<Props> = ({ timestamps, currentLap, currentTime, textColor = 'white' }) => {
+export const LapCounter: React.FC<Props> = ({
+  timestamps, currentLap, currentTime, textColor = 'white', placeholderText,
+}) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
 
@@ -54,12 +57,12 @@ export const LapCounter: React.FC<Props> = ({ timestamps, currentLap, currentTim
     userSelect: 'none',
   }), [scale, textColor])
 
-  if (currentTime < raceStart) return null
+  if (currentTime < raceStart && placeholderText == null) return null
 
   return (
     <div style={containerStyle}>
       <span style={labelStyle}>LAP</span>
-      <span style={valueStyle}>{displayText}</span>
+      <span style={valueStyle}>{currentTime < raceStart ? placeholderText : displayText}</span>
     </div>
   )
 }

@@ -12,6 +12,7 @@ interface Props {
   raceEnd: number
   textColor?: string
   flashDuration?: number
+  placeholderText?: string
 }
 
 function formatTime(seconds: number): string {
@@ -25,7 +26,7 @@ function formatTime(seconds: number): string {
 
 export const LapTimerTrap: React.FC<Props> = ({
   timestamps, currentLap, currentIdx, currentTime, raceEnd,
-  textColor = 'white', flashDuration,
+  textColor = 'white', flashDuration, placeholderText,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -42,11 +43,13 @@ export const LapTimerTrap: React.FC<Props> = ({
   }), [scale, textColor])
 
   const raceStart = timestamps[0].ytSeconds
-  if (currentTime < raceStart) return null
+  if (currentTime < raceStart && placeholderText == null) return null
 
   let displayText: string
 
-  if (currentTime >= raceEnd) {
+  if (currentTime < raceStart) {
+    displayText = placeholderText!
+  } else if (currentTime >= raceEnd) {
     const timeSinceEnd = currentTime - raceEnd
     displayText = timeSinceEnd < flashDurationSeconds
       ? formatTime(timestamps[timestamps.length - 1].lap.lapTime)
