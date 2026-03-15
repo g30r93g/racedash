@@ -48,28 +48,21 @@ async function main() {
   await compositeVideo(sourcePath, overlayPath, outputPath, {
     durationSeconds: 1,
     runtimePlatform: 'win32',
-    ffmpegCapabilities: {
-      encoders: new Set(['libx264']),
-      hwaccels: new Set(['d3d11va', 'dxva2']),
-      ffprobeVersion: 'smoke-test',
-    },
-    windowsHardwareInfo: {
-      cpu: 'GitHub Actions CPU',
-      cpuManufacturer: null,
-      gpuNames: ['GitHub Actions GPU'],
-      gpuVendors: ['amd'],
-    },
     onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
   })
 
   await stat(outputPath)
 
-  if (!diagnostics.some((diagnostic) => diagnostic.label === 'Decode')) {
+  const decodeDiagnostic = diagnostics.find((diagnostic) => diagnostic.label === 'Decode')
+  if (!decodeDiagnostic) {
     throw new Error(`Expected decode diagnostics, got ${JSON.stringify(diagnostics)}`)
+  }
+  if (!['cuda', 'qsv', 'd3d11va', 'dxva2', 'software'].includes(decodeDiagnostic.value)) {
+    throw new Error(`Unexpected decode path: ${JSON.stringify(diagnostics)}`)
   }
 
   console.log(`Windows smoke output created: ${outputPath}`)
-  console.log(JSON.stringify(diagnostics))
+  console.log(`Live diagnostics: ${JSON.stringify(diagnostics)}`)
 }
 
 main().catch((error) => {
