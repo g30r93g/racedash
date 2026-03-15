@@ -86,11 +86,12 @@ See the **Commands** section below for what you can do.
 
 `racedash` now reads timing data from a JSON config file for `drivers`, `timestamps`, and `render`.
 
-Each segment must declare an explicit `source`. v1 sources are:
+Each segment must declare an explicit `source`. The current source set is:
 
 - `alphaTiming`
 - `teamsportEmail`
-- `daytona`
+- `daytonaEmail`
+- `mylapsSpeedhive`
 - `manual`
 
 Example config:
@@ -114,7 +115,7 @@ Example config:
       "label": "Qualifying"
     },
     {
-      "source": "daytona",
+      "source": "mylapsSpeedhive",
       "mode": "race",
       "url": "https://speedhive.mylaps.com/sessions/11791523",
       "offset": "31:05.000",
@@ -134,6 +135,8 @@ Example config:
   ]
 }
 ```
+
+`teamsportEmail` and `daytonaEmail` expect a saved `.eml` file. `mylapsSpeedhive` expects a Speedhive session URL. `manual` is the fallback when an integration is unavailable. The `daytonaEmail` source is wired into config validation now, but it still needs a real Daytona `.eml` sample before parsing can be implemented accurately.
 
 ---
 

@@ -45,6 +45,19 @@ describe('loadTimingConfig', () => {
 
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('only valid for source "manual"')
   })
+
+  it('requires emailPath for daytonaEmail segments', async () => {
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [{
+        source: 'daytonaEmail',
+        mode: 'race',
+        offset: '1:00.000',
+      }],
+    } as TimingConfig & { segments: Array<Record<string, string | number>> })
+
+    await expect(loadTimingConfig(configPath, true)).rejects.toThrow('missing "emailPath"')
+  })
 })
 
 describe('validateManualTimingData', () => {
@@ -117,7 +130,7 @@ describe('teamsportEmail source', () => {
   })
 })
 
-describe('daytona source', () => {
+describe('mylapsSpeedhive source', () => {
   it('extracts the Speedhive session id from the session URL', () => {
     expect(extractSpeedhiveSessionId('https://speedhive.mylaps.com/sessions/11791523')).toBe('11791523')
   })
@@ -138,7 +151,7 @@ describe('daytona source', () => {
 
     const resolved = await resolveTimingSegments([
       {
-        source: 'daytona',
+        source: 'mylapsSpeedhive',
         mode: 'qualifying',
         offset: '0:45.000',
         url: 'https://speedhive.mylaps.com/sessions/11791523',
@@ -152,12 +165,25 @@ describe('daytona source', () => {
   })
 })
 
+describe('daytonaEmail source', () => {
+  it('fails with a clear message until a Daytona .eml parser is implemented', async () => {
+    await expect(resolveTimingSegments([
+      {
+        source: 'daytonaEmail',
+        mode: 'race',
+        offset: '0:45.000',
+        emailPath: teamsportFixture,
+      },
+    ], 'Driver')).rejects.toThrow('Daytona email parsing is not implemented yet')
+  })
+})
+
 describe('driver list helpers', () => {
   it('treats identical driver lists as shared', () => {
     const drivers = [driver('1', 'Alice'), driver('2', 'Bob')]
     expect(driverListsAreIdentical([
       { config: baseSegment('alphaTiming'), capabilities: baseCapabilities(), drivers },
-      { config: baseSegment('daytona'), capabilities: baseCapabilities(), drivers: [...drivers] },
+      { config: baseSegment('mylapsSpeedhive'), capabilities: baseCapabilities(), drivers: [...drivers] },
     ])).toBe(true)
   })
 
@@ -170,7 +196,7 @@ describe('driver list helpers', () => {
   })
 })
 
-function baseSegment(source: 'alphaTiming' | 'daytona') {
+function baseSegment(source: 'alphaTiming' | 'mylapsSpeedhive') {
   return { source, mode: 'practice', offset: '0:30.000', url: 'https://example.com' } as const
 }
 

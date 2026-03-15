@@ -26,7 +26,7 @@ import {
 import type { DriverRow, GridEntry, ReplayLapData, ReplayLapEntry } from '@racedash/scraper'
 import { parseOffset } from '@racedash/timestamps'
 
-export type TimingSource = 'alphaTiming' | 'teamsportEmail' | 'daytona' | 'manual'
+export type TimingSource = 'alphaTiming' | 'teamsportEmail' | 'daytonaEmail' | 'mylapsSpeedhive' | 'manual'
 
 type JsonPrimitive = string | number | boolean | null
 type JsonValue = JsonPrimitive | JsonObject | JsonValue[]
@@ -62,8 +62,13 @@ export interface TeamSportEmailSegmentConfig extends BaseSegmentConfig {
   emailPath: string
 }
 
-export interface DaytonaSegmentConfig extends BaseSegmentConfig {
-  source: 'daytona'
+export interface DaytonaEmailSegmentConfig extends BaseSegmentConfig {
+  source: 'daytonaEmail'
+  emailPath: string
+}
+
+export interface MylapsSpeedhiveSegmentConfig extends BaseSegmentConfig {
+  source: 'mylapsSpeedhive'
   url: string
 }
 
@@ -75,7 +80,8 @@ export interface ManualSegmentConfig extends BaseSegmentConfig {
 export type SegmentConfig =
   | AlphaTimingSegmentConfig
   | TeamSportEmailSegmentConfig
-  | DaytonaSegmentConfig
+  | DaytonaEmailSegmentConfig
+  | MylapsSpeedhiveSegmentConfig
   | ManualSegmentConfig
 
 export interface TimingConfig {
@@ -590,7 +596,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
   const offset = value.offset
   const label = value.label
 
-  if (typeof source !== 'string' || !['alphaTiming', 'teamsportEmail', 'daytona', 'manual'].includes(source)) {
+  if (typeof source !== 'string' || !['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual'].includes(source)) {
     throw new Error(`segments[${segmentIndex}] is missing a valid "source"`)
   }
   const timingSource = source as TimingSource
@@ -645,14 +651,34 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         emailPath: path.resolve(configDir, emailPath),
       }
     }
-    case 'daytona': {
+    case 'daytonaEmail': {
+      const emailPath = value.emailPath
+      if (typeof emailPath !== 'string' || !emailPath) {
+        throw new Error(`segments[${segmentIndex}] is missing "emailPath"`)
+      }
+      if ('url' in value) {
+        throw new Error(`segments[${segmentIndex}].url is not valid for source "daytonaEmail"`)
+      }
+      if ('timingData' in value) {
+        throw new Error(`segments[${segmentIndex}].timingData is only valid for source "manual"`)
+      }
+      return {
+        source: timingSource,
+        mode,
+        offset,
+        label,
+        positionOverrides,
+        emailPath: path.resolve(configDir, emailPath),
+      }
+    }
+    case 'mylapsSpeedhive': {
       const url = value.url
       if (typeof url !== 'string' || !url) {
         throw new Error(`segments[${segmentIndex}] is missing "url"`)
       }
       extractSpeedhiveSessionId(url)
       if ('emailPath' in value) {
-        throw new Error(`segments[${segmentIndex}].emailPath is not valid for source "daytona"`)
+        throw new Error(`segments[${segmentIndex}].emailPath is not valid for source "mylapsSpeedhive"`)
       }
       if ('timingData' in value) {
         throw new Error(`segments[${segmentIndex}].timingData is only valid for source "manual"`)
@@ -686,8 +712,10 @@ async function resolveTimingSegment(segment: SegmentConfig, driverQuery?: string
       return resolveAlphaTimingSegment(segment, driverQuery)
     case 'teamsportEmail':
       return resolveTeamsportEmailSegment(segment, driverQuery)
-    case 'daytona':
-      return resolveDaytonaSegment(segment, driverQuery)
+    case 'daytonaEmail':
+      return resolveDaytonaEmailSegment(segment, driverQuery)
+    case 'mylapsSpeedhive':
+      return resolveMylapsSpeedhiveSegment(segment, driverQuery)
     case 'manual':
       return resolveManualSegment(segment, driverQuery)
   }
@@ -766,8 +794,20 @@ async function resolveTeamsportEmailSegment(
   }
 }
 
-async function resolveDaytonaSegment(
-  segment: DaytonaSegmentConfig,
+async function resolveDaytonaEmailSegment(
+  segment: DaytonaEmailSegmentConfig,
+  driverQuery?: string,
+): Promise<ResolvedTimingSegment> {
+  await readBestEmlBody(segment.emailPath)
+
+  throw new Error(
+    `Daytona email parsing is not implemented yet for ${segment.emailPath}. ` +
+      'Provide a Daytona .eml sample to add support, or use source "manual" for now.',
+  )
+}
+
+async function resolveMylapsSpeedhiveSegment(
+  segment: MylapsSpeedhiveSegmentConfig,
   driverQuery?: string,
 ): Promise<ResolvedTimingSegment> {
   const sessionId = extractSpeedhiveSessionId(segment.url)
