@@ -158,13 +158,27 @@ describe('joinVideos', () => {
 })
 
 describe('compositeVideo', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
+      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(
+        null,
+        { stdout: '60\n', stderr: '' },
+      )
+    })
+    vi.mocked(spawn).mockImplementation(
+      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
+    )
+  })
 
   it('skips ffprobe when durationSeconds is provided', async () => {
     vi.mocked(spawn).mockImplementationOnce(
       (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
     )
-    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', { durationSeconds: 90 })
+    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+      durationSeconds: 90,
+      runtimePlatform: 'darwin',
+    })
     expect(vi.mocked(execFile)).not.toHaveBeenCalled()
   })
 
