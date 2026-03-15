@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 import { program } from 'commander'
-import { fetchHtml, fetchGridHtml, parseDrivers, parseGrid, fetchReplayHtml, parseReplayLapData } from '@racedash/scraper'
-import type { DriverRow, ReplayLapData } from '@racedash/scraper'
-import { parseOffset, calculateTimestamps, formatChapters } from '@racedash/timestamps'
-import { selectDriver, resolveVideoFiles } from './select'
 import path from 'node:path'
-import { access, readFile, unlink } from 'node:fs/promises'
+import { access, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
+import type { DriverRow } from '@racedash/scraper'
+import { resolveVideoFiles } from './select'
 import {
   collectDoctorDiagnostics,
   compositeVideo,
@@ -16,95 +14,36 @@ import {
   getVideoDuration,
   getVideoFps,
   getVideoResolution,
-  renderOverlay,
   joinVideos,
+  renderOverlay,
 } from '@racedash/compositor'
 import {
+  type BoxPosition,
   type CornerPosition,
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
-  type BoxPosition,
-  type LapTimestamp,
   type OverlayProps,
-  type LeaderboardDriver,
-  type SessionData,
-  type SessionMode,
-  type SessionSegment,
-  type PositionOverride,
-  type RaceLapEntry,
-  type RaceLapSnapshot,
   type OverlayStyling,
+  type SessionMode,
 } from '@racedash/core'
-
-function buildRaceDrivers(
-  allDrivers: DriverRow[],
-  offsetSeconds: number,
-): LeaderboardDriver[] {
-  // All drivers start simultaneously at offsetSeconds
-  return allDrivers.map(d => {
-    let ytSeconds = offsetSeconds
-    const timestamps: LapTimestamp[] = d.laps.map(lap => {
-      const ts = { lap, ytSeconds }
-      ytSeconds += lap.lapTime
-      return ts
-    })
-    return { kart: d.kart, name: d.name, timestamps }
-  })
-}
-
-function buildLeaderboardDrivers(
-  allDrivers: DriverRow[],
-  ourKart: string,
-  offsetSeconds: number,
-): LeaderboardDriver[] {
-  // Align everyone to finish at the same time as our driver
-  const ourDriver = allDrivers.find(d => d.kart === ourKart)
-  if (!ourDriver) return []
-
-  const ourTotal = ourDriver.laps.reduce((s, l) => s + l.lapTime, 0)
-  const sessionEnd = offsetSeconds + ourTotal
-
-  return allDrivers.map(d => {
-    const driverTotal = d.laps.reduce((s, l) => s + l.lapTime, 0)
-    const driverStart = sessionEnd - driverTotal
-
-    let ytSeconds = driverStart
-    const timestamps: LapTimestamp[] = d.laps.map(lap => {
-      const ts = { lap, ytSeconds }
-      ytSeconds += lap.lapTime
-      return ts
-    })
-
-    return { kart: d.kart, name: d.name, timestamps }
-  })
-}
-
-export function buildRaceLapSnapshots(replayData: ReplayLapData, offsetSeconds: number): RaceLapSnapshot[] {
-  const result: RaceLapSnapshot[] = []
-  for (let i = 1; i < replayData.length; i++) {
-    const snapshot = replayData[i]
-    const p1 = snapshot.find(e => e.position === 1)
-    if (!p1 || p1.totalSeconds === null) continue
-    const videoTimestamp = offsetSeconds + p1.totalSeconds
-    const entries: RaceLapEntry[] = snapshot.map(e => ({
-      kart: e.kart,
-      name: e.name,
-      position: e.position,
-      lapsCompleted: e.lapsCompleted,
-      gapToLeader: e.gapToLeader,
-      intervalToAhead: e.intervalToAhead,
-    }))
-    result.push({ leaderLap: i, videoTimestamp, entries })
-  }
-  return result
-}
-
-interface PositionOverrideConfig {
-  timestamp: string
-  position: number
-}
+import { formatChapters, parseOffset } from '@racedash/timestamps'
+import {
+  buildRaceLapSnapshots,
+  buildSessionSegments,
+  driverListsAreIdentical,
+  filterDriverHighlights,
+  flattenTimestamps,
+  formatDriverDisplay,
+  loadTimingConfig,
+  resolveDriversCommandSegments,
+  resolvePositionOverrides,
+  resolveTimingSegments,
+  TIMING_FEATURES,
+  validatePositionOverrideConfig,
+  type TimingCapabilities,
+} from './timingSources'
 
 type OutputResolutionPreset = '1080p' | '1440p' | '2160p'
 
@@ -150,113 +89,86 @@ export function resolveOutputResolutionPreset(
   return { preset: typedPreset, ...OUTPUT_RESOLUTIONS[typedPreset] }
 }
 
-export function validatePositionOverrideConfig(
-  positionOverrides: unknown,
-  mode: string,
-  segmentIndex: number,
-): PositionOverrideConfig[] | undefined {
-  if (positionOverrides === undefined) return undefined
-  if (!Array.isArray(positionOverrides)) {
-    throw new Error(`segments[${segmentIndex}].positionOverrides must be an array`)
-  }
-  if (positionOverrides.length === 0) return []
-
-  if (mode.toLowerCase() !== 'race') {
-    throw new Error(`segments[${segmentIndex}].positionOverrides is only valid for race segments`)
-  }
-
-  return positionOverrides.map((entry, entryIndex) => {
-    if (entry == null || typeof entry !== 'object') {
-      throw new Error(`segments[${segmentIndex}].positionOverrides[${entryIndex}] must be an object`)
-    }
-
-    const { timestamp } = entry as Partial<PositionOverrideConfig>
-    const positionValue = (entry as { position?: unknown }).position
-    if (typeof timestamp !== 'string' || !timestamp) {
-      throw new Error(`segments[${segmentIndex}].positionOverrides[${entryIndex}] is missing "timestamp"`)
-    }
-    if (typeof positionValue !== 'number' || !Number.isInteger(positionValue) || positionValue < 1) {
-      throw new Error(`segments[${segmentIndex}].positionOverrides[${entryIndex}].position must be an integer >= 1`)
-    }
-
-    return { timestamp, position: positionValue }
-  })
-}
-
-export function resolvePositionOverrides(
-  positionOverrides: PositionOverrideConfig[] | undefined,
-  offsetSeconds: number,
-  segmentIndex: number,
-  fps?: number,
-): PositionOverride[] | undefined {
-  if (positionOverrides == null) return undefined
-  if (positionOverrides.length === 0) return []
-
-  let previousTimestamp = -Infinity
-  for (let i = 0; i < positionOverrides.length; i++) {
-    const resolvedTimestamp = parseOffset(positionOverrides[i].timestamp, fps)
-    if (resolvedTimestamp < offsetSeconds) {
-      throw new Error(
-        `segments[${segmentIndex}].positionOverrides[${i}].timestamp must be >= the segment offset`,
-      )
-    }
-    if (resolvedTimestamp <= previousTimestamp) {
-      throw new Error(`segments[${segmentIndex}].positionOverrides must be sorted ascending by timestamp`)
-    }
-    previousTimestamp = resolvedTimestamp
-  }
-
-  return positionOverrides.map(entry => ({
-    timestamp: parseOffset(entry.timestamp, fps),
-    position: entry.position,
-  }))
-}
-
 program
   .name('racedash')
-  .description('Alpha Timing → YouTube chapters + geometric overlay')
+  .description('Config-driven timing → YouTube chapters + race overlays')
   .version('0.1.0')
 
+interface DriversOpts {
+  config: string
+  driver?: string
+}
+
 program
-  .command('drivers <url>')
-  .description('List all drivers for a session')
-  .action(async (url: string) => {
+  .command('drivers')
+  .description('List drivers for the configured timing segments')
+  .requiredOption('--config <path>', 'Path to JSON session config file')
+  .option('--driver <name>', 'Driver name to highlight (partial, case-insensitive)')
+  .action(async (opts: DriversOpts) => {
     try {
+      const { segments: segmentConfigs, driverQuery } = await loadTimingConfig(opts.config, false)
+      const highlightQuery = opts.driver ?? driverQuery
+
       console.error('Fetching...')
-      const html = await fetchHtml(url)
-      const drivers = parseDrivers(html)
-      drivers.forEach((d, i) =>
-        console.log(`  ${String(i + 1).padStart(2)}. [${d.kart.padStart(3)}] ${d.name}`),
-      )
+      const resolvedSegments = await resolveDriversCommandSegments(segmentConfigs, highlightQuery)
+
+      process.stderr.write('\n')
+      resolvedSegments.forEach((segment, index) => {
+        stat(`Segment ${index + 1}`, `[${segment.config.source}]  [${segment.config.mode}]`)
+        if (segment.config.label) stat('  Label', segment.config.label)
+        printCapabilities(segment.capabilities)
+      })
+
+      if (driverListsAreIdentical(resolvedSegments)) {
+        const drivers = resolvedSegments[0]?.drivers ?? []
+        printDriverList(drivers, highlightQuery, 'Drivers')
+      } else {
+        resolvedSegments.forEach((segment, index) => {
+          if (index > 0) process.stdout.write('\n')
+          process.stdout.write(`Segment ${index + 1}  [${segment.config.source}]  [${segment.config.mode}]\n`)
+          if (segment.config.label) process.stdout.write(`  Label: ${segment.config.label}\n`)
+          printDriverList(segment.drivers, highlightQuery)
+        })
+      }
     } catch (err) {
       console.error('Error:', (err as Error).message)
       process.exit(1)
     }
   })
 
+interface TimestampsOpts {
+  config: string
+  fps?: string
+}
+
 program
-  .command('timestamps <url> [driver]')
-  .description('Output YouTube chapter timestamps to stdout')
-  .requiredOption('--offset <time>', 'Video timestamp at race start, e.g. 0:02:15.500 or 12345 F')
-  .option('--fps <n>', 'Video fps used when --offset is given as "<frames> F"')
-  .action(async (url: string, driverQuery: string | undefined, opts: { offset: string, fps?: string }) => {
+  .command('timestamps')
+  .description('Output YouTube chapter timestamps to stdout from a config file')
+  .requiredOption('--config <path>', 'Path to JSON session config file')
+  .option('--fps <n>', 'Video fps used when any segment offset is given as "<frames> F"')
+  .action(async (opts: TimestampsOpts) => {
     try {
-      let fps: number | undefined
-      if (opts.fps != null) {
-        const parsedFps = parseFloat(opts.fps)
-        if (!Number.isFinite(parsedFps) || parsedFps <= 0) {
-          throw new Error('--fps must be a positive number')
-        }
-        fps = parsedFps
-      }
-      const offsetSeconds = parseOffset(opts.offset, fps)
+      const fps = parseOptionalFps(opts.fps)
+      const { segments: segmentConfigs, driverQuery } = await loadTimingConfig(opts.config, true)
+
       console.error('Fetching...')
-      const html = await fetchHtml(url)
-      const drivers = parseDrivers(html)
-      const driver = await selectDriver(drivers, driverQuery)
-      const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
-      console.error(`\nDriver: [${driver.kart}] ${driver.name} — ${driver.laps.length} laps\n`)
-      console.log(formatChapters(timestamps))
+      const resolvedSegments = await resolveTimingSegments(segmentConfigs, driverQuery)
+      const offsets = segmentConfigs.map(segment => parseOffset(segment.offset, fps))
+      const { segments } = buildSessionSegments(resolvedSegments, offsets)
+
+      process.stderr.write('\n')
+      resolvedSegments.forEach((resolvedSegment, index) => {
+        const selectedDriver = resolvedSegment.selectedDriver!
+        stat(
+          `Segment ${index + 1}`,
+          `[${resolvedSegment.config.source}]  [${resolvedSegment.config.mode}]  ${formatDriverDisplay(selectedDriver)}  ·  ${selectedDriver.laps.length} laps`,
+        )
+        stat('  Offset', formatOffsetTime(offsets[index]))
+        if (resolvedSegment.config.label) stat('  Label', resolvedSegment.config.label)
+        printCapabilities(resolvedSegment.capabilities)
+      })
+
+      console.log(formatChapters(flattenTimestamps(segments)))
     } catch (err) {
       console.error('Error:', (err as Error).message)
       process.exit(1)
@@ -296,12 +208,7 @@ program
   })
 
 interface RenderOpts {
-  config?: string
-  url?: string
-  offset?: string
-  mode?: string
-  label?: string
-  driver?: string
+  config: string
   video: string
   output: string
   style: string
@@ -318,12 +225,7 @@ interface RenderOpts {
 program
   .command('render')
   .description('Render overlay onto video')
-  .option('--config <path>', 'Path to JSON session config file')
-  .option('--url <url>', 'Session URL (inline single-segment)')
-  .option('--mode <mode>', 'Session mode for inline segment: practice, qualifying, or race')
-  .option('--offset <time>', 'Video timestamp at session start, e.g. 0:02:15.500 or 12345 F (inline single-segment)')
-  .option('--label <text>', 'Segment label shown around offset (inline single-segment)')
-  .option('--driver <name>', 'Driver name (partial, case-insensitive)')
+  .requiredOption('--config <path>', 'Path to JSON session config file')
   .requiredOption('--video <path>', 'Source video file path')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--style <name>', 'Overlay style', 'banner')
@@ -347,40 +249,38 @@ program
         console.error(`Error: --box-position must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
         process.exit(1)
       }
+
       const qualifyingTablePositionRaw = opts.qualifyingTablePosition
       if (qualifyingTablePositionRaw != null && !VALID_TABLE_POSITIONS.includes(qualifyingTablePositionRaw as CornerPosition)) {
         console.error(`Error: --qualifying-table-position must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
         process.exit(1)
       }
       const qualifyingTablePosition = qualifyingTablePositionRaw as CornerPosition | undefined
+
       const labelWindowSeconds = parseFloat(opts.labelWindow ?? DEFAULT_LABEL_WINDOW_SECONDS.toString())
       if (isNaN(labelWindowSeconds) || labelWindowSeconds < 0) {
         console.error('Error: --label-window must be a non-negative number')
         process.exit(1)
       }
 
-      const { segments: segmentConfigs, driverQuery, configBoxPosition, configTablePosition, styling } = await loadRenderConfig(opts)
+      const {
+        segments: segmentConfigs,
+        driverQuery,
+        configBoxPosition,
+        configTablePosition,
+        styling,
+      } = await loadTimingConfig(opts.config, true)
+
       if (configBoxPosition != null && !VALID_BOX_POSITIONS.includes(configBoxPosition as BoxPosition)) {
         throw new Error(`config.boxPosition must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
       }
       if (configTablePosition != null && !VALID_TABLE_POSITIONS.includes(configTablePosition as CornerPosition)) {
         throw new Error(`config.qualifyingTablePosition must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
       }
+
       const boxPosition = (opts.boxPosition ?? configBoxPosition ?? defaultBoxPositionForStyle(opts.style)) as BoxPosition
-      // CLI flags take precedence over config file values
       const resolvedTablePosition = (qualifyingTablePosition ?? configTablePosition) as CornerPosition | undefined
 
-      // Validate all modes up front
-      const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
-      for (const sc of segmentConfigs) {
-        const normalised = sc.mode?.toLowerCase()
-        if (!normalised || !validModes.includes(normalised as SessionMode)) {
-          console.error(`Error: segment mode "${sc.mode}" must be one of: ${validModes.join(', ')}`)
-          process.exit(1)
-        }
-      }
-
-      // Resolve video: if a directory, prompt the user to select files
       const selectedFiles = await resolveVideoFiles(opts.video)
       let videoPath = selectedFiles[0]
       let tempJoinedVideo: string | null = null
@@ -400,119 +300,40 @@ program
       ])
       const outputResolution = requestedOutputResolution ?? videoResolution
       const frameDuration = 1 / fps
-      // Parse and snap each segment's offset
-      const rawOffsets = segmentConfigs.map(sc => parseOffset(sc.offset, fps))
-      const resolvedPositionOverrides = segmentConfigs.map((sc, i) =>
-        resolvePositionOverrides(sc.positionOverrides, rawOffsets[i], i, fps),
+
+      const rawOffsets = segmentConfigs.map(segment => parseOffset(segment.offset, fps))
+      const resolvedPositionOverrides = segmentConfigs.map((segment, index) =>
+        resolvePositionOverrides(segment.positionOverrides, rawOffsets[index], index, fps),
       )
-      const snappedOffsets = rawOffsets.map(raw => {
-        const snapped = Math.round(Math.round(raw / frameDuration) * frameDuration * 1e6) / 1e6
-        return snapped
+      const snappedOffsets = rawOffsets.map(raw => roundMillis(Math.round(raw / frameDuration) * frameDuration))
+
+      const resolvedSegments = await resolveTimingSegments(segmentConfigs, driverQuery)
+      const { segments, startingGridPosition } = buildSessionSegments(resolvedSegments, snappedOffsets)
+      segments.forEach((segment, index) => {
+        segment.positionOverrides = resolvedPositionOverrides[index]
       })
-
-      // Fetch all segment HTMLs + race grid + video metadata in parallel
-      const raceSegmentIndices = segmentConfigs
-        .map((sc, i) => (sc.mode.toLowerCase() === 'race' ? i : -1))
-        .filter(i => i >= 0)
-
-      const N = segmentConfigs.length
-      const R = raceSegmentIndices.length
-
-      const fetchResults = await Promise.all([
-        ...segmentConfigs.map(sc => fetchHtml(sc.url)),
-        ...raceSegmentIndices.map(i => fetchGridHtml(segmentConfigs[i].url)),
-        ...raceSegmentIndices.map(i => fetchReplayHtml(segmentConfigs[i].url).then(parseReplayLapData)),
-      ])
-
-      const htmls         = fetchResults.slice(0, N) as string[]
-      const gridHtmls     = fetchResults.slice(N, N + R) as string[]
-      const replayDataArr = fetchResults.slice(N + R) as ReplayLapData[]
-
-      // Build SessionSegment[] — find driver in each segment independently
-      const segments: SessionSegment[] = []
-      let startingGridPosition: number | undefined
-
-      for (let i = 0; i < segmentConfigs.length; i++) {
-        const sc = segmentConfigs[i]
-        const mode = sc.mode.toLowerCase() as SessionMode
-        const html = htmls[i]
-        const offsetSeconds = snappedOffsets[i]
-
-        const allDrivers = parseDrivers(html)
-        // Driver matching: partial, case-insensitive; error on 0 or 2+ matches
-        const matches = allDrivers.filter(d =>
-          d.name.toLowerCase().includes(driverQuery.toLowerCase()),
-        )
-        if (matches.length === 0) {
-          console.error(`Error: no driver matching "${driverQuery}" found in segment ${i + 1} (${sc.url})`)
-          process.exit(1)
-        }
-        if (matches.length > 1) {
-          console.error(
-            `Error: "${driverQuery}" is ambiguous in segment ${i + 1}. Matches:\n` +
-              matches.map(d => `  [${d.kart}] ${d.name}`).join('\n'),
-          )
-          process.exit(1)
-        }
-        const driver = matches[0]
-        const timestamps = calculateTimestamps(driver.laps, offsetSeconds)
-
-        const session: SessionData = {
-          driver: { kart: driver.kart, name: driver.name },
-          laps: driver.laps,
-          timestamps,
-        }
-
-        // Grid position from first race segment
-        if (mode === 'race' && startingGridPosition === undefined) {
-          const raceIdx = raceSegmentIndices.indexOf(i)
-          if (raceIdx >= 0 && gridHtmls[raceIdx]) {
-            const grid = parseGrid(gridHtmls[raceIdx])
-            const entry = grid.find(e => e.kart === driver.kart)
-            if (entry) startingGridPosition = entry.position
-            else process.stderr.write(`\n  ⚠  kart ${driver.kart} not found in starting grid\n`)
-          }
-        }
-
-        const rawOffset = rawOffsets[i]
-        const snapped = snappedOffsets[i]
-        const offsetSnapped = Math.abs(snapped - rawOffset) >= 0.0001
-
-        stat(`Segment ${i + 1}`, `[${mode}]  ${driver.name}  [${driver.kart}]  ·  ${driver.laps.length} laps`)
-        if (offsetSnapped) {
-          stat('  Offset', `${formatOffsetTime(rawOffset)} → ${formatOffsetTime(snapped)}  (snapped)`)
-        } else {
-          stat('  Offset', formatOffsetTime(snapped))
-        }
-        if (sc.label) stat('  Label', sc.label)
-
-        let raceLapSnapshots: RaceLapSnapshot[] | undefined
-        if (mode === 'race') {
-          const raceIdx = raceSegmentIndices.indexOf(i)
-          if (raceIdx >= 0 && replayDataArr[raceIdx]) {
-            raceLapSnapshots = buildRaceLapSnapshots(replayDataArr[raceIdx], snappedOffsets[i])
-            if (raceLapSnapshots.length === 0) {
-              process.stderr.write(`Warning: no valid race lap snapshots for segment ${i}\n`)
-            }
-          }
-        }
-
-        segments.push({
-          mode,
-          session,
-          sessionAllLaps: allDrivers.map(d => d.laps),
-          leaderboardDrivers: mode === 'race'
-            ? buildRaceDrivers(allDrivers, offsetSeconds)
-            : buildLeaderboardDrivers(allDrivers, driver.kart, offsetSeconds),
-          label: sc.label,
-          positionOverrides: resolvedPositionOverrides[i],
-          raceLapSnapshots,
-        })
-      }
 
       const durationInFrames = Math.ceil(durationSeconds * fps)
 
       process.stderr.write('\n')
+      resolvedSegments.forEach((resolvedSegment, index) => {
+        const rawOffset = rawOffsets[index]
+        const snappedOffset = snappedOffsets[index]
+        const offsetSnapped = Math.abs(snappedOffset - rawOffset) >= 0.0001
+        const selectedDriver = resolvedSegment.selectedDriver!
+        stat(
+          `Segment ${index + 1}`,
+          `[${resolvedSegment.config.source}]  [${resolvedSegment.config.mode}]  ${formatDriverDisplay(selectedDriver)}  ·  ${selectedDriver.laps.length} laps`,
+        )
+        if (offsetSnapped) {
+          stat('  Offset', `${formatOffsetTime(rawOffset)} → ${formatOffsetTime(snappedOffset)}  (snapped)`)
+        } else {
+          stat('  Offset', formatOffsetTime(snappedOffset))
+        }
+        if (resolvedSegment.config.label) stat('  Label', resolvedSegment.config.label)
+        printCapabilities(resolvedSegment.capabilities)
+      })
+
       stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${formatFps(fps)} fps`)
       if (requestedOutputResolution != null) {
         stat('Output', `${outputResolution.width}×${outputResolution.height}  ·  ${requestedOutputResolution.preset}`)
@@ -545,7 +366,9 @@ program
           await access(overlayPath)
           const overlayDuration = await getVideoDuration(overlayPath)
           overlayReused = overlayDuration > 0
-        } catch { /* no valid overlay on disk */ }
+        } catch {
+          overlayReused = false
+        }
       }
 
       if (overlayReused) {
@@ -618,6 +441,41 @@ program
 
 const BAR_WIDTH = 30
 
+function parseOptionalFps(raw: string | undefined): number | undefined {
+  if (raw == null) return undefined
+  const fps = parseFloat(raw)
+  if (!Number.isFinite(fps) || fps <= 0) {
+    throw new Error('--fps must be a positive number')
+  }
+  return fps
+}
+
+function printDriverList(drivers: DriverRow[], highlightQuery: string | undefined, heading?: string): void {
+  if (heading) process.stdout.write(`${heading}\n`)
+
+  if (drivers.length === 0) {
+    process.stdout.write('  Driver discovery unavailable for this source.\n')
+    return
+  }
+
+  const highlights = new Set(filterDriverHighlights(drivers, highlightQuery).map(driver => `${driver.kart}::${driver.name}`))
+  drivers.forEach((driver, index) => {
+    const marker = highlights.has(`${driver.kart}::${driver.name}`) ? '*' : ' '
+    process.stdout.write(`${marker} ${String(index + 1).padStart(2)}. ${formatDriverDisplay(driver)}\n`)
+  })
+
+  if (highlightQuery && highlights.size === 0) {
+    process.stdout.write(`  No matches for "${highlightQuery}".\n`)
+  }
+}
+
+function printCapabilities(capabilities: TimingCapabilities): void {
+  process.stderr.write('  Features\n')
+  for (const feature of TIMING_FEATURES) {
+    process.stderr.write(`    [${capabilities[feature.key] ? 'x' : ' '}] ${feature.label}\n`)
+  }
+}
+
 function progressBar(progress: number): string {
   const filled = Math.round(progress * BAR_WIDTH)
   return '█'.repeat(filled) + '░'.repeat(BAR_WIDTH - filled)
@@ -646,6 +504,10 @@ function formatFps(fps: number): string {
   return fps.toFixed(3).replace(/\.?0+$/, '')
 }
 
+function roundMillis(value: number): number {
+  return Math.round(value * 1000) / 1000
+}
+
 function stat(label: string, value: string): void {
   process.stderr.write(`  ${label.padEnd(10)}  ${value}\n`)
 }
@@ -655,12 +517,12 @@ function tryParseColor(css: string): [number, number, number] | null {
   const hex = s.match(/^#([0-9a-fA-F]{3,8})$/)
   if (hex) {
     const h = hex[1]
-    if (h.length === 3) return [parseInt(h[0]+h[0],16), parseInt(h[1]+h[1],16), parseInt(h[2]+h[2],16)]
-    if (h.length >= 6)  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
+    if (h.length === 3) return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)]
+    if (h.length >= 6) return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
   }
   const rgb = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
-  if (rgb) return [parseInt(rgb[1]), parseInt(rgb[2]), parseInt(rgb[3])]
-  const named: Record<string, [number, number, number]> = { white: [255,255,255], black: [0,0,0] }
+  if (rgb) return [parseInt(rgb[1], 10), parseInt(rgb[2], 10), parseInt(rgb[3], 10)]
+  const named: Record<string, [number, number, number]> = { white: [255, 255, 255], black: [0, 0, 0] }
   return named[s.toLowerCase()] ?? null
 }
 
@@ -696,7 +558,7 @@ function printStyling(styling: OverlayStyling | undefined, style: string): void 
     process.stderr.write(`${indent}${name}\n`)
   }
 
-  process.stderr.write(`  Styling\n`)
+  process.stderr.write('  Styling\n')
   row('    ', 'accentColor', styling?.accentColor, '#3DD73D')
   row('    ', 'textColor', styling?.textColor, 'white')
 
@@ -788,18 +650,12 @@ function printStyling(styling: OverlayStyling | undefined, style: string): void 
   }
 }
 
-
 function makeProgressCallback(label: string): (progress: number) => void {
   const tag = label.padEnd(16)
   const wallStart = Date.now()
-
-  // Sliding window rate estimation: sample progress every SAMPLE_MS,
-  // keep the last WINDOW samples. Rate = (newest - oldest) / time span.
-  // This adapts to recent speed without being dominated by early fast/slow
-  // startup periods, and only updates ETA once per second to avoid jitter.
   const SAMPLE_MS = 1000
   const WINDOW = 10
-  const samples: Array<[number, number]> = [] // [timestamp ms, progress]
+  const samples: Array<[number, number]> = []
   let lastSampleTime = 0
   let etaStr = ''
 
@@ -833,80 +689,7 @@ function makeProgressCallback(label: string): (progress: number) => void {
   }
 }
 
-interface SegmentConfig {
-  mode: string
-  url: string
-  offset: string
-  label?: string
-  positionOverrides?: PositionOverrideConfig[]
-}
-
-interface ResolvedSegmentConfig {
-  mode: string
-  url: string
-  offset: string
-  label?: string
-  positionOverrides?: PositionOverrideConfig[]
-}
-
-interface RenderConfig {
-  segments: SegmentConfig[]
-  driver?: string
-  boxPosition?: string
-  qualifyingTablePosition?: string
-  styling?: OverlayStyling
-}
-
-interface LoadedConfig {
-  segments: ResolvedSegmentConfig[]
-  driverQuery: string
-  configBoxPosition?: string
-  configTablePosition?: string
-  styling?: OverlayStyling
-}
-
-async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
-  if (opts.config) {
-    const raw = JSON.parse(await readFile(opts.config, 'utf8'))
-    const config = raw as RenderConfig
-    if (!Array.isArray(config.segments) || config.segments.length === 0) {
-      throw new Error('Config file must contain a non-empty "segments" array')
-    }
-    for (let i = 0; i < config.segments.length; i++) {
-      const s = config.segments[i]
-      if (typeof s.url    !== 'string' || !s.url)    throw new Error(`segments[${i}] is missing "url"`)
-      if (typeof s.mode   !== 'string' || !s.mode)   throw new Error(`segments[${i}] is missing "mode"`)
-      if (typeof s.offset !== 'string' || !s.offset) throw new Error(`segments[${i}] is missing "offset"`)
-    }
-    const driverQuery = opts.driver ?? config.driver
-    if (!driverQuery) throw new Error('--driver is required (or set "driver" in config file)')
-    return {
-      segments: config.segments.map((segment, i) => ({
-        ...segment,
-        positionOverrides: validatePositionOverrideConfig(segment.positionOverrides, segment.mode, i),
-      })),
-      driverQuery,
-      configBoxPosition: config.boxPosition,
-      configTablePosition: config.qualifyingTablePosition,
-      styling: config.styling,
-    }
-  }
-
-  // Inline single-segment
-  if (!opts.url || !opts.mode || !opts.offset) {
-    throw new Error('Provide --config <path> or all of --url, --mode, and --offset for a single segment')
-  }
-  if (!opts.driver) throw new Error('--driver is required')
-  return {
-    segments: [{
-      mode: opts.mode,
-      url: opts.url,
-      offset: opts.offset,
-      label: opts.label,
-    }],
-    driverQuery: opts.driver,
-  }
-}
+export { buildRaceLapSnapshots, resolvePositionOverrides, validatePositionOverrideConfig }
 
 if (require.main === module) {
   program.parseAsync(process.argv).catch((err: Error) => {
