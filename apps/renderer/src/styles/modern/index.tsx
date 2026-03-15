@@ -1,5 +1,3 @@
-import React, { useMemo } from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
@@ -8,13 +6,15 @@ import {
   type OverlayProps,
 } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
-import { getCompletedLaps, getLapAtTime, getLapElapsed, getSessionBest } from '../../timing'
+import React, { useMemo } from 'react'
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import { useActiveSegment } from '../../activeSegment'
-import { SegmentLabel } from '../../SegmentLabel'
-import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
-import { useLivePosition } from '../../livePosition'
 import { useDisplayedPosition } from '../../displayedPosition'
+import { useLivePosition } from '../../livePosition'
+import { fontFamily } from '../../Root'
+import { SegmentLabel } from '../../SegmentLabel'
+import { getCompletedLaps, getLapAtTime, getLapElapsed, getSessionBest } from '../../timing'
 
 const PLACEHOLDER = '—:--.---'
 
@@ -23,6 +23,7 @@ export const Modern: React.FC<OverlayProps> = ({
   fps,
   styling,
   startingGridPosition,
+  boxPosition = 'bottom-center',
   labelWindowSeconds,
   qualifyingTablePosition,
 }) => {
@@ -96,16 +97,21 @@ export const Modern: React.FC<OverlayProps> = ({
   const statLabelColor = mo?.statLabelColor ?? 'rgba(255,255,255,0.5)'
 
   const styles = useMemo(() => {
-    const padX = 103 * scale
-    const statGap = 89 * scale
-    const dividerMargin = 74 * scale
+    const padX = 20 * scale
+    const statGap = 14 * scale
+    const dividerMargin = 14 * scale
+    const verticalPos = boxPosition.startsWith('top') ? { top: 0 } : { bottom: 0 }
+    const horizontalPos = boxPosition.endsWith('left')
+      ? { left: 0 }
+      : boxPosition.endsWith('right')
+        ? { right: 0 }
+        : { left: '50%', transform: 'translateX(-50%)' }
     return {
       container: {
         position: 'absolute' as const,
-        bottom: 0,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 520 * scale,
+        ...verticalPos,
+        ...horizontalPos,
+        width: 620 * scale,
         height: 96 * scale,
         display: 'flex',
         flexDirection: 'row' as const,
@@ -122,15 +128,18 @@ export const Modern: React.FC<OverlayProps> = ({
       },
       elapsed: {
         flex: 1,
-        fontSize: 192 * scale,
+        minWidth: 0,
+        fontSize: 44 * scale,
         fontWeight: 700,
         color: 'white',
         lineHeight: 1,
-        letterSpacing: 4 * scale,
+        letterSpacing: 1 * scale,
+        whiteSpace: 'nowrap' as const,
+        fontVariantNumeric: 'tabular-nums',
       },
       divider: {
-        width: 4 * scale,
-        height: 148 * scale,
+        width: 1 * scale,
+        height: 40 * scale,
         background: dividerColor,
         flexShrink: 0,
         marginLeft: dividerMargin,
@@ -141,29 +150,43 @@ export const Modern: React.FC<OverlayProps> = ({
         flexDirection: 'row' as const,
         alignItems: 'center',
         gap: statGap,
+        flexShrink: 0,
       },
-      statCol: {
+      timeStatCol: {
         display: 'flex',
         flexDirection: 'column' as const,
         alignItems: 'flex-start' as const,
-        gap: 7 * scale,
+        gap: 2 * scale,
+        width: 104 * scale,
+        flexShrink: 0,
+      },
+      posStatCol: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'flex-start' as const,
+        gap: 2 * scale,
+        width: 42 * scale,
+        flexShrink: 0,
       },
       label: {
-        fontSize: 41 * scale,
+        fontSize: 10 * scale,
         fontWeight: 400,
         color: statLabelColor,
         textTransform: 'uppercase' as const,
-        letterSpacing: 7 * scale,
+        letterSpacing: 1.5 * scale,
         lineHeight: 1,
+        whiteSpace: 'nowrap' as const,
       },
       statValue: {
-        fontSize: 81 * scale,
+        fontSize: 20 * scale,
         fontWeight: 700,
         color: 'white',
         lineHeight: 1,
+        whiteSpace: 'nowrap' as const,
+        fontVariantNumeric: 'tabular-nums',
       },
     }
-  }, [scale, stripeOpacity, bgColor, dividerColor, statLabelColor])
+  }, [boxPosition, scale, stripeOpacity, bgColor, dividerColor, statLabelColor])
 
   const elapsed = getLapElapsed(currentLap, effectiveTime)
   const elapsedFormatted = formatLapTime(elapsed)
@@ -176,17 +199,17 @@ export const Modern: React.FC<OverlayProps> = ({
         <span style={styles.elapsed}>{elapsedFormatted}</span>
         <div style={styles.divider} />
         <div style={styles.statGroup}>
-          <div style={styles.statCol}>
+          <div style={styles.posStatCol}>
+            <span style={styles.label}>POS</span>
+            <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
+          </div>
+          <div style={styles.timeStatCol}>
             <span style={styles.label}>LAST</span>
             <span style={styles.statValue}>{lastLapTime}</span>
           </div>
-          <div style={styles.statCol}>
+          <div style={styles.timeStatCol}>
             <span style={styles.label}>BEST</span>
             <span style={styles.statValue}>{sessionBestTime}</span>
-          </div>
-          <div style={styles.statCol}>
-            <span style={styles.label}>POS</span>
-            <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
           </div>
         </div>
       </div>

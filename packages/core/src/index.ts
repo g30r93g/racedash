@@ -45,7 +45,8 @@ export type BannerInfoSegmentContent = 'none' | 'last-lap' | 'best-lap'
 
 export type SessionMode = 'practice' | 'qualifying' | 'race'
 
-export type BoxPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+export type CornerPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+export type BoxPosition = CornerPosition | 'bottom-center' | 'top-center'
 
 export interface SessionSegment {
   mode: SessionMode
@@ -170,7 +171,7 @@ export interface OverlayProps {
   videoWidth?: number
   videoHeight?: number
   boxPosition?: BoxPosition
-  qualifyingTablePosition?: BoxPosition  // corner for the qualifying table overlay; default varies by style
+  qualifyingTablePosition?: CornerPosition  // corner for the qualifying table overlay; default varies by style
   styling?: OverlayStyling
   labelWindowSeconds?: number     // default 2
 }

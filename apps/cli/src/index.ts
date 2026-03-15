@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { compositeVideo, getVideoDuration, getVideoFps, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
 import {
+  type CornerPosition,
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
@@ -101,6 +102,13 @@ const OUTPUT_RESOLUTIONS: Record<OutputResolutionPreset, { width: number; height
   '1080p': { width: 1920, height: 1080 },
   '1440p': { width: 2560, height: 1440 },
   '2160p': { width: 3840, height: 2160 },
+}
+
+const VALID_BOX_POSITIONS: BoxPosition[] = ['bottom-left', 'bottom-center', 'bottom-right', 'top-left', 'top-center', 'top-right']
+const VALID_TABLE_POSITIONS: CornerPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
+
+function defaultBoxPositionForStyle(style: string): BoxPosition {
+  return style === 'modern' ? 'bottom-center' : 'bottom-left'
 }
 
 export function resolveOutputResolutionPreset(
@@ -255,7 +263,7 @@ interface RenderOpts {
   outputResolution?: string
   overlayX: string
   overlayY: string
-  boxPosition: string
+  boxPosition?: string
   qualifyingTablePosition?: string
   labelWindow?: string
   noCache?: boolean
@@ -277,7 +285,7 @@ program
   .option('--output-resolution <preset>', 'Output resolution preset: 1080p, 1440p, or 2160p')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
   .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
-  .option('--box-position <pos>', 'Box corner for esports/minimal: bottom-left, bottom-right, top-left, top-right', 'bottom-left')
+  .option('--box-position <pos>', 'Position for esports/minimal/modern: bottom-left, bottom-center, bottom-right, top-left, top-center, top-right')
   .option('--qualifying-table-position <pos>', 'Corner for qualifying table: bottom-left, bottom-right, top-left, top-right')
   .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', DEFAULT_LABEL_WINDOW_SECONDS.toString())
   .option('--no-cache', 'Force re-render the overlay even if a cached file exists')
@@ -285,27 +293,32 @@ program
   .action(async (opts: RenderOpts) => {
     try {
       const requestedOutputResolution = resolveOutputResolutionPreset(opts.outputResolution)
-      const validBoxPositions: BoxPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
-      if (!validBoxPositions.includes(opts.boxPosition as BoxPosition)) {
-        console.error(`Error: --box-position must be one of: ${validBoxPositions.join(', ')}`)
+      if (opts.boxPosition != null && !VALID_BOX_POSITIONS.includes(opts.boxPosition as BoxPosition)) {
+        console.error(`Error: --box-position must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
         process.exit(1)
       }
-      const boxPosition = opts.boxPosition as BoxPosition
       const qualifyingTablePositionRaw = opts.qualifyingTablePosition
-      if (qualifyingTablePositionRaw != null && !validBoxPositions.includes(qualifyingTablePositionRaw as BoxPosition)) {
-        console.error(`Error: --qualifying-table-position must be one of: ${validBoxPositions.join(', ')}`)
+      if (qualifyingTablePositionRaw != null && !VALID_TABLE_POSITIONS.includes(qualifyingTablePositionRaw as CornerPosition)) {
+        console.error(`Error: --qualifying-table-position must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
         process.exit(1)
       }
-      const qualifyingTablePosition = qualifyingTablePositionRaw as BoxPosition | undefined
+      const qualifyingTablePosition = qualifyingTablePositionRaw as CornerPosition | undefined
       const labelWindowSeconds = parseFloat(opts.labelWindow ?? DEFAULT_LABEL_WINDOW_SECONDS.toString())
       if (isNaN(labelWindowSeconds) || labelWindowSeconds < 0) {
         console.error('Error: --label-window must be a non-negative number')
         process.exit(1)
       }
 
-      const { segments: segmentConfigs, driverQuery, configTablePosition, styling } = await loadRenderConfig(opts)
+      const { segments: segmentConfigs, driverQuery, configBoxPosition, configTablePosition, styling } = await loadRenderConfig(opts)
+      if (configBoxPosition != null && !VALID_BOX_POSITIONS.includes(configBoxPosition as BoxPosition)) {
+        throw new Error(`config.boxPosition must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
+      }
+      if (configTablePosition != null && !VALID_TABLE_POSITIONS.includes(configTablePosition as CornerPosition)) {
+        throw new Error(`config.qualifyingTablePosition must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
+      }
+      const boxPosition = (opts.boxPosition ?? configBoxPosition ?? defaultBoxPositionForStyle(opts.style)) as BoxPosition
       // CLI flags take precedence over config file values
-      const resolvedTablePosition = qualifyingTablePosition ?? configTablePosition
+      const resolvedTablePosition = (qualifyingTablePosition ?? configTablePosition) as CornerPosition | undefined
 
       // Validate all modes up front
       const validModes: SessionMode[] = ['practice', 'qualifying', 'race']
@@ -781,14 +794,16 @@ interface ResolvedSegmentConfig {
 interface RenderConfig {
   segments: SegmentConfig[]
   driver?: string
-  qualifyingTablePosition?: BoxPosition
+  boxPosition?: string
+  qualifyingTablePosition?: string
   styling?: OverlayStyling
 }
 
 interface LoadedConfig {
   segments: ResolvedSegmentConfig[]
   driverQuery: string
-  configTablePosition?: BoxPosition
+  configBoxPosition?: string
+  configTablePosition?: string
   styling?: OverlayStyling
 }
 
@@ -813,6 +828,7 @@ async function loadRenderConfig(opts: RenderOpts): Promise<LoadedConfig> {
         positionOverrides: validatePositionOverrideConfig(segment.positionOverrides, segment.mode, i),
       })),
       driverQuery,
+      configBoxPosition: config.boxPosition,
       configTablePosition: config.qualifyingTablePosition,
       styling: config.styling,
     }

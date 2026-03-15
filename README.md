@@ -177,7 +177,7 @@ While running, racedash shows a progress bar for each step and a total time on c
 | `--mode <mode>` | Session type: `practice`, `qualifying`, or `race` | _(required)_ |
 | `--overlay-x <n>` | Horizontal position of the overlay in pixels | `0` |
 | `--overlay-y <n>` | Vertical position of the overlay in pixels | `0` |
-| `--box-position <pos>` | Corner for box-style overlays: `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-left` |
+| `--box-position <pos>` | Position for `esports`, `minimal`, and `modern`: `bottom-left`, `bottom-center`, `bottom-right`, `top-left`, `top-center`, `top-right` | `bottom-left` for `esports`/`minimal`, `bottom-center` for `modern` |
 | `--accent-color <color>` | Accent colour for the overlay (hex or CSS colour name) | `#3DD73D` |
 | `--text-color <color>` | Text colour for the overlay | `white` |
 | `--timer-text-color <color>` | Text colour for the centre lap timer specifically | _(falls back to `--text-color`)_ |
@@ -190,7 +190,7 @@ While running, racedash shows a progress bar for each step and a total time on c
 | `banner` | Full-width top strip with a coloured accent band and a dark centre trap for the lap timer. In `practice`/`qualifying` mode the band also shows last-lap and session-best panels; in `race` mode it shows a position counter and lap fraction at the edges. Flashes purple/green/red on lap completion. Colours are fully configurable via `--accent-color`, `--text-color`, `--timer-text-color`, and `--timer-bg-color`. |
 | `esports` | Box with icon panels showing last lap and session best, plus a current-lap ticker. Position controlled by `--box-position`. |
 | `minimal` | Compact dark card with lap number badge, large elapsed timer, and last lap / session best stats. Position controlled by `--box-position`. |
-| `modern` | Slim translucent bar with a subtle diagonal stripe pattern. Shows elapsed time alongside last lap and session best. |
+| `modern` | Slim translucent bar with a subtle diagonal stripe pattern. Shows elapsed time alongside last lap and session best. Position controlled by `--box-position`. |
 
 **`--mode` affects the `banner` style layout:** in `practice` or `qualifying` mode it renders a full-width banner including last-lap and session-best panels with a `LAST · time · LAP` / `BEST · time · LAP` layout; in `race` mode it shows just the central lap timer with a `POSITION` label and position counter on the left and a `LAP` label with the lap fraction on the right.
 

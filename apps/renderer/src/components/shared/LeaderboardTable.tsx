@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useCurrentFrame, useVideoConfig } from 'remotion'
-import type { BoxPosition, LeaderboardDriver, LeaderboardStyling, RaceLapSnapshot } from '@racedash/core'
+import type { CornerPosition, LeaderboardDriver, LeaderboardStyling, RaceLapSnapshot } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
 import { buildLeaderboard, selectWindow, LeaderboardMode } from '../../leaderboard'
 import { fontFamily } from '../../Root'
@@ -12,7 +12,7 @@ interface LeaderboardTableProps {
   fps: number
   accentColor?: string
   leaderboardStyling?: LeaderboardStyling
-  position?: BoxPosition
+  position?: CornerPosition
   /** Anchor top in 1920-reference pixels; overrides vertical position from `position` */
   anchorTop?: number
   raceLapSnapshots?: RaceLapSnapshot[]
