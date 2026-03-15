@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import type { ReplayLapData, ReplayLapEntry } from '@racedash/scraper'
 import {
   buildRaceLapSnapshots,
+  formatDoctorDiagnostics,
+  getRenderExperimentalWarning,
   resolveOutputResolutionPreset,
   resolvePositionOverrides,
   validatePositionOverrideConfig,
@@ -200,6 +202,32 @@ describe('resolveOutputResolutionPreset', () => {
   it('rejects unsupported presets', () => {
     expect(() => resolveOutputResolutionPreset('720p')).toThrow(
       '--output-resolution must be one of: 1080p, 1440p, 2160p',
+    )
+  })
+})
+
+describe('getRenderExperimentalWarning', () => {
+  it('returns the Windows experimental warning on win32', () => {
+    expect(getRenderExperimentalWarning('win32')).toContain('experimental')
+  })
+
+  it('returns nothing on non-Windows platforms', () => {
+    expect(getRenderExperimentalWarning('darwin')).toBeUndefined()
+  })
+})
+
+describe('formatDoctorDiagnostics', () => {
+  it('formats aligned doctor output', () => {
+    expect(formatDoctorDiagnostics([
+      { label: 'Platform', value: 'win32' },
+      { label: 'Decode pref', value: 'd3d11va -> dxva2 -> software' },
+    ])).toBe(
+      [
+        'racedash doctor',
+        '',
+        '  Platform     win32',
+        '  Decode pref  d3d11va -> dxva2 -> software',
+      ].join('\n'),
     )
   })
 })

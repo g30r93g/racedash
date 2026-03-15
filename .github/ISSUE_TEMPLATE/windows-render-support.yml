@@ -1,0 +1,144 @@
+name: Windows Render Support
+description: Report a Windows-specific racedash render issue with the diagnostics needed to debug it.
+title: "[windows] "
+labels:
+  - windows
+  - render
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Windows render support is currently experimental.
+
+        Before filing this issue:
+        1. Make sure `ffmpeg` and `ffprobe` are on your `PATH`.
+        2. Run `pnpm racedash doctor`
+        3. Re-run your failing command and copy the full terminal output.
+
+        Fill in as much of this template as you can. The `doctor` output is the most important part.
+
+  - type: input
+    id: version
+    attributes:
+      label: racedash version / commit
+      description: Paste the version, branch, or commit hash you are running.
+      placeholder: "feat/windows-compat @ a9fc864"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: How did you install FFmpeg?
+      description: Pick the method closest to your setup.
+      options:
+        - winget
+        - chocolatey
+        - scoop
+        - downloaded ZIP/build manually
+        - already installed on this machine
+        - not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor_output
+    attributes:
+      label: `racedash doctor` output
+      description: Run `pnpm racedash doctor` and paste the full output.
+      placeholder: |
+        racedash doctor
+
+          Platform     win32
+          Overlay      VP9 alpha (WebM)
+          ffprobe      ffprobe version ...
+          HWAccel      d3d11va, dxva2
+          Encoders     libx264, h264_nvenc
+          CPU          ...
+          GPU          ...
+          Decode pref  d3d11va -> dxva2 -> software
+          Output       libx264 (preset slow, crf 16)
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      description: Paste the exact `racedash render` command or commands you ran.
+      placeholder: |
+        pnpm racedash render --url "..." --mode race --offset 1:23.456 --driver "Jane Smith" --video .\race.mp4 --output .\race-out.mp4
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: terminal_output
+    attributes:
+      label: Full terminal output
+      description: Paste the full output from the failing run, including the warning, diagnostics, and error text.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: windows_version
+    attributes:
+      label: Windows version
+      description: Example: Windows 11 23H2, Windows Server 2022, Windows 10 22H2.
+      placeholder: "Windows 11 23H2"
+    validations:
+      required: true
+
+  - type: input
+    id: source_video
+    attributes:
+      label: Source video details
+      description: Resolution / FPS / codec if known.
+      placeholder: "3840x2160, 60 fps, H.264 from GoPro"
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: What happened?
+      description: Describe the failure, when it happens, and whether it reproduces every time.
+      placeholder: |
+        The overlay renders, but compositing fails after the decode probe.
+        It reproduces every time on this machine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: "The render should complete and produce an output MP4."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: fallback_behavior
+    attributes:
+      label: Did the run show a fallback path?
+      description: Pick the closest option based on the terminal output.
+      options:
+        - No, it picked a decode path and continued
+        - Yes, it fell back from one hardware path to another
+        - Yes, it fell back to software
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra_context
+    attributes:
+      label: Extra context
+      description: Add anything else useful, such as whether other FFmpeg commands work, whether this is a VM, or whether the machine has multiple GPUs.
+      placeholder: |
+        This is a laptop with both Intel integrated graphics and an NVIDIA GPU.
+        FFmpeg works for normal transcodes outside racedash.
+    validations:
+      required: false
