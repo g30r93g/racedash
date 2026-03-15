@@ -8,7 +8,16 @@ import path from 'node:path'
 import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
-import { compositeVideo, getVideoDuration, getVideoFps, getVideoResolution, renderOverlay, joinVideos } from '@racedash/compositor'
+import {
+  compositeVideo,
+  getOverlayOutputPath,
+  getOverlayRenderProfile,
+  getVideoDuration,
+  getVideoFps,
+  getVideoResolution,
+  renderOverlay,
+  joinVideos,
+} from '@racedash/compositor'
 import {
   type CornerPosition,
   DEFAULT_FADE_DURATION_SECONDS,
@@ -109,6 +118,13 @@ const VALID_TABLE_POSITIONS: CornerPosition[] = ['bottom-left', 'bottom-right', 
 
 function defaultBoxPositionForStyle(style: string): BoxPosition {
   return style === 'modern' ? 'bottom-center' : 'bottom-left'
+}
+
+export function getRenderExperimentalWarning(
+  platform: NodeJS.Platform = process.platform,
+): string | undefined {
+  if (platform !== 'win32') return undefined
+  return 'Windows render support is experimental and may require fallback paths depending on your FFmpeg and GPU setup.'
 }
 
 export function resolveOutputResolutionPreset(
@@ -292,6 +308,11 @@ program
   .option('--only-render-overlay', 'Render the overlay file and skip compositing onto the video')
   .action(async (opts: RenderOpts) => {
     try {
+      const renderWarning = getRenderExperimentalWarning()
+      if (renderWarning) {
+        process.stderr.write(`\n  Warning      ${renderWarning}\n`)
+      }
+
       const requestedOutputResolution = resolveOutputResolutionPreset(opts.outputResolution)
       if (opts.boxPosition != null && !VALID_BOX_POSITIONS.includes(opts.boxPosition as BoxPosition)) {
         console.error(`Error: --box-position must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
@@ -469,6 +490,7 @@ program
       }
       if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
       stat('Style', opts.style)
+      stat('Alpha', getOverlayRenderProfile().label)
       printStyling(styling, opts.style)
 
       const overlayProps: OverlayProps = {
@@ -485,7 +507,7 @@ program
       }
 
       const rendererEntry = path.resolve(__dirname, '../../../apps/renderer/src/index.ts')
-      const overlayPath = opts.output.replace(/\.[^.]+$/, '-overlay.mov')
+      const overlayPath = getOverlayOutputPath(opts.output)
       const workStart = Date.now()
 
       let overlayReused = false
@@ -501,7 +523,13 @@ program
         process.stderr.write(`  Reusing overlay        ${overlayPath}\n`)
       } else {
         try {
-          await renderOverlay(rendererEntry, opts.style, overlayProps, overlayPath, makeProgressCallback('Rendering overlay'))
+          await renderOverlay(
+            rendererEntry,
+            opts.style,
+            overlayProps,
+            overlayPath,
+            makeProgressCallback('Rendering overlay'),
+          )
         } finally {
           process.stderr.write('\n')
         }
@@ -541,6 +569,7 @@ program
             durationSeconds,
             outputWidth: requestedOutputResolution?.width,
             outputHeight: requestedOutputResolution?.height,
+            onDiagnostic: ({ label, value }) => stat(label, value),
           },
           makeProgressCallback('Compositing'),
         )

@@ -39,6 +39,8 @@ brew install ffmpeg
 winget install ffmpeg
 ```
 
+Windows support for `racedash render` is currently experimental. The Windows render path uses a transparent VP9 WebM overlay internally, so you do not need ProRes support installed on your machine.
+
 **Linux:**
 ```
 sudo apt install ffmpeg
@@ -137,6 +139,8 @@ pnpm racedash join GH010001.MP4 GH020001.MP4 GH030001.MP4 --output race.mp4
 ### `racedash render <url> [driver] --offset <time> --video <path>`
 
 Renders a lap timer overlay onto your video. This takes a few minutes depending on video length.
+
+On Windows, `render` support is experimental. racedash will print a warning at startup, probe your FFmpeg and hardware setup, and fall back to software decoding when the preferred hardware path does not validate.
 
 ```bash
 pnpm racedash render "https://results.alphatiming.co.uk/club/e/1/s/2/laptimes" "Surrey A" \

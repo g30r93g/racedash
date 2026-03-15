@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { ReplayLapData, ReplayLapEntry } from '@racedash/scraper'
 import {
   buildRaceLapSnapshots,
+  getRenderExperimentalWarning,
   resolveOutputResolutionPreset,
   resolvePositionOverrides,
   validatePositionOverrideConfig,
@@ -201,5 +202,15 @@ describe('resolveOutputResolutionPreset', () => {
     expect(() => resolveOutputResolutionPreset('720p')).toThrow(
       '--output-resolution must be one of: 1080p, 1440p, 2160p',
     )
+  })
+})
+
+describe('getRenderExperimentalWarning', () => {
+  it('returns the Windows experimental warning on win32', () => {
+    expect(getRenderExperimentalWarning('win32')).toContain('experimental')
+  })
+
+  it('returns nothing on non-Windows platforms', () => {
+    expect(getRenderExperimentalWarning('darwin')).toBeUndefined()
   })
 })

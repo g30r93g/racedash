@@ -1,7 +1,7 @@
 import { checkbox, select } from '@inquirer/prompts'
 import type { DriverRow } from '@racedash/scraper'
 import { readdir, stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, win32 } from 'node:path'
 
 export async function selectDriver(
   drivers: DriverRow[],
@@ -37,6 +37,10 @@ async function promptDriver(candidates: DriverRow[]): Promise<DriverRow> {
 
 const VIDEO_EXTS = new Set(['.mp4', '.mov', '.MP4', '.MOV', '.m4v', '.M4V'])
 
+export function getVideoChoiceLabel(filePath: string): string {
+  return win32.basename(filePath)
+}
+
 /**
  * If `videoArg` is a directory, list video files and let the user pick via checkbox.
  * Returns the selected file paths in the order chosen.
@@ -62,7 +66,7 @@ export async function resolveVideoFiles(videoArg: string): Promise<string[]> {
 
   const chosen = await checkbox({
     message: 'Select footage (space to toggle, enter to confirm):',
-    choices: videos.map(f => ({ name: f.split('/').pop()!, value: f })),
+    choices: videos.map(f => ({ name: getVideoChoiceLabel(f), value: f })),
     validate: v => v.length > 0 || 'Select at least one file',
   })
 
