@@ -15,6 +15,8 @@ import {
 } from './timingSources'
 
 const teamsportFixture = join(__dirname, '__fixtures__', 'teamsport_sample.eml')
+const daytona2025Fixture = join(__dirname, '__fixtures__', 'daytona_sample_2025.eml')
+const daytona2026Fixture = join(__dirname, '__fixtures__', 'daytona_sample_2026.eml')
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -166,15 +168,60 @@ describe('mylapsSpeedhive source', () => {
 })
 
 describe('daytonaEmail source', () => {
-  it('fails with a clear message until a Daytona .eml parser is implemented', async () => {
-    await expect(resolveTimingSegments([
+  it('parses the newer 2025 Daytona email format', async () => {
+    const resolved = await resolveTimingSegments([
       {
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
-        emailPath: teamsportFixture,
+        emailPath: daytona2025Fixture,
       },
-    ], 'Driver')).rejects.toThrow('Daytona email parsing is not implemented yet')
+    ], 'George Nick Gorzynski')
+
+    expect(resolved[0].drivers.length).toBeGreaterThan(1)
+    expect(resolved[0].selectedDriver).toMatchObject({
+      name: 'George Nick Gorzynski',
+      kart: '131',
+    })
+    expect(resolved[0].selectedDriver?.laps).toHaveLength(23)
+    expect(resolved[0].selectedDriver?.laps[0]?.lapTime).toBe(55.064)
+    expect(resolved[0].selectedDriver?.laps[22]?.lapTime).toBe(52.901)
+    expect(resolved[0].capabilities.leaderboard).toBe(false)
+  })
+
+  it('parses the newer 2026 Daytona email format', async () => {
+    const resolved = await resolveTimingSegments([
+      {
+        source: 'daytonaEmail',
+        mode: 'race',
+        offset: '0:45.000',
+        emailPath: daytona2026Fixture,
+      },
+    ], 'George Nick Gorzynski')
+
+    expect(resolved[0].drivers.length).toBeGreaterThan(1)
+    expect(resolved[0].selectedDriver).toMatchObject({
+      name: 'George Nick Gorzynski',
+      kart: '57',
+    })
+    expect(resolved[0].selectedDriver?.laps).toHaveLength(20)
+    expect(resolved[0].selectedDriver?.laps[0]?.lapTime).toBe(64.133)
+    expect(resolved[0].selectedDriver?.laps[19]?.lapTime).toBe(62.574)
+  })
+
+  it('falls back to selected-driver-only session lap data for rendering', async () => {
+    const resolved = await resolveTimingSegments([
+      {
+        source: 'daytonaEmail',
+        mode: 'race',
+        offset: '0:45.000',
+        emailPath: daytona2025Fixture,
+      },
+    ], 'George Nick Gorzynski')
+
+    const { segments } = buildSessionSegments(resolved, [45])
+    expect(segments[0].sessionAllLaps).toHaveLength(1)
+    expect(segments[0].leaderboardDrivers).toBeUndefined()
   })
 })
 

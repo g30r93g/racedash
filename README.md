@@ -136,7 +136,7 @@ Example config:
 }
 ```
 
-`teamsportEmail` and `daytonaEmail` expect a saved `.eml` file. `mylapsSpeedhive` expects a Speedhive session URL. `manual` is the fallback when an integration is unavailable. The `daytonaEmail` source is wired into config validation now, but it still needs a real Daytona `.eml` sample before parsing can be implemented accurately.
+`teamsportEmail` and `daytonaEmail` expect a saved `.eml` file. `mylapsSpeedhive` expects a Speedhive session URL. `manual` is the fallback when an integration is unavailable. `daytonaEmail` currently supports the newer Daytona/Clubspeed email format represented by the 2025/2026 samples.
 
 ---
 

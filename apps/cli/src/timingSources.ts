@@ -213,6 +213,11 @@ interface TeamsportParsedEmail {
   drivers: DriverRow[]
 }
 
+interface DaytonaParsedEmail {
+  drivers: DriverRow[]
+  selectedDriver: DriverRow
+}
+
 export const TIMING_FEATURES: Array<{ key: keyof TimingCapabilities; label: string }> = [
   { key: 'driverDiscovery', label: 'driver discovery' },
   { key: 'lapTimes', label: 'lap times' },
@@ -404,13 +409,21 @@ export function buildSessionSegments(
       if (gridEntry) startingGridPosition = gridEntry.position
     }
 
+    const leaderboardSourceDrivers = resolved.capabilities.leaderboard
+      ? resolved.drivers.filter(driver => driver.laps.length > 0)
+      : []
+
     segments.push({
       mode: resolved.config.mode,
       session,
-      sessionAllLaps: resolved.drivers.map(driver => driver.laps),
-      leaderboardDrivers: resolved.config.mode === 'race'
-        ? buildRaceDrivers(resolved.drivers, offsetSeconds)
-        : buildLeaderboardDrivers(resolved.drivers, selectedDriver.kart, offsetSeconds),
+      sessionAllLaps: leaderboardSourceDrivers.length > 0
+        ? leaderboardSourceDrivers.map(driver => driver.laps)
+        : [selectedDriver.laps],
+      leaderboardDrivers: leaderboardSourceDrivers.length === 0
+        ? undefined
+        : resolved.config.mode === 'race'
+          ? buildRaceDrivers(leaderboardSourceDrivers, offsetSeconds)
+          : buildLeaderboardDrivers(leaderboardSourceDrivers, selectedDriver.kart, offsetSeconds),
       label: resolved.config.label,
       raceLapSnapshots: resolved.replayData == null
         ? undefined
@@ -566,6 +579,63 @@ export function parseTeamsportEmailBody(body: string): TeamsportParsedEmail {
       laps: buildLaps(entriesByDriver[index]),
     })),
   }
+}
+
+export function parseDaytonaEmailBody(body: string): DaytonaParsedEmail {
+  const $ = cheerio.load(body)
+  const selectedDriverName = $('#lblName').first().text().trim()
+  const selectedKart = $('#lblKartNo').first().text().trim()
+  if (!selectedDriverName || !selectedKart) {
+    throw new Error('Could not parse Daytona driver summary from email body')
+  }
+
+  const lapEntries = $('#dlLapTime span[id^="dlLapTime_lblTime_"]')
+    .toArray()
+    .map(element => parseDaytonaLapRow($(element).text()))
+    .filter((entry): entry is { number: number; lapTime: number } => entry != null)
+
+  if (lapEntries.length === 0) {
+    throw new Error('Could not parse Daytona lap times from email body')
+  }
+
+  const selectedDriver: DriverRow = {
+    kart: selectedKart,
+    name: selectedDriverName,
+    laps: buildLaps(lapEntries),
+  }
+
+  const classificationTable = $('table')
+    .toArray()
+    .map(element => $(element))
+    .find(table => {
+      const headers = table.find('tr').first().find('td,th').toArray().map(cell => $(cell).text().replace(/\s+/g, ' ').trim())
+      return headers.includes('Kart') && headers.includes('Racer') && headers.includes('Best Lap')
+    })
+
+  if (!classificationTable) {
+    return {
+      drivers: [selectedDriver],
+      selectedDriver,
+    }
+  }
+
+  const drivers = classificationTable.find('tr').slice(1).toArray().flatMap(row => {
+    const cells = $(row).find('td')
+    if (cells.length < 3) return []
+
+    const kart = cells.eq(1).text().replace(/\s+/g, ' ').trim()
+    const name = normaliseDaytonaDriverName(cells.eq(2).text())
+    if (!kart || !name) return []
+
+    if (kart === selectedDriver.kart) return [selectedDriver]
+    return [{ kart, name, laps: [] as Lap[] }]
+  })
+
+  if (!drivers.some(driver => driver.kart === selectedDriver.kart)) {
+    drivers.push(selectedDriver)
+  }
+
+  return { drivers, selectedDriver }
 }
 
 export async function readBestEmlBody(emailPath: string): Promise<string> {
@@ -798,12 +868,29 @@ async function resolveDaytonaEmailSegment(
   segment: DaytonaEmailSegmentConfig,
   driverQuery?: string,
 ): Promise<ResolvedTimingSegment> {
-  await readBestEmlBody(segment.emailPath)
+  const body = await readBestEmlBody(segment.emailPath)
+  const parsed = parseDaytonaEmailBody(body)
+  const selectedDriver = driverQuery ? matchDriver(parsed.drivers, driverQuery, segment.emailPath) : parsed.selectedDriver
 
-  throw new Error(
-    `Daytona email parsing is not implemented yet for ${segment.emailPath}. ` +
-      'Provide a Daytona .eml sample to add support, or use source "manual" for now.',
-  )
+  return {
+    config: segment,
+    drivers: parsed.drivers,
+    selectedDriver,
+    capabilities: {
+      driverDiscovery: true,
+      lapTimes: true,
+      bestLap: true,
+      lastLap: true,
+      position: false,
+      classificationPosition: true,
+      leaderboard: false,
+      gapToLeader: false,
+      gapToKartAhead: false,
+      gapToKartBehind: false,
+      startingGrid: false,
+      raceSnapshots: false,
+    },
+  }
 }
 
 async function resolveMylapsSpeedhiveSegment(
@@ -973,12 +1060,53 @@ function parseLapTimeText(value: string): number | null {
   return null
 }
 
+function parseDaytonaLapRow(value: string): { number: number; lapTime: number } | null {
+  const trimmed = value.replace(/\s+/g, ' ').trim()
+  const match = trimmed.match(/^(\d+)\s+([0-9:]+)(?:\s+\[\d+\])?$/)
+  if (!match) return null
+
+  const number = parseInt(match[1], 10)
+  const lapTime = parseDaytonaTimeText(match[2])
+  if (!Number.isFinite(number) || lapTime == null) return null
+
+  return { number, lapTime }
+}
+
+function parseDaytonaTimeText(value: string): number | null {
+  const trimmed = value.trim()
+  const clubspeedMatch = trimmed.match(/^(\d+):(\d{2}):(\d{3})$/)
+  if (clubspeedMatch) {
+    const minutes = parseInt(clubspeedMatch[1], 10)
+    const seconds = parseInt(clubspeedMatch[2], 10)
+    const millis = parseInt(clubspeedMatch[3], 10)
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || !Number.isFinite(millis)) return null
+    return minutes * 60 + seconds + millis / 1000
+  }
+
+  const secondsMillisMatch = trimmed.match(/^(\d+):(\d{3})$/)
+  if (secondsMillisMatch) {
+    const seconds = parseInt(secondsMillisMatch[1], 10)
+    const millis = parseInt(secondsMillisMatch[2], 10)
+    if (!Number.isFinite(seconds) || !Number.isFinite(millis)) return null
+    return seconds + millis / 1000
+  }
+
+  return parseLapTimeText(trimmed)
+}
+
 function roundMillis(value: number): number {
   return Math.round(value * 1000) / 1000
 }
 
 function serialiseDriverList(drivers: DriverRow[]): string {
   return JSON.stringify(drivers.map(driver => ({ kart: driver.kart, name: driver.name })))
+}
+
+function normaliseDaytonaDriverName(value: string): string {
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(/^[A-Z]-\s*/i, '')
+    .trim()
 }
 
 function parseMimeBodies(raw: string): Array<{ contentType: string; body: string }> {
