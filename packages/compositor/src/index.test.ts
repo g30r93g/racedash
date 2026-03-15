@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { execFile, spawn } from 'node:child_process'
 import * as fsp from 'node:fs/promises'
 import {
+  collectDoctorDiagnostics,
   compositeVideo,
   getOverlayOutputPath,
   getOverlayRenderProfile,
@@ -61,6 +62,54 @@ describe('overlay profiles', () => {
 
   it('derives the Windows overlay cache path', () => {
     expect(getOverlayOutputPath('/tmp/out.mp4', 'win32')).toBe('/tmp/out-overlay.webm')
+  })
+})
+
+describe('collectDoctorDiagnostics', () => {
+  it('reports Windows defaults and live preference order from injected data', async () => {
+    await expect(collectDoctorDiagnostics({
+      runtimePlatform: 'win32',
+      ffmpegCapabilities: {
+        encoders: new Set(['libx264', 'h264_nvenc', 'hevc_nvenc']),
+        hwaccels: new Set(['d3d11va', 'dxva2']),
+        ffprobeVersion: 'ffprobe version 7.1',
+      },
+      windowsHardwareInfo: {
+        cpu: 'AMD Ryzen',
+        cpuManufacturer: 'AuthenticAMD',
+        gpuNames: ['AMD Radeon RX 7900'],
+        gpuVendors: ['amd'],
+      },
+    })).resolves.toEqual([
+      { label: 'Platform', value: 'win32' },
+      { label: 'Overlay', value: 'VP9 alpha (WebM)' },
+      { label: 'ffprobe', value: 'ffprobe version 7.1' },
+      { label: 'HWAccel', value: 'd3d11va, dxva2' },
+      { label: 'Encoders', value: 'libx264, h264_nvenc, hevc_nvenc' },
+      { label: 'CPU', value: 'AMD Ryzen' },
+      { label: 'GPU', value: 'AMD Radeon RX 7900' },
+      { label: 'Decode pref', value: 'd3d11va -> dxva2 -> software' },
+      { label: 'Output', value: 'libx264 (preset slow, crf 16)' },
+    ])
+  })
+
+  it('reports macOS defaults', async () => {
+    await expect(collectDoctorDiagnostics({
+      runtimePlatform: 'darwin',
+      ffmpegCapabilities: {
+        encoders: new Set(['hevc_videotoolbox', 'libx264']),
+        hwaccels: new Set(['videotoolbox']),
+        ffprobeVersion: 'ffprobe version 7.1',
+      },
+    })).resolves.toEqual([
+      { label: 'Platform', value: 'darwin' },
+      { label: 'Overlay', value: 'ProRes 4444 alpha (MOV)' },
+      { label: 'ffprobe', value: 'ffprobe version 7.1' },
+      { label: 'HWAccel', value: 'videotoolbox' },
+      { label: 'Encoders', value: 'hevc_videotoolbox, libx264' },
+      { label: 'Decode pref', value: 'videotoolbox' },
+      { label: 'Output', value: 'hevc_videotoolbox' },
+    ])
   })
 })
 

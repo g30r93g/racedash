@@ -136,6 +136,16 @@ pnpm racedash join GH010001.MP4 GH020001.MP4 GH030001.MP4 --output race.mp4
 
 ---
 
+### `racedash doctor`
+
+Inspects your machine and FFmpeg setup for rendering. This is useful when reporting Windows compatibility issues because it prints the detected CPU, GPU, available FFmpeg hardware acceleration backends, relevant encoders, and the current default render strategy.
+
+```bash
+pnpm racedash doctor
+```
+
+---
+
 ### `racedash render <url> [driver] --offset <time> --video <path>`
 
 Renders a lap timer overlay onto your video. This takes a few minutes depending on video length.

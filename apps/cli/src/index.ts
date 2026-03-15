@@ -9,6 +9,7 @@ import { access, readFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import {
+  collectDoctorDiagnostics,
   compositeVideo,
   getOverlayOutputPath,
   getOverlayRenderProfile,
@@ -125,6 +126,17 @@ export function getRenderExperimentalWarning(
 ): string | undefined {
   if (platform !== 'win32') return undefined
   return 'Windows render support is experimental and may require fallback paths depending on your FFmpeg and GPU setup.'
+}
+
+export function formatDoctorDiagnostics(
+  diagnostics: Array<{ label: string; value: string }>,
+): string {
+  const width = Math.max(...diagnostics.map(diagnostic => diagnostic.label.length), 6)
+  return [
+    'racedash doctor',
+    '',
+    ...diagnostics.map(diagnostic => `  ${diagnostic.label.padEnd(width)}  ${diagnostic.value}`),
+  ].join('\n')
 }
 
 export function resolveOutputResolutionPreset(
@@ -260,6 +272,23 @@ program
       console.error(`Joining ${files.length} files...`)
       await joinVideos(files, opts.output)
       console.log(`Done: ${opts.output}`)
+    } catch (err) {
+      console.error('Error:', (err as Error).message)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('doctor')
+  .description('Inspect your machine and FFmpeg setup for rendering')
+  .action(async () => {
+    try {
+      const diagnostics = await collectDoctorDiagnostics()
+      const warning = getRenderExperimentalWarning()
+      const output = warning == null
+        ? diagnostics
+        : [{ label: 'Warning', value: warning }, ...diagnostics]
+      console.log(formatDoctorDiagnostics(output))
     } catch (err) {
       console.error('Error:', (err as Error).message)
       process.exit(1)

@@ -38,6 +38,12 @@ export interface FfmpegCapabilities {
   ffprobeVersion: string
 }
 
+export interface DoctorOptions {
+  runtimePlatform?: NodeJS.Platform
+  ffmpegCapabilities?: FfmpegCapabilities
+  windowsHardwareInfo?: WindowsHardwareInfo
+}
+
 export interface CompositeOptions {
   fps?: number
   videoBitrate?: string
@@ -215,7 +221,7 @@ function parseFfmpegHwaccels(stdout: string): Set<string> {
   return hwaccels
 }
 
-async function probeFfmpegCapabilities(): Promise<FfmpegCapabilities> {
+export async function probeFfmpegCapabilities(): Promise<FfmpegCapabilities> {
   const [encodersResult, hwaccelsResult, ffprobeResult] = await Promise.all([
     execTool('ffmpeg', ['-hide_banner', '-encoders']),
     execTool('ffmpeg', ['-hide_banner', '-hwaccels']),
@@ -286,7 +292,7 @@ export function parseWindowsHardwareInfo(
   }
 }
 
-async function getWindowsHardwareInfo(): Promise<WindowsHardwareInfo> {
+export async function getWindowsHardwareInfo(): Promise<WindowsHardwareInfo> {
   const runPowerShell = async (command: string): Promise<string | null> => {
     try {
       const result = await execTool('powershell', ['-NoProfile', '-Command', command])
@@ -331,6 +337,86 @@ export function getWindowsDecodeCandidateOrder(
 
   const filtered = preferred.filter(candidate => supported.has(candidate))
   return [...filtered, 'software']
+}
+
+function getRelevantEncoders(encoders: Iterable<string>): string[] {
+  const relevant = [
+    'hevc_videotoolbox',
+    'h264_videotoolbox',
+    'libx264',
+    'h264_nvenc',
+    'hevc_nvenc',
+    'h264_qsv',
+    'hevc_qsv',
+    'h264_amf',
+    'hevc_amf',
+  ]
+  const available = toLowerSet(encoders)
+  return relevant.filter(encoder => available.has(encoder))
+}
+
+export async function collectDoctorDiagnostics(
+  opts: DoctorOptions = {},
+): Promise<CompositeDiagnostic[]> {
+  const runtimePlatform = opts.runtimePlatform ?? process.platform
+  const overlayProfile = getOverlayRenderProfile(runtimePlatform)
+  const capabilities = opts.ffmpegCapabilities ?? await probeFfmpegCapabilities()
+  const diagnostics: CompositeDiagnostic[] = [
+    { label: 'Platform', value: runtimePlatform },
+    { label: 'Overlay', value: overlayProfile.label },
+    { label: 'ffprobe', value: capabilities.ffprobeVersion || 'unknown' },
+    {
+      label: 'HWAccel',
+      value: [...capabilities.hwaccels].sort().join(', ') || 'none',
+    },
+    {
+      label: 'Encoders',
+      value: getRelevantEncoders(capabilities.encoders).join(', ') || 'none',
+    },
+  ]
+
+  if (runtimePlatform === 'win32') {
+    const hardwareInfo = opts.windowsHardwareInfo ?? await getWindowsHardwareInfo()
+    diagnostics.push({
+      label: 'CPU',
+      value: hardwareInfo.cpu ?? 'Unknown',
+    })
+    diagnostics.push({
+      label: 'GPU',
+      value: hardwareInfo.gpuNames.join(', ') || 'Unknown',
+    })
+    diagnostics.push({
+      label: 'Decode pref',
+      value: getWindowsDecodeCandidateOrder(hardwareInfo.gpuVendors, capabilities.hwaccels).join(' -> '),
+    })
+    diagnostics.push({
+      label: 'Output',
+      value: 'libx264 (preset slow, crf 16)',
+    })
+    return diagnostics
+  }
+
+  if (runtimePlatform === 'darwin') {
+    diagnostics.push({
+      label: 'Decode pref',
+      value: 'videotoolbox',
+    })
+    diagnostics.push({
+      label: 'Output',
+      value: 'hevc_videotoolbox',
+    })
+    return diagnostics
+  }
+
+  diagnostics.push({
+    label: 'Decode pref',
+    value: 'software',
+  })
+  diagnostics.push({
+    label: 'Output',
+    value: 'libx264 (preset slow, crf 16)',
+  })
+  return diagnostics
 }
 
 async function runFfmpegCapture(args: string[]): Promise<{ code: number | null; signal: string | null; stderr: string }> {
