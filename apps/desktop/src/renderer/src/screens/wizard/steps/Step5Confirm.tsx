@@ -37,12 +37,16 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
 
   async function handleCreate() {
     if (!state.projectName.trim()) return
+    if (!state.joinedVideoPath) {
+      setError('No joined video path — please go back to Step 1 and re-select your files.')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
       const project = await window.racedash.createProject({
         name: state.projectName.trim(),
-        videoPaths: state.videoPaths,
+        joinedVideoPath: state.joinedVideoPath,
         segments: state.segments,
         selectedDriver: state.selectedDriver,
       })
@@ -60,8 +64,7 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
       <div>
         <h2 className="text-base font-semibold text-foreground">Confirm and create project</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Review your setup. Confirming will join your video files and save the project — this
-          may take a moment.
+          Review your setup and confirm to save the project.
         </p>
       </div>
 
@@ -118,7 +121,7 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
         disabled={loading || !state.projectName.trim()}
         className="self-start"
       >
-        {loading ? 'Joining videos and saving project...' : 'Create Project'}
+        {loading ? 'Saving project...' : 'Create Project'}
       </Button>
     </div>
   )
