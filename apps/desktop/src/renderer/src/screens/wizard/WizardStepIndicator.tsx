@@ -8,7 +8,7 @@ interface WizardStepIndicatorProps {
 
 export function WizardStepIndicator({ currentStep, steps }: WizardStepIndicatorProps) {
   return (
-    <div className="flex items-center">
+    <div className="flex items-center" role="list" aria-label="Project creation progress">
       {steps.map((label, index) => {
         const stepNumber = index + 1
         const isComplete = stepNumber < currentStep
@@ -20,22 +20,24 @@ export function WizardStepIndicator({ currentStep, steps }: WizardStepIndicatorP
               <div
                 className={cn(
                   'h-px flex-1',
-                  isComplete ? 'bg-[#22c55e]' : 'bg-border'
+                  isComplete ? 'bg-green-500' : 'bg-border'
                 )}
               />
             )}
 
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5" role="listitem">
               <div
+                aria-current={isCurrent ? 'step' : undefined}
                 className={cn(
                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold',
-                  isComplete && 'border-[#22c55e] bg-[#22c55e] text-white',
+                  isComplete && 'border-green-500 bg-green-500 text-white',
                   isCurrent && 'border-primary bg-primary text-primary-foreground',
                   !isComplete && !isCurrent && 'border-border bg-transparent text-muted-foreground'
                 )}
               >
                 {isComplete ? (
                   <svg
+                    aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 12 12"
                     fill="none"

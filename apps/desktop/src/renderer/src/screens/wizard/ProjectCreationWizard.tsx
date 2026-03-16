@@ -30,6 +30,14 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
     projectName: '',
   })
 
+  React.useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
+
   function updateState(patch: Partial<WizardState>) {
     setState((prev) => ({ ...prev, ...patch }))
   }
@@ -96,6 +104,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
 
         <div className="flex shrink-0 items-center justify-between border-t border-border px-8 py-4">
           <button
+            type="button"
             onClick={step === 1 ? onCancel : goBack}
             className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
           >
@@ -103,6 +112,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
           </button>
           {step < 5 && (
             <button
+              type="button"
               onClick={goNext}
               disabled={!canContinue}
               className="rounded bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
