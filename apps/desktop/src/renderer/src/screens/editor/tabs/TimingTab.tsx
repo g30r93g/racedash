@@ -7,7 +7,7 @@ import { SectionLabel } from '@/components/app/SectionLabel'
 import { TimingTable } from '@/components/app/TimingTable'
 import type { LapRow } from '@/components/app/TimingTable'
 import { DriverPickerModal } from '@/components/app/DriverPickerModal'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { OptionGroup } from '@/components/ui/option-group'
 
 
 interface TimingTabProps {
@@ -98,18 +98,13 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
         </div>
 
         {segmentLabels.length > 1 && (
-          <ToggleGroup
-            type="single"
-            value={String(activeSegment)}
-            onValueChange={(val) => { if (val) setActiveSegment(Number(val)) }}
-            className="mb-3 flex gap-1"
-          >
-            {segmentLabels.map((label, i) => (
-              <ToggleGroupItem key={i} value={String(i)} className="rounded px-3 py-1 text-xs">
-                {label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          <div className="mb-3">
+            <OptionGroup
+              options={segmentLabels.map((label, i) => ({ value: String(i), label }))}
+              value={String(activeSegment)}
+              onValueChange={(val) => setActiveSegment(Number(val))}
+            />
+          </div>
         )}
 
         {timingLoading && <p className="text-xs text-muted-foreground">Loading timing data…</p>}

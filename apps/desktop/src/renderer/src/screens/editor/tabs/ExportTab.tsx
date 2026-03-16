@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionLabel } from '@/components/app/SectionLabel'
 import { InfoRow } from '@/components/app/InfoRow'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { OptionGroup } from '@/components/ui/option-group'
 import { Progress } from '@/components/ui/progress'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -158,45 +158,13 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
       {/* OUTPUT RESOLUTION */}
       <section>
         <SectionLabel>Output Resolution</SectionLabel>
-        <ToggleGroup
-          type="single"
-          value={outputResolution}
-          onValueChange={(val) => { if (val) setOutputResolution(val as OutputResolution) }}
-          className="flex flex-wrap gap-1"
-        >
-          {resolutionOptions.map((o) => (
-            <ToggleGroupItem
-              key={o.value}
-              value={o.value}
-              disabled={o.disabled}
-              className="rounded px-3 py-1 text-xs"
-            >
-              {o.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <OptionGroup options={resolutionOptions} value={outputResolution} onValueChange={setOutputResolution} />
       </section>
 
       {/* OUTPUT FRAME RATE */}
       <section>
         <SectionLabel>Output Frame Rate</SectionLabel>
-        <ToggleGroup
-          type="single"
-          value={outputFrameRate}
-          onValueChange={(val) => { if (val) setOutputFrameRate(val as OutputFrameRate) }}
-          className="flex flex-wrap gap-1"
-        >
-          {frameRateOptions.map((o) => (
-            <ToggleGroupItem
-              key={o.value}
-              value={o.value}
-              disabled={o.disabled}
-              className="rounded px-3 py-1 text-xs"
-            >
-              {o.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} />
       </section>
 
       {/* OUTPUT PATH */}
@@ -215,22 +183,7 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
       {/* RENDER MODE */}
       <section>
         <SectionLabel>Render Mode</SectionLabel>
-        <ToggleGroup
-          type="single"
-          value={renderMode}
-          onValueChange={(val) => { if (val) setRenderMode(val as RenderMode) }}
-          className="flex flex-wrap gap-1"
-        >
-          {renderModeOptions.map((o) => (
-            <ToggleGroupItem
-              key={o.value}
-              value={o.value}
-              className="rounded px-3 py-1 text-xs"
-            >
-              {o.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} />
       </section>
 
       {/* RENDER BUTTON */}
