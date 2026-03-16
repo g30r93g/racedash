@@ -20,6 +20,8 @@ function formatTime(frame: number, fps: number): string {
   return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
 }
 
+const MAX_RETRIES = 3
+
 export function FrameScrubber({
   videoPath,
   fps,
@@ -30,6 +32,7 @@ export function FrameScrubber({
 }: FrameScrubberProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoReady, setVideoReady] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const src = videoPath.startsWith('/') ? `media://${videoPath}` : videoPath
 
   // Seek whenever currentFrame or fps changes — but only once video can seek
@@ -43,11 +46,28 @@ export function FrameScrubber({
     return Math.max(0, Math.min(frame, totalFrames > 0 ? totalFrames - 1 : frame))
   }
 
+  function handleVideoError() {
+    const video = videoRef.current
+    const err = video?.error
+    console.error(
+      `[FrameScrubber] Video load error (attempt ${retryKey + 1}):`,
+      err ? `code=${err.code} message=${err.message}` : 'unknown',
+    )
+    if (retryKey < MAX_RETRIES) {
+      console.warn(`[FrameScrubber] Retrying (${retryKey + 1}/${MAX_RETRIES})…`)
+      setVideoReady(false)
+      setRetryKey((k) => k + 1)
+    } else {
+      console.error('[FrameScrubber] Max retries reached, giving up.')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {/* Video preview */}
       <div className="relative overflow-hidden rounded-md bg-black" style={{ aspectRatio: '16/9' }}>
         <video
+          key={retryKey}
           ref={videoRef}
           src={src}
           className="h-full w-full object-contain"
@@ -61,11 +81,14 @@ export function FrameScrubber({
             video.currentTime = currentFrame / fps
           }}
           onCanPlay={() => setVideoReady(true)}
+          onError={handleVideoError}
         />
         {!videoReady && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black">
             <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
-            <span className="font-mono text-[11px] text-muted-foreground">Loading video…</span>
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {retryKey > 0 ? `Retrying… (${retryKey}/${MAX_RETRIES})` : 'Loading video…'}
+            </span>
           </div>
         )}
         <div className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-white">
