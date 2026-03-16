@@ -750,9 +750,8 @@ import {
   TIMING_FEATURES,
   formatDriverDisplay,
   filterDriverHighlights,
-  driverListsAreIdentical,
 } from '@racedash/engine'
-import type { DriversCommandSegment } from '@racedash/engine'
+import type { DriversCommandSegment, RenderProgressEvent } from '@racedash/engine'
 ```
 
 - [ ] **Step 2: Replace the `drivers` command action**
@@ -777,13 +776,14 @@ program
 
       if (result.driverListsIdentical) {
         const drivers = result.segments[0]?.drivers ?? []
-        printDriverList(drivers, result.segments[0]?.selectedDriver?.name, 'Drivers')
+        // Pass opts.driver (the raw partial query) not selectedDriver.name — printDriverList uses it for partial matching
+        printDriverList(drivers, opts.driver, 'Drivers')
       } else {
         result.segments.forEach((segment, index) => {
           if (index > 0) process.stdout.write('\n')
           process.stdout.write(`Segment ${index + 1}  [${segment.config.source}]  [${segment.config.mode}]\n`)
           if (segment.config.label) process.stdout.write(`  Label: ${segment.config.label}\n`)
-          printDriverList(segment.drivers, segment.selectedDriver?.name)
+          printDriverList(segment.drivers, opts.driver)
         })
       }
     } catch (err) {
@@ -881,7 +881,7 @@ program
   .option('--style <name>', 'Overlay style', 'banner')
   .option('--output-resolution <preset>', 'Output resolution: 1080p, 1440p, or 2160p')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
-  .option('--overlay-y <n>', 'Overlay Y position in pixels')
+  .option('--overlay-y <n>', 'Overlay Y position in pixels (auto-computed for esports/minimal styles if omitted)')
   .option('--box-position <pos>', 'Position for esports/minimal/modern')
   .option('--qualifying-table-position <pos>', 'Corner for qualifying table')
   .option('--label-window <seconds>', 'Seconds to show segment label', DEFAULT_LABEL_WINDOW_SECONDS.toString())
@@ -908,8 +908,28 @@ program
         process.exit(1)
       }
 
+      const overlayX = parseInt(opts.overlayX, 10)
+      const overlayY = opts.overlayY != null ? parseInt(opts.overlayY, 10) : undefined
+      if (isNaN(overlayX) || (overlayY != null && isNaN(overlayY))) {
+        console.error('Error: --overlay-x and --overlay-y must be valid integers')
+        process.exit(1)
+      }
+
       const selectedFiles = await resolveVideoFiles(opts.video)
       const rendererEntry = path.resolve(__dirname, '../../../apps/renderer/src/index.ts')
+
+      // Adapter: renderSession emits { phase, progress } but makeProgressCallback expects (progress: number)
+      // and must be called fresh each time the phase label changes so it initialises a new progress bar.
+      let phaseBarCallback: ((n: number) => void) | null = null
+      let lastPhase = ''
+      const progressAdapter = ({ phase, progress }: RenderProgressEvent) => {
+        if (phase !== lastPhase) {
+          if (lastPhase) process.stderr.write('\n')
+          lastPhase = phase
+          phaseBarCallback = makeProgressCallback(phase)
+        }
+        phaseBarCallback!(progress)
+      }
 
       const result = await renderSession(
         {
@@ -919,23 +939,27 @@ program
           rendererEntry,
           style: opts.style,
           outputResolution: outputResolution ? { width: outputResolution.width, height: outputResolution.height } : undefined,
-          overlayX: parseInt(opts.overlayX, 10),
-          overlayY: opts.overlayY != null ? parseInt(opts.overlayY, 10) : undefined,
+          overlayX,
+          overlayY,
           boxPosition: opts.boxPosition as BoxPosition | undefined,
           qualifyingTablePosition: opts.qualifyingTablePosition as CornerPosition | undefined,
           labelWindowSeconds,
           noCache: opts.noCache,
           onlyRenderOverlay: opts.onlyRenderOverlay,
         },
-        makeProgressCallback,
+        progressAdapter,
         ({ label, value }) => stat(label, value),  // surfaces FFmpeg decode diagnostics to terminal
       )
 
       // Note: config.boxPosition / config.qualifyingTablePosition validation is now done inside renderSession.
 
       process.stderr.write('\n')
+      stat('Alpha', getOverlayRenderProfile().label)
       console.log(result.outputPath)
     } catch (err) {
+      // Flush the in-progress progress bar line before printing the error, so
+      // it doesn't run into the error text on the same terminal line.
+      if (lastPhase) process.stderr.write('\n')
       console.error('Error:', (err as Error).message)
       process.exit(1)
     }
@@ -944,13 +968,46 @@ program
 
 Keep the existing `RenderOpts` interface, `VALID_BOX_POSITIONS`, `VALID_TABLE_POSITIONS`, `resolveOutputResolutionPreset`, `formatDoctorDiagnostics`, `printDriverList`, `printCapabilities`, `makeProgressCallback`, `progressBar`, `stat`, `formatOffsetTime`, `formatSeconds`, `formatFps`, `printStyling`, `parseOptionalFps` functions in the CLI — these are all terminal-formatting concerns.
 
+**Update `RenderOpts`**: mark `overlayY` as optional since the engine accepts `overlayY?: number` and the CLI option has no default:
+
+```ts
+interface RenderOpts {
+  config: string
+  video: string
+  output: string
+  style: string
+  outputResolution?: string
+  overlayX: string
+  overlayY?: string   // ← must be optional; CLI option has no default
+  boxPosition?: string
+  qualifyingTablePosition?: string
+  labelWindow?: string
+  noCache: boolean
+  onlyRenderOverlay: boolean
+}
+```
+
 Also keep `stat('Alpha', getOverlayRenderProfile().label)` in the render action body — `getOverlayRenderProfile` is now imported from `@racedash/engine` (which re-exports it from `@racedash/compositor`).
+
+**Dropped diagnostic stats**: The original render action emitted many diagnostic lines that referenced variables now internal to `renderSession`. These are **intentionally dropped** in the refactored action — the plan's spec (§2 "What stays in the CLI") does not include them. The following are dropped:
+
+- Per-segment `stat()` lines: source, mode, driver name, lap count, offset (raw + snapped), label, capabilities
+- `stat('Video', ...)` — source video resolution
+- `stat('Output', ...)` — output resolution
+- `stat('Grid', ...)` — starting grid position
+- `stat('Style', ...)` — style name
+- `stat('Alpha', ...)` — overlay render profile (**exception:** this line calls `getOverlayRenderProfile()` which requires no engine-internal variables — keep it)
+- `printStyling(...)` block
+- The overlay-reused message (`Reusing overlay …`)
+- The final `✓ output · elapsed` success line (elapsed wall time + output path with tick)
+
+After the refactor, the render action outputs: FFmpeg decode diagnostics (via `onDiagnostic`), the render profile stat, and `console.log(result.outputPath)` as the final line. The elapsed time display and overlay-reuse message are dropped — these are future enhancements if needed.
 
 Remove from the CLI render action: the `configBoxPosition`/`configTablePosition` validation block (lines 274–279 of the original `index.ts`) — this validation has moved inside `renderSession` in the engine.
 
 Remove `buildRaceLapSnapshots`, `resolvePositionOverrides`, `validatePositionOverrideConfig` from the bottom re-exports since those now come from `@racedash/engine`.
 
-Also remove the `getRenderExperimentalWarning` test suite from `apps/cli/src/index.test.ts` at this point — the function is no longer defined in `apps/cli/src/index.ts`.
+Also remove the `getRenderExperimentalWarning` test suite from `apps/cli/src/index.test.ts` at this point — the function is no longer **exported** from `apps/cli/src/index.ts` (it is imported from `@racedash/engine` and used internally, but the CLI module no longer re-exports it, so the test's `import { getRenderExperimentalWarning } from './index'` will fail).
 
 - [ ] **Step 7: Build CLI**
 
