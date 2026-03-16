@@ -84,7 +84,10 @@ export async function openProjectHandler(projectPath: string): Promise<ProjectDa
     throw new Error('openProject: path must point to a project.json file')
   }
   const raw = fs.readFileSync(projectPath, 'utf-8') as string
-  return JSON.parse(raw) as ProjectData
+  const data = JSON.parse(raw) as ProjectData
+  // Backward compat: older projects used project.json as the engine config.
+  if (!data.configPath) data.configPath = projectPath
+  return data
 }
 
 export async function handleCreateProject(opts: CreateProjectOpts): Promise<ProjectData> {
@@ -109,16 +112,39 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     fs.unlinkSync(opts.joinedVideoPath)
   }
 
-  const projectPath = path.join(saveDir, 'project.json')
+  // Write engine timing config (config.json) — segments in engine format.
+  // Wizard segments lack `mode` and `offset`; derive them here.
+  const engineSegments = opts.segments.map((seg) => {
+    const base = {
+      source: seg.source,
+      mode: seg.session ?? 'race',
+      offset: `${seg.videoOffsetFrame ?? 0} F`,
+      label: seg.label,
+    }
+    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
+    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'manual') return { ...base, timingData: [] }
+    return base
+  })
 
+  const configPath = path.join(saveDir, 'config.json')
+  fs.writeFileSync(configPath, JSON.stringify({
+    segments: engineSegments,
+    driver: opts.selectedDriver || undefined,
+  }, null, 2), 'utf-8')
+
+  // Write app metadata (project.json) — wizard-format segments for UI display.
+  const projectPath = path.join(saveDir, 'project.json')
   const projectData: ProjectData = {
     name: opts.name,
     projectPath,
+    configPath,
     videoPaths: [videoPath],
     segments: opts.segments,
     selectedDriver: opts.selectedDriver,
   }
-
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
 
   return projectData

@@ -24,17 +24,10 @@ export function Step4Verify({ segments }: Step4VerifyProps) {
   const [lapsBySegment, setLapsBySegment] = useState<Record<string, LapRow[]>>({})
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        await window.racedash.generateTimestamps({ configPath: '' })
-        throw new Error('not implemented')
-      } catch {
-        const bySegment: Record<string, LapRow[]> = {}
-        segments.forEach((seg) => { bySegment[seg.label] = PLACEHOLDER_LAPS })
-        setLapsBySegment(bySegment)
-      }
-    }
-    if (segments.length > 0) load()
+    if (segments.length === 0) return
+    const bySegment: Record<string, LapRow[]> = {}
+    segments.forEach((seg) => { bySegment[seg.label] = PLACEHOLDER_LAPS })
+    setLapsBySegment(bySegment)
   }, [segments])
 
   if (segments.length === 0) {

@@ -108,7 +108,7 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
 
     try {
       await window.racedash.startRender({
-        configPath: project.projectPath,
+        configPath: project.configPath,
         videoPaths: project.videoPaths,
         outputPath,
         style: 'banner', // TODO: derive from StyleTab state once lifted to parent

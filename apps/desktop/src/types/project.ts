@@ -38,6 +38,8 @@ export interface SegmentConfig {
 export interface ProjectData {
   name: string
   projectPath: string
+  /** Path to the engine timing config (config.json) in the project directory. */
+  configPath: string
   videoPaths: string[]
   segments: SegmentConfig[]
   selectedDriver: string

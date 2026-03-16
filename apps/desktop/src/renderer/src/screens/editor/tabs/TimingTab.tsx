@@ -38,12 +38,12 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
     setTimingLoading(true)
     setTimingError(null)
     window.racedash
-      .generateTimestamps({ configPath: project.projectPath, fps: videoInfo?.fps ?? undefined })
+      .generateTimestamps({ configPath: project.configPath, fps: videoInfo?.fps ?? undefined })
       .then((result) => { if (!cancelled) setTimestampsResult(result) })
       .catch((err) => { if (!cancelled) setTimingError(err instanceof Error ? err.message : String(err)) })
       .finally(() => { if (!cancelled) setTimingLoading(false) })
     return () => { cancelled = true }
-  }, [activeSegment, project.projectPath, videoInfo?.fps])
+  }, [activeSegment, project.configPath, videoInfo?.fps])
 
   const lapRows = React.useMemo<LapRow[]>(() => {
     if (!timestampsResult) return []
@@ -77,7 +77,7 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
       <DriverPickerModal
         open={showDriverPicker}
         onOpenChange={setShowDriverPicker}
-        configPath={project.projectPath}
+        configPath={project.configPath}
         onSelect={(name) => setSelectedDriver(name)}
       />
 
