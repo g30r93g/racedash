@@ -28,7 +28,7 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
     <div className="flex h-full overflow-hidden">
       {/* Left pane — video + timeline */}
       <div className="flex flex-1 flex-col overflow-hidden border-r border-border">
-        <VideoPane />
+        <VideoPane videoPath={project.videoPaths[0]} />
         <TimelinePane project={project} videoInfo={videoInfo} />
       </div>
 
