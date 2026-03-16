@@ -8,7 +8,7 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React.ReactElement {
   return (
-    <div className="flex items-center" role="list" aria-label="Progress">
+    <div className="flex items-start" role="list" aria-label="Progress">
       {steps.map((label, index) => {
         const stepNumber = index + 1
         const isComplete = stepNumber < currentStep
@@ -17,9 +17,7 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
         return (
           <React.Fragment key={stepNumber}>
             {index > 0 && (
-              <div
-                className={cn('h-px flex-1', isComplete ? 'bg-green-500' : 'bg-border')}
-              />
+              <div className={cn('mt-3.5 h-px flex-1', isComplete ? 'bg-green-500' : 'bg-border')} />
             )}
             <div className="flex flex-col items-center gap-1.5" role="listitem">
               <div
