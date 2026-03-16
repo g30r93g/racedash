@@ -1,5 +1,5 @@
 import React from 'react'
-import { FileUpload } from '@/components/app/FileUpload'
+import { Button } from '@/components/ui/button'
 import { VideoFileList } from '@/components/app/VideoFileList'
 
 interface Step1VideosProps {
@@ -10,9 +10,13 @@ interface Step1VideosProps {
 }
 
 export function Step1Videos({ videoPaths, onChange, joining, joinError }: Step1VideosProps) {
-  function handleNewFiles(newPaths: string[]) {
-    // Append, deduping by path
-    const combined = [...videoPaths, ...newPaths.filter((p) => !videoPaths.includes(p))]
+  async function handleBrowse() {
+    const paths = await window.racedash.openFiles({
+      title: 'Select video files',
+      filters: [{ name: 'Video', extensions: ['mp4', 'mov', 'MP4', 'MOV'] }],
+    })
+    if (!paths) return
+    const combined = [...videoPaths, ...paths.filter((p) => !videoPaths.includes(p))]
     onChange(combined)
   }
 
@@ -26,13 +30,9 @@ export function Step1Videos({ videoPaths, onChange, joining, joinError }: Step1V
         </p>
       </div>
 
-      <FileUpload
-        multiple={true}
-        accept={['mp4', 'mov', 'MP4', 'MOV']}
-        onFiles={handleNewFiles}
-        placeholder="Drop files here or browse"
-        hint="Supports .mp4 and .mov files"
-      />
+      <Button variant="outline" onClick={handleBrowse} className="self-start">
+        Browse files…
+      </Button>
 
       <VideoFileList paths={videoPaths} onChange={onChange} />
 
