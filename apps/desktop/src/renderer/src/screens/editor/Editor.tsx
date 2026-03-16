@@ -25,15 +25,15 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
   }, [project.videoPaths])
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Left pane — video + timeline */}
-      <div className="flex flex-1 flex-col overflow-hidden border-r border-border">
+    <div className="grid h-full overflow-hidden" style={{ gridTemplateColumns: '1fr 430px' }}>
+      {/* Left pane — video fills remaining height, timeline pinned to bottom */}
+      <div className="grid min-w-0 overflow-hidden border-r border-border" style={{ gridTemplateRows: '1fr auto' }}>
         <VideoPane videoPath={project.videoPaths[0]} />
         <TimelinePane project={project} videoInfo={videoInfo} />
       </div>
 
       {/* Right pane — tabbed panel */}
-      <div className="flex w-[430px] shrink-0 flex-col overflow-hidden bg-card">
+      <div className="flex min-w-0 flex-col overflow-hidden bg-card">
         <EditorTabsPane project={project} videoInfo={videoInfo} />
       </div>
     </div>
