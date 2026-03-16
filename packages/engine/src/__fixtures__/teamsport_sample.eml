@@ -1,0 +1,22 @@
+From: TeamSport Example <info@team-sport.co.uk>
+To: racer@example.com
+Subject: Results - Sample Session
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="boundary_test"
+
+--boundary_test
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+UmFjZSBSZXN1bHRzICYgU3VydmV5CkRldGFpbGVkIHJlc3VsdHMKPHRhYmxlIGNsYXNzPSJkYXRh
+Z3JpZCI+Cjx0cj48dGg+IDwvdGg+PHRoPkFsaWNlIEV4YW1wbGU8L3RoPjx0aD5Cb2IgRXhhbXBs
+ZTwvdGg+PHRoPkNoYXJsaWUgRXhhbXBsZTwvdGg+PC90cj4KPHRyPjx0ZCBhbGlnbj0icmlnaHQi
+PjE8L3RkPjx0ZCBhbGlnbj0iY2VudGVyIj4xOjAxLjAwMDwvdGQ+PHRkIGFsaWduPSJjZW50ZXIi
+PjE6MDIuNTAwPC90ZD48dGQgYWxpZ249ImNlbnRlciI+IDwvdGQ+PC90cj4KPHRyPjx0ZCBhbGln
+bj0icmlnaHQiPjI8L3RkPjx0ZCBhbGlnbj0iY2VudGVyIj41OS41MDA8L3RkPjx0ZCBhbGlnbj0i
+Y2VudGVyIj4xOjAwLjI1MDwvdGQ+PHRkIGFsaWduPSJjZW50ZXIiPjE6MDUuMDAwPC90ZD48L3Ry
+Pgo8dHI+PHRkIGFsaWduPSJyaWdodCI+MzwvdGQ+PHRkIGFsaWduPSJjZW50ZXIiPjU4Ljc1MDwv
+dGQ+PHRkIGFsaWduPSJjZW50ZXIiPiA8L3RkPjx0ZCBhbGlnbj0iY2VudGVyIj4xOjAxLjI1MDwv
+dGQ+PC90cj4KPC90YWJsZT4K
+
+--boundary_test--
