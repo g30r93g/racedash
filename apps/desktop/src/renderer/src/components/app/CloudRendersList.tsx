@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
+import { SectionLabel } from './SectionLabel'
 
 interface CloudRenderJob {
   id: string
@@ -50,27 +51,21 @@ export function CloudRendersList(): React.ReactElement {
       <div className="flex flex-col gap-4 p-4">
         {queued.length > 0 && (
           <section>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Queued
-            </p>
+            <SectionLabel>Queued</SectionLabel>
             {queued.map((job) => <JobRow key={job.id} job={job} />)}
           </section>
         )}
         {queued.length > 0 && inProgress.length > 0 && <Separator />}
         {inProgress.length > 0 && (
           <section>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              In Progress
-            </p>
+            <SectionLabel>In Progress</SectionLabel>
             {inProgress.map((job) => <JobRow key={job.id} job={job} />)}
           </section>
         )}
         {(queued.length > 0 || inProgress.length > 0) && completed.length > 0 && <Separator />}
         {completed.length > 0 && (
           <section>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Completed
-            </p>
+            <SectionLabel>Completed</SectionLabel>
             {completed.map((job) => <JobRow key={job.id} job={job} />)}
           </section>
         )}

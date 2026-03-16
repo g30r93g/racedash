@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { InfoRow } from './InfoRow'
+import { SectionLabel } from './SectionLabel'
 
 export function AccountDetails(): React.ReactElement {
   return (
@@ -24,9 +25,7 @@ export function AccountDetails(): React.ReactElement {
       <Separator />
 
       <section>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Subscription
-        </p>
+        <SectionLabel>Subscription</SectionLabel>
         <div className="rounded-md border border-border bg-accent px-3">
           <InfoRow label="Plan" value="Racedash Cloud Pro" />
           <div className="border-t border-border" />
@@ -40,9 +39,7 @@ export function AccountDetails(): React.ReactElement {
       <Separator />
 
       <section>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Security
-        </p>
+        <SectionLabel>Security</SectionLabel>
         <button className="w-full rounded-md border border-border bg-accent px-3 py-2 text-left text-sm text-foreground hover:bg-accent/80">
           Change password ›
         </button>

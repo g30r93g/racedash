@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 function isValidHex(value: string): boolean {
   return /^#[0-9a-fA-F]{6}$/.test(value)
@@ -13,6 +13,10 @@ interface ColourRowProps {
 export function ColourRow({ label, value, onChange }: ColourRowProps): React.ReactElement {
   const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState(value)
+
+  useEffect(() => {
+    setDraft(value)
+  }, [value])
 
   function handleNativeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const hex = e.target.value
