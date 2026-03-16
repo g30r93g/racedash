@@ -36,7 +36,7 @@ export function listProjectsHandler(): ProjectData[] {
   const racedashDir = RACEDASH_DIR
   if (!racedashDir || !fs.existsSync(racedashDir)) return []
 
-  const entries = fs.readdirSync(racedashDir) as unknown as string[]
+  const entries = fs.readdirSync(racedashDir)
   const result: ProjectData[] = []
 
   for (const entry of entries) {
@@ -58,7 +58,13 @@ export function listProjectsHandler(): ProjectData[] {
 }
 
 export async function openProjectHandler(projectPath: string): Promise<ProjectData> {
-  const raw = fs.readFileSync(projectPath, 'utf-8')
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('openProject: projectPath must be a non-empty string')
+  }
+  if (!projectPath.endsWith('project.json')) {
+    throw new Error('openProject: path must point to a project.json file')
+  }
+  const raw = fs.readFileSync(projectPath, 'utf-8') as string
   return JSON.parse(raw) as ProjectData
 }
 

@@ -107,4 +107,12 @@ describe('openProjectHandler', () => {
 
     await expect(openProjectHandler('/some/project.json')).rejects.toThrow()
   })
+
+  it('throws when projectPath is an empty string', async () => {
+    await expect(openProjectHandler('')).rejects.toThrow('non-empty string')
+  })
+
+  it('throws when projectPath does not end with project.json', async () => {
+    await expect(openProjectHandler('/etc/passwd')).rejects.toThrow('project.json')
+  })
 })
