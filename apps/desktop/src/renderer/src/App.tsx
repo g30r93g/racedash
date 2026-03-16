@@ -22,7 +22,13 @@ export function App(): React.ReactElement {
         {project ? (
           <Editor project={project} onClose={() => setProject(null)} />
         ) : (
-          <ProjectLibrary onOpen={setProject} />
+          <ProjectLibrary
+            onOpen={setProject}
+            onNew={() => {
+              // Wizard not yet implemented — sub-plan 3 will replace this
+              console.log('[racedash] new project requested')
+            }}
+          />
         )}
       </div>
     </div>
