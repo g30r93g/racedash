@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
+import { InfoRow } from '@/components/app/InfoRow'
 
 interface Step5ConfirmProps {
   state: WizardState
@@ -77,11 +78,11 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
       </FormField>
 
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">
-        <SummaryRow
+        <InfoRow
           label="Videos"
           value={`${state.videoPaths.length} file${state.videoPaths.length !== 1 ? 's' : ''} selected`}
         />
-        <SummaryRow label="Save to" value={saveDirectory} mono />
+        <InfoRow label="Save to" value={saveDirectory} />
 
         {state.segments.length > 0 && (
           <Tabs defaultValue={state.segments[0].label} className="mt-2">
@@ -98,13 +99,13 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
             </TabsList>
             {state.segments.map((seg) => (
               <TabsContent key={seg.label} value={seg.label} className="mt-3 space-y-1.5">
-                <SummaryRow label="Source" value={seg.source} />
-                <SummaryRow label="Driver" value={state.selectedDriver || '—'} />
-                {seg.url && <SummaryRow label="URL" value={seg.url} mono />}
+                <InfoRow label="Source" value={seg.source} />
+                <InfoRow label="Driver" value={state.selectedDriver || '—'} />
+                {seg.url && <InfoRow label="URL" value={seg.url} />}
                 {seg.emailPath && (
-                  <SummaryRow label="File" value={seg.emailPath.split('/').pop() ?? seg.emailPath} />
+                  <InfoRow label="File" value={seg.emailPath.split('/').pop() ?? seg.emailPath} />
                 )}
-                <SummaryRow
+                <InfoRow
                   label="Offset"
                   value={seg.videoOffsetFrame !== undefined ? `Frame ${seg.videoOffsetFrame}` : 'Not set'}
                 />
@@ -123,19 +124,6 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
       >
         {loading ? 'Saving project...' : 'Create Project'}
       </Button>
-    </div>
-  )
-}
-
-function SummaryRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="w-20 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className={`flex-1 text-sm text-foreground ${mono ? 'font-mono text-xs' : ''}`}>
-        {value}
-      </span>
     </div>
   )
 }
