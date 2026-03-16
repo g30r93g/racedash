@@ -1,13 +1,13 @@
+import { AccountDetails } from '@/components/app/AccountDetails'
+import type { LibraryTab } from '@/components/app/AppSidebar'
+import { AppSidebar } from '@/components/app/AppSidebar'
+import { CloudRendersList } from '@/components/app/CloudRendersList'
+import { ProjectCard } from '@/components/app/ProjectCard'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Skeleton } from '@/components/ui/skeleton'
 import React, { useEffect, useState } from 'react'
 import type { ProjectData } from '../../../types/project'
-import { AppSidebar } from '@/components/app/AppSidebar'
-import type { LibraryTab } from '@/components/app/AppSidebar'
-import { ProjectCard } from '@/components/app/ProjectCard'
-import { CloudRendersList } from '@/components/app/CloudRendersList'
-import { AccountDetails } from '@/components/app/AccountDetails'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Button } from '@/components/ui/button'
 
 interface ProjectLibraryProps {
   onOpen: (project: ProjectData) => void
@@ -28,7 +28,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   }, [])
 
   return (
-    <div className="flex h-full max-h-[650px] w-full max-w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] p-4 shadow-2xl">
+    <div className="flex h-full max-h-[650px] w-full max-w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
       <AppSidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -36,7 +36,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
         user={{ name: 'G. Gorzynski', email: 'george@university.ac.uk', plan: 'pro' }}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden p-4">
+      <div className="flex flex-1 flex-col overflow-hidden p-8">
             {activeTab === 'projects' && (
               <>
                 <div className="mb-6 flex shrink-0 items-center justify-between">
@@ -53,7 +53,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                       ))}
                     </div>
                   ) : projects.length === 0 ? (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+                    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
                       <p className="text-sm text-white/40">No projects yet. Create your first project.</p>
                       <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
                         + New RaceDash Project
