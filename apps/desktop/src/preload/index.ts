@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { RacedashAPI, RenderCompleteResult } from '../types/ipc'
+import type { ProjectData, CreateProjectOpts } from '../types/project'
 
 const api: RacedashAPI = {
   checkFfmpeg: () =>
@@ -13,6 +14,13 @@ const api: RacedashAPI = {
     ipcRenderer.invoke('racedash:openDirectory', opts),
   revealInFinder: (path) =>
     ipcRenderer.invoke('racedash:revealInFinder', path),
+
+  listProjects: () =>
+    ipcRenderer.invoke('racedash:listProjects'),
+  openProject: (projectPath: ProjectData['projectPath']) =>
+    ipcRenderer.invoke('racedash:openProject', projectPath),
+  createProject: (opts: CreateProjectOpts) =>
+    ipcRenderer.invoke('racedash:createProject', opts),
 
   listDrivers: (opts) =>
     ipcRenderer.invoke('racedash:listDrivers', opts),
