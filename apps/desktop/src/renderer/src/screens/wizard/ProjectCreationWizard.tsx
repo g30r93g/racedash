@@ -26,6 +26,7 @@ const STEP_LABELS = ['Videos', 'Segments', 'Driver', 'Verify', 'Confirm'] as con
 
 export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [segmentSubForm, setSegmentSubForm] = useState(false)
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [state, setState] = useState<WizardState>({
@@ -100,6 +101,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
               videoPaths={state.videoPaths}
               segments={state.segments}
               onChange={(segments) => updateState({ segments })}
+              onSubFormChange={setSegmentSubForm}
             />
           )}
           {step === 3 && (
@@ -119,7 +121,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between border-t border-border px-8 py-4">
+        <div className={`flex shrink-0 items-center justify-between border-t border-border px-8 py-4${segmentSubForm ? ' hidden' : ''}`}>
           <Button variant="ghost" onClick={step === 1 ? onCancel : goBack}>
             {step === 1 ? 'Cancel' : '← Back'}
           </Button>

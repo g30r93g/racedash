@@ -7,6 +7,7 @@ interface Step2SegmentsProps {
   videoPaths: string[]
   segments: SegmentConfig[]
   onChange: (segments: SegmentConfig[]) => void
+  onSubFormChange?: (active: boolean) => void
 }
 
 type FormMode = { mode: 'add' } | { mode: 'edit'; index: number }
@@ -19,8 +20,18 @@ const SOURCE_COLORS: Record<string, string> = {
   manual: '#6b7280',
 }
 
-export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsProps) {
+export function Step2Segments({ videoPaths, segments, onChange, onSubFormChange }: Step2SegmentsProps) {
   const [formMode, setFormMode] = useState<FormMode | null>(null)
+
+  function openForm(mode: FormMode) {
+    setFormMode(mode)
+    onSubFormChange?.(true)
+  }
+
+  function closeForm() {
+    setFormMode(null)
+    onSubFormChange?.(false)
+  }
 
   function handleSave(segment: SegmentConfig) {
     if (!formMode) return
@@ -29,7 +40,7 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
         ? [...segments, segment]
         : segments.map((s, i) => (i === formMode.index ? segment : s))
     )
-    setFormMode(null)
+    closeForm()
   }
 
   if (formMode !== null) {
@@ -39,7 +50,7 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
         initial={formMode.mode === 'edit' ? segments[formMode.index] : undefined}
         mode={formMode.mode}
         onSave={handleSave}
-        onBack={() => setFormMode(null)}
+        onBack={closeForm}
       />
     )
   }
@@ -81,7 +92,7 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setFormMode({ mode: 'edit', index })}
+                  onClick={() => openForm({ mode: 'edit', index })}
                   aria-label={`Edit ${seg.label}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
@@ -105,7 +116,7 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
             <Button
               variant="outline"
               className="mt-2 w-full border-dashed"
-              onClick={() => setFormMode({ mode: 'add' })}
+              onClick={() => openForm({ mode: 'add' })}
             >
               + Add another segment
             </Button>
@@ -114,7 +125,7 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
       </div>
 
       {segments.length === 0 && (
-        <Button className="self-start" onClick={() => setFormMode({ mode: 'add' })}>
+        <Button className="self-start" onClick={() => openForm({ mode: 'add' })}>
           + Add segment
         </Button>
       )}
