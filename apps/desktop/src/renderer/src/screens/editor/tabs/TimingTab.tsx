@@ -1,35 +1,18 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import type { DriversResult, TimestampsResult, VideoInfo } from '../../../../../types/ipc'
+import React, { useEffect, useState } from 'react'
+import type { TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { SectionLabel } from '@/components/app/SectionLabel'
+import { TimingTable } from '@/components/app/TimingTable'
+import type { LapRow } from '@/components/app/TimingTable'
+import { DriverPickerModal } from '@/components/app/DriverPickerModal'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
-function formatLapTime(ms: number): string {
-  const totalMs = Math.round(ms)
-  const minutes = Math.floor(totalMs / 60000)
-  const seconds = Math.floor((totalMs % 60000) / 1000)
-  const millis = totalMs % 1000
-  return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }): React.ReactElement {
-  return (
-    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-      {children}
-    </p>
-  )
-}
 
 interface TimingTabProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
-}
-
-interface LapRow {
-  lap: number
-  timeMs: number
-  position: number
 }
 
 interface Override {
@@ -42,23 +25,6 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
   // ── Driver ──────────────────────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = useState(project.selectedDriver)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
-  const [driversResult, setDriversResult] = useState<DriversResult | null>(null)
-  const [driversLoading, setDriversLoading] = useState(false)
-  const [driversError, setDriversError] = useState<string | null>(null)
-
-  const openDriverPicker = useCallback(async () => {
-    setShowDriverPicker(true)
-    setDriversLoading(true)
-    setDriversError(null)
-    try {
-      const result = await window.racedash.listDrivers({ configPath: project.projectPath })
-      setDriversResult(result)
-    } catch (err) {
-      setDriversError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setDriversLoading(false)
-    }
-  }, [project.projectPath])
 
   // ── Timing data ─────────────────────────────────────────────────────────────
   const segmentLabels = project.segments.map((s, i) => s.label || `Segment ${i + 1}`)
@@ -107,103 +73,49 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
 
   return (
     <div className="flex flex-col gap-6 p-4">
+      {/* DRIVER PICKER MODAL */}
+      <DriverPickerModal
+        open={showDriverPicker}
+        onOpenChange={setShowDriverPicker}
+        configPath={project.projectPath}
+        onSelect={(name) => setSelectedDriver(name)}
+      />
+
       {/* DRIVER */}
       <section>
         <SectionLabel>Driver</SectionLabel>
         <div className="flex items-center justify-between rounded-md border border-border bg-accent px-3 py-2">
           <span className="text-sm text-foreground">{selectedDriver}</span>
-          <button onClick={openDriverPicker} className="text-xs text-primary hover:underline">
-            Change
-          </button>
+          <Button variant="ghost" size="sm" onClick={() => setShowDriverPicker(true)}>Change</Button>
         </div>
       </section>
-
-      {/* DRIVER PICKER MODAL */}
-      {showDriverPicker && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setShowDriverPicker(false)}
-        >
-          <div
-            className="w-[360px] rounded-lg border border-border bg-card p-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="mb-3 text-sm font-semibold text-foreground">Choose Driver</p>
-            {driversLoading && <p className="text-xs text-muted-foreground">Loading drivers…</p>}
-            {driversError && <p className="text-xs text-destructive">{driversError}</p>}
-            {!driversLoading && !driversError && driversResult && (
-              <ul className="flex flex-col gap-1">
-                {driversResult.segments.flatMap((seg) =>
-                  seg.drivers.map((d) => (
-                    <li key={`${seg.config.source}-${d.name}`}>
-                      <button
-                        className="w-full rounded px-2 py-1.5 text-left text-sm text-foreground hover:bg-accent"
-                        onClick={() => { setSelectedDriver(d.name); setShowDriverPicker(false) }}
-                      >
-                        {d.kart ? `[${d.kart.padStart(3, ' ')}] ${d.name}` : d.name}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            )}
-            <div className="mt-4 flex justify-end">
-              <Button variant="ghost" size="sm" onClick={() => setShowDriverPicker(false)}>Cancel</Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* TIMING DATA */}
       <section>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Timing Data</SectionLabel>
-          <button className="text-xs text-muted-foreground hover:text-foreground">Edit</button>
+          <Button variant="ghost" size="sm">Edit</Button>
         </div>
 
         {segmentLabels.length > 1 && (
-          <div className="mb-3 flex gap-1">
+          <ToggleGroup
+            type="single"
+            value={String(activeSegment)}
+            onValueChange={(val) => { if (val !== undefined) setActiveSegment(Number(val)) }}
+            className="mb-3 flex gap-1"
+          >
             {segmentLabels.map((label, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveSegment(i)}
-                className={cn(
-                  'rounded px-3 py-1 text-xs',
-                  activeSegment === i
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-accent text-muted-foreground hover:text-foreground'
-                )}
-              >
+              <ToggleGroupItem key={i} value={String(i)} className="rounded px-3 py-1 text-xs">
                 {label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         )}
 
         {timingLoading && <p className="text-xs text-muted-foreground">Loading timing data…</p>}
         {timingError && <p className="text-xs text-destructive">{timingError}</p>}
         {!timingLoading && !timingError && lapRows.length > 0 && (
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="py-1 text-left font-medium text-muted-foreground">LAP</th>
-                <th className="py-1 text-left font-medium text-muted-foreground">TIME</th>
-                <th className="py-1 text-left font-medium text-muted-foreground">POS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lapRows.map((row) => (
-                <tr
-                  key={row.lap}
-                  className={row.timeMs === bestLapTime ? 'text-foreground' : 'text-muted-foreground'}
-                >
-                  <td className="py-1">{row.lap}</td>
-                  <td className="py-1 font-medium">{formatLapTime(row.timeMs)}</td>
-                  <td className="py-1">P{row.position}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TimingTable rows={lapRows} bestLapTimeMs={bestLapTime ?? undefined} />
         )}
         {!timingLoading && !timingError && lapRows.length === 0 && (
           <p className="text-xs text-muted-foreground">No timing data available.</p>
@@ -214,12 +126,7 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
       <section>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Position Overrides</SectionLabel>
-          <button
-            onClick={() => setShowOverrideForm((v) => !v)}
-            className="text-xs text-primary hover:underline"
-          >
-            + Add
-          </button>
+          <Button variant="ghost" size="sm" onClick={() => setShowOverrideForm((v) => !v)}>+ Add</Button>
         </div>
 
         {showOverrideForm && (
@@ -250,13 +157,15 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
                 <span className="w-20 font-mono">{o.timecode}</span>
                 <span className="text-muted-foreground">→</span>
                 <span className="w-10 font-medium">{o.position}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-auto h-5 w-5 hover:text-destructive"
                   onClick={() => setOverrides((prev) => prev.filter((x) => x.id !== o.id))}
-                  className="ml-auto text-muted-foreground hover:text-destructive"
                   aria-label="Remove override"
                 >
                   ×
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
