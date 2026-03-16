@@ -1,11 +1,13 @@
 import { ipcMain, app, dialog, shell } from 'electron'
+import type { WebContents } from 'electron'
 import { execSync, execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo } from '../types/ipc'
+import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
+import { listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -152,12 +154,28 @@ export function getVideoInfo(videoPath: string): VideoInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Stubs
+// Resolution helpers
 // ---------------------------------------------------------------------------
 
-const stub = (channel: string) => () => {
-  throw new Error(`IPC handler not implemented: ${channel}`)
+const RESOLUTION_MAP: Record<Exclude<OutputResolution, 'source'>, { width: number; height: number }> = {
+  '1080p': { width: 1920, height: 1080 },
+  '1440p': { width: 2560, height: 1440 },
+  '2160p': { width: 3840, height: 2160 },
 }
+
+/**
+ * Absolute path to the Remotion renderer entry point.
+ * Resolved relative to this compiled file, which lives at apps/desktop/src/main/.
+ * Four levels up reaches the monorepo root; then into apps/renderer/src/index.ts.
+ */
+const RENDERER_ENTRY = path.resolve(__dirname, '../../../../apps/renderer/src/index.ts')
+
+// ---------------------------------------------------------------------------
+// Active render state (one render at a time)
+// ---------------------------------------------------------------------------
+
+let activeRenderCancelled = false
+let activeRenderSender: WebContents | null = null
 
 // ---------------------------------------------------------------------------
 // Registration
@@ -197,10 +215,10 @@ export function registerIpcHandlers(): void {
     return canceled ? undefined : filePaths[0]
   })
 
-  ipcMain.handle('racedash:revealInFinder', (_event, path: string) => {
-    if (typeof path !== 'string' || path.trim().length === 0) return
-    if (!existsSync(path)) return
-    shell.showItemInFolder(path)
+  ipcMain.handle('racedash:revealInFinder', (_event, filePath: string) => {
+    if (typeof filePath !== 'string' || filePath.trim().length === 0) return
+    if (!existsSync(filePath)) return
+    shell.showItemInFolder(filePath)
   })
 
   // Projects
@@ -208,12 +226,59 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:openProject', (_event, projectPath: string) => openProjectHandler(projectPath))
   ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
 
-  // Timing (stub — implemented in Timing tab sub-plan)
-  ipcMain.handle('racedash:listDrivers',        stub('listDrivers'))
-  ipcMain.handle('racedash:generateTimestamps', stub('generateTimestamps'))
+  // Timing — engine integration
+  ipcMain.handle('racedash:listDrivers', (_event, opts: { configPath: string; driverQuery?: string }) =>
+    listDrivers(opts)
+  )
+  ipcMain.handle('racedash:generateTimestamps', (_event, opts: { configPath: string; fps?: number }) =>
+    generateTimestamps(opts)
+  )
 
-  // Export
-  ipcMain.handle('racedash:getVideoInfo',  (_event, videoPath: string) => getVideoInfo(videoPath))
-  ipcMain.handle('racedash:startRender',   stub('startRender'))
-  ipcMain.handle('racedash:cancelRender',  stub('cancelRender'))
+  // Export — getVideoInfo (synchronous, uses execFileSync)
+  ipcMain.handle('racedash:getVideoInfo', (_event, videoPath: string) => getVideoInfo(videoPath))
+
+  // Export — startRender (non-blocking; progress pushed via webContents.send)
+  ipcMain.handle('racedash:startRender', (event, opts: RenderStartOpts) => {
+    activeRenderCancelled = false
+    activeRenderSender = event.sender
+
+    const outputResolution =
+      opts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[opts.outputResolution]
+
+    renderSession(
+      {
+        configPath: opts.configPath,
+        videoPaths: opts.videoPaths,
+        outputPath: opts.outputPath,
+        rendererEntry: RENDERER_ENTRY,
+        style: opts.style,
+        outputResolution,
+        onlyRenderOverlay: opts.renderMode === 'overlay-only',
+      },
+      (progress) => {
+        if (activeRenderCancelled) {
+          throw new Error('Render cancelled by user')
+        }
+        event.sender.send('racedash:render-progress', progress)
+      },
+    )
+      .then((result) => {
+        activeRenderSender = null
+        event.sender.send('racedash:render-complete', result)
+      })
+      .catch((err: unknown) => {
+        activeRenderSender = null
+        const message = err instanceof Error ? err.message : String(err)
+        event.sender.send('racedash:render-error', { message })
+      })
+  })
+
+  // Export — cancelRender
+  ipcMain.handle('racedash:cancelRender', () => {
+    activeRenderCancelled = true
+    if (activeRenderSender && !activeRenderSender.isDestroyed()) {
+      activeRenderSender.send('racedash:render-error', { message: 'Render cancelled by user' })
+    }
+    activeRenderSender = null
+  })
 }

@@ -32,9 +32,9 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
         <TimelinePane project={project} videoInfo={videoInfo} />
       </div>
 
-      {/* Right pane — tabbed panel (built by sub-plan 5) */}
+      {/* Right pane — tabbed panel */}
       <div className="flex w-[430px] shrink-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} />
       </div>
     </div>
   )
