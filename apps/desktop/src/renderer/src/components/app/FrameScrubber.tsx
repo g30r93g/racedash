@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
+import { Spinner } from '@/components/loaders/Spinner'
 
 interface FrameScrubberProps {
   videoPath: string
@@ -28,6 +29,7 @@ export function FrameScrubber({
   onMetadataLoaded,
 }: FrameScrubberProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [videoReady, setVideoReady] = useState(false)
   const src = videoPath.startsWith('/') ? `media://${videoPath}` : videoPath
 
   // Seek whenever currentFrame or fps changes — but only once video can seek
@@ -56,10 +58,16 @@ export function FrameScrubber({
             if (!video) return
             const frames = Math.floor(video.duration * fps)
             onMetadataLoaded?.(frames)
-            // Seek to currentFrame now that the video is ready
             video.currentTime = currentFrame / fps
           }}
+          onCanPlay={() => setVideoReady(true)}
         />
+        {!videoReady && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black">
+            <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" ignoreReducedMotion />
+            <span className="font-mono text-[11px] text-muted-foreground">Loading video…</span>
+          </div>
+        )}
         <div className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-white">
           {currentFrame} F
         </div>
