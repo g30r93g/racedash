@@ -1,7 +1,7 @@
-import React from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import React from 'react'
 
 export type LibraryTab = 'projects' | 'cloud-renders' | 'account'
 
@@ -42,7 +42,7 @@ export function AppSidebar({
               />
             </svg>
           </div>
-          <span className="text-sm font-bold text-white">Racedash</span>
+          <span className="text-sm font-bold text-white">RaceDash</span>
         </div>
         <div className="mt-4 h-px bg-white/10" />
       </div>
@@ -81,7 +81,7 @@ export function AppSidebar({
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-white">{user.name}</p>
             {user.plan === 'pro' && (
-              <p className="text-[10px] text-blue-400">Racedash Cloud PRO</p>
+              <p className="text-[10px] text-blue-400">RaceDash Cloud PRO</p>
             )}
           </div>
         </div>

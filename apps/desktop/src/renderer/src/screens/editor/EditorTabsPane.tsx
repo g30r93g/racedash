@@ -1,11 +1,11 @@
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import React from 'react'
 import type { VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { TimingTab } from './tabs/TimingTab'
-import { StyleTab } from './tabs/StyleTab'
 import { ExportTab } from './tabs/ExportTab'
+import { StyleTab } from './tabs/StyleTab'
+import { TimingTab } from './tabs/TimingTab'
 
 interface EditorTabsPaneProps {
   project: ProjectData
@@ -48,9 +48,9 @@ export function EditorTabsPane({ project, videoInfo }: EditorTabsPaneProps): Rea
         </TabsContent>
       </Tabs>
 
-      {/* Racedash Cloud footer — coming soon */}
+      {/* RaceDash Cloud footer — coming soon */}
       <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
-        <span className="text-xs text-muted-foreground">Racedash Cloud</span>
+        <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
         <Button variant="ghost" size="sm" disabled>Sign in</Button>
       </div>
     </div>

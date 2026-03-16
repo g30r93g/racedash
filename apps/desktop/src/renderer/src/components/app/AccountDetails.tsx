@@ -1,8 +1,8 @@
-import React from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import React from 'react'
 import { InfoRow } from './InfoRow'
 import { SectionLabel } from './SectionLabel'
 
@@ -27,7 +27,7 @@ export function AccountDetails(): React.ReactElement {
       <section>
         <SectionLabel>Subscription</SectionLabel>
         <div className="rounded-md border border-border bg-accent px-3">
-          <InfoRow label="Plan" value="Racedash Cloud Pro" />
+          <InfoRow label="Plan" value="RaceDash Cloud Pro" />
           <div className="border-t border-border" />
           <InfoRow label="Renews" value="1 Apr 2026" />
         </div>
