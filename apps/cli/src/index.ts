@@ -7,7 +7,6 @@ import {
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
-  type OverlayStyling,
 } from '@racedash/core'
 import { resolveVideoFiles } from './select'
 import {
@@ -173,8 +172,6 @@ interface RenderOpts {
   onlyRenderOverlay: boolean
 }
 
-let lastPhase = ''
-
 program
   .command('render')
   .description('Render overlay onto video')
@@ -191,6 +188,7 @@ program
   .option('--no-cache', 'Force re-render the overlay')
   .option('--only-render-overlay', 'Render overlay file only, skip compositing')
   .action(async (opts: RenderOpts) => {
+    let lastPhase = ''
     try {
       const renderWarning = getRenderExperimentalWarning()
       if (renderWarning) process.stderr.write(`\n  Warning      ${renderWarning}\n`)
@@ -234,6 +232,7 @@ program
         phaseBarCallback!(progress)
       }
 
+      stat('Alpha', getOverlayRenderProfile().label)
       const result = await renderSession(
         {
           configPath: opts.config,
@@ -255,7 +254,6 @@ program
       )
 
       process.stderr.write('\n')
-      stat('Alpha', getOverlayRenderProfile().label)
       console.log(result.outputPath)
     } catch (err) {
       if (lastPhase) process.stderr.write('\n')
@@ -325,10 +323,6 @@ function formatSeconds(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-function formatFps(fps: number): string {
-  return fps.toFixed(3).replace(/\.?0+$/, '')
-}
-
 function stat(label: string, value: string): void {
   process.stderr.write(`  ${label.padEnd(10)}  ${value}\n`)
 }
@@ -345,130 +339,6 @@ function tryParseColor(css: string): [number, number, number] | null {
   if (rgb) return [parseInt(rgb[1], 10), parseInt(rgb[2], 10), parseInt(rgb[3], 10)]
   const named: Record<string, [number, number, number]> = { white: [255, 255, 255], black: [0, 0, 0] }
   return named[s.toLowerCase()] ?? null
-}
-
-function colorSwatch(css: string): string {
-  const rgb = tryParseColor(css)
-  if (!rgb) return ''
-  const [r, g, b] = rgb
-  return `\x1b[48;2;${r};${g};${b}m  \x1b[0m `
-}
-
-function printStyling(styling: OverlayStyling | undefined, style: string): void {
-  const lb = styling?.leaderboard
-  const bn = styling?.banner
-  const gb = styling?.geometricBanner
-  const es = styling?.esports
-  const mn = styling?.minimal
-  const mo = styling?.modern
-  const fd = styling?.fade
-  const sl = styling?.segmentLabel
-  const db = styling?.deltaBadge
-  const W = 22
-
-  const accent = styling?.accentColor ?? '#3DD73D'
-
-  function row(indent: string, label: string, configured: string | undefined, dflt: string): void {
-    const tag = configured !== undefined ? '' : ' (default)'
-    const value = configured ?? dflt
-    const swatch = colorSwatch(value)
-    process.stderr.write(`${indent}${label.padEnd(W)}  ${swatch}${value}${tag}\n`)
-  }
-
-  function section(indent: string, name: string): void {
-    process.stderr.write(`${indent}${name}\n`)
-  }
-
-  process.stderr.write('  Styling\n')
-  row('    ', 'accentColor', styling?.accentColor, '#3DD73D')
-  row('    ', 'textColor', styling?.textColor, 'white')
-
-  section('    ', 'fade')
-  row('      ', 'enabled', fd?.enabled?.toString(), DEFAULT_FADE_ENABLED.toString())
-  row('      ', 'durationSeconds', fd?.durationSeconds?.toString(), DEFAULT_FADE_DURATION_SECONDS.toString())
-  row('      ', 'preRollSeconds', fd?.preRollSeconds?.toString(), DEFAULT_FADE_PRE_ROLL_SECONDS.toString())
-
-  section('    ', 'segmentLabel')
-  row('      ', 'bgColor', sl?.bgColor, 'rgba(0,0,0,0.72)')
-  row('      ', 'textColor', sl?.textColor, 'white')
-  row('      ', 'borderRadius', sl?.borderRadius?.toString(), '8')
-
-  section('    ', 'deltaBadge')
-  row('      ', 'fasterColor', db?.fasterColor, '#00FF87')
-  row('      ', 'slowerColor', db?.slowerColor, '#FF3B30')
-  row('      ', 'fadeInDuration', db?.fadeInDuration?.toString(), '0.5')
-
-  section('    ', 'leaderboard')
-  row('      ', 'accentColor', lb?.accentColor, `${accent} (inherited)`)
-  row('      ', 'bgColor', lb?.bgColor, 'rgba(0,0,0,0.65)')
-  row('      ', 'ourRowBgColor', lb?.ourRowBgColor, 'rgba(0,0,0,0.82)')
-  row('      ', 'ourRowBorderWidth', lb?.ourRowBorderWidth?.toString(), '3')
-  row('      ', 'ourRowGradientOpacity', lb?.ourRowGradientOpacity?.toString(), '0.19')
-  row('      ', 'backdropBlur', lb?.backdropBlur?.toString(), '8')
-  row('      ', 'textColor', lb?.textColor, 'white')
-  row('      ', 'positionTextColor', lb?.positionTextColor, 'rgba(255,255,255,0.5)')
-  row('      ', 'kartTextColor', lb?.kartTextColor, 'rgba(255,255,255,0.7)')
-  row('      ', 'lapTimeTextColor', lb?.lapTimeTextColor, 'rgba(255,255,255,0.8)')
-  row('      ', 'separatorColor', lb?.separatorColor, 'rgba(255,255,255,0.15)')
-
-  if (style === 'banner') {
-    section('    ', 'banner')
-    row('      ', 'bgColor', bn?.bgColor, `${accent} (inherited)`)
-    row('      ', 'bgOpacity', bn?.bgOpacity?.toString(), '0.82')
-    row('      ', 'borderRadius', bn?.borderRadius?.toString(), '10')
-    row('      ', 'timerTextColor', bn?.timerTextColor, 'white')
-    row('      ', 'timerBgColor', bn?.timerBgColor, '#111111')
-    row('      ', 'lapColorPurple', bn?.lapColorPurple, 'rgba(107,33,168,0.95)')
-    row('      ', 'lapColorGreen', bn?.lapColorGreen, 'rgba(21,128,61,0.95)')
-    row('      ', 'lapColorRed', bn?.lapColorRed, 'rgba(185,28,28,0.95)')
-    row('      ', 'flashDuration', bn?.flashDuration?.toString(), '2')
-    row('      ', 'leftSegment', bn?.leftSegment, 'last-lap')
-    row('      ', 'rightSegment', bn?.rightSegment, 'best-lap')
-  }
-
-  if (style === 'geometric-banner') {
-    section('    ', 'geometricBanner')
-    row('      ', 'positionCounterColor', gb?.positionCounterColor, '#0bc770')
-    row('      ', 'lastLapColor', gb?.lastLapColor, '#16aa9c')
-    row('      ', 'lapTimerNeutralColor', gb?.lapTimerNeutralColor, '#0e0ab8')
-    row('      ', 'previousLapColor', gb?.previousLapColor, '#7c16aa')
-    row('      ', 'lapCounterColor', gb?.lapCounterColor, '#c70b4d')
-    row('      ', 'lapColorPurple', gb?.lapColorPurple, 'rgba(107,33,168,0.95)')
-    row('      ', 'lapColorGreen', gb?.lapColorGreen, 'rgba(21,128,61,0.95)')
-    row('      ', 'lapColorRed', gb?.lapColorRed, 'rgba(185,28,28,0.95)')
-    row('      ', 'timerTextColor', gb?.timerTextColor, 'white')
-    row('      ', 'flashDuration', gb?.flashDuration?.toString(), '2')
-    row('      ', 'opacity', gb?.opacity?.toString(), '1')
-    row('      ', 'leftSegment', gb?.leftSegment, 'last-lap')
-    row('      ', 'rightSegment', gb?.rightSegment, 'best-lap')
-  }
-
-  if (style === 'esports') {
-    section('    ', 'esports')
-    row('      ', 'accentBarColor', es?.accentBarColor, '#2563eb')
-    row('      ', 'accentBarColorEnd', es?.accentBarColorEnd, '#7c3aed')
-    row('      ', 'timePanelsBgColor', es?.timePanelsBgColor, '#3f4755')
-    row('      ', 'currentBarBgColor', es?.currentBarBgColor, '#111')
-    row('      ', 'labelColor', es?.labelColor, '#9ca3af')
-    row('      ', 'lastLapIconColor', es?.lastLapIconColor, '#16a34a')
-    row('      ', 'sessionBestIconColor', es?.sessionBestIconColor, '#7c3aed')
-  }
-
-  if (style === 'minimal') {
-    section('    ', 'minimal')
-    row('      ', 'bgColor', mn?.bgColor, 'rgba(20,22,28,0.88)')
-    row('      ', 'badgeBgColor', mn?.badgeBgColor, 'white')
-    row('      ', 'badgeTextColor', mn?.badgeTextColor, '#222222')
-    row('      ', 'statLabelColor', mn?.statLabelColor, '#aaaaaa')
-  }
-
-  if (style === 'modern') {
-    section('    ', 'modern')
-    row('      ', 'bgColor', mo?.bgColor, 'rgba(13,15,20,0.88)')
-    row('      ', 'stripeOpacity', mo?.stripeOpacity?.toString(), '0.035')
-    row('      ', 'dividerColor', mo?.dividerColor, 'rgba(255,255,255,0.2)')
-    row('      ', 'statLabelColor', mo?.statLabelColor, 'rgba(255,255,255,0.5)')
-  }
 }
 
 function makeProgressCallback(label: string): (progress: number) => void {
