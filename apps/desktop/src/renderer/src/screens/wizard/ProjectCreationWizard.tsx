@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 
 export interface WizardState {
   videoPaths: string[]
+  joinedVideoPath?: string
   segments: SegmentConfig[]
   selectedDriver: string
   projectName: string
@@ -24,6 +25,8 @@ const STEP_LABELS = ['Videos', 'Segments', 'Driver', 'Verify', 'Confirm'] as con
 
 export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [joining, setJoining] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
   const [state, setState] = useState<WizardState>({
     videoPaths: [],
     segments: [],
@@ -51,6 +54,29 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
     setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3 | 4 | 5)
   }
 
+  function handleVideoPathsChange(paths: string[]) {
+    setState((prev) => ({ ...prev, videoPaths: paths, joinedVideoPath: undefined }))
+    setJoinError(null)
+  }
+
+  async function handleContinue() {
+    if (step === 1 && !state.joinedVideoPath) {
+      setJoining(true)
+      setJoinError(null)
+      try {
+        const { joinedPath } = await window.racedash.joinVideos(state.videoPaths)
+        updateState({ joinedVideoPath: joinedPath })
+        setJoining(false)
+        goNext()
+      } catch (err) {
+        setJoinError(err instanceof Error ? err.message : 'Failed to join video files')
+        setJoining(false)
+      }
+      return
+    }
+    goNext()
+  }
+
   const canContinue =
     (step === 1 && state.videoPaths.length >= 1) ||
     (step === 2 && state.segments.length >= 1) ||
@@ -71,7 +97,9 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
           {step === 1 && (
             <Step1Videos
               videoPaths={state.videoPaths}
-              onChange={(paths) => updateState({ videoPaths: paths })}
+              onChange={handleVideoPathsChange}
+              joining={joining}
+              joinError={joinError ?? undefined}
             />
           )}
           {step === 2 && (
@@ -103,8 +131,8 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
             {step === 1 ? 'Cancel' : '← Back'}
           </Button>
           {step < 5 && (
-            <Button onClick={goNext} disabled={!canContinue}>
-              Continue
+            <Button onClick={handleContinue} disabled={!canContinue || joining}>
+              {joining ? 'Joining…' : 'Continue'}
             </Button>
           )}
         </div>
