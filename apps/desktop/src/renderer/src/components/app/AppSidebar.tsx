@@ -27,7 +27,7 @@ export function AppSidebar({
   user,
 }: AppSidebarProps): React.ReactElement {
   return (
-    <div className="flex w-[190px] shrink-0 flex-col border-r border-white/5 bg-[#161616]">
+    <div className="flex w-[190px] shrink-0 flex-col rounded-lg bg-[#161616]">
       {/* Logo */}
       <div className="px-5 py-5">
         <div className="flex items-center gap-2">

@@ -28,7 +28,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   }, [])
 
   return (
-    <div className="flex h-full max-h-[650px] w-full max-w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
+    <div className="flex h-full max-h-[650px] w-full max-w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] p-4 shadow-2xl">
       <AppSidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -36,7 +36,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
         user={{ name: 'G. Gorzynski', email: 'george@university.ac.uk', plan: 'pro' }}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
+      <div className="flex flex-1 flex-col overflow-hidden p-4">
             {activeTab === 'projects' && (
               <>
                 <div className="mb-6 flex shrink-0 items-center justify-between">
