@@ -84,10 +84,7 @@ export async function openProjectHandler(projectPath: string): Promise<ProjectDa
     throw new Error('openProject: path must point to a project.json file')
   }
   const raw = fs.readFileSync(projectPath, 'utf-8') as string
-  const data = JSON.parse(raw) as ProjectData
-  // Backward compat: older projects used project.json as the engine config.
-  if (!data.configPath) data.configPath = projectPath
-  return data
+  return JSON.parse(raw) as ProjectData
 }
 
 export async function handleCreateProject(opts: CreateProjectOpts): Promise<ProjectData> {
