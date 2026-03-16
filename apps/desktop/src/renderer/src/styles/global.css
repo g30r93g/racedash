@@ -64,12 +64,16 @@
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-html, body, #root {
+html {
+  height: 100%;
+}
+
+body, #root {
   height: 100%;
   background-color: var(--background);
   color: var(--foreground);
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 13px;
+  font-size: 0.8125rem; /* 13px relative to 16px html base — keeps rem correct */
   -webkit-font-smoothing: antialiased;
 }
 
