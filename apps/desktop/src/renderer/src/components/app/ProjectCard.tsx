@@ -18,6 +18,7 @@ export function ProjectCard({ project, onOpen }: ProjectCardProps): React.ReactE
       onOpen(loaded)
     } catch (err) {
       console.error('[racedash] failed to open project', err)
+    } finally {
       setLoading(false)
     }
   }
