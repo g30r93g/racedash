@@ -1,16 +1,7 @@
 import React from 'react'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
 export type LibraryTab = 'projects' | 'cloud-renders' | 'account'
 
@@ -36,9 +27,10 @@ export function AppSidebar({
   user,
 }: AppSidebarProps): React.ReactElement {
   return (
-    <Sidebar className="w-[190px] shrink-0 border-r-0 bg-[#161616]">
-      <SidebarHeader className="px-3 py-4">
-        <div className="mb-2 flex items-center gap-2 px-2">
+    <div className="flex w-[190px] shrink-0 flex-col border-r border-white/5 bg-[#161616]">
+      {/* Logo */}
+      <div className="px-5 py-5">
+        <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path
@@ -52,51 +44,35 @@ export function AppSidebar({
           </div>
           <span className="text-sm font-bold text-white">Racedash</span>
         </div>
-        <Separator className="bg-white/10" />
-      </SidebarHeader>
+        <div className="mt-4 h-px bg-white/10" />
+      </div>
 
-      <SidebarContent className="px-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeTab === 'projects'}
-              onClick={() => onTabChange('projects')}
-              className="gap-2.5 text-sm text-white"
-            >
-              <FolderIcon />
-              Projects
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeTab === 'cloud-renders'}
-              onClick={() => onTabChange('cloud-renders')}
-              className="gap-2.5 text-sm text-white"
-            >
-              <CloudIcon />
-              <span className="flex-1">Cloud Renders</span>
-              {cloudRenderCount > 0 && (
-                <Badge variant="secondary" className="ml-auto text-[10px]">
-                  {cloudRenderCount}
-                </Badge>
-              )}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeTab === 'account'}
-              onClick={() => onTabChange('account')}
-              className="gap-2.5 text-sm text-white"
-            >
-              <AccountIcon />
-              Account
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarContent>
+      {/* Nav */}
+      <nav className="flex flex-1 flex-col gap-0.5 px-2">
+        <NavItem
+          label="Projects"
+          icon={<FolderIcon />}
+          active={activeTab === 'projects'}
+          onClick={() => onTabChange('projects')}
+        />
+        <NavItem
+          label="Cloud Renders"
+          icon={<CloudIcon />}
+          active={activeTab === 'cloud-renders'}
+          onClick={() => onTabChange('cloud-renders')}
+          badge={cloudRenderCount > 0 ? String(cloudRenderCount) : undefined}
+        />
+        <NavItem
+          label="Account"
+          icon={<AccountIcon />}
+          active={activeTab === 'account'}
+          onClick={() => onTabChange('account')}
+        />
+      </nav>
 
-      <SidebarFooter className="px-3 py-4">
-        <div className="flex items-center gap-2.5 rounded-md px-2.5 py-2">
+      {/* Footer */}
+      <div className="px-3 py-4">
+        <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
           <Avatar className="h-7 w-7 shrink-0">
             <AvatarFallback className="bg-blue-700 text-[11px] font-bold text-white">
               {initials(user.name)}
@@ -109,8 +85,42 @@ export function AppSidebar({
             )}
           </div>
         </div>
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </div>
+  )
+}
+
+function NavItem({
+  label,
+  icon,
+  active,
+  onClick,
+  badge,
+}: {
+  label: string
+  icon: React.ReactNode
+  active: boolean
+  onClick: () => void
+  badge?: string
+}): React.ReactElement {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+        active
+          ? 'bg-white/10 text-white'
+          : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+      )}
+    >
+      {icon}
+      <span className="flex-1 text-left">{label}</span>
+      {badge && (
+        <Badge variant="secondary" className="ml-auto text-[10px]">
+          {badge}
+        </Badge>
+      )}
+    </button>
   )
 }
 

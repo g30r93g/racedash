@@ -8,7 +8,6 @@ import { AccountDetails } from '@/components/app/AccountDetails'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { SidebarProvider } from '@/components/ui/sidebar'
 
 interface ProjectLibraryProps {
   onOpen: (project: ProjectData) => void
@@ -30,8 +29,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
 
   return (
     <div className="flex h-screen items-center justify-center bg-[#0d0d0d]">
-      <SidebarProvider>
-        <div className="flex h-[650px] w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
+      <div className="flex h-[650px] w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
           <AppSidebar
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -91,8 +89,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
               </>
             )}
           </div>
-        </div>
-      </SidebarProvider>
+      </div>
     </div>
   )
 }
