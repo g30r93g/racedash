@@ -64,7 +64,7 @@ export function FrameScrubber({
         />
         {!videoReady && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black">
-            <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" ignoreReducedMotion />
+            <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
             <span className="font-mono text-[11px] text-muted-foreground">Loading video…</span>
           </div>
         )}
