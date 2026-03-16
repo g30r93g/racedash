@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface Step3DriverProps {
@@ -102,16 +103,16 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
                 {filtered.map((driver) => {
                   const isSelected = selectedDriver === driver.name
                   return (
-                    <button
+                    <Button
                       key={driver.kart}
-                      type="button"
-                      onClick={() => onChange(driver.name)}
+                      variant="ghost"
                       className={cn(
-                        'flex items-center gap-3 rounded-lg border px-4 py-2.5 text-left transition-colors',
+                        'flex h-auto w-full items-center justify-start gap-3 rounded-lg border px-4 py-2.5',
                         isSelected
                           ? 'border-primary bg-primary/10 text-foreground'
                           : 'border-border bg-background text-foreground hover:bg-accent'
                       )}
+                      onClick={() => onChange(driver.name)}
                     >
                       <span className="w-6 shrink-0 text-center font-mono text-sm text-muted-foreground">
                         {driver.kart}
@@ -122,7 +123,7 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
