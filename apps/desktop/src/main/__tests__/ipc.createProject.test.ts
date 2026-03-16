@@ -10,6 +10,8 @@ vi.mock('node:fs', () => ({
     readFileSync: vi.fn(),
     readdirSync: vi.fn().mockReturnValue([]),
     statSync: vi.fn(),
+    copyFileSync: vi.fn(),
+    unlinkSync: vi.fn(),
   },
   existsSync: vi.fn().mockReturnValue(false),
   mkdirSync: vi.fn(),
@@ -17,6 +19,8 @@ vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
   readdirSync: vi.fn().mockReturnValue([]),
   statSync: vi.fn(),
+  copyFileSync: vi.fn(),
+  unlinkSync: vi.fn(),
 }))
 
 vi.mock('electron', () => ({
@@ -39,7 +43,9 @@ beforeEach(() => {
 describe('handleCreateProject', () => {
   const baseOpts = {
     name: 'My Race',
-    videoPaths: ['/videos/clip1.mp4', '/videos/clip2.mp4'],
+    // Use path.join(os.tmpdir(), ...) so the path matches on macOS where
+    // os.tmpdir() returns /private/tmp (symlink to /tmp).
+    joinedVideoPath: path.join(os.tmpdir(), 'racedash-join-123.mp4'),
     segments: [
       {
         label: 'Race',
@@ -57,22 +63,42 @@ describe('handleCreateProject', () => {
     expect(mockMkdirSync).toHaveBeenCalledWith(expectedDir, { recursive: true })
   })
 
-  it('writes project.json inside the save directory', async () => {
+  it('copies the joined video into <saveDir>/video.mp4', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const expectedPath = path.join(expectedDir, 'project.json')
-    expect(mockWriteFileSync).toHaveBeenCalledWith(expectedPath, expect.any(String), 'utf-8')
+    expect(vi.mocked(fs.copyFileSync)).toHaveBeenCalledWith(
+      baseOpts.joinedVideoPath,
+      path.join(expectedDir, 'video.mp4')
+    )
   })
 
-  it('writes project.json with correct ProjectData content', async () => {
+  it('deletes the joined video if it is a temp file (in os.tmpdir())', async () => {
     await handleCreateProject(baseOpts)
+    expect(vi.mocked(fs.unlinkSync)).toHaveBeenCalledWith(baseOpts.joinedVideoPath)
+  })
+
+  it('does not delete the joined video if it is not a temp file', async () => {
+    const opts = { ...baseOpts, joinedVideoPath: '/Users/testuser/Videos/chapter1.mp4' }
+    await handleCreateProject(opts)
+    expect(vi.mocked(fs.unlinkSync)).not.toHaveBeenCalled()
+  })
+
+  it('writes project.json with videoPaths pointing to the copied video', async () => {
+    await handleCreateProject(baseOpts)
+    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string
     const written = JSON.parse(writtenJson)
+    expect(written.videoPaths).toEqual([path.join(expectedDir, 'video.mp4')])
+  })
+
+  it('writes project.json with correct fields', async () => {
+    await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string
+    const written = JSON.parse(writtenJson)
     expect(written).toMatchObject({
       name: 'My Race',
       projectPath: path.join(expectedDir, 'project.json'),
-      videoPaths: baseOpts.videoPaths,
       selectedDriver: 'G. Gorzynski',
     })
     expect(written.segments).toHaveLength(1)
@@ -96,11 +122,11 @@ describe('handleCreateProject', () => {
   })
 
   it('preserves all segment fields in project.json', async () => {
-    const optsWithOffset = {
+    const opts = {
       ...baseOpts,
       segments: [{ label: 'Race', source: 'mylapsSpeedhive' as const, eventId: '12345', session: 'race' as const, videoOffsetFrame: 150 }],
     }
-    await handleCreateProject(optsWithOffset)
+    await handleCreateProject(opts)
     const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string
     const written = JSON.parse(writtenJson)
     expect(written.segments[0].videoOffsetFrame).toBe(150)

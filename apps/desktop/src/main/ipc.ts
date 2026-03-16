@@ -98,17 +98,27 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   const saveDir = path.join(os.homedir(), 'Videos', 'racedash', slug)
   fs.mkdirSync(saveDir, { recursive: true })
 
+  // Copy the joined video into the project directory.
+  const videoPath = path.join(saveDir, 'video.mp4')
+  fs.copyFileSync(opts.joinedVideoPath, videoPath)
+
+  // Clean up the temp file if it came from os.tmpdir().
+  // Use path.resolve to normalise symlinks (on macOS, os.tmpdir() returns
+  // /private/tmp but the path may be seen as /tmp via the symlink).
+  if (path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))) {
+    fs.unlinkSync(opts.joinedVideoPath)
+  }
+
   const projectPath = path.join(saveDir, 'project.json')
 
   const projectData: ProjectData = {
     name: opts.name,
     projectPath,
-    videoPaths: opts.videoPaths,
+    videoPaths: [videoPath],
     segments: opts.segments,
     selectedDriver: opts.selectedDriver,
   }
 
-  // TODO: join video files with ffmpeg concat before saving
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
 
   return projectData
