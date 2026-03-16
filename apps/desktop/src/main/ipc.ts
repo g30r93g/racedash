@@ -1,10 +1,11 @@
 import { ipcMain, app, dialog, shell } from 'electron'
-import { execSync } from 'node:child_process'
+import { execSync, execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
-import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions } from '../types/ipc'
-import type { ProjectData } from '../types/project'
+import os from 'node:os'
+import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo } from '../types/ipc'
+import type { ProjectData, CreateProjectOpts } from '../types/project'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -68,6 +69,88 @@ export async function openProjectHandler(projectPath: string): Promise<ProjectDa
   return JSON.parse(raw) as ProjectData
 }
 
+export async function handleCreateProject(opts: CreateProjectOpts): Promise<ProjectData> {
+  const slug = opts.name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  const saveDir = path.join(os.homedir(), 'Videos', 'racedash', slug)
+  fs.mkdirSync(saveDir, { recursive: true })
+
+  const projectPath = path.join(saveDir, 'project.json')
+
+  const projectData: ProjectData = {
+    name: opts.name,
+    projectPath,
+    videoPaths: opts.videoPaths,
+    segments: opts.segments,
+    selectedDriver: opts.selectedDriver,
+  }
+
+  // TODO: join video files with ffmpeg concat before saving
+  fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
+
+  return projectData
+}
+
+/**
+ * Reads basic video metadata from `videoPath` using ffprobe.
+ *
+ * Uses `execFileSync` with a discrete argument array — the video path is never
+ * interpolated into a shell string, so there is no injection risk.
+ *
+ * Exported separately from the IPC handler so it can be unit-tested without
+ * any Electron machinery.
+ */
+export function getVideoInfo(videoPath: string): VideoInfo {
+  let stdout: Buffer
+  try {
+    stdout = execFileSync('ffprobe', [
+      '-v', 'quiet',
+      '-print_format', 'json',
+      '-show_streams',
+      videoPath,
+    ]) as Buffer
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    const code = (err as NodeJS.ErrnoException).code
+    if (code === 'ENOENT' || message.toLowerCase().includes('not found')) {
+      throw new Error(
+        'ffprobe not found. Install ffmpeg (which bundles ffprobe) and ensure it is on your PATH.'
+      )
+    }
+    throw err
+  }
+
+  const parsed = JSON.parse(stdout.toString()) as {
+    streams: Array<{
+      codec_type: string
+      width?: number
+      height?: number
+      r_frame_rate: string
+      duration: string
+    }>
+  }
+
+  const videoStream = parsed.streams.find((s) => s.codec_type === 'video')
+  if (!videoStream) {
+    throw new Error(`No video stream found in ffprobe output for: ${videoPath}`)
+  }
+
+  const [numerator, denominator] = videoStream.r_frame_rate.split('/').map(Number)
+  const fps = denominator !== 0 ? numerator / denominator : 0
+
+  return {
+    width: videoStream.width ?? 0,
+    height: videoStream.height ?? 0,
+    fps,
+    durationSeconds: parseFloat(videoStream.duration),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Stubs
 // ---------------------------------------------------------------------------
@@ -123,14 +206,14 @@ export function registerIpcHandlers(): void {
   // Projects
   ipcMain.handle('racedash:listProjects', () => listProjectsHandler())
   ipcMain.handle('racedash:openProject', (_event, projectPath: string) => openProjectHandler(projectPath))
-  ipcMain.handle('racedash:createProject', stub('createProject'))
+  ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
 
   // Timing (stub — implemented in Timing tab sub-plan)
   ipcMain.handle('racedash:listDrivers',        stub('listDrivers'))
   ipcMain.handle('racedash:generateTimestamps', stub('generateTimestamps'))
 
-  // Export (stub — implemented in Export tab sub-plan)
-  ipcMain.handle('racedash:getVideoInfo',  stub('getVideoInfo'))
+  // Export
+  ipcMain.handle('racedash:getVideoInfo',  (_event, videoPath: string) => getVideoInfo(videoPath))
   ipcMain.handle('racedash:startRender',   stub('startRender'))
   ipcMain.handle('racedash:cancelRender',  stub('cancelRender'))
 }
