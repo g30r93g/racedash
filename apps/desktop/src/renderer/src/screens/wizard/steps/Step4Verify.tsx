@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
+import { TimingTable } from '@/components/app/TimingTable'
 
 interface Step4VerifyProps {
   segments: SegmentConfig[]
@@ -73,31 +73,14 @@ export function Step4Verify({ segments }: Step4VerifyProps) {
           const laps = lapsBySegment[seg.label] ?? []
           return (
             <TabsContent key={seg.label} value={seg.label} className="mt-4">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    {['Lap', 'Lap time', 'Position'].map((h) => (
-                      <th key={h} className="pb-2 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {laps.map((row) => (
-                    <tr
-                      key={row.lap}
-                      className={cn('border-b border-border/50', row.isBest && 'bg-primary/10')}
-                    >
-                      <td className="py-2 text-foreground">{row.lap}</td>
-                      <td className={cn('py-2', row.isBest ? 'font-semibold text-primary' : 'text-foreground')}>
-                        {row.lapTime}
-                      </td>
-                      <td className="py-2 text-foreground">{row.position}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <TimingTable
+                rows={laps.map((row) => ({
+                  lap: row.lap,
+                  timeMs: 0,
+                  position: row.position,
+                  lapTimeLabel: row.lapTime,
+                }))}
+              />
             </TabsContent>
           )
         })}
