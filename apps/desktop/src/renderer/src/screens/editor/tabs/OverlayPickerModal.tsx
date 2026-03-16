@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 export type OverlayType = 'banner' | 'geometric-banner' | 'esports' | 'minimal' | 'modern'
@@ -93,20 +94,18 @@ const OVERLAYS: Array<{
 ]
 
 interface OverlayPickerModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   current: OverlayType
-  onClose: () => void
   onApply: (overlay: OverlayType) => void
 }
 
-export function OverlayPickerModal({ current, onClose, onApply }: OverlayPickerModalProps): React.ReactElement {
+export function OverlayPickerModal({ open, onOpenChange, current, onApply }: OverlayPickerModalProps): React.ReactElement {
   const [selected, setSelected] = useState<OverlayType>(current)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
-      <div
-        className="w-[740px] rounded-xl border border-border bg-card p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[740px] max-w-[740px]">
         <h2 className="mb-1 text-base font-semibold text-foreground">Choose Overlay Style</h2>
         <p className="mb-5 text-xs text-muted-foreground">
           Select how your timing data is displayed on the video
@@ -124,11 +123,11 @@ export function OverlayPickerModal({ current, onClose, onApply }: OverlayPickerM
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={() => onApply(selected)}>Apply Style</Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
