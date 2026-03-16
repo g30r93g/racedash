@@ -4,7 +4,7 @@ import { registerIpcHandlers } from './ipc'
 
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, stream: true } },
+  { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } },
 ])
 
 function createWindow(): BrowserWindow {
@@ -30,10 +30,14 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-  // Serve local files via media:// to bypass webSecurity origin restrictions
+  // Serve local files via media:// to bypass webSecurity origin restrictions.
+  // Forward all request headers (including Range) so the video element gets
+  // proper 206 partial-content responses needed for frame seeking.
   protocol.handle('media', (req) => {
     const filePath = decodeURIComponent(new URL(req.url).pathname)
-    return net.fetch(`file://${filePath}`)
+    return net.fetch(`file://${filePath}`, {
+      headers: Object.fromEntries(req.headers.entries()),
+    })
   })
   registerIpcHandlers()
   createWindow()
