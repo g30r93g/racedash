@@ -44,21 +44,12 @@ importers:
       '@inquirer/prompts':
         specifier: ^5.0.0
         version: 5.5.0
-      '@racedash/compositor':
-        specifier: workspace:*
-        version: link:../../packages/compositor
       '@racedash/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@racedash/scraper':
+      '@racedash/engine':
         specifier: workspace:*
-        version: link:../../packages/scraper
-      '@racedash/timestamps':
-        specifier: workspace:*
-        version: link:../../packages/timestamps
-      cheerio:
-        specifier: ^1.0.0
-        version: 1.2.0
+        version: link:../../packages/engine
       commander:
         specifier: ^12.0.0
         version: 12.1.0
@@ -143,6 +134,34 @@ importers:
       typescript:
         specifier: '*'
         version: 5.9.3
+
+  packages/engine:
+    dependencies:
+      '@racedash/compositor':
+        specifier: workspace:*
+        version: link:../compositor
+      '@racedash/core':
+        specifier: workspace:*
+        version: link:../core
+      '@racedash/scraper':
+        specifier: workspace:*
+        version: link:../scraper
+      '@racedash/timestamps':
+        specifier: workspace:*
+        version: link:../timestamps
+      cheerio:
+        specifier: ^1.0.0
+        version: 1.2.0
+    devDependencies:
+      '@types/node':
+        specifier: '*'
+        version: 20.19.37
+      typescript:
+        specifier: '*'
+        version: 5.9.3
+      vitest:
+        specifier: '*'
+        version: 1.6.1(@types/node@20.19.37)(terser@5.46.0)
 
   packages/scraper:
     dependencies:
