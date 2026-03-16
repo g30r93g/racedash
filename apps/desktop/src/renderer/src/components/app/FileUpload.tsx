@@ -9,7 +9,7 @@ import {
   FileUploadItemDelete,
   FileUploadClear,
 } from '@/components/ui/file-upload'
-import { UploadIcon, XIcon } from 'lucide-react'
+import { UploadIcon } from 'lucide-react'
 
 interface FileUploadProps {
   value?: string
@@ -45,7 +45,7 @@ export function FileUpload({
   }
 
   // Derive a display label for the dropzone when a value (path) is already set
-  const currentFileName = value ? value.split('/').pop() ?? value : undefined
+  const currentFileName = value ? value.split(/[\\/]/).pop() ?? value : undefined
 
   return (
     <FileUploadUI
