@@ -1,49 +1,28 @@
 #!/usr/bin/env node
 import { program } from 'commander'
 import path from 'node:path'
-import { access, unlink } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { randomUUID } from 'node:crypto'
-import type { DriverRow } from '@racedash/scraper'
-import { resolveVideoFiles } from './select'
+import type { BoxPosition, CornerPosition } from '@racedash/core'
 import {
-  collectDoctorDiagnostics,
-  compositeVideo,
-  getOverlayOutputPath,
-  getOverlayRenderProfile,
-  getVideoDuration,
-  getVideoFps,
-  getVideoResolution,
-  joinVideos,
-  renderOverlay,
-} from '@racedash/compositor'
-import {
-  type BoxPosition,
-  type CornerPosition,
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
-  type OverlayProps,
   type OverlayStyling,
-  type SessionMode,
 } from '@racedash/core'
-import { formatChapters, parseOffset } from '@racedash/timestamps'
+import { resolveVideoFiles } from './select'
 import {
-  buildRaceLapSnapshots,
-  buildSessionSegments,
-  driverListsAreIdentical,
-  filterDriverHighlights,
-  flattenTimestamps,
-  formatDriverDisplay,
-  loadTimingConfig,
-  resolveDriversCommandSegments,
-  resolvePositionOverrides,
-  resolveTimingSegments,
+  generateTimestamps,
+  getRenderExperimentalWarning,
+  getOverlayRenderProfile,
+  joinVideos,
+  listDrivers,
+  renderSession,
+  runDoctor,
   TIMING_FEATURES,
-  validatePositionOverrideConfig,
-  type TimingCapabilities,
-} from './timingSources'
+  formatDriverDisplay,
+  filterDriverHighlights,
+} from '@racedash/engine'
+import type { DriversCommandSegment, RenderProgressEvent } from '@racedash/engine'
 
 type OutputResolutionPreset = '1080p' | '1440p' | '2160p'
 
@@ -55,17 +34,6 @@ const OUTPUT_RESOLUTIONS: Record<OutputResolutionPreset, { width: number; height
 
 const VALID_BOX_POSITIONS: BoxPosition[] = ['bottom-left', 'bottom-center', 'bottom-right', 'top-left', 'top-center', 'top-right']
 const VALID_TABLE_POSITIONS: CornerPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
-
-function defaultBoxPositionForStyle(style: string): BoxPosition {
-  return style === 'modern' ? 'bottom-center' : 'bottom-left'
-}
-
-export function getRenderExperimentalWarning(
-  platform: NodeJS.Platform = process.platform,
-): string | undefined {
-  if (platform !== 'win32') return undefined
-  return 'Windows render support is experimental and may require fallback paths depending on your FFmpeg and GPU setup.'
-}
 
 export function formatDoctorDiagnostics(
   diagnostics: Array<{ label: string; value: string }>,
@@ -94,40 +62,32 @@ program
   .description('Config-driven timing → YouTube chapters + race overlays')
   .version('0.1.0')
 
-interface DriversOpts {
-  config: string
-  driver?: string
-}
-
 program
   .command('drivers')
   .description('List drivers for the configured timing segments')
   .requiredOption('--config <path>', 'Path to JSON session config file')
   .option('--driver <name>', 'Driver name to highlight (partial, case-insensitive)')
-  .action(async (opts: DriversOpts) => {
+  .action(async (opts: { config: string; driver?: string }) => {
     try {
-      const { segments: segmentConfigs, driverQuery } = await loadTimingConfig(opts.config, false)
-      const highlightQuery = opts.driver ?? driverQuery
-
       console.error('Fetching...')
-      const resolvedSegments = await resolveDriversCommandSegments(segmentConfigs, highlightQuery)
+      const result = await listDrivers({ configPath: opts.config, driverQuery: opts.driver })
 
       process.stderr.write('\n')
-      resolvedSegments.forEach((segment, index) => {
+      result.segments.forEach((segment, index) => {
         stat(`Segment ${index + 1}`, `[${segment.config.source}]  [${segment.config.mode}]`)
         if (segment.config.label) stat('  Label', segment.config.label)
         printCapabilities(segment.capabilities)
       })
 
-      if (driverListsAreIdentical(resolvedSegments)) {
-        const drivers = resolvedSegments[0]?.drivers ?? []
-        printDriverList(drivers, highlightQuery, 'Drivers')
+      if (result.driverListsIdentical) {
+        const drivers = result.segments[0]?.drivers ?? []
+        printDriverList(drivers, opts.driver, 'Drivers')
       } else {
-        resolvedSegments.forEach((segment, index) => {
+        result.segments.forEach((segment, index) => {
           if (index > 0) process.stdout.write('\n')
           process.stdout.write(`Segment ${index + 1}  [${segment.config.source}]  [${segment.config.mode}]\n`)
           if (segment.config.label) process.stdout.write(`  Label: ${segment.config.label}\n`)
-          printDriverList(segment.drivers, highlightQuery)
+          printDriverList(segment.drivers, opts.driver)
         })
       }
     } catch (err) {
@@ -136,39 +96,30 @@ program
     }
   })
 
-interface TimestampsOpts {
-  config: string
-  fps?: string
-}
-
 program
   .command('timestamps')
   .description('Output YouTube chapter timestamps to stdout from a config file')
   .requiredOption('--config <path>', 'Path to JSON session config file')
   .option('--fps <n>', 'Video fps used when any segment offset is given as "<frames> F"')
-  .action(async (opts: TimestampsOpts) => {
+  .action(async (opts: { config: string; fps?: string }) => {
     try {
       const fps = parseOptionalFps(opts.fps)
-      const { segments: segmentConfigs, driverQuery } = await loadTimingConfig(opts.config, true)
-
       console.error('Fetching...')
-      const resolvedSegments = await resolveTimingSegments(segmentConfigs, driverQuery)
-      const offsets = segmentConfigs.map(segment => parseOffset(segment.offset, fps))
-      const { segments } = buildSessionSegments(resolvedSegments, offsets)
+      const result = await generateTimestamps({ configPath: opts.config, fps })
 
       process.stderr.write('\n')
-      resolvedSegments.forEach((resolvedSegment, index) => {
+      result.segments.forEach((resolvedSegment, index) => {
         const selectedDriver = resolvedSegment.selectedDriver!
         stat(
           `Segment ${index + 1}`,
           `[${resolvedSegment.config.source}]  [${resolvedSegment.config.mode}]  ${formatDriverDisplay(selectedDriver)}  ·  ${selectedDriver.laps.length} laps`,
         )
-        stat('  Offset', formatOffsetTime(offsets[index]))
+        stat('  Offset', formatOffsetTime(result.offsets[index]))
         if (resolvedSegment.config.label) stat('  Label', resolvedSegment.config.label)
         printCapabilities(resolvedSegment.capabilities)
       })
 
-      console.log(formatChapters(flattenTimestamps(segments)))
+      console.log(result.chapters)
     } catch (err) {
       console.error('Error:', (err as Error).message)
       process.exit(1)
@@ -195,7 +146,7 @@ program
   .description('Inspect your machine and FFmpeg setup for rendering')
   .action(async () => {
     try {
-      const diagnostics = await collectDoctorDiagnostics()
+      const diagnostics = await runDoctor()
       const warning = getRenderExperimentalWarning()
       const output = warning == null
         ? diagnostics
@@ -214,226 +165,100 @@ interface RenderOpts {
   style: string
   outputResolution?: string
   overlayX: string
-  overlayY: string
+  overlayY?: string
   boxPosition?: string
   qualifyingTablePosition?: string
   labelWindow?: string
-  noCache?: boolean
-  onlyRenderOverlay?: boolean
+  noCache: boolean
+  onlyRenderOverlay: boolean
 }
+
+let lastPhase = ''
 
 program
   .command('render')
   .description('Render overlay onto video')
   .requiredOption('--config <path>', 'Path to JSON session config file')
-  .requiredOption('--video <path>', 'Source video file path')
+  .requiredOption('--video <path>', 'Source video file path or directory')
   .option('--output <path>', 'Output file path', './out.mp4')
   .option('--style <name>', 'Overlay style', 'banner')
-  .option('--output-resolution <preset>', 'Output resolution preset: 1080p, 1440p, or 2160p')
+  .option('--output-resolution <preset>', 'Output resolution: 1080p, 1440p, or 2160p')
   .option('--overlay-x <n>', 'Overlay X position in pixels', '0')
-  .option('--overlay-y <n>', 'Overlay Y position in pixels', '0')
-  .option('--box-position <pos>', 'Position for esports/minimal/modern: bottom-left, bottom-center, bottom-right, top-left, top-center, top-right')
-  .option('--qualifying-table-position <pos>', 'Corner for qualifying table: bottom-left, bottom-right, top-left, top-right')
-  .option('--label-window <seconds>', 'Seconds before/after segment offset to show label', DEFAULT_LABEL_WINDOW_SECONDS.toString())
-  .option('--no-cache', 'Force re-render the overlay even if a cached file exists')
-  .option('--only-render-overlay', 'Render the overlay file and skip compositing onto the video')
+  .option('--overlay-y <n>', 'Overlay Y position in pixels (auto-computed for esports/minimal styles if omitted)')
+  .option('--box-position <pos>', 'Position for esports/minimal/modern')
+  .option('--qualifying-table-position <pos>', 'Corner for qualifying table')
+  .option('--label-window <seconds>', 'Seconds to show segment label', DEFAULT_LABEL_WINDOW_SECONDS.toString())
+  .option('--no-cache', 'Force re-render the overlay')
+  .option('--only-render-overlay', 'Render overlay file only, skip compositing')
   .action(async (opts: RenderOpts) => {
     try {
       const renderWarning = getRenderExperimentalWarning()
-      if (renderWarning) {
-        process.stderr.write(`\n  Warning      ${renderWarning}\n`)
-      }
+      if (renderWarning) process.stderr.write(`\n  Warning      ${renderWarning}\n`)
 
-      const requestedOutputResolution = resolveOutputResolutionPreset(opts.outputResolution)
       if (opts.boxPosition != null && !VALID_BOX_POSITIONS.includes(opts.boxPosition as BoxPosition)) {
         console.error(`Error: --box-position must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
         process.exit(1)
       }
-
-      const qualifyingTablePositionRaw = opts.qualifyingTablePosition
-      if (qualifyingTablePositionRaw != null && !VALID_TABLE_POSITIONS.includes(qualifyingTablePositionRaw as CornerPosition)) {
+      if (opts.qualifyingTablePosition != null && !VALID_TABLE_POSITIONS.includes(opts.qualifyingTablePosition as CornerPosition)) {
         console.error(`Error: --qualifying-table-position must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
         process.exit(1)
       }
-      const qualifyingTablePosition = qualifyingTablePositionRaw as CornerPosition | undefined
 
+      const outputResolution = resolveOutputResolutionPreset(opts.outputResolution)
       const labelWindowSeconds = parseFloat(opts.labelWindow ?? DEFAULT_LABEL_WINDOW_SECONDS.toString())
       if (isNaN(labelWindowSeconds) || labelWindowSeconds < 0) {
         console.error('Error: --label-window must be a non-negative number')
         process.exit(1)
       }
 
-      const {
-        segments: segmentConfigs,
-        driverQuery,
-        configBoxPosition,
-        configTablePosition,
-        styling,
-      } = await loadTimingConfig(opts.config, true)
-
-      if (configBoxPosition != null && !VALID_BOX_POSITIONS.includes(configBoxPosition as BoxPosition)) {
-        throw new Error(`config.boxPosition must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
-      }
-      if (configTablePosition != null && !VALID_TABLE_POSITIONS.includes(configTablePosition as CornerPosition)) {
-        throw new Error(`config.qualifyingTablePosition must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
-      }
-
-      const boxPosition = (opts.boxPosition ?? configBoxPosition ?? defaultBoxPositionForStyle(opts.style)) as BoxPosition
-      const resolvedTablePosition = (qualifyingTablePosition ?? configTablePosition) as CornerPosition | undefined
-
-      const selectedFiles = await resolveVideoFiles(opts.video)
-      let videoPath = selectedFiles[0]
-      let tempJoinedVideo: string | null = null
-      if (selectedFiles.length > 1) {
-        tempJoinedVideo = path.join(tmpdir(), `racedash-joined-${randomUUID()}.mp4`)
-        process.stderr.write(`\n  Joining ${selectedFiles.length} files...\n`)
-        await joinVideos(selectedFiles, tempJoinedVideo)
-        videoPath = tempJoinedVideo
-      }
-
-      process.stderr.write('\n  Fetching session data and probing video...\n')
-
-      const [durationSeconds, videoResolution, fps] = await Promise.all([
-        getVideoDuration(videoPath),
-        getVideoResolution(videoPath),
-        getVideoFps(videoPath),
-      ])
-      const outputResolution = requestedOutputResolution ?? videoResolution
-      const frameDuration = 1 / fps
-
-      const rawOffsets = segmentConfigs.map(segment => parseOffset(segment.offset, fps))
-      const resolvedPositionOverrides = segmentConfigs.map((segment, index) =>
-        resolvePositionOverrides(segment.positionOverrides, rawOffsets[index], index, fps),
-      )
-      const snappedOffsets = rawOffsets.map(raw => roundMillis(Math.round(raw / frameDuration) * frameDuration))
-
-      const resolvedSegments = await resolveTimingSegments(segmentConfigs, driverQuery)
-      const { segments, startingGridPosition } = buildSessionSegments(resolvedSegments, snappedOffsets)
-      segments.forEach((segment, index) => {
-        segment.positionOverrides = resolvedPositionOverrides[index]
-      })
-
-      const durationInFrames = Math.ceil(durationSeconds * fps)
-
-      process.stderr.write('\n')
-      resolvedSegments.forEach((resolvedSegment, index) => {
-        const rawOffset = rawOffsets[index]
-        const snappedOffset = snappedOffsets[index]
-        const offsetSnapped = Math.abs(snappedOffset - rawOffset) >= 0.0001
-        const selectedDriver = resolvedSegment.selectedDriver!
-        stat(
-          `Segment ${index + 1}`,
-          `[${resolvedSegment.config.source}]  [${resolvedSegment.config.mode}]  ${formatDriverDisplay(selectedDriver)}  ·  ${selectedDriver.laps.length} laps`,
-        )
-        if (offsetSnapped) {
-          stat('  Offset', `${formatOffsetTime(rawOffset)} → ${formatOffsetTime(snappedOffset)}  (snapped)`)
-        } else {
-          stat('  Offset', formatOffsetTime(snappedOffset))
-        }
-        if (resolvedSegment.config.label) stat('  Label', resolvedSegment.config.label)
-        printCapabilities(resolvedSegment.capabilities)
-      })
-
-      stat('Video', `${videoResolution.width}×${videoResolution.height}  ·  ${formatFps(fps)} fps`)
-      if (requestedOutputResolution != null) {
-        stat('Output', `${outputResolution.width}×${outputResolution.height}  ·  ${requestedOutputResolution.preset}`)
-      }
-      if (startingGridPosition != null) stat('Grid', `P${startingGridPosition}`)
-      stat('Style', opts.style)
-      stat('Alpha', getOverlayRenderProfile().label)
-      printStyling(styling, opts.style)
-
-      const overlayProps: OverlayProps = {
-        segments,
-        startingGridPosition,
-        fps,
-        durationInFrames,
-        videoWidth: outputResolution.width,
-        videoHeight: outputResolution.height,
-        boxPosition,
-        qualifyingTablePosition: resolvedTablePosition,
-        styling,
-        labelWindowSeconds,
-      }
-
-      const rendererEntry = path.resolve(__dirname, '../../../apps/renderer/src/index.ts')
-      const overlayPath = getOverlayOutputPath(opts.output)
-      const workStart = Date.now()
-
-      let overlayReused = false
-      if (!opts.noCache) {
-        try {
-          await access(overlayPath)
-          const overlayDuration = await getVideoDuration(overlayPath)
-          overlayReused = overlayDuration > 0
-        } catch {
-          overlayReused = false
-        }
-      }
-
-      if (overlayReused) {
-        process.stderr.write(`  Reusing overlay        ${overlayPath}\n`)
-      } else {
-        try {
-          await renderOverlay(
-            rendererEntry,
-            opts.style,
-            overlayProps,
-            overlayPath,
-            makeProgressCallback('Rendering overlay'),
-          )
-        } finally {
-          process.stderr.write('\n')
-        }
-      }
-
-      if (opts.onlyRenderOverlay) {
-        const totalSeconds = Math.round((Date.now() - workStart) / 1000)
-        process.stderr.write(`\n  ✓  ${overlayPath}  ·  ${formatSeconds(totalSeconds)}\n\n`)
-        console.log(overlayPath)
-        if (tempJoinedVideo) await unlink(tempJoinedVideo).catch(() => {})
-        return
-      }
-
       const overlayX = parseInt(opts.overlayX, 10)
-      let overlayY = parseInt(opts.overlayY, 10)
-      if (isNaN(overlayX) || isNaN(overlayY)) {
+      const overlayY = opts.overlayY != null ? parseInt(opts.overlayY, 10) : undefined
+      if (isNaN(overlayX) || (overlayY != null && isNaN(overlayY))) {
         console.error('Error: --overlay-x and --overlay-y must be valid integers')
         process.exit(1)
       }
 
-      const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 400, minimal: 400 }
-      const stripHeight = BOX_STRIP_HEIGHTS[opts.style]
-      if (stripHeight != null) {
-        const scaledStrip = Math.round(stripHeight * outputResolution.width / 1920)
-        overlayY = boxPosition.startsWith('bottom') ? outputResolution.height - scaledStrip : 0
+      const selectedFiles = await resolveVideoFiles(opts.video)
+      const rendererEntry = path.resolve(__dirname, '../../../apps/renderer/src/index.ts')
+
+      // Adapter: renderSession emits { phase, progress } but makeProgressCallback expects (progress: number)
+      // and must be called fresh each time the phase label changes so it initialises a new progress bar.
+      let phaseBarCallback: ((n: number) => void) | null = null
+      lastPhase = ''
+      const progressAdapter = ({ phase, progress }: RenderProgressEvent) => {
+        if (phase !== lastPhase) {
+          if (lastPhase) process.stderr.write('\n')
+          lastPhase = phase
+          phaseBarCallback = makeProgressCallback(phase)
+        }
+        phaseBarCallback!(progress)
       }
 
-      try {
-        await compositeVideo(
-          videoPath,
-          overlayPath,
-          opts.output,
-          {
-            fps,
-            overlayX,
-            overlayY,
-            durationSeconds,
-            outputWidth: requestedOutputResolution?.width,
-            outputHeight: requestedOutputResolution?.height,
-            onDiagnostic: ({ label, value }) => stat(label, value),
-          },
-          makeProgressCallback('Compositing'),
-        )
-      } finally {
-        process.stderr.write('\n')
-        if (tempJoinedVideo) await unlink(tempJoinedVideo).catch(() => {})
-      }
+      const result = await renderSession(
+        {
+          configPath: opts.config,
+          videoPaths: selectedFiles,
+          outputPath: opts.output,
+          rendererEntry,
+          style: opts.style,
+          outputResolution: outputResolution ? { width: outputResolution.width, height: outputResolution.height } : undefined,
+          overlayX,
+          overlayY,
+          boxPosition: opts.boxPosition as BoxPosition | undefined,
+          qualifyingTablePosition: opts.qualifyingTablePosition as CornerPosition | undefined,
+          labelWindowSeconds,
+          noCache: opts.noCache,
+          onlyRenderOverlay: opts.onlyRenderOverlay,
+        },
+        progressAdapter,
+        ({ label, value }) => stat(label, value),
+      )
 
-      const totalSeconds = Math.round((Date.now() - workStart) / 1000)
-      process.stderr.write(`\n  ✓  ${opts.output}  ·  ${formatSeconds(totalSeconds)}\n\n`)
-      console.log(opts.output)
+      process.stderr.write('\n')
+      stat('Alpha', getOverlayRenderProfile().label)
+      console.log(result.outputPath)
     } catch (err) {
+      if (lastPhase) process.stderr.write('\n')
       console.error('Error:', (err as Error).message)
       process.exit(1)
     }
@@ -450,7 +275,7 @@ function parseOptionalFps(raw: string | undefined): number | undefined {
   return fps
 }
 
-function printDriverList(drivers: DriverRow[], highlightQuery: string | undefined, heading?: string): void {
+function printDriverList(drivers: DriversCommandSegment['drivers'], highlightQuery: string | undefined, heading?: string): void {
   if (heading) process.stdout.write(`${heading}\n`)
 
   if (drivers.length === 0) {
@@ -469,7 +294,7 @@ function printDriverList(drivers: DriverRow[], highlightQuery: string | undefine
   }
 }
 
-function printCapabilities(capabilities: TimingCapabilities): void {
+function printCapabilities(capabilities: DriversCommandSegment['capabilities']): void {
   process.stderr.write('  Features\n')
   for (const feature of TIMING_FEATURES) {
     process.stderr.write(`    [${capabilities[feature.key] ? 'x' : ' '}] ${feature.label}\n`)
@@ -502,10 +327,6 @@ function formatSeconds(seconds: number): string {
 
 function formatFps(fps: number): string {
   return fps.toFixed(3).replace(/\.?0+$/, '')
-}
-
-function roundMillis(value: number): number {
-  return Math.round(value * 1000) / 1000
 }
 
 function stat(label: string, value: string): void {
@@ -688,8 +509,6 @@ function makeProgressCallback(label: string): (progress: number) => void {
     process.stderr.write(`\r  ${tag}  [${bar}]  ${pct}  ET ${et}${etaStr}   `)
   }
 }
-
-export { buildRaceLapSnapshots, resolvePositionOverrides, validatePositionOverrideConfig }
 
 if (require.main === module) {
   program.parseAsync(process.argv).catch((err: Error) => {
