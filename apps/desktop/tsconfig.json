@@ -4,6 +4,7 @@
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.web.json" }
   ],
+  "_comment": "compilerOptions below are for the shadcn CLI only — TypeScript uses tsconfig.web.json paths for compilation",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

@@ -11,7 +11,7 @@ function createWindow(): BrowserWindow {
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: false, // required for contextBridge preload; nodeIntegration remains false
     },
   })
 
