@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 import { Step2AddSegmentForm } from './Step2AddSegmentForm'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface Step2SegmentsProps {
   videoPaths: string[]
@@ -23,25 +25,19 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
 
   function handleSave(segment: SegmentConfig) {
     if (!formMode) return
-    if (formMode.mode === 'add') {
-      onChange([...segments, segment])
-    } else {
-      const updated = segments.map((s, i) => (i === formMode.index ? segment : s))
-      onChange(updated)
-    }
+    onChange(
+      formMode.mode === 'add'
+        ? [...segments, segment]
+        : segments.map((s, i) => (i === formMode.index ? segment : s))
+    )
     setFormMode(null)
   }
 
-  function handleDelete(index: number) {
-    onChange(segments.filter((_, i) => i !== index))
-  }
-
   if (formMode !== null) {
-    const existing = formMode.mode === 'edit' ? segments[formMode.index] : undefined
     return (
       <Step2AddSegmentForm
         videoPaths={videoPaths}
-        initial={existing}
+        initial={formMode.mode === 'edit' ? segments[formMode.index] : undefined}
         mode={formMode.mode}
         onSave={handleSave}
         onBack={() => setFormMode(null)}
@@ -62,10 +58,7 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
       <div className="flex flex-col gap-2">
         {segments.length === 0 ? (
           <div className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border">
-            <span className="text-2xl text-muted-foreground" aria-hidden="true">+</span>
-            <p className="text-sm text-muted-foreground">
-              No segments yet. Add at least one to continue.
-            </p>
+            <p className="text-sm text-muted-foreground">No segments yet. Add at least one to continue.</p>
           </div>
         ) : (
           <>
@@ -83,38 +76,40 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
                   <p className="truncate text-sm font-medium text-foreground">{seg.label}</p>
                   <p className="text-xs text-muted-foreground">
                     {seg.source}
-                    {seg.videoOffsetFrame !== undefined
-                      ? ` · Frame ${seg.videoOffsetFrame}`
-                      : ''}
+                    {seg.videoOffsetFrame !== undefined ? ` · Frame ${seg.videoOffsetFrame}` : ''}
                   </p>
                 </div>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setFormMode({ mode: 'edit', index })}
-                  className="rounded p-1 text-muted-foreground hover:text-foreground"
                   aria-label={`Edit ${seg.label}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.213l-4 1 1-4L16.862 3.487z" />
                   </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(index)}
-                  className="rounded p-1 text-muted-foreground hover:text-destructive"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onChange(segments.filter((_, i) => i !== index))}
+                  className="hover:text-destructive"
                   aria-label={`Delete ${seg.label}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               </div>
             ))}
 
             <button
               type="button"
               onClick={() => setFormMode({ mode: 'add' })}
-              className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-2.5 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              className={cn(
+                'flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-2.5',
+                'text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground'
+              )}
             >
               <span aria-hidden="true">+</span>
               <span>Add another segment</span>
@@ -124,13 +119,9 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
       </div>
 
       {segments.length === 0 && (
-        <button
-          type="button"
-          onClick={() => setFormMode({ mode: 'add' })}
-          className="self-start rounded bg-primary px-5 py-2 text-sm font-medium text-primary-foreground"
-        >
+        <Button className="self-start" onClick={() => setFormMode({ mode: 'add' })}>
           + Add segment
-        </button>
+        </Button>
       )}
     </div>
   )

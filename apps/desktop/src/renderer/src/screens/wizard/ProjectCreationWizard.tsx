@@ -6,6 +6,7 @@ import { Step2Segments } from './steps/Step2Segments'
 import { Step3Driver } from './steps/Step3Driver'
 import { Step4Verify } from './steps/Step4Verify'
 import { Step5Confirm } from './steps/Step5Confirm'
+import { Button } from '@/components/ui/button'
 
 export interface WizardState {
   videoPaths: string[]
@@ -50,12 +51,11 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
     setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3 | 4 | 5)
   }
 
-  const canContinue: boolean = (() => {
-    if (step === 1) return state.videoPaths.length >= 1
-    if (step === 2) return state.segments.length >= 1
-    if (step === 3) return state.selectedDriver !== ''
-    return true
-  })()
+  const canContinue =
+    (step === 1 && state.videoPaths.length >= 1) ||
+    (step === 2 && state.segments.length >= 1) ||
+    (step === 3 && state.selectedDriver !== '') ||
+    step >= 4
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
@@ -88,11 +88,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
               onChange={(driver) => updateState({ selectedDriver: driver })}
             />
           )}
-          {step === 4 && (
-            <Step4Verify
-              segments={state.segments}
-            />
-          )}
+          {step === 4 && <Step4Verify segments={state.segments} />}
           {step === 5 && (
             <Step5Confirm
               state={state}
@@ -103,22 +99,13 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
         </div>
 
         <div className="flex shrink-0 items-center justify-between border-t border-border px-8 py-4">
-          <button
-            type="button"
-            onClick={step === 1 ? onCancel : goBack}
-            className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
-          >
+          <Button variant="ghost" onClick={step === 1 ? onCancel : goBack}>
             {step === 1 ? 'Cancel' : '← Back'}
-          </button>
+          </Button>
           {step < 5 && (
-            <button
-              type="button"
-              onClick={goNext}
-              disabled={!canContinue}
-              className="rounded bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
-            >
+            <Button onClick={goNext} disabled={!canContinue}>
               Continue
-            </button>
+            </Button>
           )}
         </div>
       </div>

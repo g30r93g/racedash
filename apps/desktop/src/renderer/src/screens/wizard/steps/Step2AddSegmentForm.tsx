@@ -1,6 +1,11 @@
 import React, { useRef, useState } from 'react'
 import type { SegmentConfig, TimingSource, SessionMode } from '../../../../../types/project'
 import { Step2OffsetPicker } from './Step2OffsetPicker'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { FormField } from '@/components/ui/form-field'
+import { FileDrop } from '@/components/ui/file-drop'
 import { cn } from '@/lib/utils'
 
 interface Step2AddSegmentFormProps {
@@ -39,18 +44,22 @@ export function Step2AddSegmentForm({
   const [session, setSession] = useState<SessionMode>(initial?.session ?? 'race')
   const [sessionName, setSessionName] = useState(initial?.sessionName ?? '')
   const [emailPath, setEmailPath] = useState(initial?.emailPath ?? '')
-  const [videoOffsetFrame, setVideoOffsetFrame] = useState<number | undefined>(
-    initial?.videoOffsetFrame
-  )
+  const [videoOffsetFrame, setVideoOffsetFrame] = useState<number | undefined>(initial?.videoOffsetFrame)
   const [showOffsetPicker, setShowOffsetPicker] = useState(false)
-
   const labelRef = useRef<HTMLInputElement>(null)
 
-  React.useEffect(() => {
-    labelRef.current?.focus()
-  }, [])
+  React.useEffect(() => { labelRef.current?.focus() }, [])
 
-  async function handleBrowseEmailFile(accepts: string[]) {
+  function changeSource(next: TimingSource) {
+    setSource(next)
+    setUrl('')
+    setEventId('')
+    setSession('race')
+    setSessionName('')
+    setEmailPath('')
+  }
+
+  async function browseEmailFile(accepts: string[]) {
     const path = await window.racedash.openFile({
       filters: [{ name: 'Result files', extensions: accepts }],
     })
@@ -71,8 +80,6 @@ export function Step2AddSegmentForm({
     onSave(seg)
   }
 
-  const canSave = label.trim().length > 0
-
   return (
     <>
       {showOffsetPicker && videoPaths.length > 0 && (
@@ -80,57 +87,36 @@ export function Step2AddSegmentForm({
           segmentLabel={label || 'Segment'}
           videoPath={videoPaths[0]}
           initialFrame={videoOffsetFrame ?? 0}
-          onConfirm={(frame) => {
-            setVideoOffsetFrame(frame)
-            setShowOffsetPicker(false)
-          }}
+          onConfirm={(frame) => { setVideoOffsetFrame(frame); setShowOffsetPicker(false) }}
           onCancel={() => setShowOffsetPicker(false)}
         />
       )}
 
       <div className="flex flex-col gap-5">
-        <button type="button" onClick={onBack} className="self-start text-xs text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="sm" className="self-start px-0 text-xs" onClick={onBack}>
           ← Segments
-        </button>
+        </Button>
 
         <h2 className="text-base font-semibold text-foreground">
           {mode === 'add' ? 'Add segment' : 'Edit segment'}
         </h2>
 
-        {/* Label */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Segment label
-          </label>
-          <input
+        <FormField label="Segment label">
+          <Input
             ref={labelRef}
-            type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Race"
-            className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
-        </div>
+        </FormField>
 
-        {/* Timing source pills */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Timing source
-          </label>
+        <FormField label="Timing source">
           <div className="flex flex-wrap gap-2">
             {TIMING_SOURCES.map((ts) => (
               <button
                 key={ts.value}
                 type="button"
-                onClick={() => {
-                  setSource(ts.value)
-                  // Clear source-specific fields so stale data doesn't bleed through
-                  setUrl('')
-                  setEventId('')
-                  setSession('race')
-                  setSessionName('')
-                  setEmailPath('')
-                }}
+                onClick={() => changeSource(ts.value)}
                 className={cn(
                   'rounded-full border px-3.5 py-1 text-xs font-medium transition-colors',
                   source === ts.value
@@ -142,173 +128,107 @@ export function Step2AddSegmentForm({
               </button>
             ))}
           </div>
-        </div>
+        </FormField>
 
-        {/* Alpha Timing */}
         {source === 'alphaTiming' && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Results URL
-            </label>
-            <input
+          <FormField label="Results URL">
+            <Input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://..."
-              className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
-          </div>
+          </FormField>
         )}
 
-        {/* SpeedHive */}
         {source === 'mylapsSpeedhive' && (
           <>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Event ID</label>
-              <input
-                type="text"
+            <FormField label="Event ID">
+              <Input
                 value={eventId}
                 onChange={(e) => setEventId(e.target.value)}
                 placeholder="123456"
-                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Session</label>
-              <select
-                value={session}
-                onChange={(e) => setSession(e.target.value as SessionMode)}
-                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-              >
+            </FormField>
+            <FormField label="Session">
+              <Select value={session} onChange={(e) => setSession(e.target.value as SessionMode)}>
                 {SPEEDHIVE_SESSIONS.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Session name <span className="text-muted-foreground/60">(optional)</span>
-              </label>
-              <input
-                type="text"
+              </Select>
+            </FormField>
+            <FormField label="Session name" hint="(optional)">
+              <Input
                 value={sessionName}
                 onChange={(e) => setSessionName(e.target.value)}
                 placeholder="e.g. Sprint Race"
-                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
-            </div>
+            </FormField>
           </>
         )}
 
-        {/* Daytona */}
         {source === 'daytonaEmail' && (
           <>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Results file
-              </label>
-              <div
-                role="button"
-                tabIndex={0}
-                className="flex min-h-[80px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border p-4 hover:border-primary/50"
-                onClick={() => handleBrowseEmailFile(['eml', 'txt'])}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBrowseEmailFile(['eml', 'txt']) }}
-              >
-                {emailPath ? (
-                  <p className="text-sm text-foreground">{emailPath.split('/').pop()}</p>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground">Drop file here or browse</p>
-                    <p className="text-xs text-muted-foreground">.eml or .txt email export from Daytona</p>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Session name <span className="text-muted-foreground/60">(optional)</span>
-              </label>
-              <input
-                type="text"
+            <FormField label="Results file">
+              <FileDrop
+                value={emailPath}
+                placeholder="Drop file here or browse"
+                hint=".eml or .txt email export from Daytona"
+                onClick={() => browseEmailFile(['eml', 'txt'])}
+              />
+            </FormField>
+            <FormField label="Session name" hint="(optional)">
+              <Input
                 value={sessionName}
                 onChange={(e) => setSessionName(e.target.value)}
                 placeholder="e.g. Race"
-                className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
-            </div>
+            </FormField>
           </>
         )}
 
-        {/* TeamSport */}
         {source === 'teamsportEmail' && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Results file
-            </label>
-            <div
-              role="button"
-              tabIndex={0}
-              className="flex min-h-[80px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border p-4 hover:border-primary/50"
-              onClick={() => handleBrowseEmailFile(['eml'])}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBrowseEmailFile(['eml']) }}
-            >
-              {emailPath ? (
-                <p className="text-sm text-foreground">{emailPath.split('/').pop()}</p>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">Drop file here or browse</p>
-                  <p className="text-xs text-muted-foreground">.eml email export from TeamSport</p>
-                </>
-              )}
-            </div>
-          </div>
+          <FormField label="Results file">
+            <FileDrop
+              value={emailPath}
+              placeholder="Drop file here or browse"
+              hint=".eml email export from TeamSport"
+              onClick={() => browseEmailFile(['eml'])}
+            />
+          </FormField>
         )}
 
-        {/* Manual */}
         {source === 'manual' && (
-          <div className="rounded-lg border border-border bg-accent/40 px-4 py-3 text-sm text-muted-foreground">
+          <p className="rounded-lg border border-border bg-accent/40 px-4 py-3 text-sm text-muted-foreground">
             No timing file needed. Lap times and positions will be entered manually in the editor
             once the project is created.
-          </div>
+          </p>
         )}
 
-        {/* Video offset */}
         <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
-          <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-            </svg>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Video offset
-              </p>
-              <p className="text-sm text-foreground">
-                {videoOffsetFrame !== undefined
-                  ? `Frame ${videoOffsetFrame}`
-                  : 'Not set — pick a frame to sync timing'}
-              </p>
-            </div>
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Video offset
+            </p>
+            <p className="mt-0.5 text-sm text-foreground">
+              {videoOffsetFrame !== undefined
+                ? `Frame ${videoOffsetFrame}`
+                : 'Not set — pick a frame to sync timing'}
+            </p>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowOffsetPicker(true)}
             disabled={videoPaths.length === 0}
-            className="rounded border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
             Set in video
-          </button>
+          </Button>
         </div>
 
-        {/* Save */}
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!canSave}
-          className="self-start rounded bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
-        >
+        <Button onClick={handleSave} disabled={!label.trim()} className="self-start">
           {mode === 'add' ? 'Add segment' : 'Save changes'}
-        </button>
+        </Button>
       </div>
     </>
   )

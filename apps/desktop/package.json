@@ -14,7 +14,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@racedash/engine": "workspace:*"
+    "@racedash/engine": "workspace:*",
+    "class-variance-authority": "^0.7.1"
   },
   "devDependencies": {
     "@radix-ui/react-tabs": "^1.1.13",
