@@ -13,11 +13,10 @@ interface FrameScrubberProps {
 
 function formatTime(frame: number, fps: number): string {
   const totalSeconds = frame / fps
-  const hh = Math.floor(totalSeconds / 3600)
-  const mm = Math.floor((totalSeconds % 3600) / 60)
+  const mm = Math.floor(totalSeconds / 60)
   const ss = Math.floor(totalSeconds % 60)
-  const ff = frame % fps
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ff).padStart(2, '0')}`
+  const ms = Math.floor((totalSeconds % 1) * 1000)
+  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
 }
 
 export function FrameScrubber({
