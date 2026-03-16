@@ -28,16 +28,15 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   }, [])
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[#0d0d0d]">
-      <div className="flex h-[650px] w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
-          <AppSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            cloudRenderCount={0}
-            user={{ name: 'G. Gorzynski', email: 'george@university.ac.uk', plan: 'pro' }}
-          />
+    <div className="flex h-full max-h-[650px] w-full max-w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
+      <AppSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        cloudRenderCount={0}
+        user={{ name: 'G. Gorzynski', email: 'george@university.ac.uk', plan: 'pro' }}
+      />
 
-          <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
+      <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
             {activeTab === 'projects' && (
               <>
                 <div className="mb-6 flex shrink-0 items-center justify-between">
@@ -88,7 +87,6 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <AccountDetails />
               </>
             )}
-          </div>
       </div>
     </div>
   )

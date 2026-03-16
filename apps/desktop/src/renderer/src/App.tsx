@@ -25,14 +25,21 @@ export function App(): React.ReactElement {
       />
 
       {/* Screen content — fills remaining height */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         {project ? (
           <Editor project={project} onClose={() => setProject(null)} />
         ) : (
-          <ProjectLibrary
-            onOpen={setProject}
-            onNew={() => setWizardOpen(true)}
-          />
+          <>
+            {/* Editor skeleton visible behind the library overlay */}
+            <EditorSkeleton />
+            {/* Project library floats over the skeleton */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
+              <ProjectLibrary
+                onOpen={setProject}
+                onNew={() => setWizardOpen(true)}
+              />
+            </div>
+          </>
         )}
       </div>
       {wizardOpen && (
@@ -41,6 +48,26 @@ export function App(): React.ReactElement {
           onCancel={() => setWizardOpen(false)}
         />
       )}
+    </div>
+  )
+}
+
+function EditorSkeleton(): React.ReactElement {
+  return (
+    <div className="flex h-full w-full overflow-hidden">
+      {/* Left pane — video + timeline */}
+      <div className="flex flex-1 flex-col overflow-hidden border-r border-border">
+        <div className="flex flex-1 items-center justify-center bg-[#0a0a0a]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M7 4.5L16 10L7 15.5V4.5Z" fill="white" fillOpacity="0.15" />
+            </svg>
+          </div>
+        </div>
+        <div className="h-[140px] shrink-0 border-t border-border bg-[#111111]" />
+      </div>
+      {/* Right pane — tabs */}
+      <div className="flex w-[430px] shrink-0 flex-col overflow-hidden bg-card" />
     </div>
   )
 }
