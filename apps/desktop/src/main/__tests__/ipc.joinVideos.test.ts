@@ -72,4 +72,9 @@ describe('joinVideosImpl', () => {
     mockEngineJoinVideos.mockRejectedValue(new Error('ffmpeg not found'))
     await expect(joinVideosImpl(['/videos/ch1.mp4', '/videos/ch2.mp4'])).rejects.toThrow('ffmpeg not found')
   })
+
+  it('rejects when called with an empty array', async () => {
+    await expect(joinVideosImpl([])).rejects.toThrow('at least one video path is required')
+    expect(mockEngineJoinVideos).not.toHaveBeenCalled()
+  })
 })
