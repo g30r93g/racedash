@@ -18,6 +18,12 @@ export interface FfmpegStatus {
   path?: string
 }
 
+// Video joining
+export interface JoinVideosResult {
+  /** Absolute path to the joined file. May be the original path (single file) or a temp path. */
+  joinedPath: string
+}
+
 // Video info (populated by Export tab sub-plan)
 export interface VideoInfo {
   width: number
@@ -71,6 +77,7 @@ export interface RenderCompleteResult {
 export interface RacedashAPI {
   // System
   checkFfmpeg(): Promise<FfmpegStatus>
+  joinVideos(videoPaths: string[]): Promise<JoinVideosResult>
 
   // File dialogs
   openFile(opts?: OpenFileOptions): Promise<string | undefined>

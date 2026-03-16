@@ -6,6 +6,8 @@ import type { ProjectData, CreateProjectOpts } from '../types/project'
 const api: RacedashAPI = {
   checkFfmpeg: () =>
     ipcRenderer.invoke('racedash:checkFfmpeg'),
+  joinVideos: (videoPaths: string[]) =>
+    ipcRenderer.invoke('racedash:joinVideos', videoPaths),
   openFile: (opts) =>
     ipcRenderer.invoke('racedash:openFile', opts),
   openFiles: (opts) =>

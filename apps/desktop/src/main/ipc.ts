@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution } from '../types/ipc'
+import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, JoinVideosResult } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
 
@@ -210,6 +210,10 @@ let activeRenderSender: WebContents | null = null
 export function registerIpcHandlers(): void {
   // System
   ipcMain.handle('racedash:checkFfmpeg', () => checkFfmpegImpl())
+  ipcMain.handle('racedash:joinVideos', async (_event, videoPaths: string[]) => {
+    const joinedPath = await joinVideosImpl(videoPaths)
+    return { joinedPath }
+  })
 
   // File dialogs
   ipcMain.handle('racedash:openFile', async (_event, opts: OpenFileOptions = {}) => {
