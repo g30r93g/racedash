@@ -79,23 +79,24 @@ export function FrameScrubber({
         max={totalFrames > 0 ? totalFrames - 1 : 1000}
         value={[currentFrame]}
         onValueChange={([v]) => onSeek(clamp(v))}
+        disabled={!videoReady}
       />
 
       {/* Timecode + step buttons */}
       <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => onSeek(clamp(currentFrame - 10))}>
+        <Button variant="outline" size="sm" disabled={!videoReady} onClick={() => onSeek(clamp(currentFrame - 10))}>
           ⏮ -10
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onSeek(clamp(currentFrame - 1))}>
+        <Button variant="outline" size="sm" disabled={!videoReady} onClick={() => onSeek(clamp(currentFrame - 1))}>
           ← Prev
         </Button>
         <span className="w-24 text-center font-mono text-xs text-foreground">
           {formatTime(currentFrame, fps)}
         </span>
-        <Button variant="outline" size="sm" onClick={() => onSeek(clamp(currentFrame + 1))}>
+        <Button variant="outline" size="sm" disabled={!videoReady} onClick={() => onSeek(clamp(currentFrame + 1))}>
           Next →
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onSeek(clamp(currentFrame + 10))}>
+        <Button variant="outline" size="sm" disabled={!videoReady} onClick={() => onSeek(clamp(currentFrame + 10))}>
           +10 ⏭
         </Button>
       </div>

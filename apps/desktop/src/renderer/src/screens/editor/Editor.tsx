@@ -25,9 +25,9 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
   }, [project.videoPaths])
 
   return (
-    <div className="grid h-full overflow-hidden" style={{ gridTemplateColumns: '1fr 430px' }}>
+    <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
-      <div className="grid min-w-0 overflow-hidden border-r border-border" style={{ gridTemplateRows: '1fr auto' }}>
+      <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
         <VideoPane videoPath={project.videoPaths[0]} />
         <TimelinePane project={project} videoInfo={videoInfo} />
       </div>

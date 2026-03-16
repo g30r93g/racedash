@@ -186,7 +186,7 @@ export async function renderOverlay(
   })
 }
 
-function parseFpsValue(raw: string, videoPath: string): number {
+export function parseFpsValue(raw: string, videoPath: string): number {
   const value = raw.trim()
   const fractionMatch = value.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/)
   if (fractionMatch) {

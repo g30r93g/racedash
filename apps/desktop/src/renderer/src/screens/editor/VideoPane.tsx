@@ -8,7 +8,7 @@ interface VideoPaneProps {
 
 export function VideoPane({ videoPath }: VideoPaneProps): React.ReactElement {
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       <VideoPlayer videoPath={videoPath} />
       <VideoPlaybackControls
         duration={0}

@@ -56,6 +56,6 @@ export {
   renderSession,
 } from './operations'
 
-// Re-export getOverlayRenderProfile so CLI and desktop can display the render profile label
+// Re-export compositor utilities so CLI and desktop can use them
 // without taking a direct dependency on @racedash/compositor
-export { getOverlayRenderProfile } from '@racedash/compositor'
+export { getOverlayRenderProfile, parseFpsValue } from '@racedash/compositor'

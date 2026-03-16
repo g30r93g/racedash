@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 interface VideoFileListProps {
@@ -6,7 +6,25 @@ interface VideoFileListProps {
   onChange: (paths: string[]) => void
 }
 
+function formatFps(fps: number): string {
+  // Show up to 2 decimal places, stripping unnecessary trailing zeros
+  return `${parseFloat(fps.toFixed(2))} fps`
+}
+
 export function VideoFileList({ paths, onChange }: VideoFileListProps): React.ReactElement | null {
+  const [fpsMap, setFpsMap] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    for (const path of paths) {
+      if (fpsMap[path] !== undefined) continue
+      window.racedash.getVideoInfo(path).then((info) => {
+        if (!cancelled) setFpsMap((prev) => ({ ...prev, [path]: info.fps }))
+      }).catch(() => {/* non-fatal */})
+    }
+    return () => { cancelled = true }
+  }, [paths])
+
   if (paths.length === 0) return null
 
   function move(index: number, direction: -1 | 1) {
@@ -37,6 +55,11 @@ export function VideoFileList({ paths, onChange }: VideoFileListProps): React.Re
               {index + 1}
             </span>
             <span className="flex-1 truncate font-mono text-xs text-foreground">{name}</span>
+            {fpsMap[path] !== undefined && (
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                {formatFps(fpsMap[path])}
+              </span>
+            )}
             <div className="flex shrink-0 items-center">
               <Button
                 variant="ghost"

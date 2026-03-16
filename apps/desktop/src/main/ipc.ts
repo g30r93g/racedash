@@ -7,7 +7,7 @@ import path from 'node:path'
 import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, JoinVideosResult, DriversResult } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue } from '@racedash/engine'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -181,6 +181,7 @@ export function getVideoInfo(videoPath: string): VideoInfo {
       codec_type: string
       width?: number
       height?: number
+      avg_frame_rate: string
       r_frame_rate: string
       duration: string
     }>
@@ -191,8 +192,14 @@ export function getVideoInfo(videoPath: string): VideoInfo {
     throw new Error(`No video stream found in ffprobe output for: ${videoPath}`)
   }
 
-  const [numerator, denominator] = videoStream.r_frame_rate.split('/').map(Number)
-  const fps = denominator !== 0 ? numerator / denominator : 0
+  // Prefer avg_frame_rate (computed from timestamps, accurate for drop-frame like 29.97/59.94).
+  // Fall back to r_frame_rate if avg_frame_rate is missing or 0/0.
+  let fps: number
+  try {
+    fps = parseFpsValue(videoStream.avg_frame_rate, videoPath)
+  } catch {
+    fps = parseFpsValue(videoStream.r_frame_rate, videoPath)
+  }
 
   return {
     width: videoStream.width ?? 0,
