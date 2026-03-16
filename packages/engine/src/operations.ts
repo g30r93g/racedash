@@ -72,6 +72,8 @@ export async function generateTimestamps(opts: TimestampsOptions): Promise<Times
 }
 
 const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 400, minimal: 400 }
+const VALID_BOX_POSITIONS = ['bottom-left', 'bottom-center', 'bottom-right', 'top-left', 'top-center', 'top-right']
+const VALID_TABLE_POSITIONS = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
 
 function defaultBoxPositionForStyle(style: string): BoxPosition {
   return style === 'modern' ? 'bottom-center' : 'bottom-left'
@@ -89,15 +91,15 @@ export async function renderSession(
   let videoPath = opts.videoPaths[0]
   let tempJoinedVideo: string | null = null
 
-  if (opts.videoPaths.length > 1) {
-    tempJoinedVideo = path.join(tmpdir(), `racedash-joined-${randomUUID()}.mp4`)
-    onProgress({ phase: 'Joining videos', progress: 0 })
-    await compositorJoinVideos(opts.videoPaths, tempJoinedVideo)
-    videoPath = tempJoinedVideo
-    onProgress({ phase: 'Joining videos', progress: 1 })
-  }
-
   try {
+    if (opts.videoPaths.length > 1) {
+      tempJoinedVideo = path.join(tmpdir(), `racedash-joined-${randomUUID()}.mp4`)
+      onProgress({ phase: 'Joining videos', progress: 0 })
+      await compositorJoinVideos(opts.videoPaths, tempJoinedVideo)
+      videoPath = tempJoinedVideo
+      onProgress({ phase: 'Joining videos', progress: 1 })
+    }
+
     const {
       segments: segmentConfigs,
       driverQuery,
@@ -107,8 +109,6 @@ export async function renderSession(
     } = await loadTimingConfig(opts.configPath, true)
 
     // Validate positions from config file (CLI validates CLI-flag positions; engine validates config-sourced positions)
-    const VALID_BOX_POSITIONS = ['bottom-left', 'bottom-center', 'bottom-right', 'top-left', 'top-center', 'top-right']
-    const VALID_TABLE_POSITIONS = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
     if (configBoxPosition != null && !VALID_BOX_POSITIONS.includes(configBoxPosition)) {
       throw new Error(`config.boxPosition must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
     }
