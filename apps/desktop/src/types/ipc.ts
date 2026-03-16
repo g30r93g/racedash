@@ -1,3 +1,5 @@
+import type { ProjectData, CreateProjectOpts } from './project'
+
 // File dialog options
 export interface OpenFileOptions {
   title?: string
@@ -75,6 +77,11 @@ export interface RacedashAPI {
   openFiles(opts?: OpenFileOptions): Promise<string[] | undefined>
   openDirectory(opts?: OpenDirectoryOptions): Promise<string | undefined>
   revealInFinder(path: string): Promise<void>
+
+  // Projects
+  listProjects(): Promise<ProjectData[]>
+  openProject(projectPath: string): Promise<ProjectData>
+  createProject(opts: CreateProjectOpts): Promise<ProjectData>
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   listDrivers(opts: { configPath: string; driverQuery?: string }): Promise<DriversResult>
