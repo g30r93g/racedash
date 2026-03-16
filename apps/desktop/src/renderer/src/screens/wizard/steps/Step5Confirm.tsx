@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { InfoRow } from '@/components/app/InfoRow'
+import { SpinnerOverlay } from '@/components/loaders/Spinner'
 
 interface Step5ConfirmProps {
   state: WizardState
@@ -61,7 +62,16 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
   const saveDirectory = `~/Videos/racedash/${slugify(state.projectName || 'project')}/`
 
   return (
-    <div className="flex flex-col gap-5">
+    <SpinnerOverlay
+      active={loading}
+      name="checkerboard"
+      size="1.5rem"
+      color="#3b82f6"
+      speed={2.5}
+      ignoreReducedMotion
+      label="Creating project…"
+      containerClassName="flex flex-col gap-5"
+    >
       <div>
         <h2 className="text-base font-semibold text-foreground">Confirm and create project</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -124,6 +134,6 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
       >
         {loading ? 'Saving project...' : 'Create Project'}
       </Button>
-    </div>
+    </SpinnerOverlay>
   )
 }
