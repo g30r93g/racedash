@@ -1,5 +1,6 @@
 import { ipcMain, dialog, shell } from 'electron'
 import { execSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions } from '../types/ipc'
 
 // ---------------------------------------------------------------------------
@@ -66,6 +67,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('racedash:revealInFinder', (_event, path: string) => {
+    if (typeof path !== 'string' || path.trim().length === 0) return
+    if (!existsSync(path)) return
     shell.showItemInFolder(path)
   })
 
