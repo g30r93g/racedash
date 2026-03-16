@@ -7,7 +7,7 @@ import path from 'node:path'
 import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
-import { listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -24,6 +24,22 @@ export function checkFfmpegImpl(): FfmpegStatus {
   } catch {
     return { found: false }
   }
+}
+
+/**
+ * Joins multiple video chapter files into a single MP4 using the engine's
+ * joinVideos (backed by @racedash/compositor).
+ * For a single file, returns the original path with no work done.
+ * For multiple files, writes the joined file to the system temp directory
+ * and returns its path.
+ */
+export async function joinVideosImpl(videoPaths: string[]): Promise<string> {
+  if (videoPaths.length === 0) throw new Error('joinVideos: at least one video path is required')
+  if (videoPaths.length === 1) return videoPaths[0]
+
+  const outPath = path.join(os.tmpdir(), `racedash-join-${Date.now()}.mp4`)
+  await joinVideos(videoPaths, outPath)
+  return outPath
 }
 
 /**
