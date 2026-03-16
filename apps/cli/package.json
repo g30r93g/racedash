@@ -6,19 +6,16 @@
     "racedash": "./dist/index.js"
   },
   "scripts": {
-    "prebuild": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor build",
+    "prebuild": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "pretest": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor build",
+    "pretest": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
     "test": "vitest run"
   },
   "dependencies": {
     "@inquirer/prompts": "^5.0.0",
-    "@racedash/compositor": "workspace:*",
     "@racedash/core": "workspace:*",
-    "@racedash/scraper": "workspace:*",
-    "@racedash/timestamps": "workspace:*",
-    "cheerio": "^1.0.0",
+    "@racedash/engine": "workspace:*",
     "commander": "^12.0.0"
   },
   "devDependencies": {
