@@ -327,20 +327,6 @@ function stat(label: string, value: string): void {
   process.stderr.write(`  ${label.padEnd(10)}  ${value}\n`)
 }
 
-function tryParseColor(css: string): [number, number, number] | null {
-  const s = css.trim()
-  const hex = s.match(/^#([0-9a-fA-F]{3,8})$/)
-  if (hex) {
-    const h = hex[1]
-    if (h.length === 3) return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)]
-    if (h.length >= 6) return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
-  }
-  const rgb = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
-  if (rgb) return [parseInt(rgb[1], 10), parseInt(rgb[2], 10), parseInt(rgb[3], 10)]
-  const named: Record<string, [number, number, number]> = { white: [255, 255, 255], black: [0, 0, 0] }
-  return named[s.toLowerCase()] ?? null
-}
-
 function makeProgressCallback(label: string): (progress: number) => void {
   const tag = label.padEnd(16)
   const wallStart = Date.now()
