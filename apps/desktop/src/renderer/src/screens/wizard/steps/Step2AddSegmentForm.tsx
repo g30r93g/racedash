@@ -75,15 +75,14 @@ export function Step2AddSegmentForm({
 
   return (
     <>
-      {showOffsetPicker && videoPaths.length > 0 && (
-        <Step2OffsetPicker
-          segmentLabel={label || 'Segment'}
-          videoPath={videoPaths[0]}
-          initialFrame={videoOffsetFrame ?? 0}
-          onConfirm={(frame) => { setVideoOffsetFrame(frame); setShowOffsetPicker(false) }}
-          onCancel={() => setShowOffsetPicker(false)}
-        />
-      )}
+      <Step2OffsetPicker
+        open={showOffsetPicker && videoPaths.length > 0}
+        onOpenChange={setShowOffsetPicker}
+        segmentLabel={label || 'Segment'}
+        videoPath={videoPaths[0] ?? ''}
+        initialFrame={videoOffsetFrame ?? 0}
+        onConfirm={(frame) => setVideoOffsetFrame(frame)}
+      />
 
       <div className="flex flex-col gap-5">
         <Button variant="ghost" size="sm" className="self-start px-0 text-xs" onClick={onBack}>

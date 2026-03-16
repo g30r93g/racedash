@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 
 interface Step2OffsetPickerProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   segmentLabel: string
   videoPath: string
   initialFrame: number
   onConfirm: (frame: number) => void
-  onCancel: () => void
 }
 
 const DEFAULT_FPS = 30
@@ -20,11 +29,12 @@ function formatTime(frame: number, fps: number): string {
 }
 
 export function Step2OffsetPicker({
+  open,
+  onOpenChange,
   segmentLabel,
   videoPath,
   initialFrame,
   onConfirm,
-  onCancel,
 }: Step2OffsetPickerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [fps, setFps] = useState(DEFAULT_FPS)
@@ -32,14 +42,14 @@ export function Step2OffsetPicker({
   const [currentFrame, setCurrentFrame] = useState(initialFrame)
 
   useEffect(() => {
+    if (!open) return
     window.racedash.getVideoInfo(videoPath).then((info) => {
       setFps(info.fps || DEFAULT_FPS)
       setTotalFrames(Math.floor(info.durationSeconds * (info.fps || DEFAULT_FPS)))
     }).catch((err) => {
       console.warn('[racedash] getVideoInfo fallback:', err)
-      // Fall back to defaults if getVideoInfo not yet implemented
     })
-  }, [videoPath])
+  }, [open, videoPath])
 
   useEffect(() => {
     const video = videoRef.current
@@ -53,16 +63,14 @@ export function Step2OffsetPicker({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 backdrop-blur-sm">
-      <div className="flex w-[640px] flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-2xl">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            Set video offset — {segmentLabel}
-          </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Scrub to the first frame of the session, then confirm.
-          </p>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[640px] max-w-[640px]">
+        <DialogHeader>
+          <DialogTitle>Set video offset — {segmentLabel}</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground">
+          Scrub to the first frame of the session, then confirm.
+        </p>
 
         <div className="relative overflow-hidden rounded-md bg-black" style={{ aspectRatio: '16/9' }}>
           <video
@@ -83,13 +91,12 @@ export function Step2OffsetPicker({
           </div>
         </div>
 
-        <input
-          type="range"
+        <Slider
           min={0}
           max={totalFrames > 0 ? totalFrames - 1 : 1000}
-          value={currentFrame}
-          onChange={(e) => seekToFrame(Number(e.target.value))}
-          className="w-full accent-primary"
+          value={[currentFrame]}
+          onValueChange={([v]) => seekToFrame(v)}
+          className="w-full"
         />
 
         <p className="text-center font-mono text-xs text-muted-foreground">
@@ -97,22 +104,20 @@ export function Step2OffsetPicker({
         </p>
 
         <div className="flex items-center justify-center gap-2">
-          <button type="button" onClick={() => seekToFrame(currentFrame - 10)} className="rounded border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground">⏮ -10</button>
-          <button type="button" onClick={() => seekToFrame(currentFrame - 1)} className="rounded border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground">← Prev</button>
+          <Button variant="outline" size="sm" onClick={() => seekToFrame(currentFrame - 10)}>⏮ -10</Button>
+          <Button variant="outline" size="sm" onClick={() => seekToFrame(currentFrame - 1)}>← Prev</Button>
           <span className="w-20 text-center font-mono text-xs text-foreground">{formatTime(currentFrame, fps)}</span>
-          <button type="button" onClick={() => seekToFrame(currentFrame + 1)} className="rounded border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground">Next →</button>
-          <button type="button" onClick={() => seekToFrame(currentFrame + 10)} className="rounded border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground">+10 ⏭</button>
+          <Button variant="outline" size="sm" onClick={() => seekToFrame(currentFrame + 1)}>Next →</Button>
+          <Button variant="outline" size="sm" onClick={() => seekToFrame(currentFrame + 10)}>+10 ⏭</Button>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancel} className="rounded px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
-            Cancel
-          </button>
-          <button type="button" onClick={() => onConfirm(currentFrame)} className="rounded bg-primary px-5 py-2 text-sm font-medium text-primary-foreground">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => { onConfirm(currentFrame); onOpenChange(false) }}>
             ✓ Use frame {currentFrame}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
