@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import type { SegmentConfig, ProjectData } from '../../../../types/project'
-import { WizardStepIndicator } from './WizardStepIndicator'
+import { StepIndicator } from '@/components/app/StepIndicator'
 import { Step1Videos } from './steps/Step1Videos'
 import { Step2Segments } from './steps/Step2Segments'
 import { Step3Driver } from './steps/Step3Driver'
 import { Step4Verify } from './steps/Step4Verify'
 import { Step5Confirm } from './steps/Step5Confirm'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 export interface WizardState {
   videoPaths: string[]
@@ -33,14 +34,6 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
     selectedDriver: '',
     projectName: '',
   })
-
-  React.useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel()
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onCancel])
 
   function updateState(patch: Partial<WizardState>) {
     setState((prev) => ({ ...prev, ...patch }))
@@ -84,13 +77,13 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
     step >= 4
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
-      <div
-        className="flex w-[690px] flex-col rounded-lg border border-border bg-card shadow-2xl"
+    <Dialog open={true} onOpenChange={(open) => { if (!open) onCancel() }}>
+      <DialogContent
+        className="flex w-[690px] flex-col gap-0 p-0"
         style={{ minHeight: '630px', maxHeight: '90vh' }}
       >
         <div className="shrink-0 border-b border-border px-8 py-6">
-          <WizardStepIndicator currentStep={step} steps={STEP_LABELS} />
+          <StepIndicator currentStep={step} steps={STEP_LABELS} />
         </div>
 
         <div className="flex-1 overflow-y-auto px-8 py-6">
@@ -136,7 +129,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
             </Button>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
