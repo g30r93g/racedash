@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { FormField } from '@/components/ui/form-field'
-import { FileDrop } from '@/components/ui/file-drop'
-import { cn } from '@/lib/utils'
+import { FileUpload } from '@/components/app/FileUpload'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 interface Step2AddSegmentFormProps {
   videoPaths: string[]
@@ -59,13 +59,6 @@ export function Step2AddSegmentForm({
     setEmailPath('')
   }
 
-  async function browseEmailFile(accepts: string[]) {
-    const path = await window.racedash.openFile({
-      filters: [{ name: 'Result files', extensions: accepts }],
-    })
-    if (path) setEmailPath(path)
-  }
-
   function handleSave() {
     if (!label.trim()) return
     const seg: SegmentConfig = {
@@ -111,23 +104,22 @@ export function Step2AddSegmentForm({
         </FormField>
 
         <FormField label="Timing source">
-          <div className="flex flex-wrap gap-2">
+          <ToggleGroup
+            type="single"
+            value={source}
+            onValueChange={(val) => { if (val) changeSource(val as TimingSource) }}
+            className="flex flex-wrap gap-2"
+          >
             {TIMING_SOURCES.map((ts) => (
-              <button
+              <ToggleGroupItem
                 key={ts.value}
-                type="button"
-                onClick={() => changeSource(ts.value)}
-                className={cn(
-                  'rounded-full border px-3.5 py-1 text-xs font-medium transition-colors',
-                  source === ts.value
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-transparent text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                )}
+                value={ts.value}
+                className="rounded-full border px-3.5 py-1 text-xs font-medium data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 {ts.label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </FormField>
 
         {source === 'alphaTiming' && (
@@ -170,11 +162,12 @@ export function Step2AddSegmentForm({
         {source === 'daytonaEmail' && (
           <>
             <FormField label="Results file">
-              <FileDrop
+              <FileUpload
+                accept={['eml', 'txt']}
+                onFile={setEmailPath}
                 value={emailPath}
                 placeholder="Drop file here or browse"
                 hint=".eml or .txt email export from Daytona"
-                onClick={() => browseEmailFile(['eml', 'txt'])}
               />
             </FormField>
             <FormField label="Session name" hint="(optional)">
@@ -189,11 +182,12 @@ export function Step2AddSegmentForm({
 
         {source === 'teamsportEmail' && (
           <FormField label="Results file">
-            <FileDrop
+            <FileUpload
+              accept={['eml']}
+              onFile={setEmailPath}
               value={emailPath}
               placeholder="Drop file here or browse"
               hint=".eml email export from TeamSport"
-              onClick={() => browseEmailFile(['eml'])}
             />
           </FormField>
         )}
