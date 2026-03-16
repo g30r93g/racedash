@@ -62,7 +62,13 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                   ) : (
                     <div className="grid grid-cols-3 gap-4">
                       {projects.map((project) => (
-                        <ProjectCard key={project.projectPath} project={project} onOpen={onOpen} />
+                        <ProjectCard
+                          key={project.projectPath}
+                          project={project}
+                          onOpen={onOpen}
+                          onDelete={(deleted) => setProjects((prev) => prev.filter((p) => p.projectPath !== deleted.projectPath))}
+                          onRename={(updated) => setProjects((prev) => prev.map((p) => p.projectPath === updated.projectPath ? updated : p))}
+                        />
                       ))}
                     </div>
                   )}
