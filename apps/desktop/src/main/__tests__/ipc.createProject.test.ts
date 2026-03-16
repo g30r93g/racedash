@@ -34,7 +34,6 @@ import fs from 'node:fs'
 import { handleCreateProject } from '../ipc'
 
 const mockMkdirSync = vi.mocked(fs.mkdirSync)
-const mockWriteFileSync = vi.mocked(fs.writeFileSync)
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -116,7 +115,7 @@ describe('handleCreateProject', () => {
   it('slugifies project names with spaces and special characters', async () => {
     await handleCreateProject({ ...baseOpts, name: 'Club Endurance — Round 3!' })
     expect(mockMkdirSync).toHaveBeenCalledWith(
-      expect.stringContaining('club-endurance'),
+      expect.stringContaining('club-endurance-round-3'),
       { recursive: true }
     )
   })
