@@ -84,9 +84,12 @@ body, #root {
 ::-webkit-scrollbar-thumb {
   background: #3b82f6;
   border-radius: 3px;
+  border-right: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #60a5fa;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-corner {
   background: #1a1a1a;
