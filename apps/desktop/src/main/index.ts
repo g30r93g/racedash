@@ -1,6 +1,11 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, protocol, net } from 'electron'
 import path from 'node:path'
 import { registerIpcHandlers } from './ipc'
+
+// Must be called before app.whenReady()
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, stream: true } },
+])
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -25,6 +30,11 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  // Serve local files via media:// to bypass webSecurity origin restrictions
+  protocol.handle('media', (req) => {
+    const filePath = decodeURIComponent(new URL(req.url).pathname)
+    return net.fetch(`file://${filePath}`)
+  })
   registerIpcHandlers()
   createWindow()
   app.on('activate', () => {

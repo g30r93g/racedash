@@ -29,7 +29,7 @@ export function FrameScrubber({
   onMetadataLoaded,
 }: FrameScrubberProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const src = videoPath.startsWith('/') ? `file://${videoPath}` : videoPath
+  const src = videoPath.startsWith('/') ? `media://${videoPath}` : videoPath
 
   // Seek whenever currentFrame or fps changes — but only once video can seek
   useEffect(() => {
