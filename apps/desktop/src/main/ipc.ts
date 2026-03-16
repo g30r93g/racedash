@@ -5,8 +5,8 @@ import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, JoinVideosResult } from '../types/ipc'
-import type { ProjectData, CreateProjectOpts } from '../types/project'
+import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, JoinVideosResult, DriversResult } from '../types/ipc'
+import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
 
 // ---------------------------------------------------------------------------
@@ -204,6 +204,40 @@ let activeRenderCancelled = false
 let activeRenderSender: WebContents | null = null
 
 // ---------------------------------------------------------------------------
+// previewDrivers — wizard helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists drivers for wizard segments that haven't been saved to a project file yet.
+ * Writes a temporary config file with placeholder `mode`/`offset` values (irrelevant
+ * for driver discovery), calls listDrivers, then cleans up the temp file.
+ */
+export async function previewDriversImpl(segments: WizardSegmentConfig[]): Promise<DriversResult> {
+  const engineSegments = segments.map((seg) => {
+    const base = {
+      source: seg.source,
+      mode: seg.session ?? 'race',
+      offset: '00:00:00',
+      label: seg.label,
+    }
+    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
+    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'manual') return { ...base, timingData: [] }
+    return base
+  })
+
+  const tempPath = path.join(os.tmpdir(), `racedash-preview-${Date.now()}.json`)
+  try {
+    fs.writeFileSync(tempPath, JSON.stringify({ segments: engineSegments }, null, 2), 'utf-8')
+    return await listDrivers({ configPath: tempPath }) as DriversResult
+  } finally {
+    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -257,6 +291,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
 
   // Timing — engine integration
+  ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>
+    previewDriversImpl(segments)
+  )
   ipcMain.handle('racedash:listDrivers', (_event, opts: { configPath: string; driverQuery?: string }) =>
     listDrivers(opts)
   )

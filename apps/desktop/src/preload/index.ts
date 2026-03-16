@@ -24,6 +24,8 @@ const api: RacedashAPI = {
   createProject: (opts: CreateProjectOpts) =>
     ipcRenderer.invoke('racedash:createProject', opts),
 
+  previewDrivers: (segments) =>
+    ipcRenderer.invoke('racedash:previewDrivers', segments),
   listDrivers: (opts) =>
     ipcRenderer.invoke('racedash:listDrivers', opts),
   generateTimestamps: (opts) =>

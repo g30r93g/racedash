@@ -1,4 +1,4 @@
-import type { ProjectData, CreateProjectOpts } from './project'
+import type { ProjectData, CreateProjectOpts, SegmentConfig } from './project'
 
 // File dialog options
 export interface OpenFileOptions {
@@ -91,6 +91,7 @@ export interface RacedashAPI {
   createProject(opts: CreateProjectOpts): Promise<ProjectData>
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
+  previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>
   listDrivers(opts: { configPath: string; driverQuery?: string }): Promise<DriversResult>
   generateTimestamps(opts: { configPath: string; fps?: number }): Promise<TimestampsResult>
 

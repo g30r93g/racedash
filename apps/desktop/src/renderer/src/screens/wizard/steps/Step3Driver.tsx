@@ -31,7 +31,7 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
   useEffect(() => {
     const load = async () => {
       try {
-        const result = await window.racedash.listDrivers({ configPath: '' })
+        const result = await window.racedash.previewDrivers(segments)
         const bySegment: Record<string, DriverEntry[]> = {}
         result.segments.forEach((seg: { config: { label?: string; source: string }; drivers: DriverEntry[] }) => {
           bySegment[seg.config.label ?? seg.config.source] = seg.drivers
