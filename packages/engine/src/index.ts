@@ -36,3 +36,13 @@ export type {
   PositionOverrideConfig,
   ManualTimingEntry,
 } from './timingSources'
+
+export type {
+  DriversOptions,
+  DriversResult,
+  TimestampsOptions,
+  TimestampsResult,
+  RenderOptions,
+  RenderProgressEvent,
+  RenderResult,
+} from './types'
