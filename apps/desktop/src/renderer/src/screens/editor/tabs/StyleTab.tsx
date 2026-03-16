@@ -1,75 +1,9 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
-
-function isValidHex(value: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(value)
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }): React.ReactElement {
-  return (
-    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-      {children}
-    </p>
-  )
-}
-
-interface ColourRowProps {
-  label: string
-  value: string
-  onChange: (hex: string) => void
-}
-
-function ColourRow({ label, value, onChange }: ColourRowProps): React.ReactElement {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState(value)
-
-  function handleNativeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const hex = e.target.value
-    setDraft(hex)
-    onChange(hex)
-  }
-
-  function handleHexInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value
-    setDraft(raw)
-    if (isValidHex(raw)) onChange(raw)
-  }
-
-  function handleHexBlur() {
-    if (!isValidHex(draft)) setDraft(value)
-  }
-
-  return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
-        <input
-          ref={inputRef}
-          type="color"
-          value={isValidHex(value) ? value : '#000000'}
-          onChange={handleNativeChange}
-          className="sr-only"
-          tabIndex={-1}
-        />
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="h-5 w-5 rounded border border-border"
-          style={{ backgroundColor: isValidHex(value) ? value : '#000000' }}
-          aria-label={`Pick colour for ${label}`}
-        />
-        <input
-          type="text"
-          value={draft}
-          onChange={handleHexInput}
-          onBlur={handleHexBlur}
-          maxLength={7}
-          className="w-20 rounded border border-border bg-accent px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-      </div>
-    </div>
-  )
-}
+import { SectionLabel } from '@/components/app/SectionLabel'
+import { ColourRow } from '@/components/app/ColourRow'
+import { Button } from '@/components/ui/button'
 
 const OVERLAY_NAMES: Record<OverlayType, string> = {
   banner: 'Banner',
@@ -99,9 +33,9 @@ export function StyleTab(): React.ReactElement {
             <div className="h-4 w-6 rounded-sm bg-primary opacity-80" />
             <span className="text-sm text-foreground">{OVERLAY_NAMES[overlayType]}</span>
           </div>
-          <button onClick={() => setShowOverlayPicker(true)} className="text-xs text-primary hover:underline">
+          <Button variant="ghost" size="sm" onClick={() => setShowOverlayPicker(true)}>
             Change
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -138,13 +72,12 @@ export function StyleTab(): React.ReactElement {
         </section>
       )}
 
-      {showOverlayPicker && (
-        <OverlayPickerModal
-          current={overlayType}
-          onClose={() => setShowOverlayPicker(false)}
-          onApply={(overlay) => { setOverlayType(overlay); setShowOverlayPicker(false) }}
-        />
-      )}
+      <OverlayPickerModal
+        open={showOverlayPicker}
+        onOpenChange={setShowOverlayPicker}
+        current={overlayType}
+        onApply={(overlay) => { setOverlayType(overlay); setShowOverlayPicker(false) }}
+      />
     </div>
   )
 }
