@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 import { Step2AddSegmentForm } from './Step2AddSegmentForm'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 
 interface Step2SegmentsProps {
   videoPaths: string[]
@@ -103,17 +102,13 @@ export function Step2Segments({ videoPaths, segments, onChange }: Step2SegmentsP
               </div>
             ))}
 
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              className="mt-2 w-full border-dashed"
               onClick={() => setFormMode({ mode: 'add' })}
-              className={cn(
-                'flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-2.5',
-                'text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground'
-              )}
             >
-              <span aria-hidden="true">+</span>
-              <span>Add another segment</span>
-            </button>
+              + Add another segment
+            </Button>
           </>
         )}
       </div>
