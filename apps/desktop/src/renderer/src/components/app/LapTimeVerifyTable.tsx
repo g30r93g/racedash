@@ -80,30 +80,36 @@ export function LapTimeVerifyTable({ segment, selectedDriver }: LapTimeVerifyTab
   const bestLapTime = Math.min(...laps.map((l) => l.lapTime))
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="text-[11px] font-medium uppercase tracking-wide">LAP</TableHead>
-          <TableHead className="text-[11px] font-medium uppercase tracking-wide">TIME</TableHead>
-          <TableHead className="text-[11px] font-medium uppercase tracking-wide"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {laps.map((lap) => {
-          const isBest = lap.lapTime === bestLapTime
-          return (
-            <TableRow key={lap.number} className={isBest ? 'text-foreground' : 'text-muted-foreground'}>
-              <TableCell className="py-1">{lap.number}</TableCell>
-              <TableCell className={`py-1 font-mono font-medium ${isBest ? 'text-primary' : ''}`}>
-                {formatLapTime(lap.lapTime)}
-              </TableCell>
-              <TableCell className="py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
-                {isBest ? 'BEST' : ''}
-              </TableCell>
-            </TableRow>
-          )
-        })}
-      </TableBody>
-    </Table>
+    <div className="max-h-72 overflow-y-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-[11px] font-medium uppercase tracking-wide">LAP</TableHead>
+            <TableHead className="text-[11px] font-medium uppercase tracking-wide">TIME</TableHead>
+            <TableHead className="text-[11px] font-medium uppercase tracking-wide">POS</TableHead>
+            <TableHead className="text-[11px] font-medium uppercase tracking-wide"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {laps.map((lap) => {
+            const isBest = lap.lapTime === bestLapTime
+            return (
+              <TableRow key={lap.number} className={isBest ? 'text-foreground' : 'text-muted-foreground'}>
+                <TableCell className="py-1">{lap.number}</TableCell>
+                <TableCell className={`py-1 font-mono font-medium ${isBest ? 'text-primary' : ''}`}>
+                  {formatLapTime(lap.lapTime)}
+                </TableCell>
+                <TableCell className="py-1">
+                  {lap.position !== undefined ? `P${lap.position}` : '—'}
+                </TableCell>
+                <TableCell className="py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
+                  {isBest ? 'BEST' : ''}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

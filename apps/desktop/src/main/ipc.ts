@@ -7,7 +7,7 @@ import path from 'node:path'
 import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, JoinVideosResult, DriversResult } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots } from '@racedash/engine'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -98,15 +98,15 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   const saveDir = path.join(os.homedir(), 'Videos', 'racedash', slug)
   fs.mkdirSync(saveDir, { recursive: true })
 
-  // Copy the joined video into the project directory.
+  // Copy the joined video into the project directory (async to avoid blocking the main thread).
   const videoPath = path.join(saveDir, 'video.mp4')
-  fs.copyFileSync(opts.joinedVideoPath, videoPath)
+  await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
 
   // Clean up the temp file if it came from os.tmpdir().
   // Use path.resolve to normalise symlinks (on macOS, os.tmpdir() returns
   // /private/tmp but the path may be seen as /tmp via the symlink).
   if (path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))) {
-    fs.unlinkSync(opts.joinedVideoPath)
+    await fs.promises.unlink(opts.joinedVideoPath)
   }
 
   // Write engine timing config (config.json) — segments in engine format.
@@ -275,6 +275,8 @@ export interface LapPreview {
   number: number
   /** Individual lap duration in seconds. */
   lapTime: number
+  /** Race position after this lap. Undefined for practice/qualifying. */
+  position?: number
 }
 
 export interface PreviewTimestampsSegment {
@@ -314,11 +316,40 @@ export async function previewTimestampsImpl(
       'utf-8',
     )
     const result = await generateTimestamps({ configPath: tempPath })
-    return (result.segments as Array<{ config: { label?: string; source: string }; selectedDriver?: { laps: LapPreview[] } }>)
-      .map((seg) => ({
-        label: seg.config.label ?? seg.config.source,
-        laps: seg.selectedDriver?.laps ?? [],
-      }))
+    type RawSeg = {
+      config: { label?: string; source: string; mode: string }
+      selectedDriver?: { kart: string; laps: Array<{ number: number; lapTime: number }> }
+      replayData?: Parameters<typeof buildRaceLapSnapshots>[0]
+      drivers?: Array<{ kart: string; laps: Array<{ lapTime: number }> }>
+    }
+    return (result.segments as RawSeg[]).map((seg) => {
+      const rawLaps = seg.selectedDriver?.laps ?? []
+      const isRace = seg.config.mode === 'race'
+
+      let laps: LapPreview[]
+      if (isRace && seg.replayData && seg.selectedDriver) {
+        const snapshots = buildRaceLapSnapshots(seg.replayData, 0)
+        const kart = seg.selectedDriver.kart
+        laps = rawLaps.map((lap) => {
+          const snapshot = snapshots.find((s) =>
+            s.entries.some((e) => e.kart === kart && e.lapsCompleted === lap.number)
+          )
+          const entryIndex = snapshot?.entries.findIndex((e) => e.kart === kart) ?? -1
+          return { ...lap, position: entryIndex >= 0 ? entryIndex + 1 : undefined }
+        })
+      } else {
+        // Practice / qualifying — rank each lap by time across all drivers' best laps
+        const allBestByDriver = (seg.drivers ?? []).map((d) =>
+          Math.min(...d.laps.map((l) => l.lapTime))
+        ).filter(isFinite).sort((a, b) => a - b)
+        laps = rawLaps.map((lap) => {
+          const rank = allBestByDriver.findIndex((t) => t >= lap.lapTime)
+          return { ...lap, position: rank >= 0 ? rank + 1 : undefined }
+        })
+      }
+
+      return { label: seg.config.label ?? seg.config.source, laps }
+    })
   } finally {
     try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
   }

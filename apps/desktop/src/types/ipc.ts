@@ -36,6 +36,7 @@ export interface VideoInfo {
 export interface LapPreview {
   number: number
   lapTime: number  // seconds
+  position?: number
 }
 
 export interface PreviewTimestampsSegment {
