@@ -9,7 +9,9 @@ export function App(): React.ReactElement {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* macOS traffic light clearance + window drag region.
-          36px matches the hiddenInset inset on macOS. */}
+          36px matches the hiddenInset inset on macOS.
+          Any interactive element placed inside this region must set
+          style={{ WebkitAppRegion: 'no-drag' }} to remain clickable. */}
       <div
         className="h-9 w-full shrink-0"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
