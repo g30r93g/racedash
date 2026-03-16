@@ -35,7 +35,8 @@ export function Step2OffsetPicker({
     window.racedash.getVideoInfo(videoPath).then((info) => {
       setFps(info.fps || DEFAULT_FPS)
       setTotalFrames(Math.floor(info.durationSeconds * (info.fps || DEFAULT_FPS)))
-    }).catch(() => {
+    }).catch((err) => {
+      console.warn('[racedash] getVideoInfo fallback:', err)
       // Fall back to defaults if getVideoInfo not yet implemented
     })
   }, [videoPath])
@@ -70,6 +71,12 @@ export function Step2OffsetPicker({
             className="h-full w-full object-contain"
             muted
             preload="metadata"
+            onLoadedMetadata={() => {
+              const video = videoRef.current
+              if (video && totalFrames === 0) {
+                setTotalFrames(Math.floor(video.duration * fps))
+              }
+            }}
           />
           <div className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-mono text-white">
             {currentFrame} F

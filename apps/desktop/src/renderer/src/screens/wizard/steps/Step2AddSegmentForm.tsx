@@ -122,7 +122,15 @@ export function Step2AddSegmentForm({
               <button
                 key={ts.value}
                 type="button"
-                onClick={() => setSource(ts.value)}
+                onClick={() => {
+                  setSource(ts.value)
+                  // Clear source-specific fields so stale data doesn't bleed through
+                  setUrl('')
+                  setEventId('')
+                  setSession('race')
+                  setSessionName('')
+                  setEmailPath('')
+                }}
                 className={cn(
                   'rounded-full border px-3.5 py-1 text-xs font-medium transition-colors',
                   source === ts.value
