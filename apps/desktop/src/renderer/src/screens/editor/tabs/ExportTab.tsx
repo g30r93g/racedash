@@ -9,6 +9,10 @@ import type {
 import type { ProjectData } from '../../../../../types/project'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SectionLabel } from '@/components/app/SectionLabel'
+import { InfoRow } from '@/components/app/InfoRow'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Progress } from '@/components/ui/progress'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -35,54 +39,6 @@ function formatTime(date: Date): string {
 function dirname(p: string): string {
   const i = p.lastIndexOf('/')
   return i >= 0 ? p.slice(0, i) : '.'
-}
-
-// ── sub-components ────────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }): React.ReactElement {
-  return (
-    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-      {children}
-    </p>
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string }): React.ReactElement {
-  return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-xs text-foreground">{value}</span>
-    </div>
-  )
-}
-
-interface ToggleGroupProps<T extends string> {
-  options: Array<{ value: T; label: string; disabled?: boolean }>
-  value: T
-  onChange: (v: T) => void
-}
-
-function ToggleGroup<T extends string>({ options, value, onChange }: ToggleGroupProps<T>): React.ReactElement {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          disabled={o.disabled}
-          onClick={() => onChange(o.value)}
-          className={[
-            'rounded px-3 py-1 text-xs transition-colors',
-            value === o.value
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-accent text-muted-foreground hover:text-foreground',
-            o.disabled ? 'cursor-not-allowed opacity-40' : '',
-          ].filter(Boolean).join(' ')}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -202,13 +158,45 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
       {/* OUTPUT RESOLUTION */}
       <section>
         <SectionLabel>Output Resolution</SectionLabel>
-        <ToggleGroup options={resolutionOptions} value={outputResolution} onChange={setOutputResolution} />
+        <ToggleGroup
+          type="single"
+          value={outputResolution}
+          onValueChange={(val) => { if (val) setOutputResolution(val as OutputResolution) }}
+          className="flex flex-wrap gap-1"
+        >
+          {resolutionOptions.map((o) => (
+            <ToggleGroupItem
+              key={o.value}
+              value={o.value}
+              disabled={o.disabled}
+              className="rounded px-3 py-1 text-xs"
+            >
+              {o.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </section>
 
       {/* OUTPUT FRAME RATE */}
       <section>
         <SectionLabel>Output Frame Rate</SectionLabel>
-        <ToggleGroup options={frameRateOptions} value={outputFrameRate} onChange={setOutputFrameRate} />
+        <ToggleGroup
+          type="single"
+          value={outputFrameRate}
+          onValueChange={(val) => { if (val) setOutputFrameRate(val as OutputFrameRate) }}
+          className="flex flex-wrap gap-1"
+        >
+          {frameRateOptions.map((o) => (
+            <ToggleGroupItem
+              key={o.value}
+              value={o.value}
+              disabled={o.disabled}
+              className="rounded px-3 py-1 text-xs"
+            >
+              {o.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </section>
 
       {/* OUTPUT PATH */}
@@ -227,7 +215,22 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
       {/* RENDER MODE */}
       <section>
         <SectionLabel>Render Mode</SectionLabel>
-        <ToggleGroup options={renderModeOptions} value={renderMode} onChange={setRenderMode} />
+        <ToggleGroup
+          type="single"
+          value={renderMode}
+          onValueChange={(val) => { if (val) setRenderMode(val as RenderMode) }}
+          className="flex flex-wrap gap-1"
+        >
+          {renderModeOptions.map((o) => (
+            <ToggleGroupItem
+              key={o.value}
+              value={o.value}
+              className="rounded px-3 py-1 text-xs"
+            >
+              {o.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </section>
 
       {/* RENDER BUTTON */}
@@ -245,12 +248,7 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
               <span>{renderPhase}</span>
               <span>{Math.round(renderProgress * 100)}%</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-accent">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${Math.round(renderProgress * 100)}%` }}
-              />
-            </div>
+            <Progress value={Math.round(renderProgress * 100)} />
             <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
               Cancel
             </Button>
@@ -274,12 +272,14 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
               <span className="text-[10px] text-muted-foreground">{formatTime(lastRender.timestamp)}</span>
             </div>
             {lastRender.status === 'completed' && (
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() => window.racedash.revealInFinder(lastRender.outputPath)}
-                className="shrink-0 text-xs text-primary hover:underline"
+                className="shrink-0 p-0 text-xs"
               >
                 Show in Finder
-              </button>
+              </Button>
             )}
           </div>
         </section>
