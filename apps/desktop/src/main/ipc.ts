@@ -76,6 +76,34 @@ export function listProjectsHandler(): ProjectData[] {
   return result
 }
 
+export async function renameProjectHandler(projectPath: string, name: string): Promise<ProjectData> {
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('renameProject: projectPath must be a non-empty string')
+  }
+  if (!projectPath.endsWith('project.json')) {
+    throw new Error('renameProject: path must point to a project.json file')
+  }
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new Error('renameProject: name must be a non-empty string')
+  }
+  const raw = fs.readFileSync(projectPath, 'utf-8') as string
+  const project = JSON.parse(raw) as ProjectData
+  const updated: ProjectData = { ...project, name: name.trim() }
+  fs.writeFileSync(projectPath, JSON.stringify(updated, null, 2), 'utf-8')
+  return updated
+}
+
+export async function deleteProjectHandler(projectPath: string): Promise<void> {
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('deleteProject: projectPath must be a non-empty string')
+  }
+  if (!projectPath.endsWith('project.json')) {
+    throw new Error('deleteProject: path must point to a project.json file')
+  }
+  const projectDir = path.dirname(projectPath)
+  await fs.promises.rm(projectDir, { recursive: true, force: true })
+}
+
 export async function openProjectHandler(projectPath: string): Promise<ProjectData> {
   if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
     throw new Error('openProject: projectPath must be a non-empty string')
@@ -407,6 +435,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:listProjects', () => listProjectsHandler())
   ipcMain.handle('racedash:openProject', (_event, projectPath: string) => openProjectHandler(projectPath))
   ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
+  ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
+  ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
 
   // Timing — engine integration
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>
