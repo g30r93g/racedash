@@ -46,3 +46,16 @@ export type {
   RenderProgressEvent,
   RenderResult,
 } from './types'
+
+export {
+  getRenderExperimentalWarning,
+  runDoctor,
+  joinVideos,
+  listDrivers,
+  generateTimestamps,
+  renderSession,
+} from './operations'
+
+// Re-export getOverlayRenderProfile so CLI and desktop can display the render profile label
+// without taking a direct dependency on @racedash/compositor
+export { getOverlayRenderProfile } from '@racedash/compositor'
