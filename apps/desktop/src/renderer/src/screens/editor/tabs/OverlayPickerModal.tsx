@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
@@ -102,6 +102,10 @@ interface OverlayPickerModalProps {
 
 export function OverlayPickerModal({ open, onOpenChange, current, onApply }: OverlayPickerModalProps): React.ReactElement {
   const [selected, setSelected] = useState<OverlayType>(current)
+
+  useEffect(() => {
+    if (open) setSelected(current)
+  }, [open]) // current intentionally omitted — only reset on re-open
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

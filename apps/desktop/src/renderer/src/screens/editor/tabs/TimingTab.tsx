@@ -101,7 +101,7 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
           <ToggleGroup
             type="single"
             value={String(activeSegment)}
-            onValueChange={(val) => { if (val !== undefined) setActiveSegment(Number(val)) }}
+            onValueChange={(val) => { if (val) setActiveSegment(Number(val)) }}
             className="mb-3 flex gap-1"
           >
             {segmentLabels.map((label, i) => (
