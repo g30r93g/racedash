@@ -1,35 +1,13 @@
-import React, { useEffect, useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { TimingTable } from '@/components/app/TimingTable'
+import { LapTimeVerifyTable } from '@/components/app/LapTimeVerifyTable'
 
 interface Step4VerifyProps {
   segments: SegmentConfig[]
+  selectedDriver: string
 }
 
-interface LapRow {
-  lap: number
-  lapTime: string
-  position: number
-  isBest: boolean
-}
-
-const PLACEHOLDER_LAPS: LapRow[] = [
-  { lap: 1, lapTime: '1:23.456', position: 3, isBest: false },
-  { lap: 2, lapTime: '1:21.089', position: 2, isBest: true },
-  { lap: 3, lapTime: '1:22.311', position: 2, isBest: false },
-]
-
-export function Step4Verify({ segments }: Step4VerifyProps) {
-  const [lapsBySegment, setLapsBySegment] = useState<Record<string, LapRow[]>>({})
-
-  useEffect(() => {
-    if (segments.length === 0) return
-    const bySegment: Record<string, LapRow[]> = {}
-    segments.forEach((seg) => { bySegment[seg.label] = PLACEHOLDER_LAPS })
-    setLapsBySegment(bySegment)
-  }, [segments])
-
+export function Step4Verify({ segments, selectedDriver }: Step4VerifyProps) {
   if (segments.length === 0) {
     return (
       <div className="flex flex-col gap-5">
@@ -44,8 +22,7 @@ export function Step4Verify({ segments }: Step4VerifyProps) {
       <div>
         <h2 className="text-base font-semibold text-foreground">Verify lap data</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Review the lap times loaded from your config. Check that laps and positions look
-          correct before rendering.
+          Review the lap times loaded from your timing source. Check that laps look correct before rendering.
         </p>
       </div>
 
@@ -62,21 +39,11 @@ export function Step4Verify({ segments }: Step4VerifyProps) {
           ))}
         </TabsList>
 
-        {segments.map((seg) => {
-          const laps = lapsBySegment[seg.label] ?? []
-          return (
-            <TabsContent key={seg.label} value={seg.label} className="mt-4">
-              <TimingTable
-                rows={laps.map((row) => ({
-                  lap: row.lap,
-                  timeMs: 0,
-                  position: row.position,
-                  lapTimeLabel: row.lapTime,
-                }))}
-              />
-            </TabsContent>
-          )
-        })}
+        {segments.map((seg) => (
+          <TabsContent key={seg.label} value={seg.label} className="mt-4">
+            <LapTimeVerifyTable segment={seg} selectedDriver={selectedDriver} />
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   )

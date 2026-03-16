@@ -111,7 +111,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
               onChange={(driver) => updateState({ selectedDriver: driver })}
             />
           )}
-          {step === 4 && <Step4Verify segments={state.segments} />}
+          {step === 4 && <Step4Verify segments={state.segments} selectedDriver={state.selectedDriver} />}
           {step === 5 && (
             <Step5Confirm
               state={state}

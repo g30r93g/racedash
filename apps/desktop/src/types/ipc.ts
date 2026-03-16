@@ -33,6 +33,16 @@ export interface VideoInfo {
 }
 
 // Timing (mirrors @racedash/engine — kept in sync manually)
+export interface LapPreview {
+  number: number
+  lapTime: number  // seconds
+}
+
+export interface PreviewTimestampsSegment {
+  label: string
+  laps: LapPreview[]
+}
+
 export interface DriversResult {
   segments: Array<{
     config: { source: string; mode: string; label?: string }
@@ -92,6 +102,7 @@ export interface RacedashAPI {
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>
+  previewTimestamps(segments: SegmentConfig[], selectedDriver: string): Promise<PreviewTimestampsSegment[]>
   listDrivers(opts: { configPath: string; driverQuery?: string }): Promise<DriversResult>
   generateTimestamps(opts: { configPath: string; fps?: number }): Promise<TimestampsResult>
 

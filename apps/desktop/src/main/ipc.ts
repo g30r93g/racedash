@@ -268,6 +268,63 @@ export async function previewDriversImpl(segments: WizardSegmentConfig[]): Promi
 }
 
 // ---------------------------------------------------------------------------
+// previewTimestamps — wizard helper
+// ---------------------------------------------------------------------------
+
+export interface LapPreview {
+  number: number
+  /** Individual lap duration in seconds. */
+  lapTime: number
+}
+
+export interface PreviewTimestampsSegment {
+  label: string
+  laps: LapPreview[]
+}
+
+/**
+ * Generates timestamps for wizard segments before a project is saved.
+ * Writes a temporary config file with the selected driver, calls generateTimestamps,
+ * then cleans up the temp file.
+ */
+export async function previewTimestampsImpl(
+  segments: WizardSegmentConfig[],
+  selectedDriver: string,
+): Promise<PreviewTimestampsSegment[]> {
+  const engineSegments = segments.map((seg) => {
+    const base = {
+      source: seg.source,
+      mode: seg.session ?? 'race',
+      offset: '00:00:00',
+      label: seg.label,
+    }
+    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
+    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'manual') return { ...base, timingData: [] }
+    return base
+  })
+
+  const tempPath = path.join(os.tmpdir(), `racedash-preview-ts-${Date.now()}.json`)
+  try {
+    fs.writeFileSync(
+      tempPath,
+      JSON.stringify({ segments: engineSegments, driver: selectedDriver || undefined }, null, 2),
+      'utf-8',
+    )
+    const result = await generateTimestamps({ configPath: tempPath })
+    return (result.segments as Array<{ config: { label?: string; source: string }; selectedDriver?: { laps: LapPreview[] } }>)
+      .map((seg) => ({
+        label: seg.config.label ?? seg.config.source,
+        laps: seg.selectedDriver?.laps ?? [],
+      }))
+  } finally {
+    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -323,6 +380,9 @@ export function registerIpcHandlers(): void {
   // Timing — engine integration
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>
     previewDriversImpl(segments)
+  )
+  ipcMain.handle('racedash:previewTimestamps', (_event, segments: WizardSegmentConfig[], selectedDriver: string) =>
+    previewTimestampsImpl(segments, selectedDriver)
   )
   ipcMain.handle('racedash:listDrivers', (_event, opts: { configPath: string; driverQuery?: string }) =>
     listDrivers(opts)
