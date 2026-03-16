@@ -20,10 +20,12 @@ export function VideoFileList({ paths, onChange }: VideoFileListProps): React.Re
       if (fpsMap[path] !== undefined) continue
       window.racedash.getVideoInfo(path).then((info) => {
         if (!cancelled) setFpsMap((prev) => ({ ...prev, [path]: info.fps }))
-      }).catch(() => {/* non-fatal */})
+      }).catch((err: unknown) => {
+        console.error('[VideoFileList] getVideoInfo failed for', path, err)
+      })
     }
     return () => { cancelled = true }
-  }, [paths])
+  }, [paths, fpsMap])
 
   if (paths.length === 0) return null
 

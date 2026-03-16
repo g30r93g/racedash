@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/loaders/Spinner'
 
 interface Step3DriverProps {
   segments: SegmentConfig[]
@@ -26,10 +27,12 @@ const PLACEHOLDER_DRIVERS: DriverEntry[] = [
 
 export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverProps) {
   const [driversBySegment, setDriversBySegment] = useState<Record<string, DriverEntry[]>>({})
+  const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true)
       try {
         const result = await window.racedash.previewDrivers(segments)
         const bySegment: Record<string, DriverEntry[]> = {}
@@ -41,6 +44,8 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
         const bySegment: Record<string, DriverEntry[]> = {}
         segments.forEach((seg) => { bySegment[seg.label] = PLACEHOLDER_DRIVERS })
         setDriversBySegment(bySegment)
+      } finally {
+        setLoading(false)
       }
     }
     if (segments.length > 0) load()
@@ -89,6 +94,13 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
 
           return (
             <TabsContent key={seg.label} value={seg.label} className="mt-4">
+              {loading ? (
+                <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
+                  <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
+                  Loading drivers…
+                </div>
+              ) : (
+              <>
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -125,6 +137,8 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
                   )
                 })}
               </div>
+              </>
+              )}
             </TabsContent>
           )
         })}
