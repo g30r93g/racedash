@@ -1,5 +1,6 @@
-import { app, BrowserWindow, protocol, net } from 'electron'
+import { app, BrowserWindow, protocol } from 'electron'
 import path from 'node:path'
+import fs from 'node:fs'
 import { registerIpcHandlers } from './ipc'
 
 // Must be called before app.whenReady()
@@ -30,13 +31,48 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-  // Serve local files via media:// to bypass webSecurity origin restrictions.
-  // Forward all request headers (including Range) so the video element gets
-  // proper 206 partial-content responses needed for frame seeking.
-  protocol.handle('media', (req) => {
+  // Serve local video files via media:// with proper range request handling.
+  // net.fetch('file://') does not guarantee 206 Partial Content responses,
+  // which the browser requires for seeking. We handle byte ranges manually.
+  protocol.handle('media', async (req) => {
     const filePath = decodeURIComponent(new URL(req.url).pathname)
-    return net.fetch(`file://${filePath}`, {
-      headers: Object.fromEntries(req.headers.entries()),
+
+    let stat: fs.Stats
+    try {
+      stat = fs.statSync(filePath)
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+
+    const fileSize = stat.size
+    const rangeHeader = req.headers.get('range')
+
+    if (rangeHeader) {
+      const match = rangeHeader.match(/bytes=(\d*)-(\d*)/)
+      const start = match?.[1] ? parseInt(match[1], 10) : 0
+      const end = match?.[2] ? parseInt(match[2], 10) : fileSize - 1
+      const chunkSize = end - start + 1
+
+      const stream = fs.createReadStream(filePath, { start, end })
+      return new Response(stream as unknown as ReadableStream, {
+        status: 206,
+        headers: {
+          'Content-Type': 'video/mp4',
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': String(chunkSize),
+          'Accept-Ranges': 'bytes',
+        },
+      })
+    }
+
+    const stream = fs.createReadStream(filePath)
+    return new Response(stream as unknown as ReadableStream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'video/mp4',
+        'Content-Length': String(fileSize),
+        'Accept-Ranges': 'bytes',
+      },
     })
   })
   registerIpcHandlers()
