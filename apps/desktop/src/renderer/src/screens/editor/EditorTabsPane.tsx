@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Save } from 'lucide-react'
 import React from 'react'
 import type { VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
@@ -11,6 +12,7 @@ interface EditorTabsPaneProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
   currentTime?: number
+  onSave?: () => void
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -22,7 +24,7 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({ project, videoInfo, currentTime, onSave }: EditorTabsPaneProps): React.ReactElement {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <Tabs defaultValue="timing" className="flex flex-1 flex-col overflow-hidden">
@@ -52,7 +54,13 @@ export function EditorTabsPane({ project, videoInfo, currentTime }: EditorTabsPa
       {/* RaceDash Cloud footer — coming soon */}
       <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
         <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
-        <Button variant="ghost" size="sm" disabled>Sign in</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" disabled>Sign in</Button>
+          <Button size="sm" onClick={onSave}>
+            <Save className="mr-1.5 h-4 w-4" />
+            Save
+          </Button>
+        </div>
       </div>
     </div>
   )

@@ -51,7 +51,7 @@ export function TimingTable({ rows, bestLapTimeMs, activeLapNumber, mode }: Timi
               key={index}
               className={
                 isActive
-                  ? 'bg-primary/20 text-foreground'
+                  ? 'bg-[#3DD73D]/35 text-foreground'
                   : isFastestHighlight
                     ? 'bg-lap-fastest text-lap-fastest-foreground font-medium'
                     : isBest
