@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/plans/2026-03-17-distribution-pipeline-design.md`
 
+**Branch:** `feat/desktop-app-distribution` (worktree: `.worktrees/desktop-app-distribution`)
+
 ---
 
 ### Task 1: Switch macOS arch to universal + add publish config
@@ -17,7 +19,7 @@
 **Files:**
 - Modify: `apps/desktop/electron-builder.config.ts`
 
-- [ ] **Step 1: Update electron-builder config**
+- [x] **Step 1: Update electron-builder config**
 
   ```ts
   import type { Configuration } from 'electron-builder'
@@ -47,7 +49,7 @@
   export default config
   ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
   ```bash
   git add apps/desktop/electron-builder.config.ts
@@ -61,7 +63,7 @@
 **Files:**
 - Modify: `apps/desktop/package.json`
 
-- [ ] **Step 1: Install electron-updater as a runtime dep**
+- [x] **Step 1: Install electron-updater as a runtime dep**
 
   Run from the repo root:
   ```bash
@@ -69,7 +71,7 @@
   ```
   Confirm it appears under `"dependencies"` (not `"devDependencies"`) in `apps/desktop/package.json`.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
   ```bash
   git add apps/desktop/package.json pnpm-lock.yaml
@@ -83,10 +85,13 @@
 **Files:**
 - Modify: `apps/desktop/src/types/ipc.ts`
 
-- [ ] **Step 1: Write a failing test**
+> **Note:** The test file requires `import { test, expect } from 'vitest'` — the project does not use Vitest globals.
+
+- [x] **Step 1: Write a failing test**
 
   Create `apps/desktop/src/main/__tests__/updater.types.test.ts`:
   ```ts
+  import { test, expect } from 'vitest'
   import type { RacedashAPI } from '../../types/ipc'
 
   // Type-level test: confirm updater methods exist on the API surface.
@@ -104,14 +109,14 @@
   })
   ```
 
-- [ ] **Step 2: Run test to confirm it fails**
+- [x] **Step 2: Run test to confirm it fails**
 
   ```bash
   pnpm --filter @racedash/desktop test
   ```
   Expected: TypeScript compile error — `'onUpdateAvailable' does not exist on type 'RacedashAPI'`
 
-- [ ] **Step 3: Add updater entries to RacedashAPI**
+- [x] **Step 3: Add updater entries to RacedashAPI**
 
   In `apps/desktop/src/types/ipc.ts`, add to the `RacedashAPI` interface after the `onRenderError` entry:
 
@@ -126,14 +131,14 @@
   installUpdate(): Promise<void>
   ```
 
-- [ ] **Step 4: Run test to confirm it passes**
+- [x] **Step 4: Run test to confirm it passes**
 
   ```bash
   pnpm --filter @racedash/desktop test
   ```
   Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```bash
   git add apps/desktop/src/types/ipc.ts apps/desktop/src/main/__tests__/updater.types.test.ts
@@ -147,7 +152,7 @@
 **Files:**
 - Modify: `apps/desktop/src/preload/index.ts`
 
-- [ ] **Step 1: Add updater entries to the preload api object**
+- [x] **Step 1: Add updater entries to the preload api object**
 
   In `apps/desktop/src/preload/index.ts`, add after the `onRenderError` entry:
 
@@ -171,14 +176,14 @@
     ipcRenderer.invoke('racedash:update-install'),
   ```
 
-- [ ] **Step 2: Run build to confirm no type errors**
+- [x] **Step 2: Run build to confirm no type errors**
 
   ```bash
   pnpm --filter @racedash/desktop build
   ```
   Expected: clean build, no TypeScript errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
   ```bash
   git add apps/desktop/src/preload/index.ts
@@ -193,7 +198,7 @@
 - Create: `apps/desktop/src/main/updater.ts`
 - Modify: `apps/desktop/src/main/index.ts`
 
-- [ ] **Step 1: Write a failing test**
+- [x] **Step 1: Write a failing test**
 
   Create `apps/desktop/src/main/__tests__/updater.test.ts`:
   ```ts
@@ -266,14 +271,14 @@
   })
   ```
 
-- [ ] **Step 2: Run test to confirm it fails**
+- [x] **Step 2: Run test to confirm it fails**
 
   ```bash
   pnpm --filter @racedash/desktop test
   ```
   Expected: FAIL — `../updater` module not found
 
-- [ ] **Step 3: Implement updater.ts**
+- [x] **Step 3: Implement updater.ts**
 
   Create `apps/desktop/src/main/updater.ts`:
   ```ts
@@ -307,14 +312,14 @@
   }
   ```
 
-- [ ] **Step 4: Run test to confirm it passes**
+- [x] **Step 4: Run test to confirm it passes**
 
   ```bash
   pnpm --filter @racedash/desktop test
   ```
   Expected: PASS
 
-- [ ] **Step 5: Call registerUpdaterHandlers from main/index.ts**
+- [x] **Step 5: Call registerUpdaterHandlers from main/index.ts**
 
   In `apps/desktop/src/main/index.ts`, add the import at the top:
   ```ts
@@ -329,13 +334,13 @@
 
   Note: `createWindow()` currently returns `BrowserWindow` — confirm the return value is used.
 
-- [ ] **Step 6: Run full build to confirm no type errors**
+- [x] **Step 6: Run full build to confirm no type errors**
 
   ```bash
   pnpm --filter @racedash/desktop build
   ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
   ```bash
   git add apps/desktop/src/main/updater.ts apps/desktop/src/main/index.ts apps/desktop/src/main/__tests__/updater.test.ts
@@ -350,7 +355,7 @@
 - Create: `apps/desktop/src/renderer/src/components/UpdateBanner.tsx`
 - Modify: `apps/desktop/src/renderer/src/App.tsx`
 
-- [ ] **Step 1: Create UpdateBanner component**
+- [x] **Step 1: Create UpdateBanner component**
 
   Create `apps/desktop/src/renderer/src/components/UpdateBanner.tsx`:
   ```tsx
@@ -393,7 +398,7 @@
   }
   ```
 
-- [ ] **Step 2: Add UpdateBanner to App.tsx**
+- [x] **Step 2: Add UpdateBanner to App.tsx**
 
   In `apps/desktop/src/renderer/src/App.tsx`, add the import:
   ```ts
@@ -411,13 +416,13 @@
   </div>
   ```
 
-- [ ] **Step 3: Run build to confirm no errors**
+- [x] **Step 3: Run build to confirm no errors**
 
   ```bash
   pnpm --filter @racedash/desktop build
   ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
   ```bash
   git add apps/desktop/src/renderer/src/components/UpdateBanner.tsx apps/desktop/src/renderer/src/App.tsx
@@ -431,7 +436,9 @@
 **Files:**
 - Create: `.github/workflows/release.yml`
 
-- [ ] **Step 1: Create the workflow file**
+> **Note:** Uses the built-in `secrets.GITHUB_TOKEN` (not a PAT). The workflow declares `permissions: contents: write` which is sufficient. Shell steps use `env:` vars for all GitHub expressions to prevent injection.
+
+- [x] **Step 1: Create the workflow file**
 
   Create `.github/workflows/release.yml`:
   ```yaml
@@ -466,28 +473,31 @@
         - name: Resolve tag
           id: tag
           run: |
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "tag=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "tag=v$INPUT_VERSION" >> "$GITHUB_OUTPUT"
             else
-              echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+              echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
             fi
+          env:
+            INPUT_VERSION: ${{ inputs.version }}
 
         - name: Validate package.json version matches tag
           run: |
-            TAG="${{ steps.tag.outputs.tag }}"
             VERSION="${TAG#v}"
             PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
             if [ "$PKG_VERSION" != "$VERSION" ]; then
               echo "ERROR: apps/desktop/package.json version ($PKG_VERSION) does not match tag ($VERSION)"
               exit 1
             fi
+          env:
+            TAG: ${{ steps.tag.outputs.tag }}
 
         - name: Create draft release (idempotent)
-          env:
-            GH_TOKEN: ${{ secrets.GH_TOKEN }}
           run: |
-            TAG="${{ steps.tag.outputs.tag }}"
             gh release view "$TAG" || gh release create "$TAG" --draft --title "RaceDash $TAG" --notes ""
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            TAG: ${{ steps.tag.outputs.tag }}
 
     build-mac:
       needs: create-release
@@ -511,9 +521,9 @@
         - run: pnpm turbo build --filter=@racedash/desktop...
 
         - name: Build and publish macOS installer
-          env:
-            GH_TOKEN: ${{ secrets.GH_TOKEN }}
           run: pnpm --filter @racedash/desktop run dist -- --publish always
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     build-win:
       needs: create-release
@@ -537,25 +547,26 @@
         - run: pnpm turbo build --filter=@racedash/desktop...
 
         - name: Build and publish Windows installer
-          env:
-            GH_TOKEN: ${{ secrets.GH_TOKEN }}
           run: pnpm --filter @racedash/desktop run dist -- --publish always
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     publish-release:
-      needs: [build-mac, build-win]
+      needs: [create-release, build-mac, build-win]
       runs-on: ubuntu-latest
       steps:
         - name: Publish release
+          run: gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
           env:
-            GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          run: gh release edit "${{ needs.create-release.outputs.tag }}" --draft=false --repo ${{ github.repository }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            TAG: ${{ needs.create-release.outputs.tag }}
   ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
   ```bash
-  git add .github/workflows/release.yml
-  git commit -m "ci: add GitHub Actions release workflow for desktop app"
+  git add .github/workflows/release.yml scripts/bump-version.sh
+  git commit -m "ci: add GitHub Actions release workflow and version bump script"
   ```
 
 ---
@@ -565,7 +576,7 @@
 **Files:**
 - Create: `scripts/bump-version.sh`
 
-- [ ] **Step 1: Create the script**
+- [x] **Step 1: Create the script**
 
   Create `scripts/bump-version.sh`:
   ```bash
@@ -597,32 +608,17 @@
   chmod +x scripts/bump-version.sh
   ```
 
-- [ ] **Step 2: Commit**
-
-  ```bash
-  git add scripts/bump-version.sh
-  git commit -m "chore: add version bump helper script"
-  ```
+- [x] **Step 2: Commit** *(combined with Task 7 commit)*
 
 ---
 
-### Task 9: Add GH_TOKEN secret to GitHub repo
+### ~~Task 9: Add GH_TOKEN secret to GitHub repo~~
 
-This is a manual step — cannot be automated via CI.
-
-- [ ] **Step 1: Create a GitHub Personal Access Token**
-
-  Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
-  Create a token scoped to the `racedash` repo with **Contents: Read and write** permission.
-
-- [ ] **Step 2: Add the secret to the repo**
-
-  Go to the GitHub repo → Settings → Secrets and variables → Actions → New repository secret.
-  Name: `GH_TOKEN`, Value: the token from Step 1.
+> **Removed** — workflow switched to the built-in `secrets.GITHUB_TOKEN`, which requires no repo secret configuration.
 
 ---
 
-### Task 10: End-to-end verification
+### Task 9: End-to-end verification
 
 - [ ] **Step 1: Bump to a test version and push**
 
