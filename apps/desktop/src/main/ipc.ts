@@ -219,7 +219,7 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
 
-  const saveDir = path.join(os.homedir(), 'Videos', 'racedash', slug)
+  const saveDir = opts.saveDir ?? path.join(os.homedir(), 'Videos', 'racedash', slug)
   fs.mkdirSync(saveDir, { recursive: true })
 
   // Copy the joined video into the project directory (async to avoid blocking the main thread).

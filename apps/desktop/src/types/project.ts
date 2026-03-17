@@ -51,4 +51,6 @@ export interface CreateProjectOpts {
   joinedVideoPath: string
   segments: SegmentConfig[]
   selectedDriver: string
+  /** Exact directory to save the project into. Defaults to ~/Videos/racedash/{slug}. */
+  saveDir?: string
 }

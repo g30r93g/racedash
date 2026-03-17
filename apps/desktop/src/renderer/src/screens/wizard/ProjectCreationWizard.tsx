@@ -15,6 +15,7 @@ export interface WizardState {
   segments: SegmentConfig[]
   selectedDriver: string
   projectName: string
+  saveDir?: string
 }
 
 interface ProjectCreationWizardProps {
@@ -116,6 +117,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
             <Step5Confirm
               state={state}
               onNameChange={(name) => updateState({ projectName: name })}
+              onSaveDirChange={(saveDir) => updateState({ saveDir })}
               onComplete={onComplete}
             />
           )}

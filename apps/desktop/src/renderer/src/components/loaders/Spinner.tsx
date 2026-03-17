@@ -1,7 +1,7 @@
 import React, { CSSProperties, forwardRef } from 'react'
-import { useSpinner } from './useSpinner'
-import { SpinnerName } from './spinners'
 import { useSpinnerConfig } from './SpinnerContext'
+import { SpinnerName } from './spinners'
+import { useSpinner } from './useSpinner'
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -91,10 +91,10 @@ export function SpinnerOverlay({
   return (
     <div
       className={containerClassName}
-      style={{ position: 'relative', display: 'block', ...containerStyle }}
+      style={{ position: 'relative', ...containerStyle }}
       aria-busy={active}
     >
-      <div inert={active || undefined}>{children}</div>
+      {children}
       {active && (
         <div
           style={{

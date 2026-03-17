@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react'
-import type { WizardState } from '../ProjectCreationWizard'
-import type { ProjectData } from '../../../../../types/project'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { InfoRow } from '@/components/app/InfoRow'
+import { SpinnerOverlay } from '@/components/loaders/Spinner'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import { InfoRow } from '@/components/app/InfoRow'
-import { SpinnerOverlay } from '@/components/loaders/Spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useEffect, useState } from 'react'
+import type { ProjectData } from '../../../../../types/project'
+import type { WizardState } from '../ProjectCreationWizard'
 
 interface Step5ConfirmProps {
   state: WizardState
   onNameChange: (name: string) => void
+  onSaveDirChange: (saveDir: string) => void
   onComplete: (project: ProjectData) => void
 }
 
@@ -29,13 +30,18 @@ function suggestProjectName(videoPaths: string[]): string {
   return filename.replace(/\.[^.]+$/, '').replace(/_?\d{4}$/, '')
 }
 
-export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmProps) {
+export function Step5Confirm({ state, onNameChange, onSaveDirChange, onComplete }: Step5ConfirmProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!state.projectName) onNameChange(suggestProjectName(state.videoPaths))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleChooseDirectory() {
+    const chosen = await window.racedash.openDirectory({ title: 'Choose save location' })
+    if (chosen) onSaveDirChange(chosen)
+  }
 
   async function handleCreate() {
     if (!state.projectName.trim()) return
@@ -51,6 +57,7 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
         joinedVideoPath: state.joinedVideoPath,
         segments: state.segments,
         selectedDriver: state.selectedDriver,
+        saveDir: state.saveDir,
       })
       onComplete(project)
     } catch (err) {
@@ -59,7 +66,7 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
     }
   }
 
-  const saveDirectory = `~/Videos/racedash/${slugify(state.projectName || 'project')}/`
+  const saveDirectory = state.saveDir ?? `~/Videos/racedash/${slugify(state.projectName || 'project')}/`
 
   return (
     <SpinnerOverlay
@@ -92,7 +99,22 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
           label="Videos"
           value={`${state.videoPaths.length} file${state.videoPaths.length !== 1 ? 's' : ''} selected`}
         />
-        <InfoRow label="Save to" value={saveDirectory} />
+        <div className="flex items-center justify-between py-1.5">
+          <span className="text-xs text-muted-foreground">Save to</span>
+          <div className="flex items-center gap-2">
+            <span className="max-w-60 truncate text-right text-xs text-foreground" title={saveDirectory}>
+              {saveDirectory}
+            </span>
+            <button
+              type="button"
+              onClick={handleChooseDirectory}
+              disabled={loading}
+              className="text-xs text-primary hover:underline disabled:opacity-50"
+            >
+              Change
+            </button>
+          </div>
+        </div>
 
         {state.segments.length > 0 && (
           <Tabs defaultValue={state.segments[0].label} className="mt-2">
@@ -130,7 +152,7 @@ export function Step5Confirm({ state, onNameChange, onComplete }: Step5ConfirmPr
       <Button
         onClick={handleCreate}
         disabled={loading || !state.projectName.trim()}
-        className="self-start"
+        className="self-end"
       >
         {loading ? 'Saving project...' : 'Create Project'}
       </Button>

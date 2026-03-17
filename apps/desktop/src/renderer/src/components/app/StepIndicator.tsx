@@ -7,6 +7,8 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React.ReactElement {
+  const indicatorSize = 28
+
   return (
     <div className="flex items-start" role="list" aria-label="Progress">
       {steps.map((label, index) => {
@@ -15,11 +17,28 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
         const isCurrent = stepNumber === currentStep
 
         return (
-          <React.Fragment key={stepNumber}>
-            {index > 0 && (
-              <div className={cn('mt-3.5 h-px flex-1', isComplete ? 'bg-green-500' : 'bg-border')} />
-            )}
-            <div className="flex flex-col items-center gap-1.5" role="listitem">
+          <div key={stepNumber} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" role="listitem">
+            <div className="relative flex w-full items-center justify-center">
+              {index > 0 && (
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    'absolute left-0 top-1/2 h-px -translate-y-1/2',
+                    stepNumber <= currentStep ? 'bg-green-500' : 'bg-border'
+                  )}
+                  style={{ right: `calc(50% + ${indicatorSize / 2}px)` }}
+                />
+              )}
+              {index < steps.length - 1 && (
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    'absolute right-0 top-1/2 h-px -translate-y-1/2',
+                    isComplete ? 'bg-green-500' : 'bg-border'
+                  )}
+                  style={{ left: `calc(50% + ${indicatorSize / 2}px)` }}
+                />
+              )}
               <div
                 aria-current={isCurrent ? 'step' : undefined}
                 className={cn(
@@ -47,16 +66,16 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
                   stepNumber
                 )}
               </div>
-              <span
-                className={cn(
-                  'text-[11px]',
-                  isCurrent ? 'text-foreground' : 'text-muted-foreground'
-                )}
-              >
-                {label}
-              </span>
             </div>
-          </React.Fragment>
+            <span
+              className={cn(
+                'text-center text-[11px]',
+                isCurrent ? 'text-foreground' : 'text-muted-foreground'
+              )}
+            >
+              {label}
+            </span>
+          </div>
         )
       })}
     </div>
