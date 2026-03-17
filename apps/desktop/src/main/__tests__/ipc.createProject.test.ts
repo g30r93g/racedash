@@ -38,8 +38,18 @@ vi.mock('electron', () => ({
   shell: {},
 }))
 
+vi.mock('../projectRegistry', () => ({
+  getRegistry: vi.fn().mockResolvedValue([]),
+  addToRegistry: vi.fn().mockResolvedValue(undefined),
+  removeFromRegistry: vi.fn().mockResolvedValue(undefined),
+  replaceInRegistry: vi.fn().mockResolvedValue(undefined),
+  _resetQueueForTesting: vi.fn(),
+}))
+
 import fs from 'node:fs'
 import { handleCreateProject } from '../ipc'
+import * as registry from '../projectRegistry'
+const mockAddToRegistry = vi.mocked(registry.addToRegistry)
 
 const mockMkdirSync = vi.mocked(fs.mkdirSync)
 
@@ -138,5 +148,24 @@ describe('handleCreateProject', () => {
     const written = JSON.parse(writtenJson)
     expect(written.segments[0].videoOffsetFrame).toBe(150)
     expect(written.segments[0].eventId).toBe('12345')
+  })
+
+  it('registers the new project path in the registry', async () => {
+    await handleCreateProject(baseOpts)
+    expect(mockAddToRegistry).toHaveBeenCalledWith(
+      expect.stringContaining('project.json'),
+    )
+  })
+
+  it('rolls back written files when addToRegistry fails', async () => {
+    mockAddToRegistry.mockRejectedValueOnce(new Error('disk full'))
+
+    await expect(handleCreateProject(baseOpts)).rejects.toThrow('disk full')
+
+    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledTimes(3)
+    const expectedSaveDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
+    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledWith(path.join(expectedSaveDir, 'project.json'))
+    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledWith(path.join(expectedSaveDir, 'config.json'))
+    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledWith(path.join(expectedSaveDir, 'video.mp4'))
   })
 })

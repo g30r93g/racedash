@@ -225,13 +225,6 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   const videoPath = path.join(saveDir, 'video.mp4')
   await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
 
-  // Clean up the temp file if it came from os.tmpdir().
-  // Use path.resolve to normalise symlinks (on macOS, os.tmpdir() returns
-  // /private/tmp but the path may be seen as /tmp via the symlink).
-  if (path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))) {
-    await fs.promises.unlink(opts.joinedVideoPath)
-  }
-
   // Write engine timing config (config.json) — segments in engine format.
   // Wizard segments lack `mode` and `offset`; derive them here.
   const engineSegments = opts.segments.map((seg) => {
@@ -266,6 +259,27 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     selectedDriver: opts.selectedDriver,
   }
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
+
+  // Register the project so it appears in the library regardless of saveDir location.
+  try {
+    await addToRegistry(projectPath)
+  } catch (err) {
+    // Roll back the three files we wrote. Do not remove saveDir itself — it may pre-exist.
+    await Promise.allSettled([
+      fs.promises.unlink(path.join(saveDir, 'project.json')),
+      fs.promises.unlink(path.join(saveDir, 'config.json')),
+      fs.promises.unlink(path.join(saveDir, 'video.mp4')),
+    ])
+    throw err
+  }
+
+  // Clean up the temp file if it came from os.tmpdir().
+  // Use path.resolve to normalise symlinks (on macOS, os.tmpdir() returns
+  // /private/tmp but the path may be seen as /tmp via the symlink).
+  // Done after registry registration so a rollback doesn't include this unlink.
+  if (path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))) {
+    await fs.promises.unlink(opts.joinedVideoPath)
+  }
 
   return projectData
 }
