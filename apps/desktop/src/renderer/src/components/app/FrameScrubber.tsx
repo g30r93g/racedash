@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Spinner } from '@/components/loaders/Spinner'
+import { InlineTimestampInput } from './InlineTimestampInput'
 
 interface FrameScrubberProps {
   videoPath: string
@@ -12,13 +13,6 @@ interface FrameScrubberProps {
   onMetadataLoaded?: (totalFrames: number) => void
 }
 
-function formatTime(frame: number, fps: number): string {
-  const totalSeconds = frame / fps
-  const mm = Math.floor(totalSeconds / 60)
-  const ss = Math.floor(totalSeconds % 60)
-  const ms = Math.floor((totalSeconds % 1) * 1000)
-  return `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
-}
 
 const MAX_RETRIES = 3
 
@@ -113,9 +107,7 @@ export function FrameScrubber({
         <Button variant="outline" size="sm" disabled={!videoReady} onClick={() => onSeek(clamp(currentFrame - 1))}>
           ← Prev
         </Button>
-        <span className="w-24 text-center font-mono text-xs text-foreground">
-          {formatTime(currentFrame, fps)}
-        </span>
+        <InlineTimestampInput currentFrame={currentFrame} fps={fps} onSeek={onSeek} />
         <Button variant="outline" size="sm" disabled={!videoReady} onClick={() => onSeek(clamp(currentFrame + 1))}>
           Next →
         </Button>
