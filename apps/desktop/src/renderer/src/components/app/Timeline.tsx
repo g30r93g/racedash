@@ -1,11 +1,13 @@
-import React from 'react'
-import type { ProjectData } from '../../../../types/project'
-import type { VideoInfo } from '../../../../types/ipc'
 import { Button } from '@/components/ui/button'
+import React from 'react'
+import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import type { ProjectData } from '../../../../types/project'
 
 interface TimelineProps {
   project: ProjectData
   videoInfo: VideoInfo | null
+  currentTime?: number
+  timestampsResult?: TimestampsResult | null
 }
 
 const SEGMENT_COLOURS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444']
@@ -25,7 +27,31 @@ function rulerTicks(duration: number): number[] {
   return ticks
 }
 
-export function Timeline({ project, videoInfo }: TimelineProps): React.ReactElement {
+interface LapSpan {
+  label: string
+  startSeconds: number
+  endSeconds: number
+}
+
+function deriveLapSpans(
+  timestampsResult: TimestampsResult,
+  segmentIndex: number,
+  videoOffsetSeconds: number,
+): LapSpan[] {
+  const seg = timestampsResult.segments[segmentIndex]
+  if (!seg?.selectedDriver) return []
+  const laps = seg.selectedDriver.laps as Array<{ timeMs: number }>
+  const spans: LapSpan[] = []
+  let cursor = videoOffsetSeconds
+  for (let i = 0; i < laps.length; i++) {
+    const lapSeconds = laps[i].timeMs / 1000
+    spans.push({ label: `L${i + 1}`, startSeconds: cursor, endSeconds: cursor + lapSeconds })
+    cursor += lapSeconds
+  }
+  return spans
+}
+
+export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult }: TimelineProps): React.ReactElement {
   const duration = videoInfo?.durationSeconds ?? 30
   const fps = videoInfo?.fps ?? 60
   const pct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
@@ -38,16 +64,20 @@ export function Timeline({ project, videoInfo }: TimelineProps): React.ReactElem
     return { label: seg.label, startSeconds, endSeconds }
   })
 
-  const placeholderLaps = [
-    { label: 'L1', startSeconds: 0, endSeconds: duration * 0.32 },
-    { label: 'L2', startSeconds: duration * 0.32, endSeconds: duration * 0.65 },
-    { label: 'L3', startSeconds: duration * 0.65, endSeconds: duration },
-  ]
+  const lapSpans: LapSpan[] = React.useMemo(() => {
+    if (!timestampsResult) return []
+    const allSpans: LapSpan[] = []
+    project.segments.forEach((seg, i) => {
+      const videoOffsetSeconds = (seg.videoOffsetFrame ?? 0) / fps
+      allSpans.push(...deriveLapSpans(timestampsResult, i, videoOffsetSeconds))
+    })
+    return allSpans
+  }, [timestampsResult, project.segments, fps])
 
   const ticks = rulerTicks(duration)
 
   return (
-    <div className="flex h-[180px] shrink-0 flex-col border-t border-border bg-background" style={{ fontSize: 11 }}>
+    <div className="flex h-45 shrink-0 flex-col border-t border-border bg-background" style={{ fontSize: 11 }}>
       <div className="flex h-8 shrink-0 items-center justify-between border-b border-border px-3">
         <span className="text-xs font-medium tracking-widest text-muted-foreground">TIMELINE</span>
         <div className="flex items-center gap-2">
@@ -96,19 +126,23 @@ export function Timeline({ project, videoInfo }: TimelineProps): React.ReactElem
           </TrackRow>
 
           <TrackRow label="LAPS">
-            {placeholderLaps.map((lap, i) => (
-              <div
-                key={i}
-                className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1"
-                style={{
-                  left: pct(lap.startSeconds),
-                  width: widthPct(lap.endSeconds - lap.startSeconds),
-                  backgroundColor: LAP_COLOUR,
-                }}
-              >
-                <span className="text-[10px] font-medium text-white">{lap.label}</span>
-              </div>
-            ))}
+            {lapSpans.length === 0 ? (
+              <div className="absolute inset-y-2 left-0 right-0 rounded-sm border border-dashed border-border" />
+            ) : (
+              lapSpans.map((lap, i) => (
+                <div
+                  key={i}
+                  className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1"
+                  style={{
+                    left: pct(lap.startSeconds),
+                    width: widthPct(lap.endSeconds - lap.startSeconds),
+                    backgroundColor: LAP_COLOUR,
+                  }}
+                >
+                  <span className="text-[10px] font-medium text-white">{lap.label}</span>
+                </div>
+              ))
+            )}
           </TrackRow>
 
           <TrackRow label="POSITION">
@@ -126,11 +160,11 @@ export function Timeline({ project, videoInfo }: TimelineProps): React.ReactElem
 
           <div
             className="pointer-events-none absolute inset-y-0 z-10 flex flex-col items-center"
-            style={{ left: 'calc(5rem + 30%)' }}
+            style={{ left: `calc(5rem + ${pct(currentTime)})` }}
           >
             <div className="rounded bg-primary px-1 py-px">
               <span className="font-mono text-[10px] text-primary-foreground">
-                {formatRulerLabel(duration * 0.3)}
+                {formatRulerLabel(currentTime)}
               </span>
             </div>
             <div className="w-px flex-1 bg-primary" />

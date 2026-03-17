@@ -2,10 +2,11 @@ import React from 'react'
 
 interface VideoPlayerProps {
   videoPath?: string
+  onTimeUpdate?: (currentTime: number) => void
 }
 
 export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
-  function VideoPlayer({ videoPath }, ref) {
+  function VideoPlayer({ videoPath, onTimeUpdate }, ref) {
     return (
       <div className="relative flex flex-1 items-center justify-center bg-[#0a0a0a]">
         {videoPath ? (
@@ -15,6 +16,7 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
             className="h-full w-full object-contain"
             muted
             preload="metadata"
+            onTimeUpdate={(e) => onTimeUpdate?.((e.target as HTMLVideoElement).currentTime)}
           />
         ) : (
           <div className="flex flex-col items-center gap-3">

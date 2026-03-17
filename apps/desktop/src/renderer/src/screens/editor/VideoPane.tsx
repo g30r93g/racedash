@@ -4,12 +4,13 @@ import { VideoPlaybackControls } from '@/components/app/VideoPlaybackControls'
 
 interface VideoPaneProps {
   videoPath?: string
+  onTimeUpdate?: (currentTime: number) => void
 }
 
-export function VideoPane({ videoPath }: VideoPaneProps): React.ReactElement {
+export function VideoPane({ videoPath, onTimeUpdate }: VideoPaneProps): React.ReactElement {
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <VideoPlayer videoPath={videoPath} />
+      <VideoPlayer videoPath={videoPath} onTimeUpdate={onTimeUpdate} />
       <VideoPlaybackControls
         duration={0}
         currentTime={0}
