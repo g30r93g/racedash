@@ -263,9 +263,21 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   const saveDir = opts.saveDir ?? path.join(os.homedir(), 'Videos', 'racedash', slug)
   fs.mkdirSync(saveDir, { recursive: true })
 
-  // Copy the joined video into the project directory (async to avoid blocking the main thread).
+  // Preserve original single-source inputs, but move temp joined outputs into the project directory.
   const videoPath = path.join(saveDir, 'video.mp4')
-  await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
+  const isTempJoinedVideo = path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))
+  if (isTempJoinedVideo) {
+    try {
+      await fs.promises.rename(opts.joinedVideoPath, videoPath)
+    } catch (err) {
+      // Moving to another volume can fail with EXDEV; fall back to copy + delete.
+      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err
+      await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
+      await fs.promises.unlink(opts.joinedVideoPath)
+    }
+  } else {
+    await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
+  }
 
   // Write engine timing config (config.json) — segments in engine format.
   // Wizard segments lack `mode` and `offset`; derive them here.
@@ -313,14 +325,6 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
       fs.promises.unlink(path.join(saveDir, 'video.mp4')),
     ])
     throw err
-  }
-
-  // Clean up the temp file if it came from os.tmpdir().
-  // Use path.resolve to normalise symlinks (on macOS, os.tmpdir() returns
-  // /private/tmp but the path may be seen as /tmp via the symlink).
-  // Done after registry registration so a rollback doesn't include this unlink.
-  if (path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))) {
-    await fs.promises.unlink(opts.joinedVideoPath)
   }
 
   return projectData

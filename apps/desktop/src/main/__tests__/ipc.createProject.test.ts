@@ -14,6 +14,7 @@ vi.mock('node:fs', () => ({
     unlinkSync: vi.fn(),
     promises: {
       copyFile: vi.fn().mockResolvedValue(undefined),
+      rename: vi.fn().mockResolvedValue(undefined),
       unlink: vi.fn().mockResolvedValue(undefined),
     },
   },
@@ -27,6 +28,7 @@ vi.mock('node:fs', () => ({
   unlinkSync: vi.fn(),
   promises: {
     copyFile: vi.fn().mockResolvedValue(undefined),
+    rename: vi.fn().mockResolvedValue(undefined),
     unlink: vi.fn().mockResolvedValue(undefined),
   },
 }))
@@ -80,24 +82,43 @@ describe('handleCreateProject', () => {
     expect(mockMkdirSync).toHaveBeenCalledWith(expectedDir, { recursive: true })
   })
 
-  it('copies the joined video into <saveDir>/video.mp4', async () => {
+  it('moves a temp joined video into <saveDir>/video.mp4', async () => {
     await handleCreateProject(baseOpts)
+    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
+    expect(vi.mocked(fs.promises.rename)).toHaveBeenCalledWith(
+      baseOpts.joinedVideoPath,
+      path.join(expectedDir, 'video.mp4')
+    )
+    expect(vi.mocked(fs.promises.copyFile)).not.toHaveBeenCalled()
+  })
+
+  it('does not separately delete the joined video after a successful temp-file move', async () => {
+    await handleCreateProject(baseOpts)
+    expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalledWith(baseOpts.joinedVideoPath)
+  })
+
+  it('copies a non-temp source video into <saveDir>/video.mp4', async () => {
+    const opts = { ...baseOpts, joinedVideoPath: '/Users/testuser/Videos/chapter1.mp4' }
+    await handleCreateProject(opts)
+    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
+    expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
+      opts.joinedVideoPath,
+      path.join(expectedDir, 'video.mp4')
+    )
+    expect(vi.mocked(fs.promises.rename)).not.toHaveBeenCalled()
+  })
+
+  it('falls back to copy and delete when moving a temp joined video across devices', async () => {
+    vi.mocked(fs.promises.rename).mockRejectedValueOnce(Object.assign(new Error('cross-device link not permitted'), { code: 'EXDEV' }))
+
+    await handleCreateProject(baseOpts)
+
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
       baseOpts.joinedVideoPath,
       path.join(expectedDir, 'video.mp4')
     )
-  })
-
-  it('deletes the joined video if it is a temp file (in os.tmpdir())', async () => {
-    await handleCreateProject(baseOpts)
     expect(vi.mocked(fs.promises.unlink)).toHaveBeenCalledWith(baseOpts.joinedVideoPath)
-  })
-
-  it('does not delete the joined video if it is not a temp file', async () => {
-    const opts = { ...baseOpts, joinedVideoPath: '/Users/testuser/Videos/chapter1.mp4' }
-    await handleCreateProject(opts)
-    expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalled()
   })
 
   it('writes project.json with videoPaths pointing to the copied video', async () => {
