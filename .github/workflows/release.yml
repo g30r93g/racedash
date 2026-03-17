@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.0.0) — matching tag must already exist'
+        required: true
+
+concurrency:
+  group: release-${{ github.ref_name || inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || github.ref }}
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "tag=v$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+
+      - name: Validate package.json version matches tag
+        run: |
+          VERSION="${TAG#v}"
+          PKG_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "ERROR: apps/desktop/package.json version ($PKG_VERSION) does not match tag ($VERSION)"
+            exit 1
+          fi
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+
+      - name: Create draft release (idempotent)
+        run: |
+          gh release view "$TAG" || gh release create "$TAG" --draft --title "RaceDash $TAG" --notes ""
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+
+  build-mac:
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=@racedash/desktop...
+
+      - name: Build and publish macOS installer
+        run: pnpm --filter @racedash/desktop run dist -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  build-win:
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=@racedash/desktop...
+
+      - name: Build and publish Windows installer
+        run: pnpm --filter @racedash/desktop run dist -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  publish-release:
+    needs: [create-release, build-mac, build-win]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        run: gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          TAG: ${{ needs.create-release.outputs.tag }}
