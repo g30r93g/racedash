@@ -2,6 +2,7 @@ import { app, BrowserWindow, protocol } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { registerIpcHandlers } from './ipc'
+import { registerUpdaterHandlers } from './updater'
 
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
@@ -76,7 +77,8 @@ app.whenReady().then(() => {
     })
   })
   registerIpcHandlers()
-  createWindow()
+  const win = createWindow()
+  registerUpdaterHandlers(win)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
