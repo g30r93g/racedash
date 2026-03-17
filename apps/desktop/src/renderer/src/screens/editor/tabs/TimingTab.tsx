@@ -232,7 +232,12 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       <section>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Position Overrides</SectionLabel>
-          <Button variant="ghost" size="sm" onClick={() => setShowOverrideForm((v) => !v)}>+ Add</Button>
+          <Button variant="ghost" size="sm" onClick={() => {
+            if (!showOverrideForm && videoInfo?.fps) {
+              setNewTimecode(`${Math.round(currentTime * videoInfo.fps)} F`)
+            }
+            setShowOverrideForm((v) => !v)
+          }}>+ Add</Button>
         </div>
 
         {showOverrideForm && (
