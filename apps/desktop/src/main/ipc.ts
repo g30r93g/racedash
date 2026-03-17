@@ -10,6 +10,7 @@ import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@r
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
+import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -49,38 +50,34 @@ export async function joinVideosImpl(videoPaths: string[]): Promise<string> {
   return outPath
 }
 
-/**
- * Resolved once at module load time.
- * Falls back to '' when app is not initialised (e.g. unit-test environments that
- * do not mock electron), in which case listProjectsHandler returns [] immediately.
- */
-const RACEDASH_DIR: string = app?.getPath('home')
-  ? path.join(app.getPath('home'), 'Videos', 'racedash')
-  : ''
-
-export function listProjectsHandler(): ProjectData[] {
-  const racedashDir = RACEDASH_DIR
-  if (!racedashDir || !fs.existsSync(racedashDir)) return []
-
-  const entries = fs.readdirSync(racedashDir)
-  const result: ProjectData[] = []
-
-  for (const entry of entries) {
-    const entryPath = path.join(racedashDir, entry)
-    if (!fs.statSync(entryPath).isDirectory()) continue
-
-    const projectJsonPath = path.join(entryPath, 'project.json')
-    if (!fs.existsSync(projectJsonPath)) continue
-
-    try {
-      const raw = fs.readFileSync(projectJsonPath, 'utf-8')
-      result.push(JSON.parse(raw) as ProjectData)
-    } catch {
-      // skip malformed entries
-    }
-  }
-
-  return result
+export async function listProjectsHandler(): Promise<ProjectData[]> {
+  const paths = await getRegistry()
+  const results = await Promise.all(
+    paths.map(async (registeredPath): Promise<ProjectData | null> => {
+      try {
+        const raw = await fs.promises.readFile(registeredPath, 'utf-8')
+        const parsed = JSON.parse(raw) as ProjectData
+        if (typeof parsed.name !== 'string') return null
+        const { missing: _stripped, ...data } = parsed as ProjectData & { missing?: unknown }
+        return { ...data, projectPath: data.projectPath ?? registeredPath }
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code
+        if (code === 'ENOENT') {
+          return {
+            name: path.basename(path.dirname(registeredPath)) || registeredPath,
+            projectPath: registeredPath,
+            configPath: '',
+            videoPaths: [],
+            segments: [],
+            selectedDriver: '',
+            missing: true,
+          }
+        }
+        return null
+      }
+    }),
+  )
+  return results.filter((r): r is ProjectData => r !== null)
 }
 
 export interface ConfigPositionOverride {
@@ -191,6 +188,8 @@ export async function deleteProjectHandler(projectPath: string): Promise<void> {
   if (!projectPath.endsWith('project.json')) {
     throw new Error('deleteProject: path must point to a project.json file')
   }
+  // Remove from registry first — abort if I/O fails (no-op if not found).
+  await removeFromRegistry(projectPath)
   const projectDir = path.dirname(projectPath)
   await fs.promises.rm(projectDir, { recursive: true, force: true })
 }
