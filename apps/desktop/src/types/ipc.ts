@@ -53,12 +53,33 @@ export interface DriversResult {
   driverListsIdentical: boolean
 }
 
+export interface TimestampsResultLap {
+  number: number
+  lapTime: number    // seconds
+  cumulative: number // seconds
+}
+
+export interface TimestampsResultDriver {
+  kart: string
+  name: string
+  laps: TimestampsResultLap[]
+}
+
+export interface TimestampsResultReplayEntry {
+  kart: string
+  name: string
+  position: number
+  lapsCompleted: number
+}
+
 export interface TimestampsResult {
   chapters: string
   segments: Array<{
     config: { source: string; mode: string; label?: string }
-    selectedDriver?: { name: string; kart: string; laps: unknown[] }
+    selectedDriver?: TimestampsResultDriver
+    drivers: TimestampsResultDriver[]
     capabilities: Record<string, boolean>
+    replayData?: TimestampsResultReplayEntry[][]
   }>
   offsets: number[]
 }

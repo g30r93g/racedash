@@ -8,6 +8,7 @@ interface TimelineProps {
   videoInfo: VideoInfo | null
   currentTime?: number
   timestampsResult?: TimestampsResult | null
+  onSeek?: (time: number) => void
 }
 
 const SEGMENT_COLOURS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444']
@@ -87,7 +88,7 @@ function positionDotColor(position: number): string {
   return '#6b7280'
 }
 
-export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult }: TimelineProps): React.ReactElement {
+export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult, onSeek }: TimelineProps): React.ReactElement {
   const duration = videoInfo?.durationSeconds ?? 30
   const fps = videoInfo?.fps ?? 60
   const [zoomIdx, setZoomIdx] = useState(0)
@@ -239,12 +240,13 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                   segmentSpans.map((seg, i) => (
                     <div
                       key={i}
-                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm px-1"
+                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm px-1 cursor-pointer hover:brightness-110 active:brightness-90"
                       style={{
                         left: pct(seg.startSeconds),
                         width: widthPct(seg.endSeconds - seg.startSeconds),
                         backgroundColor: SEGMENT_COLOURS[i % SEGMENT_COLOURS.length],
                       }}
+                      onClick={() => onSeek?.(seg.startSeconds)}
                     >
                       <span className="truncate text-[10px] font-medium text-white">{seg.label}</span>
                     </div>
@@ -260,12 +262,13 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                   lapSpans.map((lap, i) => (
                     <div
                       key={i}
-                      className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1"
+                      className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1 cursor-pointer hover:brightness-110 active:brightness-90"
                       style={{
                         left: pct(lap.startSeconds),
                         width: widthPct(lap.endSeconds - lap.startSeconds),
                         backgroundColor: LAP_COLOUR,
                       }}
+                      onClick={() => onSeek?.(lap.startSeconds)}
                     >
                       <span className="text-[10px] font-medium text-white">{lap.label}</span>
                     </div>
@@ -281,11 +284,12 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                   positionDots.map((dot, i) => (
                     <div
                       key={i}
-                      className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                      className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer hover:scale-125 active:scale-110 transition-transform"
                       style={{
                         left: pct(dot.videoSeconds),
                         backgroundColor: positionDotColor(dot.position),
                       }}
+                      onClick={() => onSeek?.(dot.videoSeconds)}
                     />
                   ))
                 )}

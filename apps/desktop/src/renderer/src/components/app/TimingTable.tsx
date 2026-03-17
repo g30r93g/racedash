@@ -19,7 +19,7 @@ function formatLapTime(ms: number): string {
 export interface LapRow {
   lap: number
   timeMs: number
-  position: number
+  position: number | null
   lapTimeLabel?: string  // if present, rendered instead of formatting timeMs
 }
 
@@ -49,7 +49,7 @@ export function TimingTable({ rows, bestLapTimeMs }: TimingTableProps): React.Re
             >
               <TableCell className="py-1">{row.lap}</TableCell>
               <TableCell className="py-1 font-medium">{timeDisplay}</TableCell>
-              <TableCell className="py-1">P{row.position}</TableCell>
+              <TableCell className="py-1">{row.position != null ? `P${row.position}` : '—'}</TableCell>
             </TableRow>
           )
         })}

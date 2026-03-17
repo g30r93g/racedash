@@ -53,7 +53,59 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
     if (!timestampsResult) return []
     const seg = timestampsResult.segments[activeSegment]
     if (!seg?.selectedDriver) return []
-    return seg.selectedDriver.laps as LapRow[]
+
+    const { laps } = seg.selectedDriver
+    const mode = seg.config.mode as 'practice' | 'qualifying' | 'race'
+    const selectedKart = seg.selectedDriver.kart
+    const selectedName = seg.selectedDriver.name
+    const allDrivers = seg.drivers ?? []
+    const canPosition = seg.capabilities['position'] === true
+    const hasSnapshots = seg.capabilities['raceSnapshots'] === true
+
+    const isSelected = (d: { kart: string; name: string }) =>
+      selectedKart ? d.kart === selectedKart : d.name === selectedName
+
+    return laps.map((lap, lapIndex) => {
+      const timeMs = lap.lapTime * 1000
+      let position: number | null = null
+
+      if (mode === 'race') {
+        if (hasSnapshots && seg.replayData) {
+          // Live race position from replay snapshots: find our kart at the moment it completed this lap
+          for (const snapshot of seg.replayData) {
+            const entry = snapshot.find(e => e.kart === selectedKart && e.lapsCompleted === lap.number)
+            if (entry) { position = entry.position; break }
+          }
+        } else if (canPosition && allDrivers.length > 0) {
+          // Approximate race position: rank by cumulative time at lap N across all drivers
+          const ourCumulative = lap.cumulative
+          const betterCount = allDrivers.filter(d => {
+            if (isSelected(d)) return false
+            const theirLap = d.laps[lapIndex]
+            return theirLap != null && theirLap.cumulative < ourCumulative
+          }).length
+          position = betterCount + 1
+        }
+      } else {
+        // Practice / Qualifying: rank by best lap time through lap N (position can only improve)
+        if (canPosition && allDrivers.length > 0) {
+          let bestSoFar = Infinity
+          for (let i = 0; i <= lapIndex; i++) {
+            if (laps[i].lapTime < bestSoFar) bestSoFar = laps[i].lapTime
+          }
+          if (Number.isFinite(bestSoFar)) {
+            const betterCount = allDrivers.filter(d => {
+              if (isSelected(d)) return false
+              const driverBest = d.laps.reduce((best, l) => Math.min(best, l.lapTime), Infinity)
+              return driverBest < bestSoFar
+            }).length
+            position = betterCount + 1
+          }
+        }
+      }
+
+      return { lap: lap.number, timeMs, position }
+    })
   }, [timestampsResult, activeSegment])
 
   const bestLapTime = lapRows.length > 0 ? Math.min(...lapRows.map((l) => l.timeMs)) : null
