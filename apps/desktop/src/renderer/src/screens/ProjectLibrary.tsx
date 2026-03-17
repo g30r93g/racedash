@@ -5,7 +5,7 @@ import { CloudRendersList } from '@/components/app/CloudRendersList'
 import { ProjectCard } from '@/components/app/ProjectCard'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
+import { SpinnerInline } from '@/components/loaders/Spinner'
 import { LayoutGrid, Rows4 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import type { ProjectData } from '../../../types/project'
@@ -69,19 +69,11 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 </div>
                 <ScrollArea className="flex-1">
                   {loading ? (
-                    view === 'tile' ? (
-                      <div className="grid grid-cols-3 gap-4">
-                        {[1, 2, 3].map((i) => (
-                          <Skeleton key={i} className="h-[158px] rounded-lg" />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {[1, 2, 3].map((i) => (
-                          <Skeleton key={i} className="h-14 rounded-lg" />
-                        ))}
-                      </div>
-                    )
+                    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 text-white/50">
+                      <SpinnerInline>
+                        <span className="text-sm">Project files are updating</span>
+                      </SpinnerInline>
+                    </div>
                   ) : projects.length === 0 ? (
                     <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
                       <p className="text-sm text-white/40">No projects yet. Create your first project.</p>
