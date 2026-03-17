@@ -195,6 +195,9 @@ export async function deleteProjectHandler(projectPath: string): Promise<void> {
 }
 
 export async function relocateProjectHandler(oldProjectPath: string): Promise<ProjectData> {
+  if (typeof oldProjectPath !== 'string') {
+    throw new Error('relocateProject: oldProjectPath must be a string')
+  }
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     filters: [{ name: 'RaceDash Project', extensions: ['json'] }],

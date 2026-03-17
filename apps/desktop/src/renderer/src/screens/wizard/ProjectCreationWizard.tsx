@@ -82,6 +82,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
     <Dialog open={true} onOpenChange={(open) => { if (!open) onCancel() }}>
       <DialogContent
         className="flex w-172.5 flex-col gap-0 p-0"
+        onInteractOutside={(event) => event.preventDefault()}
         style={{ minHeight: '630px', maxHeight: '90vh' }}
       >
         <div className="shrink-0 border-b border-border px-8 py-6">
