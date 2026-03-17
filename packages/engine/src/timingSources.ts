@@ -5,6 +5,7 @@ import type {
   Lap,
   LapTimestamp,
   LeaderboardDriver,
+  OverlayComponentsConfig,
   OverlayStyling,
   PositionOverride,
   RaceLapEntry,
@@ -87,6 +88,7 @@ export interface TimingConfig {
   driver?: string
   boxPosition?: string
   qualifyingTablePosition?: string
+  overlayComponents?: OverlayComponentsConfig
   styling?: OverlayStyling
 }
 
@@ -95,6 +97,7 @@ export interface LoadedTimingConfig {
   driverQuery?: string
   configBoxPosition?: string
   configTablePosition?: string
+  overlayComponents?: OverlayComponentsConfig
   styling?: OverlayStyling
 }
 
@@ -336,6 +339,7 @@ export async function loadTimingConfig(configPath: string, requireDriver: boolea
     driverQuery,
     configBoxPosition: raw.boxPosition,
     configTablePosition: raw.qualifyingTablePosition,
+    overlayComponents: raw.overlayComponents,
     styling: raw.styling,
   }
 }

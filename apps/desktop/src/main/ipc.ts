@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
-import type { OverlayStyling, SessionSegment } from '@racedash/core'
+import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
 
@@ -126,7 +126,11 @@ export function saveStyleToConfigHandler(
   configPath: string,
   overlayType: string,
   styling: OverlayStyling,
-  positions?: { boxPosition?: string; qualifyingTablePosition?: string },
+  configOptions?: {
+    boxPosition?: string
+    qualifyingTablePosition?: string
+    overlayComponents?: OverlayComponentsConfig
+  },
 ): void {
   if (typeof configPath !== 'string' || configPath.trim().length === 0) {
     throw new Error('saveStyleToConfig: configPath must be a non-empty string')
@@ -135,15 +139,20 @@ export function saveStyleToConfigHandler(
   const config = JSON.parse(raw) as Record<string, unknown>
   config.overlayType = overlayType
   config.styling = styling
-  if (positions?.boxPosition !== undefined) {
-    config.boxPosition = positions.boxPosition
+  if (configOptions?.boxPosition !== undefined) {
+    config.boxPosition = configOptions.boxPosition
   } else {
     delete config.boxPosition
   }
-  if (positions?.qualifyingTablePosition !== undefined) {
-    config.qualifyingTablePosition = positions.qualifyingTablePosition
+  if (configOptions?.qualifyingTablePosition !== undefined) {
+    config.qualifyingTablePosition = configOptions.qualifyingTablePosition
   } else {
     delete config.qualifyingTablePosition
+  }
+  if (configOptions?.overlayComponents !== undefined) {
+    config.overlayComponents = configOptions.overlayComponents
+  } else {
+    delete config.overlayComponents
   }
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
@@ -543,8 +552,18 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
   ipcMain.handle(
     'racedash:saveStyleToConfig',
-    (_event, configPath: string, overlayType: string, styling: OverlayStyling, positions?: { boxPosition?: string; qualifyingTablePosition?: string }) =>
-      saveStyleToConfigHandler(configPath, overlayType, styling, positions),
+    (
+      _event,
+      configPath: string,
+      overlayType: string,
+      styling: OverlayStyling,
+      configOptions?: {
+        boxPosition?: string
+        qualifyingTablePosition?: string
+        overlayComponents?: OverlayComponentsConfig
+      },
+    ) =>
+      saveStyleToConfigHandler(configPath, overlayType, styling, configOptions),
   )
 
   // Timing — engine integration

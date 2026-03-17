@@ -149,6 +149,14 @@ export interface ModernStyling {
   statLabelColor?: string        // stat label color       (default: rgba(255,255,255,0.5))
 }
 
+export interface OverlayComponentsConfig {
+  leaderboard?: 'off' | 'on' | boolean
+}
+
+export function isOverlayComponentEnabled(value: OverlayComponentsConfig['leaderboard'] | undefined): boolean {
+  return value !== 'off' && value !== false
+}
+
 export interface OverlayStyling {
   accentColor?: string        // global accent      (default: #3DD73D)
   textColor?: string          // global text color  (default: white)
@@ -172,6 +180,7 @@ export interface OverlayProps {
   videoHeight?: number
   boxPosition?: BoxPosition
   qualifyingTablePosition?: CornerPosition  // corner for the qualifying table overlay; default varies by style
+  overlayComponents?: OverlayComponentsConfig
   styling?: OverlayStyling
   labelWindowSeconds?: number     // default 2
 }

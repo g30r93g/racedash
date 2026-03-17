@@ -58,4 +58,20 @@ describe('saveStyleToConfigHandler', () => {
     expect(() => JSON.parse(raw)).not.toThrow()
     expect(raw).toContain('\n') // pretty-printed
   })
+
+  it('writes overlay component toggles to config.json and removes them when omitted', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'test-style-'))
+    const configPath = join(tmp, 'config.json')
+    writeFileSync(configPath, JSON.stringify({ overlayComponents: { leaderboard: 'off' } }))
+
+    saveStyleToConfigHandler(configPath, 'banner', {}, { overlayComponents: { leaderboard: 'on' } })
+
+    let result = JSON.parse(readFileSync(configPath, 'utf-8'))
+    expect(result.overlayComponents).toEqual({ leaderboard: 'on' })
+
+    saveStyleToConfigHandler(configPath, 'banner', {})
+
+    result = JSON.parse(readFileSync(configPath, 'utf-8'))
+    expect(result.overlayComponents).toBeUndefined()
+  })
 })

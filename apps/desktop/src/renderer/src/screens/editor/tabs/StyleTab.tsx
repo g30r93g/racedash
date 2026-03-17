@@ -1,7 +1,7 @@
 import { ColourRow } from '@/components/app/ColourRow'
 import { SectionLabel } from '@/components/app/SectionLabel'
 import { Button } from '@/components/ui/button'
-import type { BoxPosition, CornerPosition, OverlayStyling } from '@racedash/core'
+import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
 import type { OverlayType } from './OverlayPickerModal'
@@ -31,11 +31,17 @@ const CORNER_POSITION_OPTIONS: Array<{ value: CornerPosition; label: string }> =
   { value: 'top-right', label: 'Top Right' },
 ]
 
+const OVERLAY_COMPONENT_OPTIONS: Array<{ value: NonNullable<OverlayComponentsConfig['leaderboard']>; label: string }> = [
+  { value: 'off', label: 'Off' },
+  { value: 'on', label: 'On' },
+]
+
 export interface StyleState {
   overlayType: OverlayType
   styling: OverlayStyling
   boxPosition?: BoxPosition
   qualifyingTablePosition?: CornerPosition
+  overlayComponents?: OverlayComponentsConfig
 }
 
 interface StyleTabProps {
@@ -72,6 +78,16 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
 
   const handlePositionChange = useCallback((key: 'boxPosition' | 'qualifyingTablePosition', value: string) => {
     onStyleChange({ ...styleState, [key]: value !== '' ? value : undefined })
+  }, [styleState, onStyleChange])
+
+  const handleOverlayComponentChange = useCallback((key: keyof OverlayComponentsConfig, value: NonNullable<OverlayComponentsConfig['leaderboard']>) => {
+    onStyleChange({
+      ...styleState,
+      overlayComponents: {
+        ...styleState.overlayComponents,
+        [key]: value,
+      },
+    })
   }, [styleState, onStyleChange])
 
   // Global
@@ -176,6 +192,24 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
               <option value="">Default</option>
               {CORNER_POSITION_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <SectionLabel>Overlay Components</SectionLabel>
+        <div className="rounded-md border border-border bg-accent px-3">
+          <div className="flex items-center justify-between py-1.5">
+            <span className="text-xs text-muted-foreground">Leaderboard</span>
+            <select
+              value={styleState.overlayComponents?.leaderboard === false || styleState.overlayComponents?.leaderboard === 'off' ? 'off' : 'on'}
+              onChange={(e) => handleOverlayComponentChange('leaderboard', e.target.value as NonNullable<OverlayComponentsConfig['leaderboard']>)}
+              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {OVERLAY_COMPONENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </div>

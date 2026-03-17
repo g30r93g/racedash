@@ -76,6 +76,22 @@ describe('loadTimingConfig', () => {
 
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('missing "emailPath"')
   })
+
+  it('loads overlay component config from config.json', async () => {
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      overlayComponents: { leaderboard: false },
+      segments: [{
+        source: 'manual',
+        mode: 'practice',
+        offset: '1:00.000',
+        timingData: [{ lap: 1, time: '1:00.000' }],
+      }],
+    })
+
+    const result = await loadTimingConfig(configPath, true)
+    expect(result.overlayComponents).toEqual({ leaderboard: false })
+  })
 })
 
 describe('validateManualTimingData', () => {

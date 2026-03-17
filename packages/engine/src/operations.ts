@@ -105,6 +105,7 @@ export async function renderSession(
       driverQuery,
       configBoxPosition,
       configTablePosition,
+      overlayComponents,
       styling,
     } = await loadTimingConfig(opts.configPath, true)
 
@@ -165,6 +166,7 @@ export async function renderSession(
       videoHeight: outputResolution.height,
       boxPosition,
       qualifyingTablePosition: resolvedTablePosition,
+      overlayComponents,
       styling,
       labelWindowSeconds: opts.labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
     }

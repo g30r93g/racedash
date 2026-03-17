@@ -1,5 +1,5 @@
 import type { ProjectData, CreateProjectOpts, SegmentConfig } from './project'
-import type { BoxPosition, CornerPosition, SessionSegment, OverlayStyling } from '@racedash/core'
+import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 
 // File dialog options
 export interface OpenFileOptions {
@@ -128,7 +128,16 @@ export interface RacedashAPI {
   renameProject(projectPath: string, name: string): Promise<ProjectData>
   readProjectConfig(configPath: string): Promise<Record<string, unknown>>
   updateProjectConfigOverrides(configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>): Promise<void>
-  saveStyleToConfig(configPath: string, overlayType: string, styling: OverlayStyling, positions?: { boxPosition?: BoxPosition; qualifyingTablePosition?: CornerPosition }): Promise<void>
+  saveStyleToConfig(
+    configPath: string,
+    overlayType: string,
+    styling: OverlayStyling,
+    configOptions?: {
+      boxPosition?: BoxPosition
+      qualifyingTablePosition?: CornerPosition
+      overlayComponents?: OverlayComponentsConfig
+    },
+  ): Promise<void>
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>

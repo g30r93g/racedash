@@ -5,6 +5,7 @@ import {
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
+  isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
@@ -25,6 +26,7 @@ export const Banner: React.FC<OverlayProps> = ({
   segments, fps, startingGridPosition,
   styling, labelWindowSeconds,
   qualifyingTablePosition,
+  overlayComponents,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -36,7 +38,7 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const showTable = segment.leaderboardDrivers != null
+  const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
 
   const livePosition = useLivePosition(segment, currentTime)
 
