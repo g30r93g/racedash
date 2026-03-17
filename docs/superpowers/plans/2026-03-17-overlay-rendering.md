@@ -461,14 +461,13 @@ git commit -m "feat(desktop): wire saveStyleToConfig through preload bridge"
 Replace `apps/desktop/src/renderer/src/screens/editor/tabs/StyleTab.tsx` entirely:
 
 ```tsx
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import type { OverlayStyling } from '@racedash/core'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
 import { SectionLabel } from '@/components/app/SectionLabel'
 import { ColourRow } from '@/components/app/ColourRow'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
 
 const OVERLAY_NAMES: Record<OverlayType, string> = {
   banner: 'Banner',
@@ -500,14 +499,20 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
   // to history. Only one onStyleChange call fires per drag — NOT immediately.
   // This means the live preview lags ~400ms at the end of a drag, which is acceptable
   // and matches the spec's intent of preventing dozens of history entries per drag.
+  //
+  // Uses a latestRef to avoid stale-closure issues — the timeout always reads the
+  // most recent styleState/patch even if props updated while the timer was pending.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestRef = useRef<{ styleState: StyleState; patch: OverlayStyling }>({ styleState, patch: {} })
 
   const handleColourChange = useCallback((patch: OverlayStyling) => {
+    latestRef.current = { styleState, patch }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      onStyleChange({ ...styleState, styling: { ...styling, ...patch } })
+      const { styleState: s, patch: p } = latestRef.current
+      onStyleChange({ ...s, styling: { ...s.styling, ...p } })
     }, 400)
-  }, [styleState, styling, onStyleChange])
+  }, [styleState, onStyleChange])
 
   const accent = styling.accentColor ?? '#3b82f6'
   const bannerTimerText = styling.banner?.timerTextColor ?? '#ffffff'
@@ -871,11 +876,22 @@ git commit -m "feat(desktop): lift style state to Editor with undo/redo history 
 
 - [ ] **Step 1: Verify `registry` shape before wiring**
 
-Open `apps/renderer/src/registry.ts` and confirm it exports:
+Open `apps/renderer/src/registry.ts`. You should see something like:
 ```ts
-export const registry: Record<string, { component: React.ComponentType<OverlayProps> }>
+export const registry: Record<OverlayType, {
+  component: React.ComponentType<OverlayProps>
+  width: number
+  height: number
+  // possibly: overlayX, overlayY, scaleWithVideo
+}>
 ```
-The access pattern used below is `registry[overlayType].component`. If the shape differs (e.g., the component is at a different key), update the access pattern accordingly before proceeding.
+
+The access patterns used below are:
+- `registry[overlayType].component` — the React component to render
+- `registry[overlayType].width` — the composition width (NOT `videoWidth` — overlays like `banner` are 1920×500, not 1920×1080)
+- `registry[overlayType].height` — the composition height
+
+Confirm these keys exist. If the field names differ, update the `<Player>` props accordingly.
 
 - [ ] **Step 2: Extend `VideoPlayer` to accept and render the overlay**
 
@@ -931,8 +947,8 @@ The component signature stays `React.forwardRef<HTMLVideoElement, VideoPlayerPro
     <Player
       ref={playerRef ?? undefined}
       component={registry[overlayType].component}
-      compositionWidth={overlayProps.videoWidth ?? 1920}
-      compositionHeight={overlayProps.videoHeight ?? 1080}
+      compositionWidth={registry[overlayType].width}    // overlay's own width (e.g. 1920 for banner)
+      compositionHeight={registry[overlayType].height}  // overlay's own height (e.g. 500 for banner)
       durationInFrames={overlayProps.durationInFrames}
       fps={overlayProps.fps}
       inputProps={overlayProps as Record<string, unknown>}
