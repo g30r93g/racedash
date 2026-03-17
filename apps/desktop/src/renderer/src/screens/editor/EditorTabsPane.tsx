@@ -6,7 +6,7 @@ import type { VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
 import { ExportTab } from './tabs/ExportTab'
 import { StyleTab } from './tabs/StyleTab'
-import { TimingTab } from './tabs/TimingTab'
+import { TimingTab, type Override } from './tabs/TimingTab'
 
 interface EditorTabsPaneProps {
   project: ProjectData
@@ -14,6 +14,8 @@ interface EditorTabsPaneProps {
   currentTime?: number
   playing?: boolean
   onSave?: () => void
+  overrides: Override[]
+  onOverridesChange: (overrides: Override[]) => void
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -25,7 +27,7 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange }: EditorTabsPaneProps): React.ReactElement {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <Tabs defaultValue="timing" className="flex flex-1 flex-col overflow-hidden">
@@ -48,7 +50,7 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
         </TabsList>
 
         <TabsContent value="timing" className="mt-0 flex-1 overflow-auto">
-          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} />
+          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} overrides={overrides} onOverridesChange={onOverridesChange} />
         </TabsContent>
         <TabsContent value="style" className="mt-0 flex-1 overflow-auto">
           <StyleTab />

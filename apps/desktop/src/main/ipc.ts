@@ -76,6 +76,51 @@ export function listProjectsHandler(): ProjectData[] {
   return result
 }
 
+export interface ConfigPositionOverride {
+  segmentIndex: number
+  timestamp: string
+  position: number
+}
+
+export function readProjectConfigHandler(configPath: string): Record<string, unknown> {
+  if (typeof configPath !== 'string' || configPath.trim().length === 0) {
+    throw new Error('readProjectConfig: configPath must be a non-empty string')
+  }
+  const raw = fs.readFileSync(configPath, 'utf-8') as string
+  return JSON.parse(raw) as Record<string, unknown>
+}
+
+export async function updateProjectConfigOverridesHandler(configPath: string, overrides: ConfigPositionOverride[]): Promise<void> {
+  if (typeof configPath !== 'string' || configPath.trim().length === 0) {
+    throw new Error('updateProjectConfigOverrides: configPath must be a non-empty string')
+  }
+  const raw = fs.readFileSync(configPath, 'utf-8') as string
+  const config = JSON.parse(raw) as Record<string, unknown>
+  const segments = (config.segments ?? []) as Record<string, unknown>[]
+
+  // Clear existing positionOverrides on all segments
+  for (const seg of segments) {
+    delete seg.positionOverrides
+  }
+
+  // Group overrides by segment and sort ascending by frame number
+  for (const seg of segments) {
+    const idx = segments.indexOf(seg)
+    const segOverrides = overrides
+      .filter((o) => o.segmentIndex === idx)
+      .sort((a, b) => {
+        const frameA = parseInt(a.timestamp.replace(/\s*F$/i, ''), 10)
+        const frameB = parseInt(b.timestamp.replace(/\s*F$/i, ''), 10)
+        return frameA - frameB
+      })
+    if (segOverrides.length > 0) {
+      seg.positionOverrides = segOverrides.map(({ timestamp, position }) => ({ timestamp, position }))
+    }
+  }
+
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+}
+
 export async function renameProjectHandler(projectPath: string, name: string): Promise<ProjectData> {
   if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
     throw new Error('renameProject: projectPath must be a non-empty string')
@@ -446,6 +491,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
   ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
   ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
+  ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
+  ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
 
   // Timing — engine integration
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>

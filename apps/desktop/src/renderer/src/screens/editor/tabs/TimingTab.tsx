@@ -16,15 +16,18 @@ interface TimingTabProps {
   videoInfo?: VideoInfo | null
   currentTime?: number
   playing?: boolean
+  overrides: Override[]
+  onOverridesChange: (overrides: Override[]) => void
 }
 
-interface Override {
+export interface Override {
   id: string
+  segmentIndex: number
   timecode: string
   position: string
 }
 
-export function TimingTab({ project, videoInfo, currentTime = 0, playing = false }: TimingTabProps): React.ReactElement {
+export function TimingTab({ project, videoInfo, currentTime = 0, playing = false, overrides, onOverridesChange }: TimingTabProps): React.ReactElement {
   // ── Driver ──────────────────────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = useState(project.selectedDriver)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
@@ -161,16 +164,15 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
   }, [timestampsResult, activeSegment, currentTime])
 
   // ── Position overrides ───────────────────────────────────────────────────────
-  const [overrides, setOverrides] = useState<Override[]>([])
   const [showOverrideForm, setShowOverrideForm] = useState(false)
   const [newTimecode, setNewTimecode] = useState('')
   const [newPosition, setNewPosition] = useState('')
 
   function addOverride() {
     if (!newTimecode.trim() || !newPosition.trim()) return
-    setOverrides((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), timecode: newTimecode.trim(), position: newPosition.trim() },
+    onOverridesChange([
+      ...overrides,
+      { id: crypto.randomUUID(), segmentIndex: activeSegment, timecode: newTimecode.trim(), position: newPosition.trim() },
     ])
     setNewTimecode('')
     setNewPosition('')
@@ -272,7 +274,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
                   variant="ghost"
                   size="icon"
                   className="ml-auto h-5 w-5 hover:text-destructive"
-                  onClick={() => setOverrides((prev) => prev.filter((x) => x.id !== o.id))}
+                  onClick={() => onOverridesChange(overrides.filter((x) => x.id !== o.id))}
                   aria-label="Remove override"
                 >
                   ×

@@ -27,6 +27,10 @@ const api: RacedashAPI = {
     ipcRenderer.invoke('racedash:deleteProject', projectPath),
   renameProject: (projectPath: string, name: string) =>
     ipcRenderer.invoke('racedash:renameProject', projectPath, name),
+  readProjectConfig: (configPath: string) =>
+    ipcRenderer.invoke('racedash:readProjectConfig', configPath),
+  updateProjectConfigOverrides: (configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>) =>
+    ipcRenderer.invoke('racedash:updateProjectConfigOverrides', configPath, overrides),
 
   previewDrivers: (segments) =>
     ipcRenderer.invoke('racedash:previewDrivers', segments),

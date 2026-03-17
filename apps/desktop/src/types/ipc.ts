@@ -123,6 +123,8 @@ export interface RacedashAPI {
   createProject(opts: CreateProjectOpts): Promise<ProjectData>
   deleteProject(projectPath: string): Promise<void>
   renameProject(projectPath: string, name: string): Promise<ProjectData>
+  readProjectConfig(configPath: string): Promise<Record<string, unknown>>
+  updateProjectConfigOverrides(configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>): Promise<void>
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>

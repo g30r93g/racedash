@@ -4,6 +4,11 @@ import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline } from '@/components/app/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
+import type { Override } from './tabs/TimingTab'
+
+function parsePositionString(pos: string): number {
+  return parseInt(pos.replace(/^P/i, ''), 10)
+}
 
 interface EditorProps {
   project: ProjectData
@@ -35,6 +40,41 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [project.configPath, videoInfo])
 
+  const [overrides, setOverrides] = useState<Override[]>([])
+  const overridesInitialisedRef = useRef(false)
+
+  // Load initial overrides from config.json
+  useEffect(() => {
+    if (overridesInitialisedRef.current) return
+    overridesInitialisedRef.current = true
+    window.racedash.readProjectConfig(project.configPath).then((config) => {
+      const segments = (config.segments ?? []) as Array<{ positionOverrides?: Array<{ timestamp: string; position: number }> }>
+      const loaded: Override[] = []
+      segments.forEach((seg, segmentIndex) => {
+        for (const o of seg.positionOverrides ?? []) {
+          loaded.push({ id: crypto.randomUUID(), segmentIndex, timecode: o.timestamp, position: `P${o.position}` })
+        }
+      })
+      setOverrides(loaded)
+    }).catch(() => { /* config may have no overrides yet */ })
+  }, [project.configPath])
+
+  // Auto-save overrides to config.json whenever they change (skip initial empty state)
+  const overridesSavedRef = useRef(false)
+  useEffect(() => {
+    if (!overridesInitialisedRef.current) return
+    if (!overridesSavedRef.current && overrides.length === 0) return
+    overridesSavedRef.current = true
+    const payload = overrides.map(({ segmentIndex, timecode, position }) => ({
+      segmentIndex,
+      timestamp: timecode,
+      position: parsePositionString(position),
+    }))
+    window.racedash.updateProjectConfigOverrides(project.configPath, payload).catch((err: unknown) => {
+      console.warn('[Editor] failed to save position overrides:', err)
+    })
+  }, [overrides, project.configPath])
+
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
@@ -54,13 +94,14 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           videoInfo={videoInfo}
           currentTime={currentTime}
           timestampsResult={timestampsResult}
+          overrides={overrides}
           onSeek={handleSeek}
         />
       </div>
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} overrides={overrides} onOverridesChange={setOverrides} />
       </div>
     </div>
   )

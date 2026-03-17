@@ -2,12 +2,14 @@ import { Button } from '@/components/ui/button'
 import React, { useEffect, useRef, useState } from 'react'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
+import type { Override } from '../../screens/editor/tabs/TimingTab'
 
 interface TimelineProps {
   project: ProjectData
   videoInfo: VideoInfo | null
   currentTime?: number
   timestampsResult?: TimestampsResult | null
+  overrides?: Override[]
   onSeek?: (time: number) => void
 }
 
@@ -91,7 +93,7 @@ function positionDotColor(position: number): string {
   return '#6b7280'
 }
 
-export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult, onSeek }: TimelineProps): React.ReactElement {
+export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult, overrides = [], onSeek }: TimelineProps): React.ReactElement {
   const duration = videoInfo?.durationSeconds ?? 30
   const fps = videoInfo?.fps ?? 60
   const [zoomIdx, setZoomIdx] = useState(0)
@@ -118,6 +120,18 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     })
     return allSpans
   }, [timestampsResult])
+
+  const overrideDots: PositionDot[] = React.useMemo(() => {
+    return overrides.flatMap((o) => {
+      const frameMatch = o.timecode.match(/^(\d+)\s*F$/i)
+      const videoSeconds = frameMatch ? parseInt(frameMatch[1], 10) / fps : null
+      if (videoSeconds === null) return []
+      const posMatch = o.position.match(/^P?(\d+)$/i)
+      const position = posMatch ? parseInt(posMatch[1], 10) : null
+      if (position === null) return []
+      return [{ videoSeconds, position }]
+    })
+  }, [overrides, fps])
 
   const positionDots: PositionDot[] = React.useMemo(() => {
     if (!timestampsResult) return []
@@ -281,20 +295,33 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
 
               {/* POSITION */}
               <div className="relative flex-1">
-                {positionDots.length === 0 ? (
+                {positionDots.length === 0 && overrideDots.length === 0 ? (
                   <div className="absolute inset-y-2 left-0 right-0 rounded-sm border border-dashed border-border" />
                 ) : (
-                  positionDots.map((dot, i) => (
-                    <div
-                      key={i}
-                      className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer hover:scale-125 active:scale-110 transition-transform"
-                      style={{
-                        left: pct(dot.videoSeconds),
-                        backgroundColor: positionDotColor(dot.position),
-                      }}
-                      onClick={() => onSeek?.(dot.videoSeconds)}
-                    />
-                  ))
+                  <>
+                    {positionDots.map((dot, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer hover:scale-125 active:scale-110 transition-transform"
+                        style={{
+                          left: pct(dot.videoSeconds),
+                          backgroundColor: positionDotColor(dot.position),
+                        }}
+                        onClick={() => onSeek?.(dot.videoSeconds)}
+                      />
+                    ))}
+                    {overrideDots.map((dot, i) => (
+                      <div
+                        key={`override-${i}`}
+                        className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 cursor-pointer hover:scale-125 active:scale-110 transition-transform"
+                        style={{
+                          left: pct(dot.videoSeconds),
+                          backgroundColor: positionDotColor(dot.position),
+                        }}
+                        onClick={() => onSeek?.(dot.videoSeconds)}
+                      />
+                    ))}
+                  </>
                 )}
               </div>
 
