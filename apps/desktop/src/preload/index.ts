@@ -63,6 +63,24 @@ const api: RacedashAPI = {
     ipcRenderer.on('racedash:render-error', handler)
     return () => ipcRenderer.removeListener('racedash:render-error', handler)
   },
+
+  onUpdateAvailable: (cb) => {
+    const handler = (_: IpcRendererEvent, info: { version: string }) => cb(info)
+    ipcRenderer.on('racedash:update-available', handler)
+    return () => ipcRenderer.removeListener('racedash:update-available', handler)
+  },
+  onUpdateDownloaded: (cb) => {
+    const handler = (_: IpcRendererEvent) => cb()
+    ipcRenderer.on('racedash:update-downloaded', handler)
+    return () => ipcRenderer.removeListener('racedash:update-downloaded', handler)
+  },
+  onUpdateError: (cb) => {
+    const handler = (_: IpcRendererEvent, err: { message: string }) => cb(err)
+    ipcRenderer.on('racedash:update-error', handler)
+    return () => ipcRenderer.removeListener('racedash:update-error', handler)
+  },
+  installUpdate: () =>
+    ipcRenderer.invoke('racedash:update-install'),
 }
 
 contextBridge.exposeInMainWorld('racedash', api)

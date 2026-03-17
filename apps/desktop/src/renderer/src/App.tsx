@@ -1,6 +1,7 @@
 import { ProjectLibrary } from '@/screens/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
 import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
+import { UpdateBanner } from '@/components/UpdateBanner'
 import React, { useState } from 'react'
 import type { ProjectData } from '../../types/project'
 
@@ -23,6 +24,7 @@ export function App(): React.ReactElement {
         className="relative flex h-9 w-full shrink-0 items-center justify-center"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
+        <UpdateBanner />
         <span className="text-xs font-medium text-white/40 select-none">RaceDash</span>
       </div>
 
