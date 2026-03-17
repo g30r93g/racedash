@@ -20,9 +20,11 @@ export function App(): React.ReactElement {
           Any interactive element placed inside this region must set
           style={{ WebkitAppRegion: 'no-drag' }} to remain clickable. */}
       <div
-        className="h-9 w-full shrink-0"
+        className="relative flex h-9 w-full shrink-0 items-center justify-center"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      />
+      >
+        <span className="text-xs font-medium text-white/40 select-none">RaceDash</span>
+      </div>
 
       {/* Screen content — fills remaining height */}
       <div className="relative flex flex-1 overflow-hidden">
