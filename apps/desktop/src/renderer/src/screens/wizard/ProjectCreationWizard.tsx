@@ -1,13 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react'
-import type { SegmentConfig, ProjectData } from '../../../../types/project'
 import { StepIndicator } from '@/components/app/StepIndicator'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { useEffect, useRef, useState } from 'react'
+import type { ProjectData, SegmentConfig } from '../../../../types/project'
 import { Step1Videos } from './steps/Step1Videos'
 import { Step2Segments } from './steps/Step2Segments'
 import { Step3Driver } from './steps/Step3Driver'
 import { Step4Verify } from './steps/Step4Verify'
 import { Step5Confirm } from './steps/Step5Confirm'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 export interface WizardState {
   videoPaths: string[]
@@ -100,7 +100,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   return (
     <Dialog open={true} onOpenChange={(open) => { if (!open) onCancel() }}>
       <DialogContent
-        className="flex w-[690px] flex-col gap-0 p-0"
+        className="flex w-172.5 flex-col gap-0 p-0"
         style={{ minHeight: '630px', maxHeight: '90vh' }}
       >
         <div className="shrink-0 border-b border-border px-8 py-6">
