@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import type { VideoInfo } from '../../../../types/ipc'
 import { VideoPane } from './VideoPane'
-import { TimelinePane } from './TimelinePane'
+import { Timeline } from '@/components/app/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 
 interface EditorProps {
@@ -29,7 +29,7 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
         <VideoPane videoPath={project.videoPaths[0]} />
-        <TimelinePane project={project} videoInfo={videoInfo} />
+        <Timeline project={project} videoInfo={videoInfo} />
       </div>
 
       {/* Right pane — tabbed panel */}
