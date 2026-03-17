@@ -1,4 +1,4 @@
-import { ipcMain, app, dialog, shell } from 'electron'
+import { ipcMain, app, dialog, shell, BrowserWindow } from 'electron'
 import type { WebContents } from 'electron'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -192,6 +192,45 @@ export async function deleteProjectHandler(projectPath: string): Promise<void> {
   await removeFromRegistry(projectPath)
   const projectDir = path.dirname(projectPath)
   await fs.promises.rm(projectDir, { recursive: true, force: true })
+}
+
+export async function relocateProjectHandler(oldProjectPath: string): Promise<ProjectData> {
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    filters: [{ name: 'RaceDash Project', extensions: ['json'] }],
+    properties: ['openFile'],
+  })
+
+  if (canceled || filePaths.length === 0) {
+    throw new Error('CANCELLED')
+  }
+
+  const newProjectPath = filePaths[0]
+
+  const raw = await fs.promises.readFile(newProjectPath, 'utf-8')
+  const parsed = JSON.parse(raw) as ProjectData
+  if (typeof parsed.name !== 'string') {
+    throw new Error('relocateProject: selected file is not a valid RaceDash project')
+  }
+
+  // Check not already registered under a different entry.
+  const current = await getRegistry()
+  if (newProjectPath !== oldProjectPath && current.includes(newProjectPath)) {
+    throw new Error('ALREADY_REGISTERED')
+  }
+
+  try {
+    await replaceInRegistry(oldProjectPath, newProjectPath)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'NOT_FOUND') {
+      await addToRegistry(newProjectPath)
+    } else {
+      throw err
+    }
+  }
+
+  const { missing: _stripped, ...data } = parsed as ProjectData & { missing?: unknown }
+  return { ...data, projectPath: newProjectPath }
 }
 
 export async function openProjectHandler(projectPath: string): Promise<ProjectData> {
@@ -566,6 +605,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:openProject', (_event, projectPath: string) => openProjectHandler(projectPath))
   ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
   ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
+  ipcMain.handle('racedash:relocateProject', (_event, oldProjectPath: string) => relocateProjectHandler(oldProjectPath))
   ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
   ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
