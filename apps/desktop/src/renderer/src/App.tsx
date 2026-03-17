@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
-import type { ProjectData } from '../../types/project'
 import { ProjectLibrary } from '@/screens/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
 import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
+import React, { useState } from 'react'
+import type { ProjectData } from '../../types/project'
 
 export function App(): React.ReactElement {
   const [project, setProject] = useState<ProjectData | null>(null)

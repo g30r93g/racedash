@@ -15,6 +15,8 @@ const LAP_COLOUR = '#3b82f6'
 const POSITION_DOT_COLOURS = ['#f97316', '#ef4444', '#22c55e', '#eab308']
 const ZOOM_LEVELS = [1, 2, 4, 8, 16]
 const TRACK_LABELS = ['VIDEO', 'SEGMENTS', 'LAPS', 'POSITION']
+// Half the playhead label width — gives the label room at t=0 and t=duration
+const TRACK_PADDING_PX = 16
 
 function formatRulerLabel(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -61,6 +63,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
   const zoom = ZOOM_LEVELS[zoomIdx]
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // pct/widthPct produce % values for positioning within the padded content area
   const pct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
   const widthPct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
 
@@ -81,17 +84,25 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     return allSpans
   }, [timestampsResult, project.segments, fps])
 
+  const gridLines = React.useMemo(() => {
+    const lines: { t: number; major: boolean }[] = []
+    for (let t = 5; t < duration; t += 5) {
+      lines.push({ t, major: t % 15 === 0 })
+    }
+    return lines
+  }, [duration])
+
   const ticks = rulerTicks(duration, zoom)
 
-  // Keep playhead in view as video plays
+  // Pixel position of the playhead within the scrollable area, accounting for padding
+  const playheadPx = (el: HTMLDivElement) =>
+    TRACK_PADDING_PX + (currentTime / duration) * (el.scrollWidth - 2 * TRACK_PADDING_PX)
+
+  // Keep playhead at 30% from the left while playing
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    const playheadPx = (currentTime / duration) * el.scrollWidth
-    const { scrollLeft, clientWidth } = el
-    if (playheadPx < scrollLeft || playheadPx > scrollLeft + clientWidth) {
-      el.scrollLeft = playheadPx - clientWidth / 2
-    }
+    el.scrollLeft = playheadPx(el) - el.clientWidth * 0.3
   }, [currentTime, duration])
 
   // When zoom changes, keep currentTime centered
@@ -99,7 +110,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     const el = scrollRef.current
     if (!el) return
     requestAnimationFrame(() => {
-      el.scrollLeft = (currentTime / duration) * el.scrollWidth - el.clientWidth / 2
+      el.scrollLeft = playheadPx(el) - el.clientWidth / 2
     })
   }, [zoom]) // intentionally excludes currentTime/duration — only re-center on zoom change
 
@@ -139,8 +150,16 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
 
         {/* Horizontally scrollable track content */}
         <div ref={scrollRef} className="relative flex-1 overflow-x-auto overflow-y-hidden">
-          {/* Wide content — zoom * 100% of the scroll viewport */}
-          <div className="flex h-full flex-col" style={{ width: `${zoom * 100}%`, minWidth: '100%' }}>
+          {/* Wide content — zoom * 100% of the scroll viewport, padded on each end */}
+          <div
+            className="flex h-full flex-col"
+            style={{
+              width: `${zoom * 100}%`,
+              minWidth: '100%',
+              paddingLeft: TRACK_PADDING_PX,
+              paddingRight: TRACK_PADDING_PX,
+            }}
+          >
             {/* Ruler */}
             <div className="relative h-5 shrink-0">
               {ticks.map((t) => (
@@ -153,6 +172,19 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
 
             {/* Track rows */}
             <div className="relative flex flex-1 flex-col gap-px overflow-hidden">
+              {/* Grid lines — behind all track content */}
+              {gridLines.map(({ t, major }) => (
+                <div
+                  key={t}
+                  className="pointer-events-none absolute inset-y-0"
+                  style={{
+                    left: pct(t),
+                    width: major ? 1.5 : 1,
+                    backgroundColor: major ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)',
+                  }}
+                />
+              ))}
+
               {/* VIDEO */}
               <div className="relative flex-1">
                 <div className="absolute inset-y-1 rounded-sm bg-[#3a3a3a]" style={{ left: '0%', width: '100%' }} />
