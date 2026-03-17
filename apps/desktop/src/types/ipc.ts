@@ -1,4 +1,5 @@
 import type { ProjectData, CreateProjectOpts, SegmentConfig } from './project'
+import type { SessionSegment, OverlayStyling } from '@racedash/core'
 
 // File dialog options
 export interface OpenFileOptions {
@@ -82,6 +83,8 @@ export interface TimestampsResult {
     replayData?: TimestampsResultReplayEntry[][]
   }>
   offsets: number[]
+  sessionSegments: SessionSegment[]          // pre-built by main process
+  startingGridPosition?: number              // grid position for race-start display
 }
 
 // Render (populated by Export tab sub-plan)
@@ -125,6 +128,7 @@ export interface RacedashAPI {
   renameProject(projectPath: string, name: string): Promise<ProjectData>
   readProjectConfig(configPath: string): Promise<Record<string, unknown>>
   updateProjectConfigOverrides(configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>): Promise<void>
+  saveStyleToConfig(configPath: string, overlayType: string, styling: OverlayStyling): Promise<void>
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>
