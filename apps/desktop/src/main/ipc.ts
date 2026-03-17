@@ -9,6 +9,7 @@ import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, Re
 import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
+import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -19,6 +20,9 @@ import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsVal
  * Uses execSync with a hardcoded string — no user input, no injection risk.
  */
 export function checkFfmpegImpl(): FfmpegStatus {
+  const bundledPath = getBundledToolPath('ffmpeg')
+  if (bundledPath) return { found: true, path: bundledPath }
+
   try {
     const lookupCommand = process.platform === 'win32' ? 'where.exe' : 'which'
     const raw = execFileSync(lookupCommand, ['ffmpeg']).toString().trim()
@@ -279,7 +283,7 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 export function getVideoInfo(videoPath: string): VideoInfo {
   let stdout: Buffer
   try {
-    stdout = execFileSync('ffprobe', [
+    stdout = execFileSync(resolveFfprobeCommand(), [
       '-v', 'quiet',
       '-print_format', 'json',
       '-show_streams',

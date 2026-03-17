@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as childProcess from 'node:child_process'
 
+vi.mock('../ffmpeg', () => ({
+  getBundledToolPath: vi.fn(() => null),
+  resolveFfprobeCommand: vi.fn(() => 'ffprobe'),
+}))
 vi.mock('@racedash/engine', () => ({
   joinVideos: vi.fn(),
   listDrivers: vi.fn(),
@@ -23,10 +27,24 @@ vi.mock('node:child_process', () => ({
 
 // We test the handler logic in isolation by importing the exported helper.
 import { checkFfmpegImpl } from '../ipc'
+import { getBundledToolPath } from '../ffmpeg'
+
+const mockGetBundledToolPath = vi.mocked(getBundledToolPath)
 
 describe('checkFfmpegImpl', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockGetBundledToolPath.mockReturnValue(null)
+  })
+
+  it('returns the bundled ffmpeg path when the packaged app ships one', () => {
+    mockGetBundledToolPath.mockReturnValue('/Applications/RaceDash.app/Contents/Resources/ffmpeg/ffmpeg')
+    const result = checkFfmpegImpl()
+    expect(result).toEqual({
+      found: true,
+      path: '/Applications/RaceDash.app/Contents/Resources/ffmpeg/ffmpeg',
+    })
+    expect(childProcess.execFileSync).not.toHaveBeenCalled()
   })
 
   it('returns found=true with path when ffmpeg is on PATH', () => {

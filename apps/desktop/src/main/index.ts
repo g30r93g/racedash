@@ -1,6 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import { configureBundledFfmpegPath } from './ffmpeg'
 import { registerIpcHandlers } from './ipc'
 import { registerUpdaterHandlers } from './updater'
 
@@ -44,6 +45,8 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  configureBundledFfmpegPath()
+
   const devIconPath = getDevIconPath()
   if (process.platform === 'darwin' && devIconPath) {
     app.dock?.setIcon(devIconPath)
