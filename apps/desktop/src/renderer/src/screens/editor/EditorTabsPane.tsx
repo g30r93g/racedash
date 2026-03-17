@@ -33,11 +33,17 @@ export function EditorTabsPane({ project, videoInfo, currentTime, onSave }: Edit
             <TabsTrigger
               key={id}
               value={id}
-              className="-mb-px rounded-none border-b-2 border-transparent px-5 py-3 text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              className="-mb-px cursor-pointer rounded-none border-b-2 border-transparent px-5 py-3 text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               {TAB_LABELS[id]}
             </TabsTrigger>
           ))}
+          <div className="ml-auto flex items-center px-2">
+            <Button size="sm" onClick={onSave}>
+              <Save className="mr-1.5 h-4 w-4" />
+              Save
+            </Button>
+          </div>
         </TabsList>
 
         <TabsContent value="timing" className="mt-0 flex-1 overflow-auto">
@@ -54,13 +60,7 @@ export function EditorTabsPane({ project, videoInfo, currentTime, onSave }: Edit
       {/* RaceDash Cloud footer — coming soon */}
       <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
         <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" disabled>Sign in</Button>
-          <Button size="sm" onClick={onSave}>
-            <Save className="mr-1.5 h-4 w-4" />
-            Save
-          </Button>
-        </div>
+        <Button variant="ghost" size="sm" disabled>Sign in</Button>
       </div>
     </div>
   )

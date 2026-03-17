@@ -36,6 +36,7 @@ interface LapSpan {
   label: string
   startSeconds: number
   endSeconds: number
+  fastest: boolean
 }
 
 interface PositionDot {
@@ -54,10 +55,12 @@ type RawSegment = {
 function deriveLapSpans(seg: RawSegment, offsetSeconds: number): LapSpan[] {
   if (!seg.selectedDriver) return []
   const laps = seg.selectedDriver.laps as RawLap[]
+  const fastestTime = Math.min(...laps.map(l => l.lapTime))
   return laps.map(lap => ({
     label: `L${lap.number}`,
     startSeconds: lap.cumulative - lap.lapTime + offsetSeconds,
     endSeconds: lap.cumulative + offsetSeconds,
+    fastest: lap.lapTime === fastestTime,
   }))
 }
 
@@ -240,7 +243,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                   segmentSpans.map((seg, i) => (
                     <div
                       key={i}
-                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm px-1 cursor-pointer hover:brightness-110 active:brightness-90"
+                      className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm px-1 cursor-pointer transition-[filter] duration-150 hover:brightness-110 active:brightness-90"
                       style={{
                         left: pct(seg.startSeconds),
                         width: widthPct(seg.endSeconds - seg.startSeconds),
@@ -262,11 +265,11 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                   lapSpans.map((lap, i) => (
                     <div
                       key={i}
-                      className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1 cursor-pointer hover:brightness-110 active:brightness-90"
+                      className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1 cursor-pointer transition-[filter] duration-150 hover:brightness-110 active:brightness-90"
                       style={{
                         left: pct(lap.startSeconds),
                         width: widthPct(lap.endSeconds - lap.startSeconds),
-                        backgroundColor: LAP_COLOUR,
+                        backgroundColor: lap.fastest ? 'var(--lap-fastest)' : LAP_COLOUR,
                       }}
                       onClick={() => onSeek?.(lap.startSeconds)}
                     >

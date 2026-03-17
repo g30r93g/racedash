@@ -1,4 +1,5 @@
 import React from 'react'
+import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -49,15 +50,16 @@ export function TimingTable({ rows, bestLapTimeMs, activeLapNumber, mode }: Timi
           return (
             <TableRow
               key={index}
-              className={
+              className={cn(
+                'transition-none hover:bg-inherit',
                 isActive
                   ? 'bg-[#3DD73D]/35 text-foreground'
                   : isFastestHighlight
                     ? 'bg-lap-fastest text-lap-fastest-foreground font-medium'
                     : isBest
                       ? 'text-foreground font-medium'
-                      : 'text-muted-foreground'
-              }
+                      : 'text-muted-foreground',
+              )}
             >
               <TableCell className="py-1">{row.lap}</TableCell>
               <TableCell className="py-1 font-medium">{timeDisplay}</TableCell>
