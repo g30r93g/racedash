@@ -16,18 +16,16 @@ export default defineConfig({
       alias: {
         '@': resolve(__dirname, 'src/renderer/src'),
         '@renderer': resolve(__dirname, '../renderer/src'),
+        // Resolve workspace packages to TypeScript source so Vite transforms them
+        // as ESM rather than serving their CJS dist via /@fs/ in both dev and
+        // production (avoids CJS named-export resolution failures in Rollup/browser).
+        '@racedash/core': resolve(__dirname, '../../packages/core/src/index.ts'),
+        '@racedash/timestamps': resolve(__dirname, '../../packages/timestamps/src/index.ts'),
       },
     },
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'src/renderer/index.html'),
-      },
-      // Extend commonjs transform to workspace packages (packages/**/dist/*.js).
-      // By default @rollup/plugin-commonjs only covers node_modules; workspace
-      // packages resolved via the @renderer alias are outside node_modules and
-      // would otherwise be treated as ESM, causing named-export resolution errors.
-      commonjsOptions: {
-        include: [/packages\//, /node_modules/],
       },
     },
     plugins: [react(), tailwindcss()],
