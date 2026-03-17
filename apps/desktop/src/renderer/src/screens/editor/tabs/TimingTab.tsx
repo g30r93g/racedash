@@ -184,7 +184,12 @@ export function TimingTab({ project, videoInfo, currentTime = 0 }: TimingTabProp
         {timingLoading && <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />}
         {timingError && <p className="text-xs text-destructive">{timingError}</p>}
         {!timingLoading && !timingError && lapRows.length > 0 && (
-          <TimingTable rows={lapRows} bestLapTimeMs={bestLapTime ?? undefined} activeLapNumber={activeLapNumber ?? undefined} />
+          <TimingTable
+            rows={lapRows}
+            bestLapTimeMs={bestLapTime ?? undefined}
+            activeLapNumber={activeLapNumber ?? undefined}
+            mode={(timestampsResult?.segments[activeSegment]?.config.mode as 'practice' | 'qualifying' | 'race') ?? undefined}
+          />
         )}
         {!timingLoading && !timingError && lapRows.length === 0 && (
           <p className="text-xs text-muted-foreground">No timing data available.</p>

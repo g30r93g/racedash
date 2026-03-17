@@ -205,7 +205,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
             {/* Ruler */}
             <div className="relative h-5 shrink-0">
               {ticks.map((t) => (
-                <div key={t} className="absolute bottom-0 flex flex-col items-center" style={{ left: pct(t) }}>
+                <div key={t} className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center" style={{ left: pct(t) }}>
                   <span className="text-[10px] text-muted-foreground">{formatRulerLabel(t)}</span>
                   <div className="h-1.5 w-px bg-border" />
                 </div>
@@ -297,7 +297,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
 
               {/* Playhead */}
               <div
-                className="pointer-events-none absolute inset-y-0 z-10 flex flex-col items-center"
+                className="pointer-events-none absolute inset-y-0 z-10 -translate-x-1/2 flex flex-col items-center"
                 style={{ left: pct(currentTime) }}
               >
                 <div className="rounded bg-primary px-1 py-px">

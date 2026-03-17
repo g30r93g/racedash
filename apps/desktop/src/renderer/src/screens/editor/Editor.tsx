@@ -10,7 +10,7 @@ interface EditorProps {
   onClose: () => void
 }
 
-export function Editor({ project, onClose: _onClose }: EditorProps): React.ReactElement {
+export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
@@ -38,6 +38,10 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
+  const handleSave = useCallback(() => {
+    videoPaneRef.current?.pause()
+    onClose()
+  }, [onClose])
 
   return (
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
@@ -55,7 +59,7 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} onSave={handleSave} />
       </div>
     </div>
   )

@@ -19,6 +19,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-lap-fastest: var(--lap-fastest);
+  --color-lap-fastest-foreground: var(--lap-fastest-foreground);
   --color-toggle-bg: var(--toggle-bg);
   --color-toggle-fg: var(--toggle-fg);
   --color-toggle-border: var(--toggle-border);
@@ -62,6 +64,8 @@
   --accent: #242424;
   --accent-foreground: #e8e8e8;
   --destructive: #ef4444;
+  --lap-fastest: #4c1d95;
+  --lap-fastest-foreground: #ede9fe;
   --toggle-bg: #1E1E1E;
   --toggle-fg: #888888;
   --toggle-border: #333333;
