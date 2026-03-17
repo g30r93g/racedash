@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import logoPath from '../../../../assets/logo.png'
 import React from 'react'
 
 export type LibraryTab = 'projects' | 'cloud-renders' | 'account'
@@ -31,17 +32,7 @@ export function AppSidebar({
       {/* Logo */}
       <div className="px-5 py-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path
-                d="M2.5 7L5.5 10L11.5 4"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          <img src={logoPath} alt="" aria-hidden="true" className="h-7 w-auto shrink-0" />
           <span className="text-sm font-bold text-white">RaceDash</span>
         </div>
         <div className="mt-4 h-px bg-white/10" />

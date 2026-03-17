@@ -9,12 +9,24 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } },
 ])
 
+app.setName('RaceDash')
+
+function getDevIconPath(): string | undefined {
+  if (app.isPackaged) return undefined
+
+  const iconPath = path.join(app.getAppPath(), 'src/assets/logo.png')
+  return fs.existsSync(iconPath) ? iconPath : undefined
+}
+
 function createWindow(): BrowserWindow {
+  const devIconPath = getDevIconPath()
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    icon: process.platform === 'darwin' ? undefined : devIconPath,
+    title: 'RaceDash',
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -32,6 +44,11 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  const devIconPath = getDevIconPath()
+  if (process.platform === 'darwin' && devIconPath) {
+    app.dock?.setIcon(devIconPath)
+  }
+
   // Serve local video files via media:// with proper range request handling.
   // net.fetch('file://') does not guarantee 206 Partial Content responses,
   // which the browser requires for seeking. We handle byte ranges manually.

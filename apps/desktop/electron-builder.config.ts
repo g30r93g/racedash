@@ -9,10 +9,12 @@ const config: Configuration = {
   },
   files: ['out/**/*'],
   mac: {
+    icon: 'build/icon.icns',
     target: [{ target: 'dmg', arch: ['universal'] }],
     category: 'public.app-category.video',
   },
   win: {
+    icon: 'build/icon.ico',
     target: [{ target: 'nsis', arch: ['x64'] }],
   },
   publish: {
