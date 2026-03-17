@@ -1,14 +1,3 @@
-import React, { useEffect, useRef, useState } from 'react'
-import type { ProjectData } from '../../../../types/project'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,13 +8,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EllipsisVertical } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import type { ProjectData } from '../../../../types/project'
 
 interface ProjectCardProps {
   project: ProjectData
@@ -41,6 +42,7 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState(project.name)
   const renameInputRef = useRef<HTMLInputElement>(null)
+  const contextMenuTriggerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (renameOpen) {
@@ -85,6 +87,25 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
     }
   }
 
+  function handleOpenContextMenu(event: React.MouseEvent<HTMLButtonElement>): void {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const trigger = contextMenuTriggerRef.current
+    if (!trigger) return
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    trigger.dispatchEvent(new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+      buttons: 2,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.bottom - rect.height / 2,
+      view: window,
+    }))
+  }
+
   const dateLabel = `Opened ${new Date().toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -101,47 +122,69 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
     <>
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          {view === 'tile' ? (
-            <button
-              className="group flex flex-col overflow-hidden rounded-lg border border-white/5 bg-[#1f1f1f] text-left transition-colors hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
-              onClick={handleClick}
-              disabled={loading}
-            >
-              <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
+          <div ref={contextMenuTriggerRef} className={view === 'tile' ? 'group relative' : 'group relative w-full'}>
+            {view === 'tile' ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-auto w-full flex-col items-stretch gap-0 overflow-hidden rounded-lg border border-white/5 bg-[#1f1f1f] p-0 text-left text-inherit whitespace-normal hover:border-white/20 hover:bg-[#1f1f1f] focus-visible:ring-blue-500 focus-visible:ring-offset-0 disabled:opacity-60"
+                onClick={handleClick}
+                disabled={loading}
+              >
+                <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
+                  {loading ? (
+                    <Skeleton className="h-full w-full rounded-none" />
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
+                      {playIcon}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5 px-3 py-2.5 pr-12">
+                  <p className="truncate text-sm font-medium text-white">{project.name}</p>
+                  <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
+                </div>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-auto w-full justify-start gap-3 rounded-lg border border-white/5 bg-[#1f1f1f] px-4 py-3 pr-12 text-left text-inherit whitespace-normal hover:border-white/20 hover:bg-[#1f1f1f] focus-visible:ring-blue-500 focus-visible:ring-offset-0 disabled:opacity-60"
+                onClick={handleClick}
+                disabled={loading}
+              >
                 {loading ? (
-                  <Skeleton className="h-full w-full rounded-none" />
+                  <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
                 ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
                     {playIcon}
                   </div>
                 )}
-              </div>
-              <div className="flex flex-col gap-0.5 px-3 py-2.5">
-                <p className="truncate text-sm font-medium text-white">{project.name}</p>
-                <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
-              </div>
-            </button>
-          ) : (
-            <button
-              className="group flex w-full items-center gap-3 rounded-lg border border-white/5 bg-[#1f1f1f] px-4 py-3 text-left transition-colors hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
-              onClick={handleClick}
-              disabled={loading}
-            >
-              {loading ? (
-                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
-              ) : (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
-                  {playIcon}
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium text-white">{project.name}</p>
+                  <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
                 </div>
-              )}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <p className="truncate text-sm font-medium text-white">{project.name}</p>
-                <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
-              </div>
-            </button>
-          )}
+              </Button>
+            )}
+            <div
+              className={view === 'tile'
+                ? 'pointer-events-none absolute right-0 bottom-0 flex h-14 w-16 items-end justify-end rounded-br-lg bg-gradient-to-l from-[#1f1f1f] via-[#1f1f1f] to-transparent pr-2 pb-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
+                : 'pointer-events-none absolute top-0 right-0 flex h-full w-16 items-center justify-end rounded-r-lg bg-gradient-to-l from-[#1f1f1f] via-[#1f1f1f] to-transparent pr-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'}
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="pointer-events-auto text-white/65 hover:bg-white/10 hover:text-white focus-visible:ring-blue-500 focus-visible:ring-offset-0"
+                aria-label={`Open actions for ${project.name}`}
+                onClick={handleOpenContextMenu}
+              >
+                <EllipsisVertical />
+              </Button>
+            </div>
+          </div>
         </ContextMenuTrigger>
-        <ContextMenuContent>
+        <ContextMenuContent className="border-white/5 bg-[#1f1f1f]">
           <ContextMenuItem onSelect={() => setRenameOpen(true)}>
             Rename
           </ContextMenuItem>
