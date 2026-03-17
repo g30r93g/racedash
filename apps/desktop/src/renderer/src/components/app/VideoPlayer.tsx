@@ -11,7 +11,7 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
         {videoPath ? (
           <video
             ref={ref}
-            src={`file://${videoPath}`}
+            src={`media://${videoPath}`}
             className="h-full w-full object-contain"
             muted
             preload="metadata"

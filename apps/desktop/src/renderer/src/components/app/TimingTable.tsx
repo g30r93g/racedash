@@ -39,12 +39,12 @@ export function TimingTable({ rows, bestLapTimeMs }: TimingTableProps): React.Re
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const isBest = bestLapTimeMs !== undefined && row.timeMs === bestLapTimeMs
           const timeDisplay = row.lapTimeLabel ?? formatLapTime(row.timeMs)
           return (
             <TableRow
-              key={row.lap}
+              key={index}
               className={isBest ? 'text-foreground font-medium' : 'text-muted-foreground'}
             >
               <TableCell className="py-1">{row.lap}</TableCell>
