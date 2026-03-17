@@ -1,4 +1,8 @@
 import React from 'react'
+import { Player, type PlayerRef } from '@remotion/player'
+import type { OverlayProps } from '@racedash/core'
+import type { OverlayType } from '@/screens/editor/tabs/OverlayPickerModal'
+import { registry } from '@renderer/registry'
 
 interface VideoPlayerProps {
   videoPath?: string
@@ -7,10 +11,13 @@ interface VideoPlayerProps {
   onPlay?: () => void
   onPause?: () => void
   onEnded?: () => void
+  overlayType?: OverlayType
+  overlayProps?: OverlayProps
+  playerRef?: React.RefObject<PlayerRef | null>
 }
 
 export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
-  function VideoPlayer({ videoPath, muted = false, onLoadedMetadata, onPlay, onPause, onEnded }, ref) {
+  function VideoPlayer({ videoPath, muted = false, onLoadedMetadata, onPlay, onPause, onEnded, overlayType, overlayProps, playerRef }, ref) {
     return (
       <div className="relative flex flex-1 items-center justify-center bg-[#0a0a0a]">
         {videoPath ? (
@@ -32,6 +39,20 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
             </svg>
             <span className="text-xs tracking-widest text-muted-foreground">NO VIDEO LOADED</span>
           </div>
+        )}
+        {overlayProps && overlayType && registry[overlayType] && (
+          <Player
+            ref={playerRef ?? undefined}
+            component={registry[overlayType].component}
+            compositionWidth={registry[overlayType].width}
+            compositionHeight={registry[overlayType].height}
+            durationInFrames={overlayProps.durationInFrames}
+            fps={overlayProps.fps}
+            inputProps={overlayProps as Record<string, unknown>}
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'transparent' }}
+            renderLoading={() => null}
+          />
         )}
       </div>
     )
