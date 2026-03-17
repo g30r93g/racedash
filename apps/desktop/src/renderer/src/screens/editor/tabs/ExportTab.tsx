@@ -46,6 +46,7 @@ function dirname(p: string): string {
 interface ExportTabProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
+  onRenderingChange?: (rendering: boolean) => void
 }
 
 interface LastRender {
@@ -54,7 +55,7 @@ interface LastRender {
   timestamp: Date
 }
 
-export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactElement {
+export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabProps): React.ReactElement {
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -75,8 +76,18 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
     if (dir) setOutputPath(`${dir}/output.mp4`)
   }
 
-  async function handleRender() {
+  function startRendering() {
     setRendering(true)
+    onRenderingChange?.(true)
+  }
+
+  function stopRendering() {
+    setRendering(false)
+    onRenderingChange?.(false)
+  }
+
+  async function handleRender() {
+    startRendering()
     setRenderPhase('Starting…')
     setRenderProgress(0)
     cleanupRef.current.forEach((fn) => fn())
@@ -90,7 +101,7 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
     )
     cleanupRef.current.push(
       window.racedash.onRenderComplete((result: RenderCompleteResult) => {
-        setRendering(false)
+        stopRendering()
         setLastRender({ status: 'completed', outputPath: result.outputPath, timestamp: new Date() })
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
@@ -98,7 +109,7 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
     )
     cleanupRef.current.push(
       window.racedash.onRenderError((err) => {
-        setRendering(false)
+        stopRendering()
         setLastRender({ status: 'error', outputPath, timestamp: new Date() })
         console.error('Render error:', err.message)
         cleanupRef.current.forEach((fn) => fn())
@@ -117,7 +128,7 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
         renderMode,
       })
     } catch (err) {
-      setRendering(false)
+      stopRendering()
       setLastRender({ status: 'error', outputPath, timestamp: new Date() })
       console.error('startRender threw:', err)
     }
@@ -158,13 +169,13 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
       {/* OUTPUT RESOLUTION */}
       <section>
         <SectionLabel>Output Resolution</SectionLabel>
-        <OptionGroup options={resolutionOptions} value={outputResolution} onValueChange={setOutputResolution} />
+        <OptionGroup options={resolutionOptions} value={outputResolution} onValueChange={setOutputResolution} disabled={rendering} />
       </section>
 
       {/* OUTPUT FRAME RATE */}
       <section>
         <SectionLabel>Output Frame Rate</SectionLabel>
-        <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} />
+        <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} disabled={rendering} />
       </section>
 
       {/* OUTPUT PATH */}
@@ -175,15 +186,16 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
             value={outputPath}
             onChange={(e) => setOutputPath(e.target.value)}
             className="min-w-0 flex-1 font-mono text-xs"
+            disabled={rendering}
           />
-          <Button variant="outline" size="sm" onClick={handleBrowse}>Browse</Button>
+          <Button variant="outline" size="sm" onClick={handleBrowse} disabled={rendering}>Browse</Button>
         </div>
       </section>
 
       {/* RENDER MODE */}
       <section>
         <SectionLabel>Render Mode</SectionLabel>
-        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} />
+        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} disabled={rendering} />
       </section>
 
       {/* RENDER BUTTON */}
@@ -195,6 +207,19 @@ export function ExportTab({ project, videoInfo }: ExportTabProps): React.ReactEl
             </svg>
             Render
           </Button>
+        ) : renderProgress === 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <svg className="animate-spin h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span>Starting render job</span>
+            </div>
+            <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
+              Cancel
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">

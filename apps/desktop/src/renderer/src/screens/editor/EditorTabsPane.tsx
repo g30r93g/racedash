@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Save } from 'lucide-react'
-import React from 'react'
+import React, { useState } from 'react'
 import type { VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
 import { ExportTab } from './tabs/ExportTab'
@@ -28,6 +28,8 @@ const TAB_LABELS: Record<TabId, string> = {
 }
 
 export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange }: EditorTabsPaneProps): React.ReactElement {
+  const [rendering, setRendering] = useState(false)
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <Tabs defaultValue="timing" className="flex flex-1 flex-col overflow-hidden">
@@ -36,13 +38,14 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
             <TabsTrigger
               key={id}
               value={id}
-              className="-mb-px cursor-pointer rounded-none border-b-2 border-transparent px-5 py-3 text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              disabled={rendering}
+              className="-mb-px cursor-pointer rounded-none border-b-2 border-transparent px-5 py-3 text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none disabled:pointer-events-none disabled:opacity-50"
             >
               {TAB_LABELS[id]}
             </TabsTrigger>
           ))}
           <div className="ml-auto flex items-center px-2">
-            <Button size="sm" onClick={onSave}>
+            <Button size="sm" onClick={onSave} disabled={rendering}>
               <Save className="mr-1.5 h-4 w-4" />
               Save
             </Button>
@@ -56,7 +59,7 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
           <StyleTab />
         </TabsContent>
         <TabsContent value="export" className="mt-0 flex-1 overflow-auto">
-          <ExportTab project={project} videoInfo={videoInfo} />
+          <ExportTab project={project} videoInfo={videoInfo} onRenderingChange={setRendering} />
         </TabsContent>
       </Tabs>
 

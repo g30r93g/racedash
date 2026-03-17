@@ -10,9 +10,10 @@ interface OptionGroupProps<T extends string> {
   options: OptionGroupOption<T>[]
   value: T
   onValueChange: (value: T) => void
+  disabled?: boolean
 }
 
-export function OptionGroup<T extends string>({ options, value, onValueChange }: OptionGroupProps<T>) {
+export function OptionGroup<T extends string>({ options, value, onValueChange, disabled }: OptionGroupProps<T>) {
   return (
     <ToggleGroup
       type="single"
@@ -24,7 +25,7 @@ export function OptionGroup<T extends string>({ options, value, onValueChange }:
         <ToggleGroupItem
           key={o.value}
           value={o.value}
-          disabled={o.disabled}
+          disabled={disabled || o.disabled}
           className="rounded-lg border border-toggle-border bg-toggle-bg px-3 py-1 text-xs text-toggle-fg data-[state=on]:border-toggle-border-active data-[state=on]:bg-toggle-bg-active data-[state=on]:text-toggle-fg-active disabled:border-toggle-border-disabled disabled:bg-toggle-bg-disabled disabled:text-toggle-fg-disabled"
         >
           {o.label}
