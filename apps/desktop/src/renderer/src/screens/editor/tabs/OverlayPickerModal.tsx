@@ -105,7 +105,7 @@ export function OverlayPickerModal({ open, onOpenChange, current, onApply }: Ove
 
   useEffect(() => {
     if (open) setSelected(current)
-  }, [open]) // current intentionally omitted — only reset on re-open
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps -- current intentionally omitted, only reset on re-open
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

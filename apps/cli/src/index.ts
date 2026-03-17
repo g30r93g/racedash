@@ -3,9 +3,9 @@ import { program } from 'commander'
 import path from 'node:path'
 import type { BoxPosition, CornerPosition } from '@racedash/core'
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
+  // DEFAULT_FADE_DURATION_SECONDS, // TODO: use in upcoming fade config scheme
+  // DEFAULT_FADE_ENABLED, // TODO: use in upcoming fade config scheme
+  // DEFAULT_FADE_PRE_ROLL_SECONDS, // TODO: use in upcoming fade config scheme
   DEFAULT_LABEL_WINDOW_SECONDS,
 } from '@racedash/core'
 import { resolveVideoFiles } from './select'

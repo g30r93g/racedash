@@ -187,7 +187,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     const el = scrollRef.current
     if (!el) return
     el.scrollLeft = playheadPx(el) - el.clientWidth * 0.3
-  }, [currentTime, duration])
+  }, [currentTime, duration]) // eslint-disable-line react-hooks/exhaustive-deps -- playheadPx closes over currentTime/duration already in deps
 
   // When zoom changes, keep currentTime centered
   useEffect(() => {
@@ -196,7 +196,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     requestAnimationFrame(() => {
       el.scrollLeft = playheadPx(el) - el.clientWidth / 2
     })
-  }, [zoom]) // intentionally excludes currentTime/duration — only re-center on zoom change
+  }, [zoom]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally excludes currentTime/duration, only re-centre on zoom change
 
   return (
     <div className="flex h-45 shrink-0 flex-col border-t border-border bg-background" style={{ fontSize: 11 }}>

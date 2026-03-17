@@ -4,9 +4,6 @@ import {
   FileUploadDropzone,
   FileUploadTrigger,
   FileUploadList,
-  FileUploadItem,
-  FileUploadItemMetadata,
-  FileUploadItemDelete,
   FileUploadClear,
 } from '@/components/ui/file-upload'
 import { UploadIcon } from 'lucide-react'

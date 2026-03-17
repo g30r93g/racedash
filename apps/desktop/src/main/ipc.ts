@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, JoinVideosResult, DriversResult } from '../types/ipc'
+import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots } from '@racedash/engine'
 

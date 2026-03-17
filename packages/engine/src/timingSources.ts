@@ -2,8 +2,6 @@ import * as cheerio from 'cheerio'
 import path from 'node:path'
 import { readFile } from 'node:fs/promises'
 import type {
-  BoxPosition,
-  CornerPosition,
   Lap,
   LapTimestamp,
   LeaderboardDriver,
@@ -23,7 +21,7 @@ import {
   parseGrid,
   parseReplayLapData,
 } from '@racedash/scraper'
-import type { DriverRow, GridEntry, ReplayLapData, ReplayLapEntry } from '@racedash/scraper'
+import type { DriverRow, GridEntry, ReplayLapData } from '@racedash/scraper'
 import { parseOffset } from '@racedash/timestamps'
 
 export type TimingSource = 'alphaTiming' | 'teamsportEmail' | 'daytonaEmail' | 'mylapsSpeedhive' | 'manual'
