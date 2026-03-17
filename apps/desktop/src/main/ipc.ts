@@ -6,9 +6,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
-import type { OverlayStyling } from '@racedash/core'
+import type { OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -454,6 +454,27 @@ export async function previewTimestampsImpl(
 }
 
 // ---------------------------------------------------------------------------
+// generateTimestampsHandler — extends engine result with session segments
+// ---------------------------------------------------------------------------
+
+// Local type for the extended handler return — avoids `as never` and keeps TS honest
+type GenerateTimestampsHandlerResult = Awaited<ReturnType<typeof generateTimestamps>> & {
+  sessionSegments: SessionSegment[]
+  startingGridPosition?: number
+}
+
+export async function generateTimestampsHandler(
+  opts: { configPath: string; fps?: number },
+): Promise<GenerateTimestampsHandlerResult> {
+  const result = await generateTimestamps(opts)
+  const { segments: sessionSegments, startingGridPosition } = buildSessionSegments(
+    result.segments,
+    result.offsets,
+  )
+  return { ...result, sessionSegments, startingGridPosition }
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -526,7 +547,7 @@ export function registerIpcHandlers(): void {
     listDrivers(opts)
   )
   ipcMain.handle('racedash:generateTimestamps', (_event, opts: { configPath: string; fps?: number }) =>
-    generateTimestamps(opts)
+    generateTimestampsHandler(opts)
   )
 
   // Export — getVideoInfo (synchronous, uses execFileSync)
