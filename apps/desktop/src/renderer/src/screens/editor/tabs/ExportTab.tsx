@@ -13,6 +13,7 @@ import type {
   VideoInfo,
 } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
+import type { OverlayType } from './OverlayPickerModal'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ interface ExportTabProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
   onRenderingChange?: (rendering: boolean) => void
+  overlayType: OverlayType
 }
 
 interface LastRender {
@@ -55,7 +57,7 @@ interface LastRender {
   timestamp: Date
 }
 
-export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabProps): React.ReactElement {
+export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }: ExportTabProps): React.ReactElement {
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -127,7 +129,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
         configPath: project.configPath,
         videoPaths: project.videoPaths,
         outputPath,
-        style: 'banner', // TODO: derive from StyleTab state once lifted to parent
+        style: overlayType,
         outputResolution,
         outputFrameRate,
         renderMode,
