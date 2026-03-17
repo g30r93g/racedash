@@ -34,6 +34,9 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
   const [timingError, setTimingError] = useState<string | null>(null)
 
   useEffect(() => {
+    // videoInfo===null means still loading; wait for fps before calling generateTimestamps
+    // so frame-based offsets (e.g. "5568 F") can be converted correctly.
+    if (videoInfo === null) return
     let cancelled = false
     setTimingLoading(true)
     setTimingError(null)
@@ -43,7 +46,7 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
       .catch((err) => { if (!cancelled) setTimingError(err instanceof Error ? err.message : String(err)) })
       .finally(() => { if (!cancelled) setTimingLoading(false) })
     return () => { cancelled = true }
-  }, [activeSegment, project.configPath, videoInfo?.fps])
+  }, [activeSegment, project.configPath, videoInfo])
 
   const lapRows = React.useMemo<LapRow[]>(() => {
     if (!timestampsResult) return []
