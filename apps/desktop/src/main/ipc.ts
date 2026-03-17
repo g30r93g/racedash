@@ -88,7 +88,11 @@ export async function renameProjectHandler(projectPath: string, name: string): P
   }
   const raw = fs.readFileSync(projectPath, 'utf-8') as string
   const project = JSON.parse(raw) as ProjectData
-  const updated: ProjectData = { ...project, name: name.trim() }
+  const updated: ProjectData = {
+    ...project,
+    name: name.trim(),
+    configPath: project.configPath ?? path.join(path.dirname(projectPath), 'config.json'),
+  }
   fs.writeFileSync(projectPath, JSON.stringify(updated, null, 2), 'utf-8')
   return updated
 }
@@ -112,7 +116,12 @@ export async function openProjectHandler(projectPath: string): Promise<ProjectDa
     throw new Error('openProject: path must point to a project.json file')
   }
   const raw = fs.readFileSync(projectPath, 'utf-8') as string
-  return JSON.parse(raw) as ProjectData
+  const project = JSON.parse(raw) as ProjectData
+  // Older project.json files may not have configPath — derive it from the project directory.
+  if (!project.configPath) {
+    project.configPath = path.join(path.dirname(projectPath), 'config.json')
+  }
+  return project
 }
 
 export async function handleCreateProject(opts: CreateProjectOpts): Promise<ProjectData> {
