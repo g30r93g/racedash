@@ -11,6 +11,7 @@ interface VideoPaneProps {
 export function VideoPane({ videoPath, fps = 60, onTimeUpdate }: VideoPaneProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
+  const [muted, setMuted] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
@@ -47,6 +48,7 @@ export function VideoPane({ videoPath, fps = 60, onTimeUpdate }: VideoPaneProps)
       <VideoPlayer
         ref={videoRef}
         videoPath={videoPath}
+        muted={muted}
         onLoadedMetadata={setDuration}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
@@ -57,9 +59,11 @@ export function VideoPane({ videoPath, fps = 60, onTimeUpdate }: VideoPaneProps)
         currentTime={currentTime}
         fps={fps}
         playing={playing}
+        muted={muted}
         onPlay={handlePlay}
         onPause={handlePause}
         onSeek={handleSeek}
+        onMuteToggle={() => setMuted((m) => !m)}
       />
     </div>
   )
