@@ -8,6 +8,7 @@ import { TimingTable } from '@/components/app/TimingTable'
 import type { LapRow } from '@/components/app/TimingTable'
 import { DriverPickerModal } from '@/components/app/DriverPickerModal'
 import { OptionGroup } from '@/components/ui/option-group'
+import { Spinner } from '@/components/loaders/Spinner'
 
 
 interface TimingTabProps {
@@ -110,7 +111,7 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
           </div>
         )}
 
-        {timingLoading && <p className="text-xs text-muted-foreground">Loading timing data…</p>}
+        {timingLoading && <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />}
         {timingError && <p className="text-xs text-destructive">{timingError}</p>}
         {!timingLoading && !timingError && lapRows.length > 0 && (
           <TimingTable rows={lapRows} bestLapTimeMs={bestLapTime ?? undefined} />
