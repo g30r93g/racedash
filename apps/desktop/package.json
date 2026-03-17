@@ -12,7 +12,7 @@
     "dist": "electron-vite build && electron-builder --config electron-builder.config.ts",
     "prebuild": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
     "pretest": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --pool forks --passWithNoTests"
   },
   "dependencies": {
     "@racedash/core": "workspace:*",

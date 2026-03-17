@@ -1,6 +1,6 @@
 import { ipcMain, app, dialog, shell } from 'electron'
 import type { WebContents } from 'electron'
-import { execSync, execFileSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -20,8 +20,10 @@ import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsVal
  */
 export function checkFfmpegImpl(): FfmpegStatus {
   try {
-    const raw = execSync('which ffmpeg').toString().trim()
-    return { found: true, path: raw }
+    const lookupCommand = process.platform === 'win32' ? 'where.exe' : 'which'
+    const raw = execFileSync(lookupCommand, ['ffmpeg']).toString().trim()
+    const resolvedPath = raw.split(/\r?\n/)[0]?.trim()
+    return resolvedPath ? { found: true, path: resolvedPath } : { found: false }
   } catch {
     return { found: false }
   }
