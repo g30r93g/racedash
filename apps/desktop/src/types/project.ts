@@ -43,6 +43,8 @@ export interface ProjectData {
   videoPaths: string[]
   segments: SegmentConfig[]
   selectedDriver: string
+  /** Runtime-only flag set by listProjectsHandler when the project.json cannot be found on disk. Never written to disk. */
+  missing?: true
 }
 
 export interface CreateProjectOpts {
