@@ -12,7 +12,6 @@ interface TimelineProps {
 
 const SEGMENT_COLOURS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444']
 const LAP_COLOUR = '#3b82f6'
-const POSITION_DOT_COLOURS = ['#f97316', '#ef4444', '#22c55e', '#eab308']
 const ZOOM_LEVELS = [1, 2, 4, 8, 16]
 const TRACK_LABELS = ['VIDEO', 'SEGMENTS', 'LAPS', 'POSITION']
 // Half the playhead label width — gives the label room at t=0 and t=duration
@@ -38,22 +37,54 @@ interface LapSpan {
   endSeconds: number
 }
 
-function deriveLapSpans(
-  timestampsResult: TimestampsResult,
-  segmentIndex: number,
-  videoOffsetSeconds: number,
-): LapSpan[] {
-  const seg = timestampsResult.segments[segmentIndex]
-  if (!seg?.selectedDriver) return []
-  const laps = seg.selectedDriver.laps as Array<{ timeMs: number }>
-  const spans: LapSpan[] = []
-  let cursor = videoOffsetSeconds
-  for (let i = 0; i < laps.length; i++) {
-    const lapSeconds = laps[i].timeMs / 1000
-    spans.push({ label: `L${i + 1}`, startSeconds: cursor, endSeconds: cursor + lapSeconds })
-    cursor += lapSeconds
+interface PositionDot {
+  videoSeconds: number
+  position: number
+}
+
+type RawLap = { number: number; lapTime: number; cumulative: number }
+type RawReplayEntry = { kart: string; position: number; totalSeconds: number | null }
+type RawSegment = {
+  selectedDriver?: { kart: string; name: string; laps: unknown[] }
+  replayData?: RawReplayEntry[][]
+  capabilities?: Record<string, boolean>
+}
+
+function deriveLapSpans(seg: RawSegment, offsetSeconds: number): LapSpan[] {
+  if (!seg.selectedDriver) return []
+  const laps = seg.selectedDriver.laps as RawLap[]
+  return laps.map(lap => ({
+    label: `L${lap.number}`,
+    startSeconds: lap.cumulative - lap.lapTime + offsetSeconds,
+    endSeconds: lap.cumulative + offsetSeconds,
+  }))
+}
+
+function derivePositionDots(seg: RawSegment, offsetSeconds: number): PositionDot[] {
+  if (!seg.selectedDriver || !seg.replayData) return []
+  const { replayData, selectedDriver } = seg
+  const dots: PositionDot[] = []
+  let prevPosition: number | null = null
+  for (let i = 1; i < replayData.length; i++) {
+    const snapshot = replayData[i]
+    const p1 = snapshot.find(e => e.position === 1)
+    if (!p1 || p1.totalSeconds === null) continue
+    const videoSeconds = offsetSeconds + p1.totalSeconds
+    const entry = snapshot.find(e => e.kart === selectedDriver.kart)
+    if (!entry) continue
+    if (entry.position !== prevPosition) {
+      dots.push({ videoSeconds, position: entry.position })
+      prevPosition = entry.position
+    }
   }
-  return spans
+  return dots
+}
+
+function positionDotColor(position: number): string {
+  if (position === 1) return '#eab308'
+  if (position === 2) return '#94a3b8'
+  if (position === 3) return '#b45309'
+  return '#6b7280'
 }
 
 export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult }: TimelineProps): React.ReactElement {
@@ -77,12 +108,22 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
   const lapSpans: LapSpan[] = React.useMemo(() => {
     if (!timestampsResult) return []
     const allSpans: LapSpan[] = []
-    project.segments.forEach((seg, i) => {
-      const videoOffsetSeconds = (seg.videoOffsetFrame ?? 0) / fps
-      allSpans.push(...deriveLapSpans(timestampsResult, i, videoOffsetSeconds))
+    timestampsResult.segments.forEach((seg, i) => {
+      const offsetSeconds = timestampsResult.offsets[i] ?? 0
+      allSpans.push(...deriveLapSpans(seg as RawSegment, offsetSeconds))
     })
     return allSpans
-  }, [timestampsResult, project.segments, fps])
+  }, [timestampsResult])
+
+  const positionDots: PositionDot[] = React.useMemo(() => {
+    if (!timestampsResult) return []
+    const allDots: PositionDot[] = []
+    timestampsResult.segments.forEach((seg, i) => {
+      const offsetSeconds = timestampsResult.offsets[i] ?? 0
+      allDots.push(...derivePositionDots(seg as RawSegment, offsetSeconds))
+    })
+    return allDots
+  }, [timestampsResult])
 
   const gridLines = React.useMemo(() => {
     const lines: { t: number; major: boolean }[] = []
@@ -234,16 +275,20 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
 
               {/* POSITION */}
               <div className="relative flex-1">
-                {POSITION_DOT_COLOURS.map((colour, i) => (
-                  <div
-                    key={i}
-                    className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full"
-                    style={{
-                      left: pct((duration / (POSITION_DOT_COLOURS.length + 1)) * (i + 1)),
-                      backgroundColor: colour,
-                    }}
-                  />
-                ))}
+                {positionDots.length === 0 ? (
+                  <div className="absolute inset-y-2 left-0 right-0 rounded-sm border border-dashed border-border" />
+                ) : (
+                  positionDots.map((dot, i) => (
+                    <div
+                      key={i}
+                      className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                      style={{
+                        left: pct(dot.videoSeconds),
+                        backgroundColor: positionDotColor(dot.position),
+                      }}
+                    />
+                  ))
+                )}
               </div>
 
               {/* Playhead */}
