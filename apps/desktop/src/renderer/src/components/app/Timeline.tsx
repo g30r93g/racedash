@@ -44,6 +44,8 @@ interface LapSpan {
 interface PositionDot {
   videoSeconds: number
   position: number
+  direction: 'up' | 'down' | null
+  kind: 'replay' | 'override'
 }
 
 type RawLap = { number: number; lapTime: number; cumulative: number }
@@ -66,10 +68,10 @@ function deriveLapSpans(seg: RawSegment, offsetSeconds: number): LapSpan[] {
   }))
 }
 
-function derivePositionDots(seg: RawSegment, offsetSeconds: number): PositionDot[] {
+function derivePositionDots(seg: RawSegment, offsetSeconds: number): Omit<PositionDot, 'direction'>[] {
   if (!seg.selectedDriver || !seg.replayData) return []
   const { replayData, selectedDriver } = seg
-  const dots: PositionDot[] = []
+  const dots: Omit<PositionDot, 'direction'>[] = []
   let prevPosition: number | null = null
   for (let i = 1; i < replayData.length; i++) {
     const snapshot = replayData[i]
@@ -79,17 +81,16 @@ function derivePositionDots(seg: RawSegment, offsetSeconds: number): PositionDot
     const entry = snapshot.find(e => e.kart === selectedDriver.kart)
     if (!entry) continue
     if (entry.position !== prevPosition) {
-      dots.push({ videoSeconds, position: entry.position })
+      dots.push({ videoSeconds, position: entry.position, kind: 'replay' })
       prevPosition = entry.position
     }
   }
   return dots
 }
 
-function positionDotColor(position: number): string {
-  if (position === 1) return '#eab308'
-  if (position === 2) return '#94a3b8'
-  if (position === 3) return '#b45309'
+function positionDotColor(direction: 'up' | 'down' | null): string {
+  if (direction === 'up') return '#22c55e'
+  if (direction === 'down') return '#ef4444'
   return '#6b7280'
 }
 
@@ -121,27 +122,51 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     return allSpans
   }, [timestampsResult])
 
-  const overrideDots: PositionDot[] = React.useMemo(() => {
-    return overrides.flatMap((o) => {
+  const rawReplayDots = React.useMemo(() => {
+    if (!timestampsResult) return []
+    const all: Omit<PositionDot, 'direction'>[] = []
+    timestampsResult.segments.forEach((seg, i) => {
+      const offsetSeconds = timestampsResult.offsets[i] ?? 0
+      all.push(...derivePositionDots(seg as RawSegment, offsetSeconds))
+    })
+    return all
+  }, [timestampsResult])
+
+  const { positionDots, overrideDots } = React.useMemo(() => {
+    // Parse overrides into raw dots
+    const rawOverrides: Omit<PositionDot, 'direction'>[] = overrides.flatMap((o) => {
       const frameMatch = o.timecode.match(/^(\d+)\s*F$/i)
       const videoSeconds = frameMatch ? parseInt(frameMatch[1], 10) / fps : null
       if (videoSeconds === null) return []
       const posMatch = o.position.match(/^P?(\d+)$/i)
       const position = posMatch ? parseInt(posMatch[1], 10) : null
       if (position === null) return []
-      return [{ videoSeconds, position }]
+      return [{ videoSeconds, position, kind: 'override' as const }]
     })
-  }, [overrides, fps])
 
-  const positionDots: PositionDot[] = React.useMemo(() => {
-    if (!timestampsResult) return []
-    const allDots: PositionDot[] = []
-    timestampsResult.segments.forEach((seg, i) => {
-      const offsetSeconds = timestampsResult.offsets[i] ?? 0
-      allDots.push(...derivePositionDots(seg as RawSegment, offsetSeconds))
+    // Derive grid (Lap 0) position as the direction seed
+    let gridPosition: number | null = null
+    for (const seg of (timestampsResult?.segments ?? [])) {
+      const s = seg as RawSegment
+      if (!s.selectedDriver || !s.replayData?.[0]) continue
+      const entry = s.replayData[0].find(e => e.kart === s.selectedDriver!.kart)
+      if (entry) { gridPosition = entry.position; break }
+    }
+
+    // Merge, sort by time, compute direction across the unified sequence
+    const merged = [...rawReplayDots, ...rawOverrides].sort((a, b) => a.videoSeconds - b.videoSeconds)
+    let prev: number | null = gridPosition
+    const withDirection: PositionDot[] = merged.map((dot) => {
+      const direction = prev == null ? null : dot.position < prev ? 'up' : dot.position > prev ? 'down' : null
+      prev = dot.position
+      return { ...dot, direction }
     })
-    return allDots
-  }, [timestampsResult])
+
+    return {
+      positionDots: withDirection.filter(d => d.kind === 'replay'),
+      overrideDots: withDirection.filter(d => d.kind === 'override'),
+    }
+  }, [rawReplayDots, overrides, fps, timestampsResult])
 
   const gridLines = React.useMemo(() => {
     const lines: { t: number; major: boolean }[] = []
@@ -305,7 +330,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                         className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer hover:scale-125 active:scale-110 transition-transform"
                         style={{
                           left: pct(dot.videoSeconds),
-                          backgroundColor: positionDotColor(dot.position),
+                          backgroundColor: positionDotColor(dot.direction),
                         }}
                         onClick={() => onSeek?.(dot.videoSeconds)}
                       />
@@ -316,7 +341,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                         className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 cursor-pointer hover:scale-125 active:scale-110 transition-transform"
                         style={{
                           left: pct(dot.videoSeconds),
-                          backgroundColor: positionDotColor(dot.position),
+                          backgroundColor: positionDotColor(dot.direction),
                         }}
                         onClick={() => onSeek?.(dot.videoSeconds)}
                       />
