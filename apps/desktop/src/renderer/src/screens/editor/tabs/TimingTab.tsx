@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ interface TimingTabProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
   currentTime?: number
+  playing?: boolean
 }
 
 interface Override {
@@ -23,7 +24,7 @@ interface Override {
   position: string
 }
 
-export function TimingTab({ project, videoInfo, currentTime = 0 }: TimingTabProps): React.ReactElement {
+export function TimingTab({ project, videoInfo, currentTime = 0, playing = false }: TimingTabProps): React.ReactElement {
   // ── Driver ──────────────────────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = useState(project.selectedDriver)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
@@ -34,6 +35,37 @@ export function TimingTab({ project, videoInfo, currentTime = 0 }: TimingTabProp
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
   const [timingError, setTimingError] = useState<string | null>(null)
+
+  // Auto-switch segment on boundary crossings and when playback starts.
+  // While within the same segment the user may switch freely to compare.
+  const playheadSegmentRef = useRef<number | null>(null)
+
+  const getPlayheadSegment = useCallback(() => {
+    if (!timestampsResult || timestampsResult.offsets.length <= 1) return null
+    const { offsets } = timestampsResult
+    let seg = 0
+    for (let i = 0; i < offsets.length; i++) {
+      if (currentTime >= offsets[i]) seg = i
+    }
+    return seg
+  }, [currentTime, timestampsResult])
+
+  // Snap to playhead segment when crossing a boundary
+  useEffect(() => {
+    const seg = getPlayheadSegment()
+    if (seg === null) return
+    if (seg !== playheadSegmentRef.current) {
+      playheadSegmentRef.current = seg
+      setActiveSegment(seg)
+    }
+  }, [getPlayheadSegment])
+
+  // Snap to playhead segment when playback starts
+  useEffect(() => {
+    if (!playing) return
+    const seg = getPlayheadSegment()
+    if (seg !== null) setActiveSegment(seg)
+  }, [playing, getPlayheadSegment])
 
   useEffect(() => {
     // videoInfo===null means still loading; wait for fps before calling generateTimestamps
@@ -48,7 +80,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0 }: TimingTabProp
       .catch((err) => { if (!cancelled) setTimingError(err instanceof Error ? err.message : String(err)) })
       .finally(() => { if (!cancelled) setTimingLoading(false) })
     return () => { cancelled = true }
-  }, [activeSegment, project.configPath, videoInfo])
+  }, [project.configPath, videoInfo])
 
   const lapRows = React.useMemo<LapRow[]>(() => {
     if (!timestampsResult) return []

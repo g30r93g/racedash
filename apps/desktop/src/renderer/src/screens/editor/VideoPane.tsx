@@ -11,10 +11,11 @@ interface VideoPaneProps {
   videoPath?: string
   fps?: number
   onTimeUpdate?: (currentTime: number) => void
+  onPlayingChange?: (playing: boolean) => void
 }
 
 export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(
-  function VideoPane({ videoPath, fps = 60, onTimeUpdate }, ref) {
+  function VideoPane({ videoPath, fps = 60, onTimeUpdate, onPlayingChange }, ref) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const [playing, setPlaying] = useState(false)
     const [muted, setMuted] = useState(false)
@@ -58,9 +59,9 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(
           videoPath={videoPath}
           muted={muted}
           onLoadedMetadata={setDuration}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onEnded={() => setPlaying(false)}
+          onPlay={() => { setPlaying(true); onPlayingChange?.(true) }}
+          onPause={() => { setPlaying(false); onPlayingChange?.(false) }}
+          onEnded={() => { setPlaying(false); onPlayingChange?.(false) }}
         />
         <VideoPlaybackControls
           duration={duration}

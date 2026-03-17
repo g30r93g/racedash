@@ -12,6 +12,7 @@ interface EditorTabsPaneProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
   currentTime?: number
+  playing?: boolean
   onSave?: () => void
 }
 
@@ -24,7 +25,7 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime, onSave }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave }: EditorTabsPaneProps): React.ReactElement {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <Tabs defaultValue="timing" className="flex flex-1 flex-col overflow-hidden">
@@ -47,7 +48,7 @@ export function EditorTabsPane({ project, videoInfo, currentTime, onSave }: Edit
         </TabsList>
 
         <TabsContent value="timing" className="mt-0 flex-1 overflow-auto">
-          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} />
+          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} />
         </TabsContent>
         <TabsContent value="style" className="mt-0 flex-1 overflow-auto">
           <StyleTab />

@@ -35,6 +35,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [project.configPath, videoInfo])
 
+  const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
@@ -47,7 +48,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
-        <VideoPane ref={videoPaneRef} videoPath={project.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} />
+        <VideoPane ref={videoPaneRef} videoPath={project.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} onPlayingChange={setPlaying} />
         <Timeline
           project={project}
           videoInfo={videoInfo}
@@ -59,7 +60,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} onSave={handleSave} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} />
       </div>
     </div>
   )

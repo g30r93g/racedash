@@ -52,10 +52,11 @@ export function TimingTable({ rows, bestLapTimeMs, activeLapNumber, mode }: Timi
               key={index}
               className={cn(
                 'transition-none hover:bg-inherit',
-                isActive
-                  ? 'bg-[#3DD73D]/35 text-foreground'
-                  : isFastestHighlight
-                    ? 'bg-lap-fastest text-lap-fastest-foreground font-medium'
+                isFastestHighlight && 'border-l-2 border-l-[#3DD73D]',
+                isFastestHighlight
+                  ? 'bg-lap-fastest text-lap-fastest-foreground font-medium'
+                  : isActive
+                    ? 'bg-[#3DD73D]/35 text-foreground'
                     : isBest
                       ? 'text-foreground font-medium'
                       : 'text-muted-foreground',
