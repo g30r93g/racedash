@@ -31,6 +31,10 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
       .finally(() => setLoading(false))
   }, [])
 
+  function handleLocate(oldProjectPath: string, updated: ProjectData) {
+    setProjects((prev) => prev.map((p) => p.projectPath === oldProjectPath ? updated : p))
+  }
+
   return (
     <div className="flex h-full max-h-[650px] w-full max-w-[1050px] overflow-hidden rounded-xl bg-[#1c1c1c] shadow-2xl">
       <AppSidebar
@@ -91,6 +95,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                           onOpen={onOpen}
                           onDelete={(deleted) => setProjects((prev) => prev.filter((p) => p.projectPath !== deleted.projectPath))}
                           onRename={(updated) => setProjects((prev) => prev.map((p) => p.projectPath === updated.projectPath ? updated : p))}
+                          onLocate={handleLocate}
                         />
                       ))}
                     </div>

@@ -34,9 +34,10 @@ interface ProjectCardProps {
   onOpen: (project: ProjectData) => void
   onDelete: (project: ProjectData) => void
   onRename: (updated: ProjectData) => void
+  onLocate?: (oldProjectPath: string, updated: ProjectData) => void
 }
 
-export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename }: ProjectCardProps): React.ReactElement {
+export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename, onLocate }: ProjectCardProps): React.ReactElement {
   const [loading, setLoading] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
@@ -110,6 +111,28 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
     }
   }, [project.videoPaths])
 
+  const [locateError, setLocateError] = useState<string | null>(null)
+  const [locating, setLocating] = useState(false)
+
+  async function handleLocate(): Promise<void> {
+    setLocateError(null)
+    setLocating(true)
+    try {
+      const updated = await window.racedash.relocateProject(project.projectPath)
+      onLocate?.(project.projectPath, updated)
+    } catch (err) {
+      if (err instanceof Error && err.message === 'CANCELLED') {
+        // no-op
+      } else if (err instanceof Error && err.message === 'ALREADY_REGISTERED') {
+        setLocateError('This project is already in your library')
+      } else {
+        setLocateError(err instanceof Error ? err.message : 'Failed to locate project')
+      }
+    } finally {
+      setLocating(false)
+    }
+  }
+
   async function handleClick(): Promise<void> {
     if (loading) return
     setLoading(true)
@@ -170,6 +193,55 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
     month: 'short',
     year: 'numeric',
   })}`
+
+  if (project.missing) {
+    return (
+      <>
+        {view === 'tile' ? (
+          <div className="flex h-auto w-full flex-col items-stretch gap-0 overflow-hidden rounded-lg border border-red-500 bg-[#1f1f1f]">
+            <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
+              <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium uppercase tracking-wide text-red-400">
+                Missing
+              </span>
+            </div>
+            <div className="flex flex-col gap-1 px-3 py-2.5">
+              <p className="truncate text-sm font-medium text-white/60">{project.name}</p>
+              {locateError && <p className="text-[11px] text-red-400">{locateError}</p>}
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-1 w-full border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300"
+                onClick={handleLocate}
+                disabled={locating}
+              >
+                {locating ? 'Locating…' : 'Locate…'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-auto w-full items-center gap-3 rounded-lg border border-red-500 bg-[#1f1f1f] px-4 py-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
+              <span className="text-[10px] font-bold text-red-400">!</span>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <p className="truncate text-sm font-medium text-white/60">{project.name}</p>
+              <p className="text-[11px] text-red-400">Missing</p>
+              {locateError && <p className="text-[11px] text-red-400">{locateError}</p>}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300"
+              onClick={handleLocate}
+              disabled={locating}
+            >
+              {locating ? 'Locating…' : 'Locate…'}
+            </Button>
+          </div>
+        )}
+      </>
+    )
+  }
 
   return (
     <>
