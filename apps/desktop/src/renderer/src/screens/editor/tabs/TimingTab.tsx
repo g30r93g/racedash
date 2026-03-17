@@ -101,7 +101,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
     const isSelected = (d: { kart: string; name: string }) =>
       selectedKart ? d.kart === selectedKart : d.name === selectedName
 
-    return laps.map((lap, lapIndex) => {
+    const lapRowItems = laps.map((lap, lapIndex) => {
       const timeMs = lap.lapTime * 1000
       let position: number | null = null
 
@@ -142,9 +142,22 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
 
       return { lap: lap.number, timeMs, position }
     })
+
+    if (mode === 'race') {
+      let gridPosition: number | null = null
+      if (hasSnapshots && seg.replayData) {
+        for (const snapshot of seg.replayData) {
+          const entry = snapshot.find(e => e.kart === selectedKart && e.lapsCompleted === 0)
+          if (entry) { gridPosition = entry.position; break }
+        }
+      }
+      lapRowItems.unshift({ lap: 0, timeMs: 0, position: gridPosition, lapTimeLabel: '—' })
+    }
+
+    return lapRowItems
   }, [timestampsResult, activeSegment])
 
-  const bestLapTime = lapRows.length > 0 ? Math.min(...lapRows.map((l) => l.timeMs)) : null
+  const bestLapTime = lapRows.length > 0 ? Math.min(...lapRows.filter((l) => l.lap > 0).map((l) => l.timeMs)) : null
 
   const activeLapNumber = React.useMemo<number | null>(() => {
     if (!timestampsResult) return null

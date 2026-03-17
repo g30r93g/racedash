@@ -1,5 +1,3 @@
-import React from 'react'
-import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -8,6 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import React from 'react'
 
 function formatLapTime(ms: number): string {
   const totalMs = Math.round(ms)
@@ -47,6 +47,13 @@ export function TimingTable({ rows, bestLapTimeMs, activeLapNumber, mode }: Timi
           const isFastestHighlight = isBest && mode !== 'race'
           const isActive = activeLapNumber !== undefined && row.lap === activeLapNumber
           const timeDisplay = row.lapTimeLabel ?? formatLapTime(row.timeMs)
+
+          const prevPosition = index > 0 ? rows[index - 1].position : null
+          const positionDelta =
+            mode === 'race' && row.lap > 0 && row.position != null && prevPosition != null
+              ? prevPosition - row.position
+              : null
+
           return (
             <TableRow
               key={index}
@@ -62,9 +69,23 @@ export function TimingTable({ rows, bestLapTimeMs, activeLapNumber, mode }: Timi
                       : 'text-muted-foreground',
               )}
             >
-              <TableCell className="py-1">{row.lap}</TableCell>
+              <TableCell className="py-1">{row.lap === 0 ? 'Grid' : row.lap}</TableCell>
               <TableCell className="py-1 font-medium">{timeDisplay}</TableCell>
-              <TableCell className="py-1">{row.position != null ? `P${row.position}` : '—'}</TableCell>
+              <TableCell className="py-1">
+                {row.position != null ? (
+                  <span className="flex items-center gap-2">
+                    <span>{`P${row.position}`}</span>
+                    {positionDelta !== null && positionDelta !== 0 && (
+                      <span className={cn(
+                        'text-[10px] font-bold',
+                        positionDelta > 0 ? 'text-green-500' : 'text-red-500',
+                      )}>
+                        {positionDelta > 0 ? `+${positionDelta}` : `${positionDelta}`}
+                      </span>
+                    )}
+                  </span>
+                ) : '—'}
+              </TableCell>
             </TableRow>
           )
         })}
