@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { JumpToDialog } from './JumpToDialog'
 
 interface VideoPlaybackControlsProps {
   duration: number
@@ -31,6 +32,8 @@ export function VideoPlaybackControls({
   onSeek,
 }: VideoPlaybackControlsProps): React.ReactElement {
   const frame = Math.floor(currentTime * fps)
+  const [jumpOpen, setJumpOpen] = useState(false)
+
   return (
     <TooltipProvider>
       <div className="flex items-center gap-3 border-t border-border bg-background px-3 py-2">
@@ -68,10 +71,23 @@ export function VideoPlaybackControls({
           aria-label="Playback position"
         />
 
-        <span className="shrink-0 font-mono text-xs text-muted-foreground">
+        <Button
+          variant="ghost"
+          className="h-7 shrink-0 px-2 font-mono text-xs text-muted-foreground"
+          onClick={() => setJumpOpen(true)}
+        >
           {frame} F &bull; {formatTimecode(currentTime)}
-        </span>
+        </Button>
       </div>
+
+      <JumpToDialog
+        open={jumpOpen}
+        onOpenChange={setJumpOpen}
+        currentTime={currentTime}
+        fps={fps}
+        duration={duration}
+        onSeek={onSeek}
+      />
     </TooltipProvider>
   )
 }
