@@ -12,6 +12,10 @@ vi.mock('node:fs', () => ({
     statSync: vi.fn(),
     copyFileSync: vi.fn(),
     unlinkSync: vi.fn(),
+    promises: {
+      copyFile: vi.fn().mockResolvedValue(undefined),
+      unlink: vi.fn().mockResolvedValue(undefined),
+    },
   },
   existsSync: vi.fn().mockReturnValue(false),
   mkdirSync: vi.fn(),
@@ -21,6 +25,10 @@ vi.mock('node:fs', () => ({
   statSync: vi.fn(),
   copyFileSync: vi.fn(),
   unlinkSync: vi.fn(),
+  promises: {
+    copyFile: vi.fn().mockResolvedValue(undefined),
+    unlink: vi.fn().mockResolvedValue(undefined),
+  },
 }))
 
 vi.mock('electron', () => ({
@@ -65,7 +73,7 @@ describe('handleCreateProject', () => {
   it('copies the joined video into <saveDir>/video.mp4', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    expect(vi.mocked(fs.copyFileSync)).toHaveBeenCalledWith(
+    expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
       baseOpts.joinedVideoPath,
       path.join(expectedDir, 'video.mp4')
     )
@@ -73,19 +81,19 @@ describe('handleCreateProject', () => {
 
   it('deletes the joined video if it is a temp file (in os.tmpdir())', async () => {
     await handleCreateProject(baseOpts)
-    expect(vi.mocked(fs.unlinkSync)).toHaveBeenCalledWith(baseOpts.joinedVideoPath)
+    expect(vi.mocked(fs.promises.unlink)).toHaveBeenCalledWith(baseOpts.joinedVideoPath)
   })
 
   it('does not delete the joined video if it is not a temp file', async () => {
     const opts = { ...baseOpts, joinedVideoPath: '/Users/testuser/Videos/chapter1.mp4' }
     await handleCreateProject(opts)
-    expect(vi.mocked(fs.unlinkSync)).not.toHaveBeenCalled()
+    expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalled()
   })
 
   it('writes project.json with videoPaths pointing to the copied video', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
     const written = JSON.parse(writtenJson)
     expect(written.videoPaths).toEqual([path.join(expectedDir, 'video.mp4')])
   })
@@ -93,7 +101,7 @@ describe('handleCreateProject', () => {
   it('writes project.json with correct fields', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
     const written = JSON.parse(writtenJson)
     expect(written).toMatchObject({
       name: 'My Race',
@@ -126,7 +134,7 @@ describe('handleCreateProject', () => {
       segments: [{ label: 'Race', source: 'mylapsSpeedhive' as const, eventId: '12345', session: 'race' as const, videoOffsetFrame: 150 }],
     }
     await handleCreateProject(opts)
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
     const written = JSON.parse(writtenJson)
     expect(written.segments[0].videoOffsetFrame).toBe(150)
     expect(written.segments[0].eventId).toBe('12345')

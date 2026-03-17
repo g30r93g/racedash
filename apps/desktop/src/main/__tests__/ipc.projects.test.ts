@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import fs from 'node:fs'
+import path from 'node:path'
 
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
@@ -11,11 +12,12 @@ vi.mock('electron', () => ({
 import { listProjectsHandler, openProjectHandler } from '../ipc'
 
 const FAKE_HOME = '/Users/testuser'
-const FAKE_RACEDASH_DIR = `${FAKE_HOME}/Videos/racedash`
+const FAKE_RACEDASH_DIR = path.join(FAKE_HOME, 'Videos', 'racedash')
 
 const SAMPLE_PROJECT = {
   name: 'Test Race',
-  projectPath: `${FAKE_RACEDASH_DIR}/test-race/project.json`,
+  projectPath: path.join(FAKE_RACEDASH_DIR, 'test-race', 'project.json'),
+  configPath: path.join(FAKE_RACEDASH_DIR, 'test-race', 'config.json'),
   videoPaths: ['/path/to/video.mp4'],
   segments: [],
   selectedDriver: 'G. Gorzynski',
@@ -45,7 +47,7 @@ describe('listProjectsHandler', () => {
 
   it('returns a parsed ProjectData when a valid project.json is found', async () => {
     vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
-      return p === FAKE_RACEDASH_DIR || p === `${FAKE_RACEDASH_DIR}/test-race/project.json`
+      return p === FAKE_RACEDASH_DIR || p === path.join(FAKE_RACEDASH_DIR, 'test-race', 'project.json')
     })
     vi.spyOn(fs, 'readdirSync').mockReturnValue(['test-race'] as unknown as fs.Dirent[])
     vi.spyOn(fs, 'statSync').mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats)
@@ -59,7 +61,7 @@ describe('listProjectsHandler', () => {
 
   it('skips entries that fail to parse as JSON', async () => {
     vi.spyOn(fs, 'existsSync').mockImplementation((p) => {
-      return p === FAKE_RACEDASH_DIR || p === `${FAKE_RACEDASH_DIR}/bad-project/project.json`
+      return p === FAKE_RACEDASH_DIR || p === path.join(FAKE_RACEDASH_DIR, 'bad-project', 'project.json')
     })
     vi.spyOn(fs, 'readdirSync').mockReturnValue(['bad-project'] as unknown as fs.Dirent[])
     vi.spyOn(fs, 'statSync').mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats)
