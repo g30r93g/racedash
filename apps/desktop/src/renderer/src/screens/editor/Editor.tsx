@@ -1,14 +1,47 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline } from '@/components/app/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
+import type { StyleState } from './tabs/StyleTab'
+import type { OverlayProps } from '@racedash/core'
 
 function parsePositionString(pos: string): number {
   return parseInt(pos.replace(/^P/i, ''), 10)
 }
+
+// ── Style history reducer ────────────────────────────────────────────────────
+
+interface StyleHistoryState {
+  history: StyleState[]
+  cursor: number
+}
+
+type StyleHistoryAction =
+  | { type: 'change'; next: StyleState }
+  | { type: 'init'; initial: StyleState }
+  | { type: 'undo' }
+  | { type: 'redo' }
+
+function styleHistoryReducer(state: StyleHistoryState, action: StyleHistoryAction): StyleHistoryState {
+  switch (action.type) {
+    case 'init':
+      return { history: [action.initial], cursor: 0 }
+    case 'change': {
+      const base = state.history.slice(0, state.cursor + 1)
+      const newHistory = [...base, action.next].slice(-50)
+      return { history: newHistory, cursor: Math.min(state.cursor + 1, 49) }
+    }
+    case 'undo':
+      return { ...state, cursor: Math.max(state.cursor - 1, 0) }
+    case 'redo':
+      return { ...state, cursor: Math.min(state.cursor + 1, state.history.length - 1) }
+  }
+}
+
+const DEFAULT_STYLE_STATE: StyleState = { overlayType: 'banner', styling: {} }
 
 interface EditorProps {
   project: ProjectData
@@ -39,6 +72,45 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         console.warn('[Editor] generateTimestamps failed:', err)
       })
   }, [project.configPath, videoInfo])
+
+  // ── Style state + undo/redo history ─────────────────────────────────────────
+  const [styleHistoryState, dispatchStyle] = useReducer(styleHistoryReducer, {
+    history: [DEFAULT_STYLE_STATE],
+    cursor: 0,
+  })
+  const styleState = styleHistoryState.history[styleHistoryState.cursor]
+  const canUndo = styleHistoryState.cursor > 0
+  const canRedo = styleHistoryState.cursor < styleHistoryState.history.length - 1
+
+  // Load initial style from config.json on mount
+  useEffect(() => {
+    window.racedash.readProjectConfig(project.configPath).then((config) => {
+      const overlayType = (config.overlayType as StyleState['overlayType']) ?? 'banner'
+      const styling = (config.styling as StyleState['styling']) ?? {}
+      dispatchStyle({ type: 'init', initial: { overlayType, styling } })
+    }).catch(() => { /* no style saved yet — defaults are fine */ })
+  }, [project.configPath])
+
+  const handleStyleChange = useCallback((next: StyleState) => {
+    dispatchStyle({ type: 'change', next })
+    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling)
+      .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig failed:', err) })
+  }, [project.configPath])
+
+  const handleUndo = useCallback(() => { dispatchStyle({ type: 'undo' }) }, [])
+  const handleRedo = useCallback(() => { dispatchStyle({ type: 'redo' }) }, [])
+
+  // Keyboard undo/redo
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo() }
+      if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); handleRedo() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [handleUndo, handleRedo])
 
   const [overrides, setOverrides] = useState<Override[]>([])
   const overridesInitialisedRef = useRef(false)
@@ -84,11 +156,24 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     onClose()
   }, [onClose])
 
+  const overlayProps = useMemo<OverlayProps | undefined>(() => {
+    if (!timestampsResult || !videoInfo) return undefined
+    return {
+      segments: timestampsResult.sessionSegments,
+      startingGridPosition: timestampsResult.startingGridPosition,
+      fps: videoInfo.fps,
+      durationInFrames: Math.ceil(videoInfo.durationSeconds * videoInfo.fps),
+      videoWidth: videoInfo.width,
+      videoHeight: videoInfo.height,
+      styling: styleState.styling,
+    }
+  }, [timestampsResult, videoInfo, styleState.styling])
+
   return (
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
-        <VideoPane ref={videoPaneRef} videoPath={project.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} onPlayingChange={setPlaying} />
+        <VideoPane ref={videoPaneRef} videoPath={project.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} onPlayingChange={setPlaying} overlayType={styleState.overlayType} overlayProps={overlayProps} />
         <Timeline
           project={project}
           videoInfo={videoInfo}
@@ -101,7 +186,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} overrides={overrides} onOverridesChange={setOverrides} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} overrides={overrides} onOverridesChange={setOverrides} styleState={styleState} onStyleChange={handleStyleChange} onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo} />
       </div>
     </div>
   )

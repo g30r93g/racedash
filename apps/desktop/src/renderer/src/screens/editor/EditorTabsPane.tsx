@@ -6,6 +6,7 @@ import type { VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
 import { ExportTab } from './tabs/ExportTab'
 import { StyleTab } from './tabs/StyleTab'
+import type { StyleState } from './tabs/StyleTab'
 import { TimingTab, type Override } from './tabs/TimingTab'
 
 interface EditorTabsPaneProps {
@@ -16,6 +17,12 @@ interface EditorTabsPaneProps {
   onSave?: () => void
   overrides: Override[]
   onOverridesChange: (overrides: Override[]) => void
+  styleState: StyleState
+  onStyleChange: (next: StyleState) => void
+  onUndo: () => void
+  onRedo: () => void
+  canUndo: boolean
+  canRedo: boolean
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -27,7 +34,7 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange, styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo }: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('timing')
 
@@ -57,10 +64,10 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
           <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} overrides={overrides} onOverridesChange={onOverridesChange} />
         </TabsContent>
         <TabsContent value="style" className="mt-0 flex-1 overflow-auto">
-          <StyleTab />
+          <StyleTab styleState={styleState} onStyleChange={onStyleChange} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} />
         </TabsContent>
         <TabsContent value="export" className="mt-0 flex-1 overflow-auto">
-          <ExportTab project={project} videoInfo={videoInfo} onRenderingChange={setRendering} />
+          <ExportTab project={project} videoInfo={videoInfo} onRenderingChange={setRendering} overlayType={styleState.overlayType} />
         </TabsContent>
       </Tabs>
 
