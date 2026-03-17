@@ -6,8 +6,11 @@ import { ProjectCard } from '@/components/app/ProjectCard'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LayoutGrid, Rows4 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import type { ProjectData } from '../../../types/project'
+
+type ProjectView = 'tile' | 'list'
 
 interface ProjectLibraryProps {
   onOpen: (project: ProjectData) => void
@@ -18,6 +21,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   const [projects, setProjects] = useState<ProjectData[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<LibraryTab>('projects')
+  const [view, setView] = useState<ProjectView>('tile')
 
   useEffect(() => {
     window.racedash
@@ -41,17 +45,43 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
               <>
                 <div className="mb-6 flex shrink-0 items-center justify-between">
                   <h1 className="text-lg font-semibold text-white">Projects</h1>
-                  <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
-                    + New RaceDash Project
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-md border border-white/10 p-0.5">
+                      <button
+                        onClick={() => setView('tile')}
+                        className={`rounded p-1.5 transition-colors ${view === 'tile' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                        aria-label="Tile view"
+                      >
+                        <LayoutGrid size={14} />
+                      </button>
+                      <button
+                        onClick={() => setView('list')}
+                        className={`rounded p-1.5 transition-colors ${view === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                        aria-label="List view"
+                      >
+                        <Rows4 size={14} />
+                      </button>
+                    </div>
+                    <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
+                      + New RaceDash Project
+                    </Button>
+                  </div>
                 </div>
                 <ScrollArea className="flex-1">
                   {loading ? (
-                    <div className="grid grid-cols-3 gap-4">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-[158px] rounded-lg" />
-                      ))}
-                    </div>
+                    view === 'tile' ? (
+                      <div className="grid grid-cols-3 gap-4">
+                        {[1, 2, 3].map((i) => (
+                          <Skeleton key={i} className="h-[158px] rounded-lg" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {[1, 2, 3].map((i) => (
+                          <Skeleton key={i} className="h-14 rounded-lg" />
+                        ))}
+                      </div>
+                    )
                   ) : projects.length === 0 ? (
                     <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
                       <p className="text-sm text-white/40">No projects yet. Create your first project.</p>
@@ -60,11 +90,12 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className={view === 'tile' ? 'grid grid-cols-3 gap-4' : 'flex flex-col gap-2'}>
                       {projects.map((project) => (
                         <ProjectCard
                           key={project.projectPath}
                           project={project}
+                          view={view}
                           onOpen={onOpen}
                           onDelete={(deleted) => setProjects((prev) => prev.filter((p) => p.projectPath !== deleted.projectPath))}
                           onRename={(updated) => setProjects((prev) => prev.map((p) => p.projectPath === updated.projectPath ? updated : p))}

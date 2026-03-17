@@ -29,12 +29,13 @@ import {
 
 interface ProjectCardProps {
   project: ProjectData
+  view?: 'tile' | 'list'
   onOpen: (project: ProjectData) => void
   onDelete: (project: ProjectData) => void
   onRename: (updated: ProjectData) => void
 }
 
-export function ProjectCard({ project, onOpen, onDelete, onRename }: ProjectCardProps): React.ReactElement {
+export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename }: ProjectCardProps): React.ReactElement {
   const [loading, setLoading] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
@@ -90,31 +91,55 @@ export function ProjectCard({ project, onOpen, onDelete, onRename }: ProjectCard
     year: 'numeric',
   })}`
 
+  const playIcon = (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M5.5 3.5L12.5 8L5.5 12.5V3.5Z" fill="white" fillOpacity="0.7" />
+    </svg>
+  )
+
   return (
     <>
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <button
-            className="group flex flex-col overflow-hidden rounded-lg border border-white/5 bg-[#1f1f1f] text-left transition-colors hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
-            onClick={handleClick}
-            disabled={loading}
-          >
-            <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
+          {view === 'tile' ? (
+            <button
+              className="group flex flex-col overflow-hidden rounded-lg border border-white/5 bg-[#1f1f1f] text-left transition-colors hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
+              onClick={handleClick}
+              disabled={loading}
+            >
+              <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
+                {loading ? (
+                  <Skeleton className="h-full w-full rounded-none" />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
+                    {playIcon}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-0.5 px-3 py-2.5">
+                <p className="truncate text-sm font-medium text-white">{project.name}</p>
+                <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
+              </div>
+            </button>
+          ) : (
+            <button
+              className="group flex w-full items-center gap-3 rounded-lg border border-white/5 bg-[#1f1f1f] px-4 py-3 text-left transition-colors hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
+              onClick={handleClick}
+              disabled={loading}
+            >
               {loading ? (
-                <Skeleton className="h-full w-full rounded-none" />
+                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M5.5 3.5L12.5 8L5.5 12.5V3.5Z" fill="white" fillOpacity="0.7" />
-                  </svg>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 group-hover:bg-white/15">
+                  {playIcon}
                 </div>
               )}
-            </div>
-            <div className="flex flex-col gap-0.5 px-3 py-2.5">
-              <p className="truncate text-sm font-medium text-white">{project.name}</p>
-              <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
-            </div>
-          </button>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p className="truncate text-sm font-medium text-white">{project.name}</p>
+                <p className="truncate text-[11px] text-white/40">{dateLabel}</p>
+              </div>
+            </button>
+          )}
         </ContextMenuTrigger>
         <ContextMenuContent>
           <ContextMenuItem onSelect={() => setRenameOpen(true)}>
