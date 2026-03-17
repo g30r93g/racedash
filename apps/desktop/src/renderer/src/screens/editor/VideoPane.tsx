@@ -22,7 +22,7 @@ interface VideoPaneProps {
 export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(
   function VideoPane({ videoPath, fps = 60, onTimeUpdate, onPlayingChange, overlayType, overlayProps }, ref) {
     const videoRef = useRef<HTMLVideoElement>(null)
-    const playerRef = useRef<PlayerRef | null>(null)
+    const playerRef = useRef<PlayerRef>(null)
     const [playing, setPlaying] = useState(false)
     const [muted, setMuted] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)

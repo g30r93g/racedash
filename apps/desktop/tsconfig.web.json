@@ -16,7 +16,10 @@
     "outDir": "out",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/renderer/src/*"]
+      "@/*": ["src/renderer/src/*"],
+      "@renderer/*": ["../../apps/renderer/src/*"],
+      "@racedash/core": ["../../packages/core/src/index.ts"],
+      "@racedash/timestamps": ["../../packages/timestamps/src/index.ts"]
     }
   },
   "include": [

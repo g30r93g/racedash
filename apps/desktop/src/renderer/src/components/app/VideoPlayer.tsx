@@ -13,13 +13,87 @@ interface VideoPlayerProps {
   onEnded?: () => void
   overlayType?: OverlayType
   overlayProps?: OverlayProps
-  playerRef?: React.RefObject<PlayerRef | null>
+  playerRef?: React.RefObject<PlayerRef>
+}
+
+interface Size {
+  width: number
+  height: number
 }
 
 export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
   function VideoPlayer({ videoPath, muted = false, onLoadedMetadata, onPlay, onPause, onEnded, overlayType, overlayProps, playerRef }, ref) {
+    const containerRef = React.useRef<HTMLDivElement>(null)
+    const [containerSize, setContainerSize] = React.useState<Size | null>(null)
+
+    React.useLayoutEffect(() => {
+      const node = containerRef.current
+      if (!node) return
+
+      const updateSize = () => {
+        const rect = node.getBoundingClientRect()
+        if (rect.width === 0 || rect.height === 0) {
+          setContainerSize(null)
+          return
+        }
+
+        setContainerSize((prev) => {
+          if (prev?.width === rect.width && prev.height === rect.height) {
+            return prev
+          }
+
+          return { width: rect.width, height: rect.height }
+        })
+      }
+
+      updateSize()
+
+      if (typeof ResizeObserver === 'undefined') {
+        return
+      }
+
+      const observer = new ResizeObserver(() => updateSize())
+      observer.observe(node)
+      return () => observer.disconnect()
+    }, [])
+
+    const overlayLayout = React.useMemo(() => {
+      if (!overlayProps || !overlayType || !containerSize) return null
+
+      const entry = registry[overlayType]
+      if (!entry) return null
+
+      const referenceVideoWidth = overlayProps.videoWidth ?? entry.width
+      const referenceVideoHeight = overlayProps.videoHeight ?? entry.height
+      if (referenceVideoWidth <= 0 || referenceVideoHeight <= 0) return null
+
+      const videoScale = Math.min(
+        containerSize.width / referenceVideoWidth,
+        containerSize.height / referenceVideoHeight,
+      )
+
+      const displayedVideoWidth = referenceVideoWidth * videoScale
+      const displayedVideoHeight = referenceVideoHeight * videoScale
+      const effectiveCompositionWidth = entry.scaleWithVideo
+        ? referenceVideoWidth
+        : entry.width
+      const effectiveCompositionHeight = entry.scaleWithVideo
+        ? entry.height * (effectiveCompositionWidth / entry.width)
+        : entry.height
+      const overlayScale = displayedVideoWidth / referenceVideoWidth
+
+      return {
+        compositionWidth: effectiveCompositionWidth,
+        compositionHeight: effectiveCompositionHeight,
+        left: (containerSize.width - displayedVideoWidth) / 2 + entry.overlayX * overlayScale,
+        top: (containerSize.height - displayedVideoHeight) / 2 + entry.overlayY * overlayScale,
+        width: effectiveCompositionWidth * overlayScale,
+        height: effectiveCompositionHeight * overlayScale,
+      }
+    }, [containerSize, overlayProps, overlayType])
+
     return (
-      <div className="relative flex flex-1 items-center justify-center bg-[#0a0a0a]">
+      <div ref={containerRef} className="relative flex flex-1 items-center justify-center bg-[#0a0a0a]">
         {videoPath ? (
           <video
             ref={ref}
@@ -40,19 +114,35 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
             <span className="text-xs tracking-widest text-muted-foreground">NO VIDEO LOADED</span>
           </div>
         )}
-        {overlayProps && overlayType && registry[overlayType] && (
-          <Player
-            ref={playerRef ?? undefined}
-            component={registry[overlayType].component}
-            compositionWidth={registry[overlayType].width}
-            compositionHeight={registry[overlayType].height}
-            durationInFrames={overlayProps.durationInFrames}
-            fps={overlayProps.fps}
-            inputProps={overlayProps as Record<string, unknown>}
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'transparent' }}
-            renderLoading={() => null}
-          />
+        {overlayProps && overlayType && registry[overlayType] && overlayLayout && (
+          <div
+            className="pointer-events-none absolute"
+            style={{
+              left: overlayLayout.left,
+              top: overlayLayout.top,
+              width: overlayLayout.width,
+              height: overlayLayout.height,
+            }}
+          >
+            <Player
+              ref={playerRef ?? undefined}
+              component={registry[overlayType].component}
+              compositionWidth={overlayLayout.compositionWidth}
+              compositionHeight={overlayLayout.compositionHeight}
+              durationInFrames={overlayProps.durationInFrames}
+              fps={overlayProps.fps}
+              inputProps={overlayProps as unknown as Record<string, unknown>}
+              className="pointer-events-none"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                background: 'transparent',
+              }}
+              renderLoading={() => null}
+            />
+          </div>
         )}
       </div>
     )
