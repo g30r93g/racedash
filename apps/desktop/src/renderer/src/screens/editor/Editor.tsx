@@ -55,7 +55,7 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} />
       </div>
     </div>
   )

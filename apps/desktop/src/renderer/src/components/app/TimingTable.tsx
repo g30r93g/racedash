@@ -26,9 +26,10 @@ export interface LapRow {
 interface TimingTableProps {
   rows: LapRow[]
   bestLapTimeMs?: number
+  activeLapNumber?: number
 }
 
-export function TimingTable({ rows, bestLapTimeMs }: TimingTableProps): React.ReactElement {
+export function TimingTable({ rows, bestLapTimeMs, activeLapNumber }: TimingTableProps): React.ReactElement {
   return (
     <Table>
       <TableHeader>
@@ -41,11 +42,12 @@ export function TimingTable({ rows, bestLapTimeMs }: TimingTableProps): React.Re
       <TableBody>
         {rows.map((row, index) => {
           const isBest = bestLapTimeMs !== undefined && row.timeMs === bestLapTimeMs
+          const isActive = activeLapNumber !== undefined && row.lap === activeLapNumber
           const timeDisplay = row.lapTimeLabel ?? formatLapTime(row.timeMs)
           return (
             <TableRow
               key={index}
-              className={isBest ? 'text-foreground font-medium' : 'text-muted-foreground'}
+              className={isActive ? 'bg-secondary text-foreground' : isBest ? 'text-foreground font-medium' : 'text-muted-foreground'}
             >
               <TableCell className="py-1">{row.lap}</TableCell>
               <TableCell className="py-1 font-medium">{timeDisplay}</TableCell>

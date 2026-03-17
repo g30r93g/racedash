@@ -14,6 +14,7 @@ import { Spinner } from '@/components/loaders/Spinner'
 interface TimingTabProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
+  currentTime?: number
 }
 
 interface Override {
@@ -22,7 +23,7 @@ interface Override {
   position: string
 }
 
-export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactElement {
+export function TimingTab({ project, videoInfo, currentTime = 0 }: TimingTabProps): React.ReactElement {
   // ── Driver ──────────────────────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = useState(project.selectedDriver)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
@@ -110,6 +111,23 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
 
   const bestLapTime = lapRows.length > 0 ? Math.min(...lapRows.map((l) => l.timeMs)) : null
 
+  const activeLapNumber = React.useMemo<number | null>(() => {
+    if (!timestampsResult) return null
+    const seg = timestampsResult.segments[activeSegment]
+    const laps = seg?.selectedDriver?.laps
+    if (!laps || laps.length === 0) return null
+    const offset = timestampsResult.offsets[activeSegment] ?? 0
+    // Find the lap whose video time window contains currentTime
+    for (let i = 0; i < laps.length; i++) {
+      const lapStart = offset + laps[i].cumulative - laps[i].lapTime
+      const lapEnd = offset + laps[i].cumulative
+      if (currentTime >= lapStart && (currentTime < lapEnd || i === laps.length - 1)) {
+        return laps[i].number
+      }
+    }
+    return null
+  }, [timestampsResult, activeSegment, currentTime])
+
   // ── Position overrides ───────────────────────────────────────────────────────
   const [overrides, setOverrides] = useState<Override[]>([])
   const [showOverrideForm, setShowOverrideForm] = useState(false)
@@ -166,7 +184,7 @@ export function TimingTab({ project, videoInfo }: TimingTabProps): React.ReactEl
         {timingLoading && <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />}
         {timingError && <p className="text-xs text-destructive">{timingError}</p>}
         {!timingLoading && !timingError && lapRows.length > 0 && (
-          <TimingTable rows={lapRows} bestLapTimeMs={bestLapTime ?? undefined} />
+          <TimingTable rows={lapRows} bestLapTimeMs={bestLapTime ?? undefined} activeLapNumber={activeLapNumber ?? undefined} />
         )}
         {!timingLoading && !timingError && lapRows.length === 0 && (
           <p className="text-xs text-muted-foreground">No timing data available.</p>
