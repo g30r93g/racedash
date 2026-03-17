@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "outDir": "out",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/src/*"],
+      "@renderer/*": ["../../apps/renderer/src/*"],
+      "@racedash/core": ["../../packages/core/src/index.ts"],
+      "@racedash/timestamps": ["../../packages/timestamps/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/renderer/**/*",
+    "src/types/**/*"
+  ]
+}

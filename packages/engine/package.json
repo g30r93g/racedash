@@ -1,0 +1,23 @@
+{
+  "name": "@racedash/engine",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --pool forks"
+  },
+  "dependencies": {
+    "@racedash/compositor": "workspace:*",
+    "@racedash/core": "workspace:*",
+    "@racedash/scraper": "workspace:*",
+    "@racedash/timestamps": "workspace:*",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

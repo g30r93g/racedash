@@ -3,4 +3,6 @@ packages:
   - apps/*
 
 onlyBuiltDependencies:
+  - electron
   - esbuild
+  - unicode-animations

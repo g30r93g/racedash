@@ -3,6 +3,7 @@ import {
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
+  isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
@@ -26,6 +27,7 @@ export const Modern: React.FC<OverlayProps> = ({
   boxPosition = 'bottom-center',
   labelWindowSeconds,
   qualifyingTablePosition,
+  overlayComponents,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -35,7 +37,7 @@ export const Modern: React.FC<OverlayProps> = ({
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
   const { session, sessionAllLaps, mode } = segment
 
-  const showTable = segment.leaderboardDrivers != null
+  const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
 
   const raceStart = session.timestamps[0].ytSeconds
   const segEnd = useMemo(() => {

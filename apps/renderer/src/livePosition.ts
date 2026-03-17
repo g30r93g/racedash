@@ -23,10 +23,8 @@ export function useLivePosition(
   segment: Pick<SessionSegment, 'mode' | 'session' | 'leaderboardDrivers' | 'raceLapSnapshots'>,
   currentTime: number,
 ): number | null {
-  const { leaderboardDrivers, mode, session, raceLapSnapshots } = segment
-
   return useMemo(
     () => resolveLivePosition(segment, currentTime),
-    [leaderboardDrivers, currentTime, mode, session.driver.kart, raceLapSnapshots],
+    [segment, currentTime],
   )
 }

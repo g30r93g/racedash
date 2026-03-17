@@ -6,7 +6,8 @@
     "build": "turbo build",
     "test": "turbo test",
     "lint": "eslint .",
-    "racedash": "tsx apps/cli/src/index.ts"
+    "cli": "tsx apps/cli/src/index.ts",
+    "desktop:dev": "pnpm --filter @racedash/desktop dev"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
