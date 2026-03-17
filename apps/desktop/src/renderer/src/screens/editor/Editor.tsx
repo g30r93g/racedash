@@ -97,8 +97,21 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig failed:', err) })
   }, [project.configPath])
 
-  const handleUndo = useCallback(() => { dispatchStyle({ type: 'undo' }) }, [])
-  const handleRedo = useCallback(() => { dispatchStyle({ type: 'redo' }) }, [])
+  const handleUndo = useCallback(() => {
+    const newCursor = Math.max(styleHistoryState.cursor - 1, 0)
+    const next = styleHistoryState.history[newCursor]
+    dispatchStyle({ type: 'undo' })
+    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling)
+      .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (undo) failed:', err) })
+  }, [styleHistoryState, project.configPath])
+
+  const handleRedo = useCallback(() => {
+    const newCursor = Math.min(styleHistoryState.cursor + 1, styleHistoryState.history.length - 1)
+    const next = styleHistoryState.history[newCursor]
+    dispatchStyle({ type: 'redo' })
+    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling)
+      .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (redo) failed:', err) })
+  }, [styleHistoryState, project.configPath])
 
   // Keyboard undo/redo
   useEffect(() => {
