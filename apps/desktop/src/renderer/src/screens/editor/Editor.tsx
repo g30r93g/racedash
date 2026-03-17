@@ -6,7 +6,7 @@ import { Timeline } from '@/components/app/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
-import type { OverlayProps } from '@racedash/core'
+import type { BoxPosition, CornerPosition, OverlayProps } from '@racedash/core'
 
 function parsePositionString(pos: string): number {
   return parseInt(pos.replace(/^P/i, ''), 10)
@@ -87,13 +87,15 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     window.racedash.readProjectConfig(project.configPath).then((config) => {
       const overlayType = (config.overlayType as StyleState['overlayType']) ?? 'banner'
       const styling = (config.styling as StyleState['styling']) ?? {}
-      dispatchStyle({ type: 'init', initial: { overlayType, styling } })
+      const boxPosition = config.boxPosition as BoxPosition | undefined
+      const qualifyingTablePosition = config.qualifyingTablePosition as CornerPosition | undefined
+      dispatchStyle({ type: 'init', initial: { overlayType, styling, boxPosition, qualifyingTablePosition } })
     }).catch(() => { /* no style saved yet — defaults are fine */ })
   }, [project.configPath])
 
   const handleStyleChange = useCallback((next: StyleState) => {
     dispatchStyle({ type: 'change', next })
-    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling)
+    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling, { boxPosition: next.boxPosition, qualifyingTablePosition: next.qualifyingTablePosition })
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig failed:', err) })
   }, [project.configPath])
 
@@ -101,7 +103,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     const newCursor = Math.max(styleHistoryState.cursor - 1, 0)
     const next = styleHistoryState.history[newCursor]
     dispatchStyle({ type: 'undo' })
-    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling)
+    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling, { boxPosition: next.boxPosition, qualifyingTablePosition: next.qualifyingTablePosition })
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (undo) failed:', err) })
   }, [styleHistoryState, project.configPath])
 
@@ -109,7 +111,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     const newCursor = Math.min(styleHistoryState.cursor + 1, styleHistoryState.history.length - 1)
     const next = styleHistoryState.history[newCursor]
     dispatchStyle({ type: 'redo' })
-    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling)
+    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling, { boxPosition: next.boxPosition, qualifyingTablePosition: next.qualifyingTablePosition })
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (redo) failed:', err) })
   }, [styleHistoryState, project.configPath])
 
@@ -178,9 +180,11 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       durationInFrames: Math.ceil(videoInfo.durationSeconds * videoInfo.fps),
       videoWidth: videoInfo.width,
       videoHeight: videoInfo.height,
+      boxPosition: styleState.boxPosition,
+      qualifyingTablePosition: styleState.qualifyingTablePosition,
       styling: styleState.styling,
     }
-  }, [timestampsResult, videoInfo, styleState.styling])
+  }, [timestampsResult, videoInfo, styleState])
 
   return (
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { RacedashAPI, RenderCompleteResult } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
-import type { OverlayStyling } from '@racedash/core'
+import type { BoxPosition, CornerPosition, OverlayStyling } from '@racedash/core'
 
 const api: RacedashAPI = {
   checkFfmpeg: () =>
@@ -32,8 +32,8 @@ const api: RacedashAPI = {
     ipcRenderer.invoke('racedash:readProjectConfig', configPath),
   updateProjectConfigOverrides: (configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>) =>
     ipcRenderer.invoke('racedash:updateProjectConfigOverrides', configPath, overrides),
-  saveStyleToConfig: (configPath: string, overlayType: string, styling: OverlayStyling) =>
-    ipcRenderer.invoke('racedash:saveStyleToConfig', configPath, overlayType, styling),
+  saveStyleToConfig: (configPath: string, overlayType: string, styling: OverlayStyling, positions?: { boxPosition?: BoxPosition; qualifyingTablePosition?: CornerPosition }) =>
+    ipcRenderer.invoke('racedash:saveStyleToConfig', configPath, overlayType, styling, positions),
 
   previewDrivers: (segments) =>
     ipcRenderer.invoke('racedash:previewDrivers', segments),

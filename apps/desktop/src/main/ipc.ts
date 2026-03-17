@@ -126,6 +126,7 @@ export function saveStyleToConfigHandler(
   configPath: string,
   overlayType: string,
   styling: OverlayStyling,
+  positions?: { boxPosition?: string; qualifyingTablePosition?: string },
 ): void {
   if (typeof configPath !== 'string' || configPath.trim().length === 0) {
     throw new Error('saveStyleToConfig: configPath must be a non-empty string')
@@ -134,6 +135,16 @@ export function saveStyleToConfigHandler(
   const config = JSON.parse(raw) as Record<string, unknown>
   config.overlayType = overlayType
   config.styling = styling
+  if (positions?.boxPosition !== undefined) {
+    config.boxPosition = positions.boxPosition
+  } else {
+    delete config.boxPosition
+  }
+  if (positions?.qualifyingTablePosition !== undefined) {
+    config.qualifyingTablePosition = positions.qualifyingTablePosition
+  } else {
+    delete config.qualifyingTablePosition
+  }
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
@@ -532,8 +543,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
   ipcMain.handle(
     'racedash:saveStyleToConfig',
-    (_event, configPath: string, overlayType: string, styling: OverlayStyling) =>
-      saveStyleToConfigHandler(configPath, overlayType, styling),
+    (_event, configPath: string, overlayType: string, styling: OverlayStyling, positions?: { boxPosition?: string; qualifyingTablePosition?: string }) =>
+      saveStyleToConfigHandler(configPath, overlayType, styling, positions),
   )
 
   // Timing — engine integration
