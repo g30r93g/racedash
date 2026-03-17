@@ -43,6 +43,10 @@
   --color-sidebar: var(--sidebar);
 }
 
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
 
 :root {
   --radius: 6px;

@@ -1,3 +1,9 @@
+import { InfoRow } from '@/components/app/InfoRow'
+import { SectionLabel } from '@/components/app/SectionLabel'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { OptionGroup } from '@/components/ui/option-group'
+import { Progress } from '@/components/ui/progress'
 import React, { useEffect, useRef, useState } from 'react'
 import type {
   OutputFrameRate,
@@ -7,12 +13,6 @@ import type {
   VideoInfo,
 } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { SectionLabel } from '@/components/app/SectionLabel'
-import { InfoRow } from '@/components/app/InfoRow'
-import { OptionGroup } from '@/components/ui/option-group'
-import { Progress } from '@/components/ui/progress'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -151,6 +151,15 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
     { value: 'overlay-only', label: 'Overlay Only' },
   ]
 
+  const shimmerStyle: React.CSSProperties = {
+    background: 'linear-gradient(90deg, #6e6e6e 0%, #6e6e6e 25%, #e8e8e8 45%, #ffffff 50%, #e8e8e8 55%, #6e6e6e 75%, #6e6e6e 100%)',
+    backgroundSize: '400% 100%',
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+    animation: 'shimmer 3.5s linear infinite',
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4">
       {/* SOURCE VIDEO */}
@@ -222,8 +231,8 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{renderPhase}</span>
+            <div className="flex items-center justify-between text-xs">
+              <span style={shimmerStyle}>{renderPhase}</span>
               <span>{Math.round(renderProgress * 100)}%</span>
             </div>
             <Progress value={Math.round(renderProgress * 100)} />
