@@ -755,6 +755,8 @@ const DEFAULT_STYLE_STATE: StyleState = { overlayType: 'banner', styling: {} }
 
 Inside the `Editor` component, replace the previous `useState` style history with `useReducer`:
 
+> **Note — deviation from spec:** The spec (section 2) defines two `useState` calls for `history` and `cursor`. This plan uses `useReducer` instead for the same state. The reason: two `useState` calls for related state risk stale closures (reading stale `cursor` inside a `setHistory` callback) and unsafe nested `setState` (calling `setCursor` inside a `setHistory` updater). `useReducer` eliminates both: all state transitions are atomic, reducers are pure, and no closure captures are needed. The observable behaviour is identical to the spec.
+
 ```tsx
 // ── Style state + undo/redo history ─────────────────────────────────────────
 const [styleHistoryState, dispatchStyle] = useReducer(styleHistoryReducer, {

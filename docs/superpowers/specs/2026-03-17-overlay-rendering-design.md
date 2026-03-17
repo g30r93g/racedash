@@ -183,18 +183,18 @@ No schema change. `ExportTab` receives `overlayType: OverlayType` as a prop and 
 
 ### Layout
 
-`VideoPlayer` renders the video in a `relative` container (`div.relative.flex.flex-1`) with the `<video>` using `object-contain`. The `<Player>` must match this exactly — it sits as a sibling to `<video>` within that same `relative` container, using `absolute inset-0` with `compositionWidth={videoInfo.width}` and `compositionHeight={videoInfo.height}`. Remotion Player scales its composition to fit its container while preserving aspect ratio (equivalent to `object-contain`), so both the video and the overlay maintain the same scaling and alignment automatically.
+`VideoPlayer` renders the video in a `relative` container (`div.relative.flex.flex-1`) with the `<video>` using `object-contain`. The `<Player>` must match this exactly — it sits as a sibling to `<video>` within that same `relative` container, using `absolute inset-0`. `compositionWidth` and `compositionHeight` come from **`registry[overlayType].width/height`** (the overlay's own dimensions, e.g. 1920×500 for banner), not from `videoInfo.width/height`. Remotion Player scales its composition to fit its container while preserving aspect ratio, so the overlay renders correctly over the video regardless of the video's resolution.
 
 ```tsx
 // Inside VideoPlayer (or in VideoPane wrapping it):
 <div className="relative flex flex-1 items-center justify-center bg-[#0a0a0a]">
   <video className="h-full w-full object-contain" ... />
-  {overlayProps && (
+  {overlayProps && overlayType && registry[overlayType] && (
     <Player
       ref={playerRef}
       component={registry[overlayType].component}
-      compositionWidth={overlayProps.videoWidth ?? 1920}
-      compositionHeight={overlayProps.videoHeight ?? 1080}
+      compositionWidth={registry[overlayType].width}    // overlay-specific (e.g. 1920×500 for banner)
+      compositionHeight={registry[overlayType].height}
       durationInFrames={overlayProps.durationInFrames}
       fps={overlayProps.fps}
       inputProps={overlayProps}
