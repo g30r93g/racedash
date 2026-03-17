@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
+import type { OverlayStyling } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
 import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots } from '@racedash/engine'
 
@@ -118,6 +119,21 @@ export async function updateProjectConfigOverridesHandler(configPath: string, ov
     }
   }
 
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+}
+
+export function saveStyleToConfigHandler(
+  configPath: string,
+  overlayType: string,
+  styling: OverlayStyling,
+): void {
+  if (typeof configPath !== 'string' || configPath.trim().length === 0) {
+    throw new Error('saveStyleToConfig: configPath must be a non-empty string')
+  }
+  const raw = fs.readFileSync(configPath, 'utf-8')
+  const config = JSON.parse(raw) as Record<string, unknown>
+  config.overlayType = overlayType
+  config.styling = styling
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
@@ -493,6 +509,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
   ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
+  ipcMain.handle(
+    'racedash:saveStyleToConfig',
+    (_event, configPath: string, overlayType: string, styling: OverlayStyling) =>
+      saveStyleToConfigHandler(configPath, overlayType, styling),
+  )
 
   // Timing — engine integration
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>
