@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { VideoPlayer } from '@/components/app/VideoPlayer'
 import { VideoPlaybackControls } from '@/components/app/VideoPlaybackControls'
 
@@ -13,10 +13,19 @@ export function VideoPane({ videoPath, onTimeUpdate }: VideoPaneProps): React.Re
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
-  const handleTimeUpdate = useCallback((t: number) => {
-    setCurrentTime(t)
-    onTimeUpdate?.(t)
-  }, [onTimeUpdate])
+  // rAF loop for smooth ~60fps timecode updates while playing
+  useEffect(() => {
+    if (!playing) return
+    let rafId: number
+    const tick = () => {
+      const t = videoRef.current?.currentTime ?? 0
+      setCurrentTime(t)
+      onTimeUpdate?.(t)
+      rafId = requestAnimationFrame(tick)
+    }
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [playing, onTimeUpdate])
 
   const handlePlay = useCallback(() => {
     videoRef.current?.play().catch(() => {})
@@ -37,7 +46,6 @@ export function VideoPane({ videoPath, onTimeUpdate }: VideoPaneProps): React.Re
       <VideoPlayer
         ref={videoRef}
         videoPath={videoPath}
-        onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={setDuration}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
