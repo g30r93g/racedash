@@ -1,22 +1,15 @@
-import { VideoFileList } from '@/components/app/VideoFileList'
+import React from 'react'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
+import { VideoFileList } from '@/components/app/VideoFileList'
 
 interface Step1VideosProps {
   videoPaths: string[]
   onChange: (paths: string[]) => void
   joining?: boolean
-  joinProgress?: number
   joinError?: string
 }
 
-export function Step1Videos({
-  videoPaths,
-  onChange,
-  joining,
-  joinProgress = 0,
-  joinError,
-}: Step1VideosProps) {
+export function Step1Videos({ videoPaths, onChange, joining, joinError }: Step1VideosProps) {
   async function handleBrowse() {
     const paths = await window.racedash.openFiles({
       title: 'Select video files',
@@ -44,13 +37,13 @@ export function Step1Videos({
       <VideoFileList paths={videoPaths} onChange={onChange} />
 
       {joining && (
-        <div className="rounded-md border border-border bg-muted/40 p-4">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-medium text-foreground">Joining video files…</span>
-            <span className="tabular-nums text-muted-foreground">{Math.round(joinProgress * 100)}%</span>
-          </div>
-          <Progress value={joinProgress * 100} className="mt-3 h-2" />
-        </div>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Joining video files…
+        </p>
       )}
       {joinError && (
         <p className="text-sm text-destructive">{joinError}</p>

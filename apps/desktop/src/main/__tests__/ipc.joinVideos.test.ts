@@ -58,8 +58,7 @@ describe('joinVideosImpl', () => {
     await joinVideosImpl(['/videos/ch1.mp4', '/videos/ch2.mp4'])
     expect(mockEngineJoinVideos).toHaveBeenCalledWith(
       ['/videos/ch1.mp4', '/videos/ch2.mp4'],
-      expect.stringContaining('racedash-join-'),
-      undefined,
+      expect.stringContaining('racedash-join-')
     )
   })
 
@@ -77,18 +76,5 @@ describe('joinVideosImpl', () => {
   it('rejects when called with an empty array', async () => {
     await expect(joinVideosImpl([])).rejects.toThrow('at least one video path is required')
     expect(mockEngineJoinVideos).not.toHaveBeenCalled()
-  })
-
-  it('forwards join progress callbacks for multiple files', async () => {
-    mockEngineJoinVideos.mockImplementation(async (_paths, _outputPath, onProgress) => {
-      onProgress?.(0.4)
-    })
-    const onProgress = vi.fn()
-
-    await joinVideosImpl(['/videos/ch1.mp4', '/videos/ch2.mp4'], onProgress)
-
-    expect(onProgress).toHaveBeenNthCalledWith(1, 0)
-    expect(onProgress).toHaveBeenNthCalledWith(2, 0.4)
-    expect(onProgress).toHaveBeenLastCalledWith(1)
   })
 })

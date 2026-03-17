@@ -1,7 +1,7 @@
 import { StepIndicator } from '@/components/app/StepIndicator'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { ProjectData, SegmentConfig } from '../../../../types/project'
 import { Step1Videos } from './steps/Step1Videos'
 import { Step2Segments } from './steps/Step2Segments'
@@ -28,22 +28,13 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [segmentSubForm, setSegmentSubForm] = useState(false)
   const [joining, setJoining] = useState(false)
-  const [joinProgress, setJoinProgress] = useState(0)
   const [joinError, setJoinError] = useState<string | null>(null)
-  const joinProgressCleanupRef = useRef<(() => void) | null>(null)
   const [state, setState] = useState<WizardState>({
     videoPaths: [],
     segments: [],
     selectedDriver: '',
     projectName: '',
   })
-
-  useEffect(() => {
-    return () => {
-      joinProgressCleanupRef.current?.()
-      joinProgressCleanupRef.current = null
-    }
-  }, [])
 
   function updateState(patch: Partial<WizardState>) {
     setState((prev) => ({ ...prev, ...patch }))
@@ -59,32 +50,21 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
 
   function handleVideoPathsChange(paths: string[]) {
     setState((prev) => ({ ...prev, videoPaths: paths, joinedVideoPath: undefined }))
-    setJoinProgress(0)
     setJoinError(null)
   }
 
   async function handleContinue() {
     if (step === 1 && !state.joinedVideoPath) {
       setJoining(true)
-      setJoinProgress(0)
       setJoinError(null)
-      joinProgressCleanupRef.current?.()
-      joinProgressCleanupRef.current = window.racedash.onJoinProgress((event) => {
-        setJoinProgress(event.progress)
-      })
       try {
         const { joinedPath } = await window.racedash.joinVideos(state.videoPaths)
         updateState({ joinedVideoPath: joinedPath })
-        setJoinProgress(1)
         setJoining(false)
-        joinProgressCleanupRef.current?.()
-        joinProgressCleanupRef.current = null
         goNext()
       } catch (err) {
         setJoinError(err instanceof Error ? err.message : 'Failed to join video files')
         setJoining(false)
-        joinProgressCleanupRef.current?.()
-        joinProgressCleanupRef.current = null
       }
       return
     }
@@ -113,7 +93,6 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
               videoPaths={state.videoPaths}
               onChange={handleVideoPathsChange}
               joining={joining}
-              joinProgress={joinProgress}
               joinError={joinError ?? undefined}
             />
           )}

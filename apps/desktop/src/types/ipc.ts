@@ -25,11 +25,6 @@ export interface JoinVideosResult {
   joinedPath: string
 }
 
-export interface JoinProgressEvent {
-  /** 0–1 */
-  progress: number
-}
-
 // Video info (populated by Export tab sub-plan)
 export interface VideoInfo {
   width: number
@@ -118,7 +113,6 @@ export interface RacedashAPI {
   // System
   checkFfmpeg(): Promise<FfmpegStatus>
   joinVideos(videoPaths: string[]): Promise<JoinVideosResult>
-  onJoinProgress(cb: (event: JoinProgressEvent) => void): () => void
 
   // File dialogs
   openFile(opts?: OpenFileOptions): Promise<string | undefined>

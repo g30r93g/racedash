@@ -201,17 +201,6 @@ describe('joinVideos', () => {
     expect(content).toContain("file 'C:/Race Footage/rider'\\''s cam.mp4'")
   })
 
-  it('reports ffmpeg progress to callers', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      () => makeSpawnResult(0, 'frame=1 time=00:00:05.00 bitrate=0.0kbits/s') as unknown as ReturnType<typeof spawn>,
-    )
-    const onProgress = vi.fn()
-
-    await joinVideos(['/a.mp4', '/b.mp4'], '/out.mp4', onProgress)
-
-    expect(onProgress).toHaveBeenCalledWith(expect.any(Number))
-  })
-
   it('normalizes single paths consistently', () => {
     expect(normalizeConcatPath("C:\\Race Footage\\rider's cam.mp4")).toBe("C:/Race Footage/rider'\\''s cam.mp4")
   })

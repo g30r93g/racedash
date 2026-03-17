@@ -45,12 +45,8 @@ export async function runDoctor(): Promise<Array<{ label: string; value: string 
   return collectDoctorDiagnostics()
 }
 
-export async function joinVideos(
-  files: string[],
-  outputPath: string,
-  onProgress?: (progress: number) => void,
-): Promise<void> {
-  return compositorJoinVideos(files, outputPath, onProgress)
+export async function joinVideos(files: string[], outputPath: string): Promise<void> {
+  return compositorJoinVideos(files, outputPath)
 }
 
 export async function listDrivers(opts: DriversOptions): Promise<DriversResult> {

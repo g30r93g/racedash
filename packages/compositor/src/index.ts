@@ -728,11 +728,7 @@ export async function getVideoResolution(videoPath: string): Promise<{ width: nu
  * Concatenate video files losslessly using FFmpeg's concat demuxer.
  * Writes a temporary file list to os.tmpdir(), runs ffmpeg -c copy, then cleans up.
  */
-export async function joinVideos(
-  inputs: string[],
-  outputPath: string,
-  onProgress?: (progress: number) => void,
-): Promise<void> {
+export async function joinVideos(inputs: string[], outputPath: string): Promise<void> {
   if (inputs.length < 2) throw new Error('joinVideos requires at least 2 input files')
 
   const durations = await Promise.all(inputs.map(getVideoDuration))
@@ -746,7 +742,6 @@ export async function joinVideos(
       ['-f', 'concat', '-safe', '0', '-i', tmpFile, '-c', 'copy', '-y', outputPath],
       totalSeconds,
       (pct) => {
-        onProgress?.(pct)
         const processed = pct * totalSeconds
         process.stderr.write(
           `\rProgress: ${Math.round(pct * 100)}% (${formatSeconds(processed)} / ${formatSeconds(totalSeconds)})`,
