@@ -40,12 +40,20 @@ export function checkFfmpegImpl(): FfmpegStatus {
  * For multiple files, writes the joined file to the system temp directory
  * and returns its path.
  */
-export async function joinVideosImpl(videoPaths: string[]): Promise<string> {
+export async function joinVideosImpl(
+  videoPaths: string[],
+  onProgress?: (progress: number) => void,
+): Promise<string> {
   if (videoPaths.length === 0) throw new Error('joinVideos: at least one video path is required')
-  if (videoPaths.length === 1) return videoPaths[0]
+  if (videoPaths.length === 1) {
+    onProgress?.(1)
+    return videoPaths[0]
+  }
 
   const outPath = path.join(os.tmpdir(), `racedash-join-${Date.now()}.mp4`)
-  await joinVideos(videoPaths, outPath)
+  onProgress?.(0)
+  await joinVideos(videoPaths, outPath, onProgress)
+  onProgress?.(1)
   return outPath
 }
 
@@ -507,8 +515,10 @@ export async function generateTimestampsHandler(
 export function registerIpcHandlers(): void {
   // System
   ipcMain.handle('racedash:checkFfmpeg', () => checkFfmpegImpl())
-  ipcMain.handle('racedash:joinVideos', async (_event, videoPaths: string[]) => {
-    const joinedPath = await joinVideosImpl(videoPaths)
+  ipcMain.handle('racedash:joinVideos', async (event, videoPaths: string[]) => {
+    const joinedPath = await joinVideosImpl(videoPaths, (progress) => {
+      event.sender.send('racedash:join-progress', { progress })
+    })
     return { joinedPath }
   })
 

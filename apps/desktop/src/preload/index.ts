@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import type { RacedashAPI, RenderCompleteResult } from '../types/ipc'
+import type { JoinProgressEvent, RacedashAPI, RenderCompleteResult } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 
@@ -9,6 +9,11 @@ const api: RacedashAPI = {
     ipcRenderer.invoke('racedash:checkFfmpeg'),
   joinVideos: (videoPaths: string[]) =>
     ipcRenderer.invoke('racedash:joinVideos', videoPaths),
+  onJoinProgress: (cb) => {
+    const handler = (_: IpcRendererEvent, event: JoinProgressEvent) => cb(event)
+    ipcRenderer.on('racedash:join-progress', handler)
+    return () => ipcRenderer.removeListener('racedash:join-progress', handler)
+  },
   openFile: (opts) =>
     ipcRenderer.invoke('racedash:openFile', opts),
   openFiles: (opts) =>
