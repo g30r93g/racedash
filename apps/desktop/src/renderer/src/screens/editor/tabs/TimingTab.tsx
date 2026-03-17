@@ -101,7 +101,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
     const isSelected = (d: { kart: string; name: string }) =>
       selectedKart ? d.kart === selectedKart : d.name === selectedName
 
-    const lapRowItems = laps.map((lap, lapIndex) => {
+    const lapRowItems: LapRow[] = laps.map((lap, lapIndex) => {
       const timeMs = lap.lapTime * 1000
       let position: number | null = null
 
