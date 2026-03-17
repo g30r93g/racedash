@@ -146,13 +146,14 @@ export async function renderOverlay(
   compositionId: string,
   props: OverlayProps,
   outputPath: string,
-  onProgress?: (progress: number) => void,
+  onProgress?: (event: { progress: number; renderedFrames: number; totalFrames: number }) => void,
   runtimePlatform: NodeJS.Platform = process.platform,
 ): Promise<void> {
   const serveUrl = await bundle({ entryPoint: rendererEntryPoint })
   const inputProps = props as unknown as Record<string, unknown>
   const comp = await selectComposition({ serveUrl, id: compositionId, inputProps })
   const profile = getOverlayRenderProfile(runtimePlatform)
+  const totalFrames = comp.durationInFrames
 
   if (profile.codec === 'prores') {
     await renderMedia({
@@ -167,7 +168,9 @@ export async function renderOverlay(
       chromiumOptions: { gl: 'angle' },
       hardwareAcceleration: 'required',
       concurrency: cpus().length,
-      onProgress: onProgress ? ({ progress }) => onProgress(progress) : undefined,
+      onProgress: onProgress
+        ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
+        : undefined,
     })
     return
   }
@@ -182,7 +185,9 @@ export async function renderOverlay(
     inputProps,
     chromiumOptions: { gl: 'angle' },
     concurrency: cpus().length,
-    onProgress: onProgress ? ({ progress }) => onProgress(progress) : undefined,
+    onProgress: onProgress
+      ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
+      : undefined,
   })
 }
 

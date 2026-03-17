@@ -188,7 +188,7 @@ export async function renderSession(
         opts.style,
         overlayProps,
         overlayPath,
-        (progress) => onProgress({ phase: 'Rendering overlay', progress }),
+        ({ progress, renderedFrames, totalFrames }) => onProgress({ phase: 'Rendering overlay', progress, renderedFrames, totalFrames }),
       )
     }
 

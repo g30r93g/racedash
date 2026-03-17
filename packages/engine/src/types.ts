@@ -45,6 +45,8 @@ export interface RenderProgressEvent {
   phase: string
   /** 0–1 */
   progress: number
+  renderedFrames?: number
+  totalFrames?: number
 }
 
 export interface RenderResult {

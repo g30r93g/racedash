@@ -139,7 +139,7 @@ export interface RacedashAPI {
 
   // Render progress events — main → renderer push via ipcRenderer.on
   // Each returns a cleanup function that removes the listener.
-  onRenderProgress(cb: (event: { phase: string; progress: number }) => void): () => void
+  onRenderProgress(cb: (event: { phase: string; progress: number; renderedFrames?: number; totalFrames?: number }) => void): () => void
   onRenderComplete(cb: (result: RenderCompleteResult) => void): () => void
   onRenderError(cb: (err: { message: string }) => void): () => void
 

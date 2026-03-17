@@ -29,17 +29,18 @@ const TAB_LABELS: Record<TabId, string> = {
 
 export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange }: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabId>('timing')
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <Tabs defaultValue="timing" className="flex flex-1 flex-col overflow-hidden">
+      <Tabs value={activeTab} onValueChange={(v) => { if (!rendering) setActiveTab(v as TabId) }} className="flex flex-1 flex-col overflow-hidden">
         <TabsList className="h-auto w-full shrink-0 justify-start rounded-none border-b border-border bg-transparent px-0">
           {TAB_IDS.map((id) => (
             <TabsTrigger
               key={id}
               value={id}
-              disabled={rendering}
-              className="-mb-px cursor-pointer rounded-none border-b-2 border-transparent px-5 py-3 text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none disabled:pointer-events-none disabled:opacity-50"
+              className="-mb-px cursor-pointer rounded-none border-b-2 border-transparent px-5 py-3 text-muted-foreground hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none aria-disabled:pointer-events-none aria-disabled:opacity-50"
+              aria-disabled={rendering && id !== activeTab ? true : undefined}
             >
               {TAB_LABELS[id]}
             </TabsTrigger>

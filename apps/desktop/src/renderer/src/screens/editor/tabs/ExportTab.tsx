@@ -64,6 +64,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
   const [rendering, setRendering] = useState(false)
   const [renderPhase, setRenderPhase] = useState('')
   const [renderProgress, setRenderProgress] = useState(0)
+  const [renderFrames, setRenderFrames] = useState<{ rendered: number; total: number } | null>(null)
   const [lastRender, setLastRender] = useState<LastRender | null>(null)
 
   const cleanupRef = useRef<Array<() => void>>([])
@@ -90,6 +91,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
     startRendering()
     setRenderPhase('Starting…')
     setRenderProgress(0)
+    setRenderFrames(null)
     cleanupRef.current.forEach((fn) => fn())
     cleanupRef.current = []
 
@@ -97,6 +99,9 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
       window.racedash.onRenderProgress((event) => {
         setRenderPhase(event.phase)
         setRenderProgress(event.progress)
+        if (event.renderedFrames != null && event.totalFrames != null) {
+          setRenderFrames({ rendered: event.renderedFrames, total: event.totalFrames })
+        }
       })
     )
     cleanupRef.current.push(
@@ -236,6 +241,11 @@ export function ExportTab({ project, videoInfo, onRenderingChange }: ExportTabPr
               <span>{Math.round(renderProgress * 100)}%</span>
             </div>
             <Progress value={Math.round(renderProgress * 100)} />
+            {renderFrames && (
+              <p className="text-[10px] text-muted-foreground">
+                Frame {renderFrames.rendered} of {renderFrames.total}
+              </p>
+            )}
             <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
               Cancel
             </Button>
