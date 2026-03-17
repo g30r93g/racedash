@@ -22,6 +22,13 @@ export default defineConfig({
       rollupOptions: {
         input: resolve(__dirname, 'src/renderer/index.html'),
       },
+      // Extend commonjs transform to workspace packages (packages/**/dist/*.js).
+      // By default @rollup/plugin-commonjs only covers node_modules; workspace
+      // packages resolved via the @renderer alias are outside node_modules and
+      // would otherwise be treated as ESM, causing named-export resolution errors.
+      commonjsOptions: {
+        include: [/packages\//, /node_modules/],
+      },
     },
     plugins: [react(), tailwindcss()],
   },
