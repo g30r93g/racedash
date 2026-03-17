@@ -4,10 +4,11 @@ import { VideoPlaybackControls } from '@/components/app/VideoPlaybackControls'
 
 interface VideoPaneProps {
   videoPath?: string
+  fps?: number
   onTimeUpdate?: (currentTime: number) => void
 }
 
-export function VideoPane({ videoPath, onTimeUpdate }: VideoPaneProps): React.ReactElement {
+export function VideoPane({ videoPath, fps = 60, onTimeUpdate }: VideoPaneProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -54,6 +55,7 @@ export function VideoPane({ videoPath, onTimeUpdate }: VideoPaneProps): React.Re
       <VideoPlaybackControls
         duration={duration}
         currentTime={currentTime}
+        fps={fps}
         playing={playing}
         onPlay={handlePlay}
         onPause={handlePause}

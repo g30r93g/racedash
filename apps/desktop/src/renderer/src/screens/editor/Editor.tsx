@@ -41,7 +41,7 @@ export function Editor({ project, onClose: _onClose }: EditorProps): React.React
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
-        <VideoPane videoPath={project.videoPaths[0]} onTimeUpdate={handleTimeUpdate} />
+        <VideoPane videoPath={project.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} />
         <Timeline
           project={project}
           videoInfo={videoInfo}

@@ -32,9 +32,6 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
             <span className="text-xs tracking-widest text-muted-foreground">NO VIDEO LOADED</span>
           </div>
         )}
-        <div className="absolute bottom-3 right-4">
-          <span className="font-mono text-xs text-muted-foreground">00:00:00.000</span>
-        </div>
       </div>
     )
   }
