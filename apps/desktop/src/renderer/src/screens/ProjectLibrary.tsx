@@ -74,7 +74,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <ScrollArea className="flex-1">
                   {loading ? (
                     <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 text-white/50">
-                      <SpinnerInline>
+                      <SpinnerInline label="Project files are updating">
                         <span className="text-sm">Project files are updating</span>
                       </SpinnerInline>
                     </div>
