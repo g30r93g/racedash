@@ -55,12 +55,12 @@ This branch delivers Stripe subscription management, credit pack purchasing, lic
 5. **FR-5:** `GET /api/credits/balance` must return the user's total available RC balance (sum of `rc_remaining` across all non-expired packs) and an array of individual packs with their `id`, `packName`, `rcTotal`, `rcRemaining`, `purchasedAt`, and `expiresAt`.
 6. **FR-6:** `GET /api/credits/history` must return a paginated list of the user's credit pack purchases, ordered by `purchased_at DESC`. Each entry includes `id`, `packName`, `rcTotal`, `priceGbp`, `purchasedAt`, and `expiresAt`. Pagination uses cursor-based paging with a `cursor` query parameter (pack ID) and a `limit` parameter (default 20, max 100).
 7. **FR-7:** `GET /api/license` must return the user's active license (tier, status, subscription ID, renewal date) or `null` if no active license exists.
-8. **FR-8:** `POST /api/webhooks/stripe` must verify the Stripe webhook signature using the `STRIPE_WEBHOOK_SECRET` before processing any event. Invalid signatures must return `400 Bad Request`.
+8. **FR-8:** `POST /api/webhooks/stripe` must verify the Stripe webhook signature using the `STRIPE_WEBHOOK_SECRET` before processing any event. Invalid signatures must return `400 Bad Request`. This route must be excluded from the Clerk auth middleware (it uses Stripe signature verification instead of Bearer tokens). This branch adds `/api/webhooks/stripe` to the middleware exclusion list alongside the existing `/api/health` and `/api/webhooks/clerk` exclusions defined by `cloud-auth`.
 9. **FR-9:** The webhook handler must process `customer.subscription.created` by inserting a new row in the `licenses` table with the tier derived from the Stripe Price ID, `status: 'active'`, and the subscription period dates. The `stripe_customer_id` and `stripe_subscription_id` must be stored on the license row.
 10. **FR-10:** The webhook handler must process `customer.subscription.updated` by updating the existing license row's `status`, `tier`, `starts_at`, `expires_at`, and `updated_at`. If the subscription status changes to `past_due` or `unpaid`, the license status must be set to `'expired'`.
 11. **FR-11:** The webhook handler must process `customer.subscription.deleted` by setting the license row's status to `'cancelled'` and `updated_at` to the current timestamp.
 12. **FR-12:** The webhook handler must process `checkout.session.completed` events where `metadata.type === 'credit_pack'` by inserting a new row in the `credit_packs` table with `rc_total` and `rc_remaining` set to the `metadata.pack_size`, `expires_at` set to 12 months from now, and `stripe_payment_intent_id` set from the session's payment intent.
-13. **FR-13:** All webhook handlers must be idempotent. Processing the same event twice (identified by `event.id`) must not create duplicate rows or corrupt data. The API must store processed event IDs and skip duplicates.
+13. **FR-13:** All webhook handlers must be idempotent. Processing the same event twice must not create duplicate rows or corrupt data. Idempotency is enforced using existing DB constraints rather than a separate event ID table: credit pack creation uses the `UNIQUE` constraint on `credit_packs.stripe_payment_intent_id` (duplicate inserts are caught and silently ignored); subscription creation uses `stripe_subscription_id` to check for existing license rows before inserting. No new tables or schema changes are needed.
 14. **FR-14:** The desktop must open Stripe Checkout in a dedicated BrowserWindow when the user initiates a subscription or credit pack purchase. The main process calls the appropriate API endpoint to get the Checkout URL, then opens it in a BrowserWindow with `nodeIntegration: false` and `sandbox: true`.
 15. **FR-15:** After Stripe Checkout completes (success or cancel), the BrowserWindow must detect the redirect to the success/cancel URL, close itself, and notify the renderer of the outcome.
 16. **FR-16:** The `AccountDetails.tsx` component must display a "Credits" section showing the user's total RC balance, a breakdown of individual packs (name, remaining/total, expiry date), a "Top up credits" button that opens the credit pack Checkout flow, and a link to view purchase history.
@@ -152,7 +152,7 @@ Creates a Stripe Checkout session for a subscription purchase.
 | Auth | `Authorization: Bearer <session_token>` |
 | Request | JSON body with `tier` |
 | Response | `200 OK` |
-| Errors | `401 Unauthorized`, `400 Bad Request`, `409 Conflict` |
+| Errors | `401 Unauthorized`, `400 Bad Request`, `409 Conflict`, `502 Bad Gateway` |
 
 **Request body:**
 
@@ -190,7 +190,7 @@ Creates a Stripe Checkout session for a one-time credit pack purchase.
 | Auth | `Authorization: Bearer <session_token>` |
 | Request | JSON body with `packSize` |
 | Response | `200 OK` |
-| Errors | `401 Unauthorized`, `400 Bad Request` |
+| Errors | `401 Unauthorized`, `400 Bad Request`, `403 Forbidden`, `502 Bad Gateway` |
 
 **Request body:**
 
