@@ -20,7 +20,7 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 ### In scope
 
 - `apps/admin` standalone React SPA scaffold (Vite + React + React Router + Tailwind + shadcn/ui)
-- Admin auth: Clerk `@clerk/clerk-react` provider with role gate (`publicMetadata.role === 'admin'`); unauthenticated or non-admin users see an access-denied screen
+- Admin auth: Clerk `@clerk/clerk-react` provider with role gate (`publicMetadata.role === 'admin'`); unauthenticated users are redirected to Clerk sign-in; non-admin authenticated users see an access-denied screen
 - Admin API middleware added to `apps/api` — checks `publicMetadata.role === 'admin'` on all `/api/admin/*` routes
 - Admin API endpoints added to `apps/api` for users, licenses, jobs, credits, and overview stats
 - Dashboard overview page: in-flight job counts by status, completed/failed today, 7-day failure rate, recent failed jobs
@@ -100,7 +100,7 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 
 ### Job Monitoring
 
-18. **FR-18:** The job list page (`/jobs`) must display a paginated table with columns: Job ID, User Email, Status, RC Cost (or `—` for non-terminal), Duration (derived: `updated_at - created_at` for terminal states, or `—`), Created At, Error Message (truncated).
+18. **FR-18:** The job list page (`/jobs`) must display a paginated table with columns: Job ID, User Email, Status, RC Cost (shown for `complete` jobs where `FinaliseJob` has written the value; `—` for all other states including `failed`), Duration (derived: `updated_at - created_at` for terminal states, or `—`), Created At, Error Message (truncated).
 19. **FR-19:** The job list must support filtering by status (multi-select from the status enum) and time range (last 7 days, last 30 days, all time).
 20. **FR-20:** The job detail page (`/jobs/:id`) must display the full job record: all DB columns, plus a clickable link to the Step Functions execution in the AWS Console (constructed from `sfn_execution_arn`). The link format is `https://{region}.console.aws.amazon.com/states/home?region={region}#/executions/details/{sfn_execution_arn}`.
 21. **FR-21:** The job detail page must also show credit reservation details: RC amount, status, and the packs it drew from (via `credit_reservation_packs`).
@@ -108,8 +108,8 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 ### Credit Management
 
 22. **FR-22:** The manual credit adjustment form on the user detail page must call `POST /api/admin/users/:id/credits` with the RC amount and reason. Positive amounts create a new `credit_packs` row (grant). Negative amounts create a correction entry.
-23. **FR-23:** Credit grants create a `credit_packs` row with `pack_name: 'Admin Grant'`, `rc_total` and `rc_remaining` set to the grant amount, `price_gbp: 0`, `purchased_at: now()`, `expires_at: now() + 12 months`, and `stripe_payment_intent_id: null`.
-24. **FR-24:** Credit corrections (negative amounts) deduct from the user's credit packs using the same FIFO depletion logic as normal consumption (`consumeCredits` from `@racedash/db`), but do not create a credit reservation.
+23. **FR-23:** Credit grants create a `credit_packs` row with `pack_name: 'Admin Grant'`, `rc_total` and `rc_remaining` set to the grant amount, `price_gbp: 0`, `purchased_at: now()`, `expires_at: now() + 12 months`, and `stripe_payment_intent_id: null`. **Cross-branch dependency:** The `cloud-db` spec defines `stripe_payment_intent_id` as `UNIQUE NOT NULL`. This branch requires relaxing it to `UNIQUE` (nullable) to support admin grants without a Stripe payment. This change must be coordinated with `cloud-db` or applied as a migration in this branch.
+24. **FR-24:** Credit corrections (negative amounts) deduct from the user's credit packs using FIFO depletion logic (soonest-expiring first), implemented as a direct `UPDATE` on `credit_packs.rc_remaining` within a transaction — the same approach as `reserveCredits` but without creating a `credit_reservations` row (corrections are not jobs, so no reservation is needed). Note: `consumeCredits` from `@racedash/db` cannot be used here because it settles an existing reservation rather than deducting from packs.
 
 ### Audit Logging
 
@@ -978,7 +978,7 @@ For v1, the deployment target is not prescriptive. The admin app must produce a 
 
 ### DB Schema Addition
 
-This branch adds one table to `@racedash/db`:
+This branch adds one table to `@racedash/db`. While `cloud-db` owns the initial schema, this table is admin-specific and was not part of the epic's `cloud-db` scope. It is added as a Drizzle migration in `packages/db` by this branch:
 
 ```sql
 CREATE TABLE admin_audit_log (
@@ -1269,7 +1269,7 @@ export type AdminAuditAction =
 ### Drizzle schema addition (`packages/db/src/schema/admin-audit-log.ts`)
 
 ```ts
-import { pgTable, uuid, text, timestamptz, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, timestamp, jsonb } from 'drizzle-orm/pg-core'
 import { users } from './users'
 
 export const adminAuditLog = pgTable('admin_audit_log', {
@@ -1280,7 +1280,7 @@ export const adminAuditLog = pgTable('admin_audit_log', {
   targetResourceType: text('target_resource_type').notNull(),
   targetResourceId: text('target_resource_id'),
   payload: jsonb('payload').notNull().default({}),
-  createdAt: timestamptz('created_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 ```
 
@@ -1289,7 +1289,10 @@ export const adminAuditLog = pgTable('admin_audit_log', {
 ```ts
 import { NeonHttpDatabase } from 'drizzle-orm/neon-http'
 import { adminAuditLog } from '../schema/admin-audit-log'
-import { AdminAuditAction } from '@racedash/api/types' // or inline the type
+// AdminAuditAction is defined locally in @racedash/db — no cross-package import
+export type AdminAuditAction =
+  | 'license.issue' | 'license.extend' | 'license.revoke'
+  | 'credit.grant' | 'credit.correct'
 
 export interface LogAdminActionParams {
   adminClerkId: string
