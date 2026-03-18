@@ -82,7 +82,9 @@ This branch creates the entire AWS infrastructure layer for RaceDash Cloud. It d
    - `lambda:InvokeFunction` for all pipeline Lambdas
    - `mediaconvert:CreateJob` (resource: `*`)
    - `iam:PassRole` for the MediaConvert role ARN
-7. Export state machine ARN, all Lambda function ARNs, Remotion function name, Remotion serve URL (site bucket URL), and MediaConvert role ARN as stack outputs.
+7. Create EventBridge rule (`StepFunctionsTerminalStateRule`) matching Step Functions terminal states (`SUCCEEDED`, `FAILED`, `TIMED_OUT`, `ABORTED`) for the pipeline state machine. (Placed here instead of NotificationsStack to avoid circular dependency — see deviation note in NotificationsStack section.)
+8. Create relay Lambda (`StepFunctionsRelayFunction`, 128 MB, 30s timeout) that POSTs terminal state events to `WEBHOOK_TARGET_URL` with `x-webhook-secret` header. `WEBHOOK_TARGET_URL` and `WEBHOOK_SECRET` are CDK context parameters with empty-string defaults — they are injected post-deploy once `cloud-rendering` has deployed the API endpoint.
+9. Export state machine ARN, all Lambda function ARNs, Remotion function name, Remotion serve URL (site bucket URL), and MediaConvert role ARN as stack outputs.
 
 ### FR-3: NotificationsStack
 
@@ -284,6 +286,8 @@ interface PipelineStackProps extends cdk.StackProps {
 | Remotion site bucket | `s3.Bucket` | `RemotionSiteBucket` |
 | MediaConvert IAM role | `iam.Role` | `MediaConvertRole` |
 | State machine | `sfn.StateMachine` | `RenderPipelineStateMachine` |
+| EventBridge rule | `events.Rule` | `StepFunctionsTerminalStateRule` |
+| Relay Lambda | `NodejsFunction` | `StepFunctionsRelayFunction` |
 
 **`PipelineLambda` L3 construct (`infra/lib/constructs/pipeline-lambda.ts`):**
 
@@ -413,11 +417,27 @@ Shared defaults applied by the construct:
 
 ### NotificationsStack
 
+> **Deviation from epic spec:** The epic assigns the EventBridge rule and relay Lambda to NotificationsStack. However, this creates a circular dependency: NotificationsStack needs PipelineStack's state machine ARN (for the EventBridge rule pattern), while PipelineStack needs NotificationsStack's SES outputs. To eliminate multi-phase deploys, this spec moves the EventBridge rule and relay Lambda into **PipelineStack** (which already owns the state machine). NotificationsStack is reduced to SES resources only. This is a structural change from the epic's stack assignment, approved for implementation simplicity.
+
 **Resources:**
 
 | Resource | CDK Construct | Logical ID |
 |---|---|---|
 | SES email identity | `ses.EmailIdentity` | `RaceDashEmailIdentity` |
+
+**Cross-stack outputs:**
+
+| Output | Export Name | Value |
+|---|---|---|
+| `SesFromAddress` | `{env}-SesFromAddress` | Verified sender address |
+| `SesIdentityArn` | `{env}-SesIdentityArn` | SES identity ARN |
+
+#### EventBridge Rule & Relay Lambda (in PipelineStack)
+
+The following resources are owned by **PipelineStack** (not NotificationsStack) per the deviation above:
+
+| Resource | CDK Construct | Logical ID |
+|---|---|---|
 | EventBridge rule | `events.Rule` | `StepFunctionsTerminalStateRule` |
 | Relay Lambda | `NodejsFunction` | `StepFunctionsRelayFunction` |
 
@@ -448,19 +468,6 @@ No additional AWS service permissions needed — it simply POSTs to an HTTPS URL
 |---|---|
 | `WEBHOOK_TARGET_URL` | CDK context param (empty string default) |
 | `WEBHOOK_SECRET` | CDK context param (empty string default) |
-
-**Cross-stack outputs:**
-
-| Output | Export Name | Value |
-|---|---|---|
-| `SesFromAddress` | `{env}-SesFromAddress` | Verified sender address |
-| `SesIdentityArn` | `{env}-SesIdentityArn` | SES identity ARN |
-
-> **Deviation from epic spec:** The epic assigns the EventBridge rule and relay Lambda to NotificationsStack. However, this creates a circular dependency: NotificationsStack needs PipelineStack's state machine ARN (for the EventBridge rule pattern), while PipelineStack needs NotificationsStack's SES outputs. To eliminate multi-phase deploys, this spec moves the EventBridge rule and relay Lambda into **PipelineStack** (which already owns the state machine). NotificationsStack is reduced to SES resources only. This is a structural change from the epic's stack assignment, approved for implementation simplicity.
-
-**Revised NotificationsStack:** Only creates the SES email identity. Exports `SesFromAddress` and `SesIdentityArn`.
-
-**Revised PipelineStack additions:** Also creates the EventBridge rule and relay Lambda. This eliminates the circular dependency.
 
 ---
 
