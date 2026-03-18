@@ -55,7 +55,7 @@ This branch creates the entire AWS infrastructure layer for RaceDash Cloud. It d
    - SSE-S3 encryption (AES-256)
    - Block all public access
    - Versioning disabled
-   - Lifecycle rule: objects under `renders/` prefix expire after 8 days (1 day buffer beyond the 7-day download window)
+   - Lifecycle rule: objects under `renders/` prefix expire after 7 days (matches the download window defined in the epic spec)
 3. Create CloudFront distribution over `racedash-renders-{env}` with:
    - Origin Access Identity (OAI) granting read-only access to the renders bucket
    - RSA key pair for signed URLs (CloudFront key group)
@@ -87,10 +87,9 @@ This branch creates the entire AWS infrastructure layer for RaceDash Cloud. It d
 ### FR-3: NotificationsStack
 
 1. Create SES email identity for the sending domain/address.
-2. Create EventBridge rule matching Step Functions execution status changes to terminal states (`SUCCEEDED`, `FAILED`, `TIMED_OUT`, `ABORTED`) for the pipeline state machine.
-3. Create relay Lambda (`StepFunctionsRelayFunction`, 128 MB, 30s timeout) that POSTs to `WEBHOOK_TARGET_URL` with `x-webhook-secret` header.
-4. `WEBHOOK_TARGET_URL` and `WEBHOOK_SECRET` are CDK context parameters with empty-string defaults — they are injected post-deploy once `cloud-rendering` has deployed the API endpoint. The CDK deploy is expected to be re-run.
-5. Export SES identity ARN and `SES_FROM_ADDRESS` as stack outputs.
+2. Export SES identity ARN and `SES_FROM_ADDRESS` as stack outputs.
+
+> The EventBridge rule and relay Lambda are placed in **PipelineStack** (see FR-2 and the deviation note in the NotificationsStack section) to avoid a circular cross-stack dependency.
 
 ### FR-4: ApiStack
 
@@ -457,17 +456,7 @@ No additional AWS service permissions needed — it simply POSTs to an HTTPS URL
 | `SesFromAddress` | `{env}-SesFromAddress` | Verified sender address |
 | `SesIdentityArn` | `{env}-SesIdentityArn` | SES identity ARN |
 
-**Note:** This stack must be deployed before PipelineStack because PipelineStack references `sesFromAddress` and `sesIdentityArn`. The NotificationsStack's EventBridge rule references the state machine ARN from PipelineStack, creating a circular dependency. Resolution: the EventBridge rule takes the state machine ARN as a CDK context parameter (set after PipelineStack deploys), and the NotificationsStack is re-deployed.
-
-Actually, the cleaner approach: merge the EventBridge rule into PipelineStack or use a two-phase deploy. The recommended approach is:
-
-**Revised dependency flow:**
-1. Deploy StorageStack and NotificationsStack (SES identity only, no EventBridge rule) in parallel.
-2. Deploy PipelineStack (consumes storage + SES outputs).
-3. Deploy NotificationsStack update (add EventBridge rule referencing state machine ARN from PipelineStack output).
-4. Deploy ApiStack and SocialStack (consume outputs from above).
-
-To avoid this complexity, the EventBridge rule is placed in **PipelineStack** instead of NotificationsStack. NotificationsStack only owns SES resources. The relay Lambda is also in PipelineStack.
+> **Deviation from epic spec:** The epic assigns the EventBridge rule and relay Lambda to NotificationsStack. However, this creates a circular dependency: NotificationsStack needs PipelineStack's state machine ARN (for the EventBridge rule pattern), while PipelineStack needs NotificationsStack's SES outputs. To eliminate multi-phase deploys, this spec moves the EventBridge rule and relay Lambda into **PipelineStack** (which already owns the state machine). NotificationsStack is reduced to SES resources only. This is a structural change from the epic's stack assignment, approved for implementation simplicity.
 
 **Revised NotificationsStack:** Only creates the SES email identity. Exports `SesFromAddress` and `SesIdentityArn`.
 
@@ -777,9 +766,9 @@ Rationale: Uploads are ephemeral. The 3-day expiration is a safety net; `Finalis
 
 | Rule ID | Prefix | Action | Days |
 |---|---|---|---|
-| `expire-renders` | `renders/` | `Expiration` | 8 |
+| `expire-renders` | `renders/` | `Expiration` | 7 |
 
-Rationale: Download window is 7 days. The 8-day expiration provides a 1-day buffer so objects are not deleted while a signed URL is still technically valid on the last day.
+Rationale: Download window is 7 days per the epic spec. Signed CloudFront URLs are generated fresh on each download request with validity capped at `download_expires_at`, so the S3 object expiry aligns exactly with the download window.
 
 ---
 
@@ -1086,7 +1075,7 @@ CDK assertion tests that verify each stack creates the expected resources with t
 3. Uploads bucket has `AbortIncompleteMultipartUpload` rule with `DaysAfterInitiation: 1`.
 4. Uploads bucket has CORS rule allowing `PUT` method.
 5. Renders bucket exists with `BucketEncryption: S3Managed`, `PublicAccessBlockConfiguration` all true.
-6. Renders bucket has lifecycle rule with `ExpirationInDays: 8` on prefix `renders/`.
+6. Renders bucket has lifecycle rule with `ExpirationInDays: 7` on prefix `renders/`.
 7. CloudFront distribution exists with `PriceClass: PriceClass_100`.
 8. CloudFront distribution has a trusted key group on the default cache behavior.
 9. CloudFront distribution uses the renders bucket as its origin via OAI.
