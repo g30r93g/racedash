@@ -31,7 +31,7 @@ RaceDash Cloud extends the desktop Electron application with cloud-powered featu
 | Location | Package name | Purpose |
 |---|---|---|
 | `packages/db` | `@racedash/db` | Drizzle ORM schema, Neon client, credit + license helpers |
-| `apps/api` | `@racedash/api` | Dedicated backend API — Clerk auth middleware, all cloud endpoints |
+| `apps/api` | `@racedash/api` | Fastify + `@fastify/aws-lambda` deployed as a single Lambda with a Function URL (no API Gateway); all cloud endpoints |
 | `apps/admin` | `@racedash/admin` | Admin dashboard for managing users, licenses, jobs |
 | `infra/` | — | AWS CDK v2 TypeScript stacks |
 
@@ -70,6 +70,7 @@ starts_at, expires_at, created_at, updated_at
   - **StorageStack**: `racedash-uploads-{env}` + `racedash-renders-{env}` S3 buckets with lifecycle rules (uploads expire after job completes; render outputs expire after 7 days); CloudFront distribution over renders bucket with RSA signed URL key pair
   - **PipelineStack**: Step Functions state machine — fully polling-free: `WaitForSlot` and `StartRenderOverlay` use `.waitForTaskToken`; `RunMediaConvert` uses `mediaconvert:createJob.sync` (native SDK integration, Step Functions waits via EventBridge internally); Remotion Lambda IAM role + site bucket; MediaConvert IAM role (referenced by `RunMediaConvert` state directly — no submission Lambda needed); CDK constructs for pipeline Lambda functions (WaitForSlot, GrantSlot, StartRenderOverlay, PrepareComposite, FinaliseJob, NotifyUser, ReleaseCreditsAndFail); `FinaliseJob`, `ReleaseCreditsAndFail`, and the Remotion webhook handler all require `states:SendTaskSuccess` + `states:SendTaskFailure` IAM grants; state machine execution role requires `mediaconvert:CreateJob` + `iam:PassRole` for the MediaConvert role
   - **NotificationsStack**: SES for render completion + failure emails; EventBridge rule on Step Functions terminal states → relay Lambda → `POST /api/webhooks/render`. The relay Lambda target URL (`WEBHOOK_TARGET_URL`) and `WEBHOOK_SECRET` are injected post-deploy once `cloud-rendering` has defined and deployed the endpoint. The CDK deploy is expected to be re-run after `cloud-rendering` lands.
+  - **ApiStack**: Lambda function for `apps/api` (Fastify + `@fastify/aws-lambda`); Lambda Function URL (no API Gateway — avoids per-request Gateway cost); IAM execution role scoped to required AWS services
   - **SocialStack**: ECS Fargate cluster + YouTube upload task definition (handler code owned by `cloud-youtube`); SQS queue for social upload jobs + DLQ; CDK construct for the SQS dispatch Lambda (handler code owned by `cloud-youtube`)
 - MediaConvert endpoint is discovered at runtime via `describeEndpoints()` — not an environment variable.
 
@@ -79,7 +80,7 @@ starts_at, expires_at, created_at, updated_at
 
 ### `feature/cloud-auth`
 **Owns:** Clerk integration across desktop + API, and `apps/api` scaffold
-- `apps/api` scaffold: project setup, Clerk auth middleware (validates session token on all protected routes), error handling conventions
+- `apps/api` scaffold: Fastify app with `@fastify/aws-lambda` adapter; Clerk auth middleware (validates session token on all protected routes); error handling conventions; Lambda Function URL as the sole HTTP entry point (no API Gateway)
 - Electron: BrowserWindow-based OAuth flow (opens Clerk hosted sign-in, captures token on redirect); session token persisted in Electron's secure storage; token injected into API requests
 - Desktop Account tab: real user data (name, email, plan tier), functional sign-out — includes removing the `disabled` attribute from the existing sign-out button stub and wiring it to Electron session clear + Clerk sign-out
 - Update `AppSidebar` plan prop type from `'free' | 'pro'` to `'plus' | 'pro'` and handle both tiers visually
@@ -340,7 +341,7 @@ SES_FROM_ADDRESS                (for upload failure notification email)
 
 ### `apps/desktop` (Electron, runtime)
 ```
-VITE_API_URL                    (backend API base URL)
+VITE_API_URL                    (Lambda Function URL for apps/api)
 VITE_CLERK_PUBLISHABLE_KEY
 ```
 
