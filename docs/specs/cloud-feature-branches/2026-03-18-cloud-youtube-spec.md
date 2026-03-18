@@ -18,11 +18,11 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 ### In scope
 
 - `apps/api` routes:
-  - `GET /api/auth/youtube/connect` — initiates YouTube OAuth consent flow
-  - `GET /api/auth/youtube/callback` — handles OAuth redirect, exchanges code for tokens, encrypts and stores in `connected_accounts`
-  - `GET /api/auth/youtube/status` — returns whether the user has a connected YouTube account
-  - `DELETE /api/auth/youtube/disconnect` — removes the user's YouTube connected account
-  - `POST /api/jobs/:id/social-upload` — validates OAuth token, inserts `social_uploads` row, reserves 10 RC, dispatches SQS message
+  - `GET /auth/youtube/connect` — initiates YouTube OAuth consent flow
+  - `GET /auth/youtube/callback` — handles OAuth redirect, exchanges code for tokens, encrypts and stores in `connected_accounts`
+  - `GET /auth/youtube/status` — returns whether the user has a connected YouTube account
+  - `DELETE /auth/youtube/disconnect` — removes the user's YouTube connected account
+  - `POST /jobs/:id/social-upload` — validates OAuth token, inserts `social_uploads` row, reserves 10 RC, dispatches SQS message
 - Token encryption/decryption utility (`apps/api/src/lib/token-crypto.ts`) using AES-256-GCM with a key from the `TOKEN_ENCRYPTION_KEY` environment variable
 - SQS dispatch Lambda handler code (`infra/lambdas/social-dispatch/index.ts`) — reads `platform` field, launches the YouTube Fargate task via ECS `RunTask`
 - YouTube upload Fargate task handler code (`infra/tasks/youtube-upload/index.ts`) — streams S3 render output to YouTube resumable upload API; handles token refresh on 401; calls `consumeCredits` on success, `releaseCredits` on failure; updates `social_uploads.status`; sends SES failure notification email on error
@@ -47,13 +47,13 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 ### OAuth Connect
 
-1. **FR-1:** `GET /api/auth/youtube/connect` must generate a YouTube OAuth 2.0 authorization URL with `scope=https://www.googleapis.com/auth/youtube.upload`, a cryptographically random `state` parameter, the configured `YOUTUBE_CLIENT_ID`, and `redirect_uri` pointing to `/api/auth/youtube/callback`. The `state` parameter must be stored server-side (in a short-lived record or signed JWT) and associated with the authenticated user ID.
+1. **FR-1:** `GET /auth/youtube/connect` must generate a YouTube OAuth 2.0 authorization URL with `scope=https://www.googleapis.com/auth/youtube.upload`, a cryptographically random `state` parameter, the configured `YOUTUBE_CLIENT_ID`, and `redirect_uri` pointing to `/auth/youtube/callback`. The `state` parameter must be stored server-side (in a short-lived record or signed JWT) and associated with the authenticated user ID.
 
-2. **FR-2:** `GET /api/auth/youtube/connect` must validate that the user has an active license (Plus or Pro) before generating the OAuth URL. Users without an active license must receive `403 Forbidden` with error code `LICENSE_REQUIRED`.
+2. **FR-2:** `GET /auth/youtube/connect` must validate that the user has an active license (Plus or Pro) before generating the OAuth URL. Users without an active license must receive `403 Forbidden` with error code `LICENSE_REQUIRED`.
 
-3. **FR-3:** The `GET /api/auth/youtube/callback` route must be excluded from the Clerk auth middleware (it is an OAuth redirect from Google, not an authenticated API call). This route must be added to the middleware exclusion list. The full exclusion list after all branches land is: `/api/health`, `/api/webhooks/clerk` (cloud-auth), `/api/webhooks/stripe` (cloud-licensing), `/api/webhooks/remotion`, `/api/webhooks/render` (cloud-rendering), and `/api/auth/youtube/callback` (this branch). Each branch adds its own exclusions additively.
+3. **FR-3:** The `GET /auth/youtube/callback` route must be excluded from the Clerk auth middleware (it is an OAuth redirect from Google, not an authenticated API call). This route must be added to the middleware exclusion list. The full exclusion list after all branches land is: `/api/health`, `/api/webhooks/clerk` (cloud-auth), `/api/webhooks/stripe` (cloud-licensing), `/api/webhooks/remotion`, `/api/webhooks/render` (cloud-rendering), and `/auth/youtube/callback` (this branch). Each branch adds its own exclusions additively.
 
-4. **FR-4:** `GET /api/auth/youtube/callback` must:
+4. **FR-4:** `GET /auth/youtube/callback` must:
    a. Validate the `state` parameter against the stored value to prevent CSRF attacks. Invalid or missing state must return `400 Bad Request`.
    b. Exchange the authorization `code` for an access token and refresh token using the YouTube OAuth token endpoint.
    c. Fetch the YouTube channel name using the YouTube Data API (`channels.list?part=snippet&mine=true`) with the new access token.
@@ -61,23 +61,23 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
    e. Upsert the `connected_accounts` row: if a row exists for `(user_id, 'youtube')`, update it; otherwise insert a new row. Store `platform='youtube'`, `account_name` (channel name), `account_id` (channel ID), encrypted `access_token`, encrypted `refresh_token`, and `connected_at`.
    f. Redirect to a success page (`/auth/youtube/success`) that the desktop BrowserWindow detects and closes.
 
-5. **FR-5:** `GET /api/auth/youtube/status` must return whether the authenticated user has a connected YouTube account. If connected, it must include `accountName` (channel name) and `connectedAt`. It must NOT return the access or refresh tokens.
+5. **FR-5:** `GET /auth/youtube/status` must return whether the authenticated user has a connected YouTube account. If connected, it must include `accountName` (channel name) and `connectedAt`. It must NOT return the access or refresh tokens.
 
-6. **FR-6:** `DELETE /api/auth/youtube/disconnect` must delete the user's `connected_accounts` row for `platform='youtube'`. If no YouTube account is connected, it must return `404 Not Found`.
+6. **FR-6:** `DELETE /auth/youtube/disconnect` must delete the user's `connected_accounts` row for `platform='youtube'`. If no YouTube account is connected, it must return `404 Not Found`.
 
 ### Social Upload
 
-7. **FR-7:** `POST /api/jobs/:id/social-upload` must:
+7. **FR-7:** `POST /jobs/:id/social-upload` must:
    a. Validate that the authenticated user owns the job.
    b. Validate that the job status is `'complete'` (only completed renders can be uploaded).
    c. Validate that the user has a connected YouTube account in `connected_accounts`.
    d. Validate that the user has an active license.
    e. Validate the request body: `platform` must be `'youtube'`, `metadata` must include `title` (string, 1-100 chars), `description` (string, 0-5000 chars), and `privacy` (`'public' | 'unlisted' | 'private'`).
-   f. Within a single DB transaction: insert a `social_uploads` row with `status: 'queued'` and `rc_cost: 10`, then call `reserveCredits(db, userId, \`su_${socialUploadId}\`, 10)`. If `reserveCredits` throws (insufficient credits), the transaction rolls back (no `social_uploads` row is created) and the endpoint returns `402 Payment Required` with error code `INSUFFICIENT_CREDITS`.
+   f. Within a single DB transaction: insert a `social_uploads` row with `status: 'queued'` and `rc_cost: 10`, then call `reserveCredits({ db, userId, jobId: \`su_${socialUploadId}\`, rcAmount: 10 })`. If `reserveCredits` throws (insufficient credits), the transaction rolls back (no `social_uploads` row is created) and the endpoint returns `402 Payment Required` with error code `INSUFFICIENT_CREDITS`.
    g. After the transaction commits, send an SQS message to the social upload queue with the payload (see SQS Message Payload section).
    i. Return `201 Created` with the `socialUploadId` and initial status.
 
-8. **FR-8:** `POST /api/jobs/:id/social-upload` must prevent duplicate uploads: if a `social_uploads` row already exists for the same `job_id` and `platform='youtube'` with `status` in `('queued', 'uploading', 'processing', 'live')`, it must return `409 Conflict`.
+8. **FR-8:** `POST /jobs/:id/social-upload` must prevent duplicate uploads: if a `social_uploads` row already exists for the same `job_id` and `platform='youtube'` with `status` in `('queued', 'uploading', 'processing', 'live')`, it must return `409 Conflict`.
 
 ### Token Encryption/Decryption
 
@@ -106,8 +106,8 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
     f. Stream the S3 object directly to the YouTube resumable upload endpoint in 8 MB chunks (no local disk write).
     g. Update `social_uploads.status` to `'processing'` once the upload bytes have been fully sent.
     h. Poll YouTube's video processing status (the `processing` → `processed` transition) with exponential backoff (initial 10s, max 60s, up to 30 minutes).
-    i. On success: update `social_uploads.status` to `'live'`, store `platform_url` (YouTube watch URL), update `social_uploads.updated_at`, call `consumeCredits(db, \`su_${socialUploadId}\`)`, update `connected_accounts.last_used_at`.
-    j. On failure: update `social_uploads.status` to `'failed'`, store `error_message`, call `releaseCredits(db, \`su_${socialUploadId}\`)`, send SES failure notification email to the user.
+    i. On success: update `social_uploads.status` to `'live'`, store `platform_url` (YouTube watch URL), update `social_uploads.updated_at`, call `consumeCredits({ db, jobId: \`su_${socialUploadId}\` })`, update `connected_accounts.last_used_at`.
+    j. On failure: update `social_uploads.status` to `'failed'`, store `error_message`, call `releaseCredits({ db, jobId: \`su_${socialUploadId}\` })`, send SES failure notification email to the user.
 
 14. **FR-14:** Token refresh on 401: if any YouTube API call returns HTTP 401, the Fargate task must:
     a. Use the stored refresh token to request a new access token from `https://oauth2.googleapis.com/token`.
@@ -124,7 +124,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
     - **Connected:** Show the YouTube channel name, a "Connected" badge, and a "Disconnect" button.
     - **Not connected:** Show a "Connect YouTube" button that initiates the OAuth flow.
 
-17. **FR-17:** The "Connect YouTube" button must open a BrowserWindow pointing to `GET /api/auth/youtube/connect`. The window must use `nodeIntegration: false`, `sandbox: true`, and a dedicated session partition (`persist:youtube-oauth`). The window must detect the redirect to `/auth/youtube/success` and close itself, then notify the renderer that the connection succeeded.
+17. **FR-17:** The "Connect YouTube" button must open a BrowserWindow pointing to `GET /auth/youtube/connect`. The window must use `nodeIntegration: false`, `sandbox: true`, and a dedicated session partition (`persist:youtube-oauth`). The window must detect the redirect to `/auth/youtube/success` and close itself, then notify the renderer that the connection succeeded.
 
 18. **FR-18:** The completed job row in `CloudRendersList.tsx` must show a "Upload to YouTube" button (replacing the current stub that only shows when `youtubeUrl` is set). The button must be visible on all completed jobs where the user has a connected YouTube account and no active/live upload exists for that job.
 
@@ -142,7 +142,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 22. **FR-22:** When upload status is `'failed'`, the job row must show the error message and a "Retry" button. The "Retry" button opens the upload dialog again (a new upload, not a resume). The credit display must note "10 RC refunded" for the failed upload.
 
-23. **FR-23:** Upload status must be polled by the desktop app via `GET /api/jobs/:id/social-uploads` (returns all social upload records for a job). Polling interval: every 10 seconds while any upload is in `'queued'` or `'uploading'` or `'processing'` state. Polling stops when all uploads reach a terminal state (`'live'` or `'failed'`).
+23. **FR-23:** Upload status must be polled by the desktop app via `GET /jobs/:id/social-uploads` (returns all social upload records for a job). Polling interval: every 10 seconds while any upload is in `'queued'` or `'uploading'` or `'processing'` state. Polling stops when all uploads reach a terminal state (`'live'` or `'failed'`).
 
 ---
 
@@ -158,7 +158,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 5. **NFR-5:** The OAuth state parameter must expire after 10 minutes to limit the CSRF attack window.
 
-6. **NFR-6:** The `POST /api/jobs/:id/social-upload` endpoint must respond within 3 seconds (credit reservation + SQS send).
+6. **NFR-6:** The `POST /jobs/:id/social-upload` endpoint must respond within 3 seconds (credit reservation + SQS send).
 
 7. **NFR-7:** All new API endpoints must follow the error response conventions established by `cloud-auth` (`ApiError` shape with `error.code` and `error.message`).
 
@@ -170,7 +170,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 ## API Endpoints
 
-### `GET /api/auth/youtube/connect`
+### `GET /auth/youtube/connect`
 
 Generates a YouTube OAuth 2.0 authorization URL and redirects the user to Google's consent screen.
 
@@ -182,7 +182,7 @@ Generates a YouTube OAuth 2.0 authorization URL and redirects the user to Google
 
 The `state` parameter encodes the user ID in a signed JWT (signed with `TOKEN_ENCRYPTION_KEY`, 10-minute expiry) to avoid server-side state storage.
 
-### `GET /api/auth/youtube/callback`
+### `GET /auth/youtube/callback`
 
 Handles the OAuth redirect from Google. Excluded from Clerk auth middleware.
 
@@ -193,7 +193,7 @@ Handles the OAuth redirect from Google. Excluded from Clerk auth middleware.
 | Response | `302 Found` (redirect to `/auth/youtube/success`) |
 | Errors | `400 INVALID_OAUTH_STATE`, `400 OAUTH_TOKEN_EXCHANGE_FAILED` |
 
-### `GET /api/auth/youtube/status`
+### `GET /auth/youtube/status`
 
 Returns the user's YouTube connection status.
 
@@ -225,7 +225,7 @@ Returns the user's YouTube connection status.
 }
 ```
 
-### `DELETE /api/auth/youtube/disconnect`
+### `DELETE /auth/youtube/disconnect`
 
 Removes the user's YouTube connected account.
 
@@ -243,7 +243,7 @@ Removes the user's YouTube connected account.
 }
 ```
 
-### `POST /api/jobs/:id/social-upload`
+### `POST /jobs/:id/social-upload`
 
 Creates a YouTube upload job, reserves credits, and dispatches to SQS.
 
@@ -278,7 +278,7 @@ Creates a YouTube upload job, reserves credits, and dispatches to SQS.
 }
 ```
 
-### `GET /api/jobs/:id/social-uploads`
+### `GET /jobs/:id/social-uploads`
 
 Returns all social upload records for a job. Used by the desktop to poll upload status.
 
@@ -370,12 +370,12 @@ The YouTube upload Fargate task handler streams a completed render from S3 to Yo
 10. On 'processed':
     → social_uploads.status = 'live'
     → social_uploads.platform_url = 'https://youtube.com/watch?v={videoId}'
-    → consumeCredits(db, reservationKey)
+    → consumeCredits({ db, jobId: reservationKey })
     → connected_accounts.last_used_at = now()
 11. On failure at any step:
     → social_uploads.status = 'failed'
     → social_uploads.error_message = descriptive message
-    → releaseCredits(db, reservationKey)
+    → releaseCredits({ db, jobId: reservationKey })
     → Send SES failure email to user
     → Exit with code 0 (prevent ECS retry — SQS DLQ handles retries)
 ```
@@ -652,7 +652,7 @@ The following Paper mockups should be created before implementation begins. All 
 3. User clicks "Connect".
 4. A BrowserWindow opens showing Google's OAuth consent screen.
 5. User signs in to Google and authorises RaceDash to upload videos.
-6. Google redirects to `/api/auth/youtube/callback`.
+6. Google redirects to `/auth/youtube/callback`.
 7. API exchanges the code for tokens, encrypts them, stores in `connected_accounts`.
 8. API redirects to `/auth/youtube/success`.
 9. BrowserWindow detects the success page and closes.
@@ -713,7 +713,7 @@ The following Paper mockups should be created before implementation begins. All 
 
 2. **CSRF protection via state parameter:** The OAuth `state` parameter is a signed JWT containing the user ID and a 10-minute expiry. The JWT is signed with `TOKEN_ENCRYPTION_KEY` using HS256. The callback handler verifies the signature and expiry before processing the code exchange. This prevents CSRF attacks where an attacker tricks a user into connecting the attacker's YouTube account.
 
-3. **Callback route authentication:** The `/api/auth/youtube/callback` route is excluded from Clerk auth middleware because it is an inbound redirect from Google. Authentication is established via the signed `state` parameter (which was generated in the authenticated `/connect` endpoint).
+3. **Callback route authentication:** The `/auth/youtube/callback` route is excluded from Clerk auth middleware because it is an inbound redirect from Google. Authentication is established via the signed `state` parameter (which was generated in the authenticated `/connect` endpoint).
 
 4. **Token scope limitation:** The YouTube OAuth scope is limited to `youtube.upload`. This grants the minimum permission needed (upload videos). It does not grant access to read the user's existing videos, manage playlists, or delete content.
 
@@ -721,7 +721,7 @@ The following Paper mockups should be created before implementation begins. All 
 
 6. **SQS message integrity:** The SQS message is dispatched by the authenticated API endpoint and consumed by the Lambda/Fargate within the AWS VPC. The message payload includes `userId` and `socialUploadId` which are verified against the database on the consumer side.
 
-7. **No tokens in responses:** The `GET /api/auth/youtube/status` endpoint returns the channel name and connection timestamp but never the access or refresh tokens. The only time tokens leave the API boundary is within the Fargate task's internal memory.
+7. **No tokens in responses:** The `GET /auth/youtube/status` endpoint returns the channel name and connection timestamp but never the access or refresh tokens. The only time tokens leave the API boundary is within the Fargate task's internal memory.
 
 8. **Fargate task isolation:** The YouTube upload Fargate task runs in an isolated container with no inbound network access. It has outbound access to S3, YouTube API, Neon database, and SES only.
 
@@ -876,16 +876,16 @@ export interface TokenCrypto {
 ```
 apps/api/src/
   routes/
-    youtube-auth.ts                   # GET /api/auth/youtube/connect, callback, status
-    youtube-disconnect.ts             # DELETE /api/auth/youtube/disconnect
-    social-upload.ts                  # POST /api/jobs/:id/social-upload
-    social-uploads-list.ts            # GET /api/jobs/:id/social-uploads
+    youtube-auth.ts                   # GET /auth/youtube/connect, callback, status
+    youtube-disconnect.ts             # DELETE /auth/youtube/disconnect
+    social-upload.ts                  # POST /jobs/:id/social-upload
+    social-uploads-list.ts            # GET /jobs/:id/social-uploads
   lib/
     token-crypto.ts                   # encryptToken, decryptToken (AES-256-GCM)
     youtube-client.ts                 # YouTube API helper (channel info, upload initiation)
   types.ts                           # (modified) add YouTube + social upload types
   plugins/
-    clerk-auth.ts                     # (modified) add /api/auth/youtube/callback to exclusion list
+    clerk-auth.ts                     # (modified) add /auth/youtube/callback to exclusion list
   test/
     routes/
       youtube-auth.test.ts
@@ -1079,7 +1079,7 @@ Snapshot tests that lock down the shape of API responses. These prevent accident
 **`apps/api/test/snapshots/youtube-status.snap.ts`**
 
 ```ts
-// Snapshot: GET /api/auth/youtube/status (connected)
+// Snapshot: GET /auth/youtube/status (connected)
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "connected": true,
@@ -1091,7 +1091,7 @@ expect(response.json()).toMatchInlineSnapshot(`
   }
 `)
 
-// Snapshot: GET /api/auth/youtube/status (not connected)
+// Snapshot: GET /auth/youtube/status (not connected)
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "connected": false,
@@ -1099,7 +1099,7 @@ expect(response.json()).toMatchInlineSnapshot(`
   }
 `)
 
-// Snapshot: DELETE /api/auth/youtube/disconnect
+// Snapshot: DELETE /auth/youtube/disconnect
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "disconnected": true,
@@ -1110,7 +1110,7 @@ expect(response.json()).toMatchInlineSnapshot(`
 **`apps/api/test/snapshots/social-upload.snap.ts`**
 
 ```ts
-// Snapshot: POST /api/jobs/:id/social-upload response
+// Snapshot: POST /jobs/:id/social-upload response
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "socialUploadId": Any<String>,
@@ -1120,7 +1120,7 @@ expect(response.json()).toMatchInlineSnapshot(`
   }
 `)
 
-// Snapshot: GET /api/jobs/:id/social-uploads response (with one upload)
+// Snapshot: GET /jobs/:id/social-uploads response (with one upload)
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "uploads": [
@@ -1143,7 +1143,7 @@ expect(response.json()).toMatchInlineSnapshot(`
   }
 `)
 
-// Snapshot: POST /api/jobs/:id/social-upload error (insufficient credits)
+// Snapshot: POST /jobs/:id/social-upload error (insufficient credits)
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "error": {
@@ -1153,7 +1153,7 @@ expect(response.json()).toMatchInlineSnapshot(`
   }
 `)
 
-// Snapshot: POST /api/jobs/:id/social-upload error (duplicate upload)
+// Snapshot: POST /jobs/:id/social-upload error (duplicate upload)
 expect(response.json()).toMatchInlineSnapshot(`
   {
     "error": {

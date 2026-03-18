@@ -451,7 +451,7 @@ All Lambda handlers live in `infra/lambdas/` and are deployed by CDK constructs 
 **Input:** `{ jobId: string, userId: string }`
 
 **Behavior:**
-1. Call `consumeCredits(reservationId)` to settle the credit reservation (reservation ID is stored on or derived from the job).
+1. Call `consumeCredits({ db, jobId })` to settle the credit reservation (looks up reservation by the job's ID).
 2. Update the job: `status → 'complete'`, `download_expires_at → now() + 7 days`, `output_s3_key → 'renders/{jobId}/output.mp4'`.
 3. Delete the source upload from S3: `uploads/{jobId}/joined.mp4`.
 4. Call `claimNextQueuedSlotToken(userId)`. If a token is returned, call `states:SendTaskSuccess({ taskToken: token, output: '{}' })` to wake the next queued execution.
@@ -478,7 +478,7 @@ All Lambda handlers live in `infra/lambdas/` and are deployed by CDK constructs 
 **Input:** `{ jobId: string, userId: string, error: unknown }`
 
 **Behavior:**
-1. Call `releaseCredits(reservationId)` to restore the reserved credits.
+1. Call `releaseCredits({ db, jobId })` to restore the reserved credits.
 2. Update the job: `status → 'failed'`, `error_message → serialized error`.
 3. Attempt to send a failure notification email via SES:
    - Subject: "Your RaceDash render failed"
@@ -807,13 +807,20 @@ Lambda handler code lives in `infra/lambdas/` and is owned by this branch:
 
 ```
 infra/lambdas/
-  wait-for-slot.ts
-  grant-slot.ts
-  start-render-overlay.ts
-  prepare-composite.ts
-  finalise-job.ts
-  notify-user.ts
-  release-credits-and-fail.ts
+  wait-for-slot/
+    index.ts                           # handler entry point (exports { handler })
+  grant-slot/
+    index.ts
+  start-render-overlay/
+    index.ts
+  prepare-composite/
+    index.ts
+  finalise-job/
+    index.ts
+  notify-user/
+    index.ts
+  release-credits-and-fail/
+    index.ts
   shared/
     db.ts                              # Neon client factory (imports @racedash/db)
     sfn.ts                             # Step Functions client + SendTaskSuccess/Failure helpers
@@ -821,7 +828,7 @@ infra/lambdas/
     ses.ts                             # SES email sending helper
 ```
 
-CDK constructs that reference these handler paths are owned by `feature/cloud-infra`. The constructs define the Lambda functions with placeholder handler paths; this branch provides the actual handler code at those paths.
+Each handler is in a `{name}/index.ts` directory, matching the CDK construct path `infra/lambdas/{name}/index.handler` defined by `cloud-infra`. CDK constructs that reference these handler paths are owned by `feature/cloud-infra`; this branch provides the actual handler code.
 
 **Environment variables consumed by handlers** (injected by CDK constructs):
 
@@ -1120,7 +1127,7 @@ interface RenderWebhookPayload {
 
 #### `test/lambdas/finalise-job.test.ts`
 
-1. Calls `consumeCredits` with the correct reservation ID
+1. Calls `consumeCredits` with the job's ID
 2. Sets job status to `'complete'`
 3. Sets `download_expires_at` to approximately 7 days from now
 4. Sets `output_s3_key` to `renders/{jobId}/output.mp4`
@@ -1138,7 +1145,7 @@ interface RenderWebhookPayload {
 
 #### `test/lambdas/release-credits-and-fail.test.ts`
 
-1. Calls `releaseCredits` with the correct reservation ID
+1. Calls `releaseCredits` with the job's ID
 2. Sets job status to `'failed'`
 3. Stores error message in `jobs.error_message`
 4. Sends SES failure email (subject: "Your RaceDash render failed")
