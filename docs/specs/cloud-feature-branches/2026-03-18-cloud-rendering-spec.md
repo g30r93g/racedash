@@ -9,7 +9,7 @@
 
 ## Overview
 
-This branch delivers the end-to-end cloud rendering pipeline from the desktop app to a downloadable output. It implements all seven API endpoints for job lifecycle management (creation, upload, execution, status streaming, download, and webhook handling), all seven Lambda handler functions for the Step Functions render pipeline, and the desktop UI changes that let users submit cloud renders, monitor progress via SSE, and download completed outputs. After this branch lands, a user can select "Cloud render" in the Export tab, upload a pre-joined video via S3 multipart upload, watch the pipeline progress in real time through the Cloud Renders tab, and download the finished composite within a 7-day window.
+This branch delivers the end-to-end cloud rendering pipeline from the desktop app to a downloadable output. It implements eight API endpoints for job lifecycle management (creation, upload, execution, listing, status streaming, download, and webhook handling), all seven Lambda handler functions for the Step Functions render pipeline, and the desktop UI changes that let users submit cloud renders, monitor progress via SSE, and download completed outputs. After this branch lands, a user can select "Cloud render" in the Export tab, upload a pre-joined video via S3 multipart upload, watch the pipeline progress in real time through the Cloud Renders tab, and download the finished composite within a 7-day window.
 
 ---
 
@@ -345,7 +345,7 @@ EventBridge relay webhook for Step Functions terminal states.
 
 **Response:** `200 OK` (empty body)
 
-**Behavior:** On receiving a terminal state event, the handler extracts `userId` from the execution input, calls `claimNextQueuedSlotToken({ db, userId })`, and if a token is returned, calls `states:SendTaskSuccess` to wake the next queued execution.
+**Behavior:** On receiving a Step Functions terminal state event (`SUCCEEDED`, `FAILED`, `TIMED_OUT`, `ABORTED`), the handler extracts `userId` from the execution input in the event detail, calls `claimNextQueuedSlotToken({ db, userId })`, and if a token is returned, calls `states:SendTaskSuccess` to wake the next queued execution. This is a backup slot-signaling path — `FinaliseJob` and `ReleaseCreditsAndFail` also signal directly, so this handler provides defense-in-depth.
 
 **Error responses:**
 - `401 Unauthorized` — invalid webhook secret

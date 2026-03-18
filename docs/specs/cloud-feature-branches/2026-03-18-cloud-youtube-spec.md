@@ -23,6 +23,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
   - `GET /auth/youtube/status` — returns whether the user has a connected YouTube account
   - `DELETE /auth/youtube/disconnect` — removes the user's YouTube connected account
   - `POST /jobs/:id/social-upload` — validates OAuth token, inserts `social_uploads` row, reserves 10 RC, dispatches SQS message
+  - `GET /jobs/:id/social-uploads` — returns all social upload records for a job (used for status polling)
 - Token encryption/decryption utility (`apps/api/src/lib/token-crypto.ts`) using AES-256-GCM with a key from the `TOKEN_ENCRYPTION_KEY` environment variable
 - SQS dispatch Lambda handler code (`infra/lambdas/social-dispatch/index.ts`) — reads `platform` field, launches the YouTube Fargate task via ECS `RunTask`
 - YouTube upload Fargate task handler code (`infra/tasks/youtube-upload/index.ts`) — streams S3 render output to YouTube resumable upload API; handles token refresh on 401; calls `consumeCredits` on success, `releaseCredits` on failure; updates `social_uploads.status`; sends SES failure notification email on error
@@ -75,7 +76,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
    e. Validate the request body: `platform` must be `'youtube'`, `metadata` must include `title` (string, 1-100 chars), `description` (string, 0-5000 chars), and `privacy` (`'public' | 'unlisted' | 'private'`).
    f. Within a single DB transaction: insert a `social_uploads` row with `status: 'queued'` and `rc_cost: 10`, then call `reserveCredits({ db, userId, jobId: \`su_${socialUploadId}\`, rcAmount: 10 })`. If `reserveCredits` throws (insufficient credits), the transaction rolls back (no `social_uploads` row is created) and the endpoint returns `402 Payment Required` with error code `INSUFFICIENT_CREDITS`.
    g. After the transaction commits, send an SQS message to the social upload queue with the payload (see SQS Message Payload section).
-   i. Return `201 Created` with the `socialUploadId` and initial status.
+   h. Return `201 Created` with the `socialUploadId` and initial status.
 
 8. **FR-8:** `POST /jobs/:id/social-upload` must prevent duplicate uploads: if a `social_uploads` row already exists for the same `job_id` and `platform='youtube'` with `status` in `('queued', 'uploading', 'processing', 'live')`, it must return `409 Conflict`.
 
