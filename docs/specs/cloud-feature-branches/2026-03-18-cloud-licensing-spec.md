@@ -74,7 +74,7 @@ This branch delivers Stripe subscription management, credit pack purchasing, lic
 
 ## Non-Functional Requirements
 
-1. **NFR-1:** Stripe webhook handlers must be idempotent. Replaying the same event must produce the same final state. Event IDs must be tracked to detect duplicates.
+1. **NFR-1:** Stripe webhook handlers must be idempotent. Replaying the same event must produce the same final state. Idempotency is enforced via existing DB UNIQUE constraints (`stripe_payment_intent_id` for credit packs, `stripe_subscription_id` for licenses) — no separate event ID tracking table is needed.
 2. **NFR-2:** The `POST /api/stripe/checkout` and `POST /api/stripe/credits/checkout` endpoints must respond within 2 seconds (Stripe Checkout session creation is fast, but network latency applies).
 3. **NFR-3:** The Stripe webhook endpoint must return `200` quickly (within 5 seconds) to avoid Stripe retries. Heavy processing (if any) must be handled after acknowledging the webhook.
 4. **NFR-4:** The Stripe Checkout BrowserWindow must not have access to Node.js APIs (`nodeIntegration: false`, `sandbox: true`).
