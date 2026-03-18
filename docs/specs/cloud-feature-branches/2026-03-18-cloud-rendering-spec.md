@@ -68,13 +68,13 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
 
 ### Lambda Handlers
 
-9. **FR-9:** `WaitForSlot` must receive `{ jobId, userId, taskToken }` from Step Functions. It must store the `taskToken` in `jobs.slot_task_token`. It must then check if a slot is already free by calling `countActiveRenders(userId)` and comparing against `getSlotLimit(tier)` (where `tier` is looked up from the user's active license). If `activeRenders < slotLimit`, call `states:SendTaskSuccess` immediately with the task token (no wait needed). Otherwise, return — the execution pauses until a terminal-state Lambda signals via `claimNextQueuedSlotToken`.
+9. **FR-9:** `WaitForSlot` must receive `{ jobId, userId, taskToken }` from Step Functions. It must store the `taskToken` in `jobs.slot_task_token`. It must then check if a slot is already free by calling `countActiveRenders(db, userId)` and comparing against `getSlotLimit(tier)` (where `tier` is looked up from the user's active license). If `activeRenders < slotLimit`, call `states:SendTaskSuccess` immediately with the task token (no wait needed). Otherwise, return — the execution pauses until a terminal-state Lambda signals via `claimNextQueuedSlotToken`.
 10. **FR-10:** `GrantSlot` must receive `{ jobId }` and update the job's status to `'rendering'`.
 11. **FR-11:** `StartRenderOverlay` must receive `{ jobId, userId, taskToken }`. It must read the job's `config` to determine overlay parameters. It must call `renderMediaOnLambda()` from `@remotion/lambda` with the Remotion serve URL, function name, composition ID, input props (including overlay config and S3 input key), the webhook URL (`REMOTION_WEBHOOK_URL`), and `customData` containing the `taskToken`. It must store the returned `renderId` in `jobs.remotion_render_id`. The Lambda returns immediately after calling `renderMediaOnLambda()` — the execution pauses until the Remotion webhook fires.
 12. **FR-12:** `PrepareComposite` must receive `{ jobId }` and update the job's status to `'compositing'`. It must read the job's source video metadata (resolution) to determine the MediaConvert output bitrate (50 Mbps for width >= 3840, 30 Mbps for width >= 2560, 20 Mbps otherwise). It must construct and return a MediaConvert job configuration with the overlay S3 key (`renders/{jobId}/overlay.mov`) and source video S3 key (`uploads/{jobId}/joined.mp4`) as inputs, the output S3 key (`renders/{jobId}/output.mp4`), and the `MEDIACONVERT_ROLE_ARN`. The returned config is passed directly to the `RunMediaConvert` SDK integration state.
-13. **FR-13:** `FinaliseJob` must receive `{ jobId, userId }`. It must call `consumeCredits` to settle the credit reservation. It must update the job's status to `'complete'` and set `download_expires_at` to `now() + 7 days`. It must delete the source upload from S3 (`uploads/{jobId}/joined.mp4`). It must then signal the next queued job by calling `claimNextQueuedSlotToken(userId)` — if a token is returned, call `states:SendTaskSuccess` with it.
+13. **FR-13:** `FinaliseJob` must receive `{ jobId, userId }`. It must call `consumeCredits` to settle the credit reservation. It must update the job's status to `'complete'` and set `download_expires_at` to `now() + 7 days`. It must delete the source upload from S3 (`uploads/{jobId}/joined.mp4`). It must then signal the next queued job by calling `claimNextQueuedSlotToken({ db, userId })` — if a token is returned, call `states:SendTaskSuccess` with it.
 14. **FR-14:** `NotifyUser` must receive `{ jobId, userId }`. It must look up the user's email from the `users` table and send a render completion email via SES. The email subject must be "Your RaceDash render is ready" and include a link to download the output (the download link points to the desktop app or a web page, not a direct S3 URL). This is a separate Lambda so that an SES failure does not roll back the completed job.
-15. **FR-15:** `ReleaseCreditsAndFail` must receive `{ jobId, userId, error }`. It must call `releaseCredits` to restore the reserved credits. It must update the job's status to `'failed'` and store `error` in `jobs.error_message`. It must send a failure notification email via SES (subject: "Your RaceDash render failed"). It must then signal the next queued job by calling `claimNextQueuedSlotToken(userId)` — if a token is returned, call `states:SendTaskSuccess` with it. SES failure in this Lambda must be caught and logged, not rethrown — the credit release and status update are the critical operations.
+15. **FR-15:** `ReleaseCreditsAndFail` must receive `{ jobId, userId, error }`. It must call `releaseCredits` to restore the reserved credits. It must update the job's status to `'failed'` and store `error` in `jobs.error_message`. It must send a failure notification email via SES (subject: "Your RaceDash render failed"). It must then signal the next queued job by calling `claimNextQueuedSlotToken({ db, userId })` — if a token is returned, call `states:SendTaskSuccess` with it. SES failure in this Lambda must be caught and logged, not rethrown — the credit release and status update are the critical operations.
 
 ### Desktop UI
 
@@ -345,7 +345,7 @@ EventBridge relay webhook for Step Functions terminal states.
 
 **Response:** `200 OK` (empty body)
 
-**Behavior:** On receiving a terminal state event, the handler extracts `userId` from the execution input, calls `claimNextQueuedSlotToken(userId)`, and if a token is returned, calls `states:SendTaskSuccess` to wake the next queued execution.
+**Behavior:** On receiving a terminal state event, the handler extracts `userId` from the execution input, calls `claimNextQueuedSlotToken({ db, userId })`, and if a token is returned, calls `states:SendTaskSuccess` to wake the next queued execution.
 
 **Error responses:**
 - `401 Unauthorized` — invalid webhook secret
@@ -363,7 +363,7 @@ All Lambda handlers live in `infra/lambdas/` and are deployed by CDK constructs 
 **Behavior:**
 1. Store `taskToken` in `jobs.slot_task_token` for the given `jobId`.
 2. Look up the user's license tier from the `licenses` table.
-3. Call `countActiveRenders(userId)` and `getSlotLimit(tier)`.
+3. Call `countActiveRenders(db, userId)` and `getSlotLimit(tier)`.
 4. If `activeRenders < slotLimit`, call `states:SendTaskSuccess({ taskToken, output: '{}' })` immediately.
 5. Otherwise, return. The execution pauses at the `.waitForTaskToken` state until a terminal-state handler (FinaliseJob or ReleaseCreditsAndFail) signals via `claimNextQueuedSlotToken`.
 
@@ -454,7 +454,7 @@ All Lambda handlers live in `infra/lambdas/` and are deployed by CDK constructs 
 1. Call `consumeCredits({ db, jobId })` to settle the credit reservation (looks up reservation by the job's ID).
 2. Update the job: `status → 'complete'`, `download_expires_at → now() + 7 days`, `output_s3_key → 'renders/{jobId}/output.mp4'`.
 3. Delete the source upload from S3: `uploads/{jobId}/joined.mp4`.
-4. Call `claimNextQueuedSlotToken(userId)`. If a token is returned, call `states:SendTaskSuccess({ taskToken: token, output: '{}' })` to wake the next queued execution.
+4. Call `claimNextQueuedSlotToken({ db, userId })`. If a token is returned, call `states:SendTaskSuccess({ taskToken: token, output: '{}' })` to wake the next queued execution.
 
 ---
 
@@ -484,7 +484,7 @@ All Lambda handlers live in `infra/lambdas/` and are deployed by CDK constructs 
    - Subject: "Your RaceDash render failed"
    - Body: includes project name and a note that credits have been restored.
    - SES failure is caught and logged — it must not throw.
-4. Call `claimNextQueuedSlotToken(userId)`. If a token is returned, call `states:SendTaskSuccess({ taskToken: token, output: '{}' })` to wake the next queued execution.
+4. Call `claimNextQueuedSlotToken({ db, userId })`. If a token is returned, call `states:SendTaskSuccess({ taskToken: token, output: '{}' })` to wake the next queued execution.
 
 ---
 
@@ -1132,7 +1132,7 @@ interface RenderWebhookPayload {
 3. Sets `download_expires_at` to approximately 7 days from now
 4. Sets `output_s3_key` to `renders/{jobId}/output.mp4`
 5. Deletes source upload from S3 (`uploads/{jobId}/joined.mp4`)
-6. Calls `claimNextQueuedSlotToken(userId)`
+6. Calls `claimNextQueuedSlotToken({ db, userId })`
 7. If token returned — calls `SendTaskSuccess` with the token
 8. If no token — does not call `SendTaskSuccess`
 
@@ -1150,7 +1150,7 @@ interface RenderWebhookPayload {
 3. Stores error message in `jobs.error_message`
 4. Sends SES failure email (subject: "Your RaceDash render failed")
 5. SES failure is caught and logged — does not throw
-6. Calls `claimNextQueuedSlotToken(userId)`
+6. Calls `claimNextQueuedSlotToken({ db, userId })`
 7. If token returned — calls `SendTaskSuccess` with the token
 8. If no token — does not call `SendTaskSuccess`
 

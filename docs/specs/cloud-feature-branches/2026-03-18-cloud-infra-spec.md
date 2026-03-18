@@ -600,6 +600,16 @@ Resource: {sesIdentityArn}
 | `SES_FROM_ADDRESS` | `NotificationsStack.sesFromAddress` |
 | `TOKEN_ENCRYPTION_KEY` | CDK context param (32-byte hex for AES-256-GCM OAuth token decryption) |
 
+**Dispatch Lambda environment variables:**
+
+| Variable | Source |
+|---|---|
+| `DATABASE_URL` | CDK context param (Neon direct non-pooled) |
+| `YOUTUBE_TASK_DEFINITION_ARN` | Task definition ARN (same stack) |
+| `ECS_CLUSTER_ARN` | Cluster ARN (same stack) |
+| `TASK_SUBNETS` | CDK context param (comma-separated subnet IDs) |
+| `TASK_SECURITY_GROUP` | CDK context param (security group ID) |
+
 **Dispatch Lambda IAM:**
 ```
 Effect: Allow
