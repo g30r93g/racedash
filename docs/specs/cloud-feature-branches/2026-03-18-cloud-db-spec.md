@@ -219,7 +219,7 @@ export const creditPacks = pgTable('credit_packs', {
   priceGbp: numeric('price_gbp', { precision: 10, scale: 2 }).notNull(),
   purchasedAt: timestamp('purchased_at', { withTimezone: true }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  stripePaymentIntentId: text('stripe_payment_intent_id').unique().notNull(),
+  stripePaymentIntentId: text('stripe_payment_intent_id').unique(),  // nullable for admin-granted packs
 }, (table) => [
   index('credit_packs_user_fifo_idx')
     .on(table.userId, table.expiresAt)
@@ -239,7 +239,7 @@ export const creditPacks = pgTable('credit_packs', {
 | `price_gbp` | `numeric(10,2)` | `NOT NULL` |
 | `purchased_at` | `timestamptz` | `NOT NULL DEFAULT now()` |
 | `expires_at` | `timestamptz` | `NOT NULL` (= `purchased_at + 12 months`) |
-| `stripe_payment_intent_id` | `text` | `UNIQUE NOT NULL` |
+| `stripe_payment_intent_id` | `text` | `UNIQUE` (nullable for admin-granted packs) |
 
 **Indexes:** `credit_packs_user_fifo_idx` on `(user_id, expires_at ASC) WHERE rc_remaining > 0` — partial index for efficient FIFO credit queries.
 
