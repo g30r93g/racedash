@@ -438,7 +438,9 @@ Relay Lambda (`StepFunctionsRelayFunction`, 128 MB, 30s timeout) POSTs the event
 | `FinaliseJobFunctionArn` | `{env}-FinaliseJobFunctionArn` | FinaliseJob Lambda ARN |
 | `NotifyUserFunctionArn` | `{env}-NotifyUserFunctionArn` | NotifyUser Lambda ARN |
 | `ReleaseCreditsAndFailFunctionArn` | `{env}-ReleaseCreditsAndFailFunctionArn` | ReleaseCreditsAndFail Lambda ARN |
+| `StepFunctionsRelayFunctionArn` | `{env}-StepFunctionsRelayFunctionArn` | Relay Lambda ARN |
 | `RemotionFunctionName` | `{env}-RemotionFunctionName` | Remotion Lambda function name |
+| `RemotionFunctionArn` | `{env}-RemotionFunctionArn` | Remotion Lambda ARN |
 | `RemotionServeUrl` | `{env}-RemotionServeUrl` | Remotion site bucket URL |
 | `MediaConvertRoleArn` | `{env}-MediaConvertRoleArn` | MediaConvert role ARN |
 

@@ -10,7 +10,7 @@
 
 ## Overview
 
-This branch creates `packages/db`, a new monorepo package that provides all database concerns for RaceDash Cloud. It contains the Drizzle ORM schema for eight tables, a Neon serverless client factory, credit helpers (reserve/release/consume with FIFO depletion), license helpers (tier validation, expiry checks, concurrent render limits), a slot signaling helper for the Step Functions pipeline, and the `computeCredits` formula. The package has no runtime dependencies on any other `@racedash/*` package and is the foundation that every other `feature/cloud-*` branch depends on.
+This branch creates `packages/db`, a new monorepo package that provides all database concerns for RaceDash Cloud. It contains the Drizzle ORM schema for eight tables, a Neon serverless client factory, credit helpers (reserve/release/consume with FIFO depletion), license helpers (tier validation, expiry checks, concurrent render limits), a slot signaling helper for the Step Functions pipeline, and the `computeCredits` formula. The package has no runtime dependencies on any other `@racedash/*` package and is a foundation dependency for `cloud-auth`, `cloud-admin`, `cloud-licensing`, `cloud-rendering`, and `cloud-youtube`. (`cloud-infra` runs in parallel with no dependency on this branch.)
 
 ---
 
@@ -631,10 +631,9 @@ async function claimNextQueuedSlotToken(
 Executes the following atomic SQL via Drizzle's `db.execute()`:
 
 ```sql
-UPDATE jobs
-SET slot_task_token = NULL
-WHERE id = (
-  SELECT id FROM jobs
+WITH target AS (
+  SELECT id, slot_task_token
+  FROM jobs
   WHERE user_id = $1
     AND status = 'queued'
     AND slot_task_token IS NOT NULL
@@ -642,12 +641,20 @@ WHERE id = (
   LIMIT 1
   FOR UPDATE SKIP LOCKED
 )
-RETURNING slot_task_token
+UPDATE jobs
+SET slot_task_token = NULL
+FROM target
+WHERE jobs.id = target.id
+RETURNING target.slot_task_token
 ```
 
-`FOR UPDATE SKIP LOCKED` is added to handle the case where two terminal-state Lambdas fire concurrently for the same user: one will lock the row and claim the token, the other will skip the locked row and either claim the next queued job or return `null`.
+A CTE is used because PostgreSQL `RETURNING` yields post-update values — without the CTE, `RETURNING slot_task_token` would return `NULL` (the value we just set), not the original token. The CTE captures the pre-update `slot_task_token` and the `RETURNING target.slot_task_token` gives us the original value.
+
+`FOR UPDATE SKIP LOCKED` handles the case where two terminal-state Lambdas fire concurrently for the same user: one will lock the row and claim the token, the other will skip the locked row and either claim the next queued job or return `null`.
 
 Returns the `slot_task_token` string if a row was updated, or `null` if no claimable queued job exists. The caller (terminal-state Lambda) uses the returned token to call `states:SendTaskSuccess`.
+
+> **Note:** The epic spec's SQL uses `RETURNING slot_task_token` directly on the `UPDATE`, which would return `NULL` post-update. This CTE version corrects that to return the pre-update token value as intended.
 
 ---
 
@@ -832,7 +839,7 @@ check('rc_remaining_non_negative', sql`rc_remaining >= 0`)
 
 ## Infrastructure
 
-None owned by this branch. The Neon database is provisioned externally (Neon dashboard or CDK in `cloud-infra`). This package defines the schema and generates migrations; migration execution is a deployment concern.
+None owned by this branch. The Neon database is provisioned externally via the Neon dashboard (not via CDK — `cloud-infra` does not own Neon resources). `DATABASE_URL` is provided as an environment variable to consumers. This package defines the schema and generates migrations; migration execution is a deployment concern.
 
 ---
 
