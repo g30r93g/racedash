@@ -57,7 +57,7 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
    - `/jobs` — Job list
    - `/jobs/:id` — Job detail
 3. **FR-3:** The app must use `@clerk/clerk-react` for authentication. The `ClerkProvider` must be configured with the same Clerk instance as the main platform. The publishable key is provided via `VITE_CLERK_PUBLISHABLE_KEY`.
-4. **FR-4:** A root-level auth guard must wrap all routes. It must check `user.publicMetadata.role === 'admin'`. Non-admin authenticated users see an "Access Denied" screen. Unauthenticated users are redirected to Clerk's sign-in flow.
+4. **FR-4:** A root-level auth guard (`AdminGuard`) must wrap all routes. It must check `user.publicMetadata.role === 'admin'`. Non-admin authenticated users see an "Access Denied" screen. Unauthenticated users see Clerk's `<SignIn>` component rendered inline (hash routing).
 5. **FR-5:** The app must include a persistent sidebar navigation with links to Overview, Users, and Jobs.
 6. **FR-6:** All API calls from the admin app must use the Clerk session token via `useAuth().getToken()` as an `Authorization: Bearer` header. The API base URL is provided via `VITE_API_URL`.
 
@@ -516,7 +516,7 @@ Paginated job list with filters.
 }
 ```
 
-`durationSec` is computed server-side as `EXTRACT(EPOCH FROM updated_at - created_at)` for terminal states (`complete`, `failed`), `null` for non-terminal states. `rcCost` is `null` for non-terminal jobs.
+`durationSec` is computed server-side as `EXTRACT(EPOCH FROM updated_at - created_at)` for terminal states (`complete`, `failed`), `null` for non-terminal states. `rcCost` is the value written by `FinaliseJob` for `complete` jobs; `null` for all other states (including `failed`, where credits were released, not consumed).
 
 ### `GET /api/admin/jobs/:id`
 
@@ -824,7 +824,7 @@ Set `publicMetadata: { role: 'admin' }` on the relevant Clerk user via:
 
 1. **SC-1:** An admin user can sign in to `apps/admin`, see the overview dashboard with live job counts, and refresh the data.
 2. **SC-2:** A non-admin authenticated user sees the "Access Denied" page on all admin routes and receives `403` from all admin API endpoints.
-3. **SC-3:** An unauthenticated user is redirected to Clerk sign-in when visiting any admin page.
+3. **SC-3:** An unauthenticated user sees Clerk's sign-in form when visiting any admin page.
 4. **SC-4:** An admin can search for a user by email and navigate to their detail page to see profile, licenses, credit packs, and job history.
 5. **SC-5:** An admin can issue a new license to a user with a specified tier and expiry, and the license appears immediately in the user's license list.
 6. **SC-6:** An admin can extend an existing license's expiry date, and the new expiry is reflected in the user detail page.
@@ -1292,7 +1292,7 @@ import { adminAuditLog } from '../schema/admin-audit-log'
 // AdminAuditAction is defined locally in @racedash/db — no cross-package import
 export type AdminAuditAction =
   | 'license.issue' | 'license.extend' | 'license.revoke'
-  | 'credit.grant' | 'credit.correct'
+  | 'credits.grant' | 'credits.correction'
 
 export interface LogAdminActionParams {
   adminClerkId: string
@@ -1374,7 +1374,7 @@ Unit tests using Vitest. Each test targets a specific functional requirement.
 | Filters jobs by time range (7d, 30d, all) | FR-19 |
 | Computes durationSec for terminal jobs | FR-18 |
 | Returns durationSec null for non-terminal jobs | FR-18 |
-| Returns rcCost null for non-terminal jobs | FR-18 |
+| Returns rcCost null for non-complete jobs (including failed) | FR-18 |
 | Returns full job detail with all fields | FR-20 |
 | Returns SFN console URL derived from execution ARN | FR-20 |
 | Returns sfnConsoleUrl null when sfnExecutionArn is null | FR-20 |
@@ -1448,7 +1448,7 @@ Unit tests using Vitest. Each test targets a specific functional requirement.
 | Test | FR |
 |---|---|
 | Renders job rows with correct columns | FR-18 |
-| Shows '—' for rcCost on non-terminal jobs | FR-18 |
+| Shows '—' for rcCost on non-complete jobs (including failed) | FR-18 |
 | Shows '—' for duration on non-terminal jobs | FR-18 |
 
 **`apps/admin/test/components/jobs/JobStatusBadge.test.tsx`**
