@@ -44,6 +44,7 @@ Existing packages (`core`, `engine`, `compositor`, `scraper`, `timestamps`) and 
 ### `feature/cloud-db`
 **Owns:** `packages/db`
 - Drizzle ORM schema: `users`, `licenses`, `credit_packs`, `jobs`, `social_uploads`, `connected_accounts`, `credit_reservations`, `credit_reservation_packs`
+  - `jobs` table includes `slot_task_token text` (Step Functions task token stored when `WaitForSlot` is entered; set to `NULL` atomically when claimed by a terminal-state Lambda to prevent double-signaling)
 - Credit helpers: `reserveCredits`, `releaseCredits`, `consumeCredits` (FIFO depletion, soonest-expiring-first)
 - License helpers: tier validation (Plus / Pro), expiry checks, concurrent render limit by tier (`getSlotLimit(tier): 1 | 3`), active render count query (`countActiveRenders(db, userId): number` — counts jobs in `'rendering' | 'compositing'`)
 - Neon serverless client setup
@@ -64,7 +65,7 @@ starts_at, expires_at, created_at, updated_at
 **Owns:** `infra/` — CDK construct definitions, IAM, resource declarations, and wiring only. Lambda handler source code is owned by `feature/cloud-rendering` and `feature/cloud-youtube` respectively.
 - AWS CDK v2 TypeScript stacks:
   - **StorageStack**: `racedash-uploads-{env}` + `racedash-renders-{env}` S3 buckets with lifecycle rules (uploads expire after job completes; render outputs expire after 7 days); CloudFront distribution over renders bucket with RSA signed URL key pair
-  - **PipelineStack**: Step Functions state machine (desktop-only path — no join step; single input video always; includes initial `WaitForSlot` polling loop); Remotion Lambda IAM role + site bucket; MediaConvert IAM role; CDK constructs for pipeline Lambda functions (WaitForSlot, StartRenderOverlay, WaitForRemotionLambda, CreateMediaConvertJob, WaitForMediaConvert, FinaliseJob, NotifyUser, ReleaseCreditsAndFail)
+  - **PipelineStack**: Step Functions state machine (desktop-only path — no join step; single input video always; includes initial `WaitForSlot` `.waitForTaskToken` callback state); Remotion Lambda IAM role + site bucket; MediaConvert IAM role; CDK constructs for pipeline Lambda functions (WaitForSlot, GrantSlot, StartRenderOverlay, WaitForRemotionLambda, CreateMediaConvertJob, WaitForMediaConvert, FinaliseJob, NotifyUser, ReleaseCreditsAndFail); `FinaliseJob` and `ReleaseCreditsAndFail` IAM grants include `states:SendTaskSuccess` on the state machine ARN
   - **NotificationsStack**: SES for render completion + failure emails; EventBridge rule on Step Functions terminal states → relay Lambda → `POST /api/webhooks/render`. The relay Lambda target URL (`WEBHOOK_TARGET_URL`) and `WEBHOOK_SECRET` are injected post-deploy once `cloud-rendering` has defined and deployed the endpoint. The CDK deploy is expected to be re-run after `cloud-rendering` lands.
   - **SocialStack**: ECS Fargate cluster + YouTube upload task definition (handler code owned by `cloud-youtube`); SQS queue for social upload jobs + DLQ; CDK construct for the SQS dispatch Lambda (handler code owned by `cloud-youtube`)
 - MediaConvert endpoint is discovered at runtime via `describeEndpoints()` — not an environment variable.
@@ -101,7 +102,7 @@ starts_at, expires_at, created_at, updated_at
 ### `feature/cloud-rendering`
 **Owns:** End-to-end cloud render pipeline from desktop to download, including Lambda handler code
 - `apps/api`: job endpoints — `POST /jobs` (create + reserve credits), `POST /jobs/:id/start-upload` (presigned S3 multipart URLs), `POST /jobs/:id/complete-upload` (complete multipart, start Step Functions execution), `GET /jobs/:id/status` (SSE stream), `GET /jobs/:id/download` (signed CloudFront URL, valid until `download_expires_at`), `POST /api/webhooks/render` (EventBridge relay receiver — validates `x-webhook-secret` with `timingSafeEqual`)
-- Pipeline Lambda handler code (`infra/lambdas/`): WaitForSlot (slot availability check — queries DB for active render count vs. tier limit), StartRenderOverlay, WaitForRemotionLambda polling loop, CreateMediaConvertJob, WaitForMediaConvert polling loop, FinaliseJob (sets `download_expires_at = now() + 7 days`), NotifyUser (SES render completion email — separate Lambda so a notification failure does not roll back the completed job), ReleaseCreditsAndFail
+- Pipeline Lambda handler code (`infra/lambdas/`): WaitForSlot (stores task token in DB; checks if slot already free and calls `SendTaskSuccess` immediately if so), GrantSlot (writes `status → 'rendering'`), StartRenderOverlay, WaitForRemotionLambda polling loop, CreateMediaConvertJob, WaitForMediaConvert polling loop, FinaliseJob (consume credits, `status → 'complete'`, signal next queued job via atomic token claim + `SendTaskSuccess`), NotifyUser (SES render completion email — separate Lambda so a notification failure does not roll back the completed job), ReleaseCreditsAndFail (release credits, signal next queued job)
 - Desktop Export tab: cloud render option alongside local render; upload progress UI; estimated upload time warning for large files
 - Desktop Cloud Renders tab: fully wired — reconcile `CloudRenderJob.status` type with canonical job status enum (`'uploading' | 'queued' | 'rendering' | 'compositing' | 'complete' | 'failed'`); live job status via SSE; `queued` state shows queue position (derived from `created_at` ordering among the user's `queued` jobs, returned by the SSE or status endpoint); progress indicators per pipeline stage; download action with 7-day expiry countdown; failed state with credit-restored message
 - SES emails sent by pipeline Lambdas on render completion and failure. `apps/api` does not call SES directly.
@@ -206,7 +207,7 @@ Credits are purchased in-app via Stripe Checkout (server-initiated: desktop rece
 
 The desktop joins chapter files locally before submitting to cloud. The Step Functions state machine has no join step.
 
-`complete-upload` always triggers Step Functions immediately regardless of how many renders the user currently has active. Slot enforcement is handled inside the state machine itself via an initial `WaitForSlot` polling loop — no pre-flight check in the API.
+`complete-upload` always triggers Step Functions immediately regardless of how many renders the user currently has active. Slot enforcement is handled inside the state machine itself via an initial `WaitForSlot` callback state — no pre-flight check in the API.
 
 ```
 Desktop
@@ -214,12 +215,16 @@ Desktop
   │  POST /jobs/:id/complete-upload  →  jobs.status = 'queued', StartExecution
   ▼
 Step Functions
-  ├─ WaitForSlot            (polling loop, 15s interval, max 480 iterations = 2 hours)
-  │    Lambda: query DB for count of user's jobs in ('rendering', 'compositing')
-  │    Compare against tier limit (Plus=1, Pro=3)
-  │    ├─ count < limit  → CheckSlotGranted (updates jobs.status → 'rendering', proceeds)
-  │    └─ count ≥ limit  → WaitForSlot (loop)
-  │    Catch → ReleaseCreditsAndFail
+  ├─ WaitForSlot            (.waitForTaskToken — zero polling, zero idle cost)
+  │    Lambda: stores task token in jobs.slot_task_token; checks if a slot is
+  │    already free (count of user's jobs in 'rendering'|'compositing' < tier limit).
+  │    If free: calls SendTaskSuccess immediately (no wait needed).
+  │    If not free: returns; execution pauses until a terminal-state Lambda signals.
+  │    HeartbeatSeconds: 21600 (6 hours — safety net if signal is never sent)
+  │    ├─ SendTaskSuccess received  → GrantSlot
+  │    └─ heartbeat timeout (6h)   → ReleaseCreditsAndFail
+  │
+  ├─ GrantSlot              (Lambda: writes jobs.status → 'rendering')
   │
   ├─ StartRenderOverlay     (Remotion Lambda → overlay.mov → S3)
   │    Catch → ReleaseCreditsAndFail
@@ -238,16 +243,37 @@ Step Functions
   │    └─ iterCount=60  → ReleaseCreditsAndFail
   │
   ├─ FinaliseJob            (consume credits, status → 'complete', download_expires_at = now() + 7 days)
+  │    Then: signal next queued job (see Slot Signaling below)
+  │
   ├─ NotifyUser             (SES email with download prompt — separate state; failure routes to LogNotifyError)
   ├─ LogNotifyError         (log SES failure; job already complete, do NOT release credits → Succeed)
   └─ ReleaseCreditsAndFail  (release credit reservation, status → 'failed', SES failure email)
+         Then: signal next queued job (see Slot Signaling below)
 ```
 
-**WaitForSlot timeout:** 480 iterations × 15s = 2 hours maximum wait time. If a slot never frees within 2 hours (extreme edge case), the job routes to `ReleaseCreditsAndFail` and the user is notified with credits fully restored.
+**Slot signaling — how terminal-state Lambdas wake the next queued job:**
 
-**State machine timeout:** `TimeoutSeconds: 14400` (4 hours) — covers worst-case 2-hour slot wait + up to 2 hours of render pipeline.
+Both `FinaliseJob` and `ReleaseCreditsAndFail`, after completing their primary work, run the following atomically:
 
-**`jobs.status` during WaitForSlot:** remains `queued`. The `WaitForSlot` Lambda writes `status → 'rendering'` only when the slot is granted (the `CheckSlotGranted` transition). The Desktop Cloud Renders tab shows a "Queued" state with position information derived from `created_at` ordering among the user's `queued` jobs.
+```sql
+UPDATE jobs
+SET slot_task_token = NULL
+WHERE id = (
+  SELECT id FROM jobs
+  WHERE user_id = $userId
+    AND status = 'queued'
+    AND slot_task_token IS NOT NULL
+  ORDER BY created_at ASC
+  LIMIT 1
+)
+RETURNING slot_task_token
+```
+
+If the query returns a token, call `states:SendTaskSuccess` with it. If it returns nothing, either no queued job exists or another concurrent Lambda already claimed the token — both are safe to ignore. Setting the token to `NULL` atomically before calling `SendTaskSuccess` prevents double-signaling when two jobs complete simultaneously.
+
+**`jobs.status` during WaitForSlot:** remains `queued`. `GrantSlot` writes `status → 'rendering'` only after the callback is received. The Desktop Cloud Renders tab shows a "Queued" state with position derived from `created_at` ordering among the user's `queued` jobs.
+
+**State machine timeout:** `TimeoutSeconds: 28800` (8 hours) — covers worst-case 6-hour heartbeat window + up to 2 hours of render pipeline.
 
 Output stored in `racedash-renders-{env}/renders/{jobId}/output.mp4`. Signed CloudFront download URL generated fresh on each `/jobs/:id/download` request, valid until `download_expires_at`.
 
