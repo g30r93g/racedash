@@ -9,7 +9,7 @@
 
 ## Overview
 
-This branch delivers the internal admin dashboard (`apps/admin`) and the admin-specific API endpoints added to `apps/api`. The admin dashboard is a standalone React SPA (Vite + React + Tailwind + shadcn/ui) that gives the platform operator visibility into users, licenses, jobs, and credits, plus the ability to take manual corrective actions (issue/revoke/extend licenses, grant/correct credits). All data flows through `apps/api` — the admin app never queries the database directly. Admin access is gated by a Clerk role check (`publicMetadata.role === 'admin'`).
+This branch delivers the internal admin dashboard (`apps/admin`) and the admin-specific API endpoints added to `apps/api`. The admin dashboard is a Next.js 16 App Router application (React + Tailwind + shadcn/ui) deployed on Vercel. It gives the platform operator visibility into users, licenses, jobs, and credits, plus the ability to take manual corrective actions (issue/revoke/extend licenses, grant/correct credits). All data flows through `apps/api` — the admin app never queries the database directly. Admin access is gated by a Clerk role check (`publicMetadata.role === 'admin'`).
 
 Shell and UI work (routing, layout, static components) can begin immediately. API integration is blocked until `feature/cloud-auth` has landed and the `apps/api` Fastify scaffold exists.
 
@@ -19,8 +19,8 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 
 ### In scope
 
-- `apps/admin` standalone React SPA scaffold (Vite + React + React Router + Tailwind + shadcn/ui)
-- Admin auth: Clerk `@clerk/clerk-react` provider with role gate (`publicMetadata.role === 'admin'`); unauthenticated users are redirected to Clerk sign-in; non-admin authenticated users see an access-denied screen
+- `apps/admin` Next.js 16 App Router scaffold (React + Tailwind + shadcn/ui), deployed on Vercel
+- Admin auth: Clerk `@clerk/nextjs` middleware + layout role gate (`publicMetadata.role === 'admin'`); unauthenticated users are redirected to Clerk sign-in; non-admin authenticated users see an access-denied screen
 - Admin API middleware added to `apps/api` — checks `publicMetadata.role === 'admin'` on all `/api/admin/*` routes
 - Admin API endpoints added to `apps/api` for users, licenses, jobs, credits, and overview stats
 - Dashboard overview page: in-flight job counts by status, completed/failed today, 7-day failure rate, recent failed jobs
@@ -34,8 +34,8 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 
 ### Out of scope
 
-- CloudWatch integration (Lambda error rates, SFN failures, DLQ depth) — deferred; requires AWS SDK clients which add complexity to a standalone admin app
-- Cost Explorer integration (AWS spend, gross margin) — deferred for same reason
+- CloudWatch integration (Lambda error rates, SFN failures, DLQ depth) — deferred to a future iteration
+- Cost Explorer integration (AWS spend, gross margin) — deferred to a future iteration
 - Costs page (`/costs`) — no data source without Cost Explorer; deferred entirely
 - Credits overview page (expiry buckets, all-time totals, purchase history) — the prior spec's `/admin/credits` page is deferred; credit operations are accessed through user detail pages
 - Real-time updates (SSE, WebSockets) — manual refresh is sufficient for an internal tool
@@ -49,17 +49,17 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 
 ### Admin App Scaffold
 
-1. **FR-1:** `apps/admin` must be a Vite + React + TypeScript SPA with Tailwind CSS and shadcn/ui components. It must be a workspace package named `@racedash/admin` with `pnpm dev` and `pnpm build` scripts.
-2. **FR-2:** The app must use React Router v7 for client-side routing with the following routes:
+1. **FR-1:** `apps/admin` must be a Next.js 16 App Router application with TypeScript, Tailwind CSS, and shadcn/ui components. It must be a workspace package named `@racedash/admin` with `pnpm dev` and `pnpm build` scripts. It is deployed on Vercel.
+2. **FR-2:** The app must use the Next.js App Router with the following routes:
    - `/` — Overview (dashboard home)
    - `/users` — User list
-   - `/users/:id` — User detail
+   - `/users/[id]` — User detail
    - `/jobs` — Job list
-   - `/jobs/:id` — Job detail
-3. **FR-3:** The app must use `@clerk/clerk-react` for authentication. The `ClerkProvider` must be configured with the same Clerk instance as the main platform. The publishable key is provided via `VITE_CLERK_PUBLISHABLE_KEY`.
-4. **FR-4:** A root-level auth guard (`AdminGuard`) must wrap all routes. It must check `user.publicMetadata.role === 'admin'`. Non-admin authenticated users see an "Access Denied" screen. Unauthenticated users see Clerk's `<SignIn>` component rendered inline (hash routing).
+   - `/jobs/[id]` — Job detail
+3. **FR-3:** The app must use `@clerk/nextjs` for authentication. `clerkMiddleware()` in `middleware.ts` protects all routes. The publishable key is provided via `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and the secret key via `CLERK_SECRET_KEY`.
+4. **FR-4:** The root layout must check the authenticated user's `publicMetadata.role === 'admin'` via `auth()` from `@clerk/nextjs/server`. Non-admin authenticated users see an "Access Denied" page. Unauthenticated users are redirected to Clerk's sign-in page by `clerkMiddleware()`.
 5. **FR-5:** The app must include a persistent sidebar navigation with links to Overview, Users, and Jobs.
-6. **FR-6:** All API calls from the admin app must use the Clerk session token via `useAuth().getToken()` as an `Authorization: Bearer` header. The API base URL is provided via `VITE_API_URL`.
+6. **FR-6:** All API calls from the admin app must use the Clerk session token via `auth().getToken()` (in server components/actions) or `useAuth().getToken()` (in client components) as an `Authorization: Bearer` header. The API base URL is provided via `NEXT_PUBLIC_API_URL`.
 
 ### Admin Auth Middleware (apps/api)
 
@@ -121,9 +121,9 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 ## Non-Functional Requirements
 
 1. **NFR-1:** All admin API endpoints must return paginated results for list queries. Page size defaults to 50, maximum 100.
-2. **NFR-2:** The admin SPA bundle size must remain under 500 KB gzipped (excluding Clerk SDK).
+2. **NFR-2:** The admin app must use server components by default, with client components only where interactivity is required (forms, dialogs, refresh buttons). This minimises the client bundle.
 3. **NFR-3:** All admin API endpoints must respond within 500ms for typical queries (< 10,000 rows scanned).
-4. **NFR-4:** The admin app must be buildable with `pnpm build` in the `apps/admin` directory and produce a static `dist/` folder suitable for hosting on any static file server or S3 + CloudFront.
+4. **NFR-4:** The admin app must be buildable with `pnpm build` in the `apps/admin` directory and deployable to Vercel. The Vercel project root is set to `apps/admin`.
 5. **NFR-5:** All exported functions and interfaces must have complete TypeScript type signatures (no `any` types).
 6. **NFR-6:** The admin app must use the same Tailwind theme tokens (colours, spacing, radii) as the desktop app for visual consistency across RaceDash products.
 7. **NFR-7:** All admin write operations must be atomic — if the audit log insert fails, the primary write must also roll back (use a DB transaction).
@@ -136,56 +136,57 @@ Shell and UI work (routing, layout, static components) can begin immediately. AP
 apps/admin/
   package.json
   tsconfig.json
-  vite.config.ts
+  next.config.ts
   tailwind.config.ts
   postcss.config.js
-  index.html
-  src/
-    main.tsx                              # React root + ClerkProvider + RouterProvider
-    App.tsx                               # Root layout: auth guard + sidebar + Outlet
-    routes.tsx                            # React Router route definitions
+  middleware.ts                            # Clerk clerkMiddleware() — protects all routes
+  app/
+    layout.tsx                            # Root layout: ClerkProvider + admin role guard + sidebar
     globals.css                           # Tailwind imports + shadcn/ui base styles
-    lib/
-      api.ts                             # Typed fetch wrapper (injects Clerk token, VITE_API_URL base)
-      utils.ts                           # cn() helper, date formatting, etc.
-    hooks/
-      useAdminAuth.ts                    # Clerk useUser() + role check
-      useApiQuery.ts                     # SWR/TanStack Query wrapper for GET requests
-      useApiMutation.ts                  # Mutation wrapper for POST/PATCH requests
-    components/
-      ui/                               # shadcn/ui primitives (Button, Card, Table, Dialog, Input, Select, Badge, etc.)
-      layout/
-        Sidebar.tsx                      # Navigation sidebar
-        PageHeader.tsx                   # Page title + breadcrumb + actions
-        RefreshButton.tsx                # Manual refresh trigger
-      users/
-        UserTable.tsx                    # Paginated user list table
-        UserProfile.tsx                  # User profile card
-        LicenseCard.tsx                  # Active license display + actions
-        LicenseHistoryTable.tsx          # All licenses for a user
-        CreditPacksTable.tsx            # User's credit packs
-        CreditAdjustmentForm.tsx        # Manual credit grant/correction form
-        IssueLicenseDialog.tsx          # Dialog for issuing a new license
-        ExtendLicenseDialog.tsx         # Dialog for extending license expiry
-        RevokeLicenseDialog.tsx         # Confirmation dialog for revoking a license
-        RecentJobsTable.tsx             # User's recent jobs (compact)
-      jobs/
-        JobTable.tsx                     # Paginated job list with filters
-        JobStatusBadge.tsx              # Coloured badge per status
-        JobDetail.tsx                    # Full job record display
-        CreditReservationDetail.tsx     # Reservation + pack breakdown
-        SfnExecutionLink.tsx            # Clickable AWS Console link
-      overview/
-        MetricCard.tsx                  # Single stat card (count + label)
-        MetricCardsRow.tsx              # Row of metric cards
-        RecentFailedJobsTable.tsx       # 10 most recent failed jobs
-    pages/
-      OverviewPage.tsx                  # Dashboard overview
-      UsersPage.tsx                     # User list
-      UserDetailPage.tsx                # User detail + license + credits + jobs
-      JobsPage.tsx                      # Job list with filters
-      JobDetailPage.tsx                 # Job detail
-      AccessDeniedPage.tsx              # Shown to non-admin authenticated users
+    page.tsx                              # Overview (dashboard home)
+    users/
+      page.tsx                            # User list
+      [id]/
+        page.tsx                          # User detail + license + credits + jobs
+    jobs/
+      page.tsx                            # Job list with filters
+      [id]/
+        page.tsx                          # Job detail
+    access-denied/
+      page.tsx                            # Shown to non-admin authenticated users
+  lib/
+    api.ts                               # Typed fetch wrapper (injects Clerk token, NEXT_PUBLIC_API_URL base)
+    utils.ts                             # cn() helper, date formatting, etc.
+  hooks/
+    useAdminAuth.ts                      # Clerk useUser() + role check (client components)
+    useApiMutation.ts                    # Mutation wrapper for POST/PATCH requests (client components)
+  components/
+    ui/                                  # shadcn/ui primitives (Button, Card, Table, Dialog, Input, Select, Badge, etc.)
+    layout/
+      Sidebar.tsx                        # Navigation sidebar
+      PageHeader.tsx                     # Page title + breadcrumb + actions
+      RefreshButton.tsx                  # Manual refresh trigger ('use client')
+    users/
+      UserTable.tsx                      # Paginated user list table
+      UserProfile.tsx                    # User profile card
+      LicenseCard.tsx                    # Active license display + actions
+      LicenseHistoryTable.tsx            # All licenses for a user
+      CreditPacksTable.tsx              # User's credit packs
+      CreditAdjustmentForm.tsx          # Manual credit grant/correction form ('use client')
+      IssueLicenseDialog.tsx            # Dialog for issuing a new license ('use client')
+      ExtendLicenseDialog.tsx           # Dialog for extending license expiry ('use client')
+      RevokeLicenseDialog.tsx           # Confirmation dialog for revoking a license ('use client')
+      RecentJobsTable.tsx               # User's recent jobs (compact)
+    jobs/
+      JobTable.tsx                       # Paginated job list with filters
+      JobStatusBadge.tsx                # Coloured badge per status
+      JobDetail.tsx                      # Full job record display
+      CreditReservationDetail.tsx       # Reservation + pack breakdown
+      SfnExecutionLink.tsx              # Clickable AWS Console link
+    overview/
+      MetricCard.tsx                    # Single stat card (count + label)
+      MetricCardsRow.tsx                # Row of metric cards
+      RecentFailedJobsTable.tsx         # 10 most recent failed jobs
   test/
     components/
       overview/
@@ -766,20 +767,46 @@ Manual credit adjustment.
 
 ### Admin App (apps/admin)
 
-The admin app uses `@clerk/clerk-react` with Clerk's hosted sign-in UI. The auth guard is implemented as a React component wrapping all routes:
+The admin app uses `@clerk/nextjs`. Authentication is enforced at two levels:
+
+**1. Middleware (`middleware.ts`)** — `clerkMiddleware()` protects all routes. Unauthenticated users are redirected to Clerk's hosted sign-in page.
+
+```ts
+// apps/admin/middleware.ts
+import { clerkMiddleware } from '@clerk/nextjs/server'
+
+export default clerkMiddleware()
+
+export const config = {
+  matcher: ['/((?!_next|favicon.ico).*)'],
+}
+```
+
+**2. Root layout (`app/layout.tsx`)** — checks the admin role after authentication. Non-admin users are redirected to the access-denied page.
 
 ```tsx
-// apps/admin/src/App.tsx
-import { useUser, SignIn } from '@clerk/clerk-react'
+// apps/admin/app/layout.tsx
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { ClerkProvider } from '@clerk/nextjs'
 
-function AdminGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded, isSignedIn } = useUser()
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { userId, sessionClaims } = await auth()
 
-  if (!isLoaded) return <LoadingSpinner />
-  if (!isSignedIn) return <SignIn routing="hash" />
-  if (user.publicMetadata.role !== 'admin') return <AccessDeniedPage />
+  if (userId && sessionClaims?.publicMetadata?.role !== 'admin') {
+    redirect('/access-denied')
+  }
 
-  return <>{children}</>
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <Sidebar />
+          <main>{children}</main>
+        </body>
+      </html>
+    </ClerkProvider>
+  )
 }
 ```
 
@@ -824,7 +851,7 @@ Set `publicMetadata: { role: 'admin' }` on the relevant Clerk user via:
 
 1. **SC-1:** An admin user can sign in to `apps/admin`, see the overview dashboard with live job counts, and refresh the data.
 2. **SC-2:** A non-admin authenticated user sees the "Access Denied" page on all admin routes and receives `403` from all admin API endpoints.
-3. **SC-3:** An unauthenticated user sees Clerk's sign-in form when visiting any admin page.
+3. **SC-3:** An unauthenticated user is redirected to Clerk's hosted sign-in page when visiting any admin route (enforced by `clerkMiddleware()`).
 4. **SC-4:** An admin can search for a user by email and navigate to their detail page to see profile, licenses, credit packs, and job history.
 5. **SC-5:** An admin can issue a new license to a user with a specified tier and expiry, and the license appears immediately in the user's license list.
 6. **SC-6:** An admin can extend an existing license's expiry date, and the new expiry is reflected in the user detail page.
@@ -834,7 +861,7 @@ Set `publicMetadata: { role: 'admin' }` on the relevant Clerk user via:
 10. **SC-10:** An admin can browse the job list with status and time range filters, click through to a job detail page, and follow the Step Functions execution link to the AWS Console.
 11. **SC-11:** All admin write operations (license issue/extend/revoke, credit grant/correction) create a corresponding row in the `admin_audit_log` table with the admin's Clerk ID, action type, and payload.
 12. **SC-12:** All admin list endpoints support cursor-based pagination and return correct `nextCursor` values.
-13. **SC-13:** `apps/admin` builds successfully with `pnpm build` and produces a static `dist/` folder.
+13. **SC-13:** `apps/admin` builds successfully with `pnpm build` and deploys to Vercel without errors.
 
 ---
 
@@ -946,11 +973,11 @@ The following Paper mockups should be created before implementation begins. All 
 ## Security Considerations
 
 1. **Admin role enforcement (API):** The admin auth middleware checks `publicMetadata.role === 'admin'` on every request to `/api/admin/*`. The role is fetched from Clerk's backend API (not from the JWT claims alone) to ensure revocation takes effect immediately without waiting for JWT expiry.
-2. **Admin role enforcement (SPA):** The admin app's `AdminGuard` component checks the same role client-side using `useUser()`. This is a UX convenience — the API middleware is the authoritative gate.
+2. **Admin role enforcement (Next.js):** The root layout checks the admin role server-side via `auth()` from `@clerk/nextjs/server`. This runs on every request before rendering. The API middleware remains the authoritative gate for all data access.
 3. **Audit trail:** All admin write operations are logged to `admin_audit_log` within the same DB transaction as the primary mutation. The audit log captures the admin's Clerk ID, the action type, the affected resource, and the full request payload. Audit log rows are append-only — no UPDATE or DELETE operations are permitted on this table.
 4. **Input validation:** All admin API endpoints validate request bodies using Zod schemas. Invalid inputs return `400` with descriptive error messages. Numeric fields (`rcAmount`, `limit`) have explicit min/max bounds to prevent abuse.
 5. **Rate limiting:** Admin endpoints should be rate-limited to 100 requests per minute per admin user. This is implemented at the Fastify plugin level, not at the infrastructure level.
-6. **CORS:** The admin SPA is hosted on a separate origin from the API. The API must include the admin app's origin in its CORS allowlist. The CORS origin is configured via `ADMIN_APP_ORIGIN` environment variable.
+6. **CORS:** The admin app is hosted on Vercel on a separate origin from the API. The API must include the admin app's origin in its CORS allowlist. The CORS origin is configured via `ADMIN_APP_ORIGIN` environment variable (e.g., `https://admin.racedash.com`).
 7. **No direct DB access:** The admin app never connects to the database directly. All data flows through the authenticated API endpoints. This ensures the audit trail cannot be bypassed.
 8. **Sensitive field handling:** Task tokens (`slot_task_token`, `render_task_token`) are included in the job detail API response for debugging purposes. These tokens are single-use and expire after the state machine completes, so exposure to an authenticated admin is acceptable.
 9. **Credit correction bounds:** Negative credit adjustments are bounded by the user's current RC balance. The API rejects corrections that would result in negative remaining credits.
@@ -961,20 +988,22 @@ The following Paper mockups should be created before implementation begins. All 
 
 ### Admin App Deployment
 
-The admin app produces a static `dist/` folder via `vite build`. Deployment options (in order of preference for v1):
+The admin app is deployed on **Vercel**. The Vercel project is configured with:
+- **Root directory:** `apps/admin`
+- **Framework preset:** Next.js
+- **Build command:** `pnpm build` (Vercel auto-detects Next.js)
+- **Environment variables:** `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_API_URL`
 
-1. **S3 + CloudFront** — static site hosting. A new S3 bucket (`racedash-admin-{env}`) with a CloudFront distribution, created by `cloud-infra` in a future iteration or manually provisioned. Access restricted by Clerk auth (client-side — the static files themselves are publicly reachable, but the app requires Clerk sign-in and the role check before rendering any data).
-2. **Vercel / Netlify** — alternative for rapid iteration. Deploy from the `apps/admin` directory.
-
-For v1, the deployment target is not prescriptive. The admin app must produce a standards-compliant static build that works on any static hosting platform.
+The admin app is hosted at a separate subdomain (e.g., `admin.racedash.com`) and is completely independent of the AWS infrastructure used by `apps/api`. Clerk middleware enforces authentication server-side — unauthenticated requests never reach the page components.
 
 ### Environment Variables
 
 | Variable | Runtime | Description |
 |---|---|---|
-| `VITE_CLERK_PUBLISHABLE_KEY` | `apps/admin` (build-time) | Clerk publishable key (same instance as main platform) |
-| `VITE_API_URL` | `apps/admin` (build-time) | `apps/api` Lambda Function URL base |
-| `ADMIN_APP_ORIGIN` | `apps/api` (runtime) | Admin app origin for CORS (e.g., `https://admin.racedash.com`) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `apps/admin` (Vercel) | Clerk publishable key (same instance as main platform) |
+| `CLERK_SECRET_KEY` | `apps/admin` (Vercel, server-side) | Clerk secret key for server-side auth in middleware and layouts |
+| `NEXT_PUBLIC_API_URL` | `apps/admin` (Vercel) | `apps/api` Lambda Function URL base |
+| `ADMIN_APP_ORIGIN` | `apps/api` (runtime) | Admin app Vercel origin for CORS (e.g., `https://admin.racedash.com`) |
 
 ### DB Schema Addition
 
@@ -1414,8 +1443,8 @@ Unit tests using Vitest. Each test targets a specific functional requirement.
 
 | Test | FR |
 |---|---|
-| Returns `isAdmin: true` when user.publicMetadata.role is 'admin' | FR-4 |
-| Returns `isAdmin: false` when user.publicMetadata.role is not 'admin' | FR-4 |
+| Returns `isAdmin: true` when sessionClaims.publicMetadata.role is 'admin' | FR-4 |
+| Returns `isAdmin: false` when sessionClaims.publicMetadata.role is not 'admin' | FR-4 |
 | Returns `isAdmin: false` when user has no publicMetadata | FR-4 |
 
 **`apps/admin/test/components/overview/MetricCard.test.tsx`**
@@ -1469,7 +1498,7 @@ Unit tests using Vitest. Each test targets a specific functional requirement.
 
 | Test | FR |
 |---|---|
-| Renders access denied message | FR-4 |
+| Renders access denied message for non-admin users | FR-4 |
 
 ### Property-Based Tests
 
