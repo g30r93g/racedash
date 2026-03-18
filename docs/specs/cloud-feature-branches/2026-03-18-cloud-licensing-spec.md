@@ -98,7 +98,7 @@ apps/api/src/
   lib/
     stripe.ts                         # Stripe SDK client singleton
     stripe-prices.ts                  # Price ID → tier mapping
-    webhook-idempotency.ts            # Event ID deduplication helper
+    webhook-idempotency.ts            # Constraint-based idempotency helpers (upsert patterns)
   types.ts                            # (modified) add licensing + credit types
 
 apps/api/test/
@@ -818,7 +818,7 @@ The following Paper mockups should be created before implementation begins. All 
 2. **Raw body requirement:** Stripe signature verification requires the raw (unparsed) request body. The Fastify route must be configured to preserve the raw body (e.g., using `addContentTypeParser` for `application/json` that stores the raw buffer).
 3. **No Stripe keys in renderer:** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are only used in `apps/api`. No Stripe publishable key is needed in the desktop at all -- all Checkout sessions are created server-side and the desktop simply opens the hosted URL.
 4. **Checkout BrowserWindow isolation:** The Stripe Checkout BrowserWindow uses `nodeIntegration: false`, `sandbox: true`, and a dedicated session partition. It cannot access the main app window's cookies, storage, or Node.js APIs.
-5. **Idempotent webhook handling:** Webhook handlers must track processed event IDs to prevent duplicate processing. This guards against Stripe's at-least-once delivery guarantee and replay attacks.
+5. **Idempotent webhook handling:** Webhook handlers use constraint-based idempotency (UNIQUE constraints on `credit_packs.stripe_payment_intent_id` and `licenses.stripe_subscription_id`) to prevent duplicate processing. Duplicate inserts are caught via `ON CONFLICT DO NOTHING` or pre-insert checks. This guards against Stripe's at-least-once delivery guarantee.
 6. **Price ID validation:** The API must validate that the Stripe Price ID in subscription checkout requests maps to a known tier. Unknown Price IDs must be rejected to prevent users from subscribing to unauthorized products.
 7. **Metadata integrity:** Credit pack webhook handlers must validate that `metadata.type`, `metadata.user_id`, and `metadata.pack_size` are present and valid before creating credit pack rows.
 8. **No client-side amount manipulation:** Credit pack prices are determined server-side by the Stripe Price ID. The `packSize` from the client selects a pre-configured Stripe Price; the actual charge amount is controlled by Stripe's price configuration, not by client input.
@@ -1028,7 +1028,7 @@ Unit tests using Vitest. Each test targets a specific functional requirement.
 | Sets credit pack `expires_at` to 12 months from purchase | FR-12 |
 | Sets `rc_total` and `rc_remaining` to `metadata.pack_size` | FR-12 |
 | Ignores `checkout.session.completed` without `metadata.type === 'credit_pack'` | FR-12 |
-| Skips duplicate events (idempotent by event ID) | FR-13 |
+| Skips duplicate events (idempotent via DB constraints) | FR-13 |
 | Skips duplicate subscription creation (idempotent by subscription ID) | FR-13 |
 | Skips duplicate credit pack (idempotent by `stripe_payment_intent_id` UNIQUE) | FR-13 |
 | Returns `{ received: true }` for all successfully processed events | FR-8 |
@@ -1064,7 +1064,7 @@ The following mutations must be caught by the specification tests above. If a mu
 | Change pack ordering from `ASC` to `DESC` in balance query | `routes/credits.ts` | `credits.test.ts` -- pack ordering test must fail |
 | Remove `409` check for existing subscription | `routes/stripe.ts` | `stripe.test.ts` -- duplicate subscription test must fail |
 | Remove `403` check for license requirement on credit purchase | `routes/stripe-credits.ts` | `stripe-credits.test.ts` -- no-license test must fail |
-| Remove event ID deduplication in webhook handler | `routes/webhooks-stripe.ts` | `webhooks-stripe.test.ts` -- duplicate event test must fail |
+| Remove constraint-based idempotency checks in webhook handler | `routes/webhooks-stripe.ts` | `webhooks-stripe.test.ts` -- duplicate event test must fail |
 | Change `maxConcurrentRenders` to always return 3 | `routes/license.ts` | `license.test.ts` -- Plus tier must assert `maxConcurrentRenders: 1` |
 | Remove `metadata.type` check in `checkout.session.completed` handler | `routes/webhooks-stripe.ts` | `webhooks-stripe.test.ts` -- non-credit checkout must not create a pack |
 | Set credit pack `expires_at` to 6 months instead of 12 | `routes/webhooks-stripe.ts` | `webhooks-stripe.test.ts` -- expiry date assertion must fail |

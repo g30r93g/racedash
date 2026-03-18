@@ -174,7 +174,7 @@ export const licenses = pgTable('licenses', {
   userId: uuid('user_id').references(() => users.id).notNull(),
   tier: licenseTierEnum('tier').notNull(),
   stripeCustomerId: text('stripe_customer_id'),
-  stripeSubscriptionId: text('stripe_subscription_id'),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
   status: licenseStatusEnum('status').notNull(),
   startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -193,7 +193,7 @@ export const licenses = pgTable('licenses', {
 | `user_id` | `uuid` | `FK users.id NOT NULL` |
 | `tier` | `license_tier` enum | `NOT NULL` (`'plus'` or `'pro'`) |
 | `stripe_customer_id` | `text` | nullable |
-| `stripe_subscription_id` | `text` | nullable |
+| `stripe_subscription_id` | `text` | `UNIQUE` (nullable; used for webhook idempotency by `cloud-licensing`) |
 | `status` | `license_status` enum | `NOT NULL` |
 | `starts_at` | `timestamptz` | `NOT NULL` |
 | `expires_at` | `timestamptz` | `NOT NULL` |
