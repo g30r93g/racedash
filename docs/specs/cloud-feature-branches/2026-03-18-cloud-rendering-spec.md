@@ -23,6 +23,7 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
   - `POST /jobs/:id/complete-upload` — complete multipart upload + start Step Functions execution
   - `GET /jobs/:id/status` — SSE stream for live job status
   - `GET /jobs/:id/download` — signed CloudFront URL
+  - `GET /jobs` — list user's jobs with pagination
   - `POST /api/webhooks/remotion` — Remotion completion webhook
   - `POST /api/webhooks/render` — EventBridge relay webhook for Step Functions terminal states
 - Lambda handler source code in `infra/lambdas/`:
@@ -1163,7 +1164,7 @@ interface RenderWebhookPayload {
 5. "Submit cloud render" button is disabled when user is not authenticated
 6. Upload progress is displayed with percentage, speed, and bytes
 7. Cancel button aborts the upload
-8. Cloud Renders tab lists jobs grouped by Active and Completed sections
+8. Cloud Renders tab lists jobs grouped by Active, Completed, and Failed sections
 9. Queued jobs show queue position
 10. Complete jobs show download button and expiry countdown
 11. Failed jobs show error message and "Credits restored" text

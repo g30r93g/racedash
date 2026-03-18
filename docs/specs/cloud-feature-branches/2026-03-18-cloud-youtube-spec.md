@@ -48,7 +48,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 ### OAuth Connect
 
-1. **FR-1:** `GET /auth/youtube/connect` must generate a YouTube OAuth 2.0 authorization URL with `scope=https://www.googleapis.com/auth/youtube.upload`, a cryptographically random `state` parameter, the configured `YOUTUBE_CLIENT_ID`, and `redirect_uri` pointing to `/auth/youtube/callback`. The `state` parameter must be stored server-side (in a short-lived record or signed JWT) and associated with the authenticated user ID.
+1. **FR-1:** `GET /auth/youtube/connect` must generate a YouTube OAuth 2.0 authorization URL with `scope=https://www.googleapis.com/auth/youtube.upload`, a `state` parameter (a signed JWT containing the authenticated user ID, signed with `TOKEN_ENCRYPTION_KEY` using HS256, 10-minute expiry), the configured `YOUTUBE_CLIENT_ID`, and `redirect_uri` pointing to `/auth/youtube/callback`. The JWT state avoids server-side state storage.
 
 2. **FR-2:** `GET /auth/youtube/connect` must validate that the user has an active license (Plus or Pro) before generating the OAuth URL. Users without an active license must receive `403 Forbidden` with error code `LICENSE_REQUIRED`.
 
