@@ -404,11 +404,40 @@ Shared defaults applied by the construct:
 | `CLOUDFRONT_PRIVATE_KEY_PEM` | CDK context param | `FinaliseJobFunction` |
 | `SES_FROM_ADDRESS` | `NotificationsStack.sesFromAddress` | `NotifyUserFunction`, `ReleaseCreditsAndFailFunction` |
 
+**EventBridge rule and relay Lambda (see deviation note in NotificationsStack section):**
+
+EventBridge rule pattern:
+
+```json
+{
+  "source": ["aws.states"],
+  "detail-type": ["Step Functions Execution Status Change"],
+  "detail": {
+    "stateMachineArn": ["{pipelineStateMachineArn}"],
+    "status": ["SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"]
+  }
+}
+```
+
+Relay Lambda (`StepFunctionsRelayFunction`, 128 MB, 30s timeout) POSTs the event payload to `WEBHOOK_TARGET_URL` with `x-webhook-secret` header. No AWS service permissions beyond CloudWatch Logs — it simply makes an HTTPS request.
+
+| Variable | Source |
+|---|---|
+| `WEBHOOK_TARGET_URL` | CDK context param (empty string default) |
+| `WEBHOOK_SECRET` | CDK context param (empty string default) |
+
 **Cross-stack outputs:**
 
 | Output | Export Name | Value |
 |---|---|---|
 | `StateMachineArn` | `{env}-StateMachineArn` | State machine ARN |
+| `WaitForSlotFunctionArn` | `{env}-WaitForSlotFunctionArn` | WaitForSlot Lambda ARN |
+| `GrantSlotFunctionArn` | `{env}-GrantSlotFunctionArn` | GrantSlot Lambda ARN |
+| `StartRenderOverlayFunctionArn` | `{env}-StartRenderOverlayFunctionArn` | StartRenderOverlay Lambda ARN |
+| `PrepareCompositeFunctionArn` | `{env}-PrepareCompositeFunctionArn` | PrepareComposite Lambda ARN |
+| `FinaliseJobFunctionArn` | `{env}-FinaliseJobFunctionArn` | FinaliseJob Lambda ARN |
+| `NotifyUserFunctionArn` | `{env}-NotifyUserFunctionArn` | NotifyUser Lambda ARN |
+| `ReleaseCreditsAndFailFunctionArn` | `{env}-ReleaseCreditsAndFailFunctionArn` | ReleaseCreditsAndFail Lambda ARN |
 | `RemotionFunctionName` | `{env}-RemotionFunctionName` | Remotion Lambda function name |
 | `RemotionServeUrl` | `{env}-RemotionServeUrl` | Remotion site bucket URL |
 | `MediaConvertRoleArn` | `{env}-MediaConvertRoleArn` | MediaConvert role ARN |
@@ -431,43 +460,6 @@ Shared defaults applied by the construct:
 |---|---|---|
 | `SesFromAddress` | `{env}-SesFromAddress` | Verified sender address |
 | `SesIdentityArn` | `{env}-SesIdentityArn` | SES identity ARN |
-
-#### EventBridge Rule & Relay Lambda (in PipelineStack)
-
-The following resources are owned by **PipelineStack** (not NotificationsStack) per the deviation above:
-
-| Resource | CDK Construct | Logical ID |
-|---|---|---|
-| EventBridge rule | `events.Rule` | `StepFunctionsTerminalStateRule` |
-| Relay Lambda | `NodejsFunction` | `StepFunctionsRelayFunction` |
-
-**EventBridge rule pattern:**
-
-```json
-{
-  "source": ["aws.states"],
-  "detail-type": ["Step Functions Execution Status Change"],
-  "detail": {
-    "stateMachineArn": ["{pipelineStateMachineArn}"],
-    "status": ["SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"]
-  }
-}
-```
-
-**Relay Lambda IAM:**
-```
-Effect: Allow
-Action: logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents
-Resource: arn:aws:logs:{region}:{account}:log-group:/aws/lambda/StepFunctionsRelayFunction-{env}:*
-```
-No additional AWS service permissions needed — it simply POSTs to an HTTPS URL.
-
-**Relay Lambda environment variables:**
-
-| Variable | Source |
-|---|---|
-| `WEBHOOK_TARGET_URL` | CDK context param (empty string default) |
-| `WEBHOOK_SECRET` | CDK context param (empty string default) |
 
 ---
 
