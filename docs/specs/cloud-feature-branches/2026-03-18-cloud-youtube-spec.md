@@ -51,7 +51,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 2. **FR-2:** `GET /api/auth/youtube/connect` must validate that the user has an active license (Plus or Pro) before generating the OAuth URL. Users without an active license must receive `403 Forbidden` with error code `LICENSE_REQUIRED`.
 
-3. **FR-3:** The `GET /api/auth/youtube/callback` route must be excluded from the Clerk auth middleware (it is an OAuth redirect from Google, not an authenticated API call). This route must be added to the middleware exclusion list alongside `/api/health`, `/api/webhooks/clerk`, and `/api/webhooks/stripe`.
+3. **FR-3:** The `GET /api/auth/youtube/callback` route must be excluded from the Clerk auth middleware (it is an OAuth redirect from Google, not an authenticated API call). This route must be added to the middleware exclusion list. The full exclusion list after all branches land is: `/api/health`, `/api/webhooks/clerk` (cloud-auth), `/api/webhooks/stripe` (cloud-licensing), `/api/webhooks/remotion`, `/api/webhooks/render` (cloud-rendering), and `/api/auth/youtube/callback` (this branch). Each branch adds its own exclusions additively.
 
 4. **FR-4:** `GET /api/auth/youtube/callback` must:
    a. Validate the `state` parameter against the stored value to prevent CSRF attacks. Invalid or missing state must return `400 Bad Request`.
@@ -73,9 +73,8 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
    c. Validate that the user has a connected YouTube account in `connected_accounts`.
    d. Validate that the user has an active license.
    e. Validate the request body: `platform` must be `'youtube'`, `metadata` must include `title` (string, 1-100 chars), `description` (string, 0-5000 chars), and `privacy` (`'public' | 'unlisted' | 'private'`).
-   f. Insert a `social_uploads` row with `status: 'queued'` and `rc_cost: 10`.
-   g. Call `reserveCredits(db, userId, \`su_${socialUploadId}\`, 10)`. If insufficient credits, return `402 Payment Required` with error code `INSUFFICIENT_CREDITS` and do not insert the `social_uploads` row.
-   h. Send an SQS message to the social upload queue with the payload (see SQS Message Payload section).
+   f. Within a single DB transaction: insert a `social_uploads` row with `status: 'queued'` and `rc_cost: 10`, then call `reserveCredits(db, userId, \`su_${socialUploadId}\`, 10)`. If `reserveCredits` throws (insufficient credits), the transaction rolls back (no `social_uploads` row is created) and the endpoint returns `402 Payment Required` with error code `INSUFFICIENT_CREDITS`.
+   g. After the transaction commits, send an SQS message to the social upload queue with the payload (see SQS Message Payload section).
    i. Return `201 Created` with the `socialUploadId` and initial status.
 
 8. **FR-8:** `POST /api/jobs/:id/social-upload` must prevent duplicate uploads: if a `social_uploads` row already exists for the same `job_id` and `platform='youtube'` with `status` in `('queued', 'uploading', 'processing', 'live')`, it must return `409 Conflict`.
@@ -149,7 +148,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 
 ## Non-Functional Requirements
 
-1. **NFR-1:** The YouTube Fargate task must complete within 15 minutes (matching the SQS visibility timeout of 900 seconds). Uploads exceeding this duration must fail gracefully with an appropriate error message.
+1. **NFR-1:** The YouTube Fargate task must complete the upload phase within 15 minutes. YouTube processing polling (FR-13h) runs for up to 30 additional minutes after upload completes. The total Fargate task timeout is 45 minutes. The SQS visibility timeout must be set accordingly (2700 seconds). Tasks exceeding these durations must fail gracefully with an appropriate error message.
 
 2. **NFR-2:** OAuth tokens (access and refresh) must be encrypted at rest in the database using AES-256-GCM. Tokens must never be logged, included in API responses (except the callback internal flow), or stored in plain text.
 
@@ -463,9 +462,9 @@ A "Connected Accounts" subsection is added below the existing subscription secti
 
 2. The completed job actions section (lines 111-118) is updated:
    ```tsx
-   {job.status === 'completed' && (
+   {job.status === 'complete' && (
      <div className="mt-1 flex gap-2">
-       {job.outputUrl && (
+       {job.downloadExpiresAt && new Date(job.downloadExpiresAt) > new Date() && (
          <Button variant="outline" size="sm" className="text-xs">Download</Button>
        )}
        {youtubeUpload?.status === 'live' && (
@@ -751,7 +750,7 @@ This branch provides handler code for infrastructure constructs defined by `clou
 | `YOUTUBE_CLIENT_ID` | Google OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | Google OAuth client secret |
 | `SQS_SOCIAL_UPLOAD_QUEUE_URL` | SQS queue URL for social upload dispatch |
-| `TOKEN_ENCRYPTION_KEY` | 32-byte hex string for AES-256-GCM token encryption |
+| `TOKEN_ENCRYPTION_KEY` | 32-byte hex string for AES-256-GCM token encryption (new env var introduced by this branch — not in the epic's env var list, which says tokens are "stored encrypted" without specifying the mechanism) |
 
 **`infra/lambdas/social-dispatch/` (Lambda):**
 

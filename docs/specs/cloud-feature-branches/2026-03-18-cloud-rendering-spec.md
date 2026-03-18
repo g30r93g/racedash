@@ -38,7 +38,7 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
 - Multipart upload from desktop via presigned URLs
 - IPC additions for cloud render flow
 - Preload script additions for new IPC channels
-- Webhook route auth exclusions (add `/api/webhooks/remotion` and `/api/webhooks/render` to Clerk middleware exclusion list)
+- Webhook route auth exclusions (add `/api/webhooks/remotion` and `/api/webhooks/render` to Clerk middleware exclusion list, additively alongside existing exclusions from cloud-auth, cloud-licensing, and cloud-youtube)
 
 ### Out of scope
 
@@ -81,7 +81,7 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
 16. **FR-16:** The Export tab must add a "Render destination" option group with two options: "Local" and "Cloud". When "Cloud" is selected, the output path section is hidden (cloud renders output to S3), and a cloud-specific section appears showing the estimated credit cost (via `computeCredits` from `@racedash/db`), the estimated upload time based on `videoInfo.durationSeconds` and file size heuristics, and a "Submit cloud render" button. The existing local render flow remains unchanged.
 17. **FR-17:** When the user clicks "Submit cloud render", the desktop must: (a) join chapter files locally if multiple video paths exist, (b) call `POST /jobs` to create the job and reserve credits, (c) call `POST /jobs/:id/start-upload` to get presigned URLs, (d) upload the joined file to S3 using multipart upload with progress reporting, (e) call `POST /jobs/:id/complete-upload` to finalize. During upload, a progress bar and upload speed indicator must be shown.
 18. **FR-18:** The Cloud Renders tab (`CloudRendersList.tsx`) must be fully wired. The `CloudRenderJob` interface must be reconciled to use the canonical status enum (`'uploading' | 'queued' | 'rendering' | 'compositing' | 'complete' | 'failed'`). The `storageUsedGb`/`storageLimitGb` fields and storage bar must be removed (already hidden by `cloud-licensing`; this branch removes the dead code). The `youtubeUrl` field is removed (owned by `cloud-youtube`).
-19. **FR-19:** The Cloud Renders tab must group jobs into sections: "Active" (uploading, queued, rendering, compositing) and "Completed" (complete, failed). Each job card must show the project name, session type, resolution, render mode, status badge, and timestamp.
+19. **FR-19:** The Cloud Renders tab must group jobs into three sections: "Active" (uploading, queued, rendering, compositing), "Completed" (complete), and "Failed" (failed). Each job card must show the project name, session type, resolution, render mode, status badge, and timestamp.
 20. **FR-20:** For `'queued'` jobs, the Cloud Renders tab must display the queue position (e.g., "Position 2 in queue"). Queue position is derived from `created_at` ordering among the user's queued jobs and is provided by the SSE status endpoint or `GET /jobs`.
 21. **FR-21:** For `'rendering'` and `'compositing'` jobs, the Cloud Renders tab must show a progress indicator. Rendering progress comes from the SSE stream. Compositing shows an indeterminate progress bar (MediaConvert does not report granular progress to the API).
 22. **FR-22:** For `'complete'` jobs, the Cloud Renders tab must show a "Download" button and a countdown displaying time remaining until the download expires (e.g., "Expires in 6 days 12 hours"). When `download_expires_at` is in the past, the download button must be disabled and the label must read "Expired".
@@ -121,7 +121,7 @@ Create a new cloud render job.
     frameRate: OutputFrameRate;         // 'source' | '30' | '60' | '120'
     renderMode: RenderMode;            // 'overlay+footage' | 'overlay-only'
     overlayStyle: string;              // overlay template identifier
-    configPath: string;                // racedash project config (serialized)
+    config: Record<string, unknown>;   // racedash project config (stored as JSONB in jobs.config)
   };
   sourceVideo: {
     width: number;
@@ -626,7 +626,7 @@ interface CreateCloudJobOpts {
     frameRate: OutputFrameRate;
     renderMode: RenderMode;
     overlayStyle: string;
-    projectConfig: Record<string, unknown>;
+    config: Record<string, unknown>;
   };
   sourceVideo: VideoInfo & { fileSizeBytes: number };
   projectName: string;
@@ -839,7 +839,7 @@ CDK constructs that reference these handler paths are owned by `feature/cloud-in
 | `CLOUDFRONT_KEY_PAIR_ID` | FinaliseJob |
 | `CLOUDFRONT_PRIVATE_KEY_PEM` | FinaliseJob |
 | `SES_FROM_ADDRESS` | NotifyUser, ReleaseCreditsAndFail |
-| `STATE_MACHINE_ARN` | WaitForSlot, FinaliseJob, ReleaseCreditsAndFail |
+| `STEP_FUNCTIONS_STATE_MACHINE_ARN` | WaitForSlot, FinaliseJob, ReleaseCreditsAndFail |
 
 **API environment variables** (additional to those from `cloud-auth` and `cloud-licensing`):
 
@@ -847,7 +847,7 @@ CDK constructs that reference these handler paths are owned by `feature/cloud-in
 |---|---|
 | `S3_UPLOAD_BUCKET` | Multipart upload operations |
 | `S3_RENDERS_BUCKET` | Download URL generation |
-| `STATE_MACHINE_ARN` | Starting Step Functions executions |
+| `STEP_FUNCTIONS_STATE_MACHINE_ARN` | Starting Step Functions executions |
 | `REMOTION_WEBHOOK_SECRET` | Validating Remotion webhook signatures |
 | `WEBHOOK_SECRET` | Validating EventBridge relay webhook |
 | `CLOUDFRONT_DOMAIN` | Generating signed download URLs |
@@ -870,7 +870,7 @@ interface JobConfig {
   frameRate: OutputFrameRate;
   renderMode: RenderMode;
   overlayStyle: string;
-  projectConfig: Record<string, unknown>;
+  config: Record<string, unknown>;
   sourceVideo: {
     width: number;
     height: number;
@@ -884,9 +884,10 @@ interface JobConfig {
 
 // API error response shape (consistent with cloud-auth conventions)
 interface ApiError {
-  error: string;                       // machine-readable error code
-  message: string;                     // human-readable description
-  details?: Record<string, unknown>;   // optional additional context
+  error: {
+    code: string;                      // machine-readable error code
+    message: string;                   // human-readable description
+  };
 }
 
 // SSE event data shape
@@ -909,7 +910,7 @@ interface CreateJobRequest {
     frameRate: OutputFrameRate;
     renderMode: RenderMode;
     overlayStyle: string;
-    configPath: string;
+    config: Record<string, unknown>;
   };
   sourceVideo: {
     width: number;

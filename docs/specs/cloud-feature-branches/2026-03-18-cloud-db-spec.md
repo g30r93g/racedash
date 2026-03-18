@@ -255,7 +255,7 @@ export const reservationStatusEnum = pgEnum('reservation_status', ['reserved', '
 
 export const creditReservations = pgTable('credit_reservations', {
   id: uuid('id').defaultRandom().primaryKey(),
-  jobId: uuid('job_id').references(() => jobs.id).unique().notNull(),
+  jobId: text('job_id').unique().notNull(),  // render jobs use bare UUID; social uploads use 'su_{socialUploadId}' (no FK — social upload keys don't reference jobs table)
   userId: uuid('user_id').references(() => users.id).notNull(),
   rcAmount: integer('rc_amount').notNull(),
   status: reservationStatusEnum('status').notNull().default('reserved'),
@@ -269,7 +269,7 @@ export const creditReservations = pgTable('credit_reservations', {
 | Column | Type | Constraints |
 |---|---|---|
 | `id` | `uuid` | PK, default `gen_random_uuid()` |
-| `job_id` | `uuid` | `FK jobs.id UNIQUE NOT NULL` |
+| `job_id` | `text` | `UNIQUE NOT NULL` (render jobs: bare UUID; social uploads: `su_{socialUploadId}`) |
 | `user_id` | `uuid` | `FK users.id NOT NULL` |
 | `rc_amount` | `integer` | `NOT NULL` |
 | `status` | `reservation_status` enum | `NOT NULL DEFAULT 'reserved'` |
