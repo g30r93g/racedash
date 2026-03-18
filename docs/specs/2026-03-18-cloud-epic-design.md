@@ -348,3 +348,25 @@ VITE_CLERK_PUBLISHABLE_KEY
 ```
 
 Stripe is fully server-initiated: the desktop calls `POST /api/stripe/checkout` and receives a hosted Checkout URL, then opens it in a BrowserWindow. No Stripe publishable key is needed in the desktop.
+
+---
+
+## Next Steps
+
+Write a feature branch spec for each workstream. Each spec must cover: scope, functional and non-functional requirements, success criteria, user stories, UI mocks to produce, happy paths, security considerations, infrastructure, API contracts, and tests (specification, property-based, mutation/GM, characterisation).
+
+Specs can be written in parallel where their subject branches have no dependency on each other. The table below reflects the same phasing as Section 3.
+
+| Spec to write | Filename | Depends on specs |
+|---|---|---|
+| `feature/cloud-db` | `2026-03-18-cloud-db-spec.md` | — |
+| `feature/cloud-infra` | `2026-03-18-cloud-infra-spec.md` | — |
+| `feature/cloud-auth` | `2026-03-18-cloud-auth-spec.md` | cloud-db |
+| `feature/cloud-admin` | `2026-03-18-cloud-admin-spec.md` | cloud-db, cloud-auth |
+| `feature/cloud-licensing` | `2026-03-18-cloud-licensing-spec.md` | cloud-auth |
+| `feature/cloud-rendering` | `2026-03-18-cloud-rendering-spec.md` | cloud-db, cloud-infra, cloud-auth, cloud-licensing |
+| `feature/cloud-youtube` | `2026-03-18-cloud-youtube-spec.md` | cloud-db, cloud-infra, cloud-auth, cloud-licensing |
+
+**Parallel opportunities:**
+- `cloud-db` and `cloud-infra` specs can be dispatched simultaneously — no shared dependencies
+- `cloud-rendering` and `cloud-youtube` specs can be dispatched simultaneously once their dependencies are written
