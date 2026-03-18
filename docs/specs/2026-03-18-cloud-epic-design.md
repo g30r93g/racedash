@@ -44,7 +44,10 @@ Existing packages (`core`, `engine`, `compositor`, `scraper`, `timestamps`) and 
 ### `feature/cloud-db`
 **Owns:** `packages/db`
 - Drizzle ORM schema: `users`, `licenses`, `credit_packs`, `jobs`, `social_uploads`, `connected_accounts`, `credit_reservations`, `credit_reservation_packs`
-  - `jobs` table includes `slot_task_token text` (Step Functions task token stored when `WaitForSlot` is entered; set to `NULL` atomically when claimed by a terminal-state Lambda to prevent double-signaling)
+  - `jobs` table includes:
+    - `slot_task_token text` — Step Functions task token stored when `WaitForSlot` is entered; set to `NULL` atomically when claimed by a terminal-state Lambda to prevent double-signaling
+    - `render_task_token text` — Step Functions task token stored when `StartRenderOverlay` is entered; used by the Remotion webhook handler to call `SendTaskSuccess`/`SendTaskFailure`
+    - `remotion_render_id text` — render ID returned by `renderMediaOnLambda()`; stored for debugging and log lookups
 - Credit helpers: `reserveCredits`, `releaseCredits`, `consumeCredits` (FIFO depletion, soonest-expiring-first)
 - License helpers: tier validation (Plus / Pro), expiry checks, concurrent render limit by tier (`getSlotLimit(tier): 1 | 3`), active render count query (`countActiveRenders(db, userId): number` — counts jobs in `'rendering' | 'compositing'`)
 - Neon serverless client setup
@@ -65,7 +68,7 @@ starts_at, expires_at, created_at, updated_at
 **Owns:** `infra/` — CDK construct definitions, IAM, resource declarations, and wiring only. Lambda handler source code is owned by `feature/cloud-rendering` and `feature/cloud-youtube` respectively.
 - AWS CDK v2 TypeScript stacks:
   - **StorageStack**: `racedash-uploads-{env}` + `racedash-renders-{env}` S3 buckets with lifecycle rules (uploads expire after job completes; render outputs expire after 7 days); CloudFront distribution over renders bucket with RSA signed URL key pair
-  - **PipelineStack**: Step Functions state machine (desktop-only path — no join step; single input video always; includes initial `WaitForSlot` `.waitForTaskToken` callback state); Remotion Lambda IAM role + site bucket; MediaConvert IAM role; CDK constructs for pipeline Lambda functions (WaitForSlot, GrantSlot, StartRenderOverlay, WaitForRemotionLambda, CreateMediaConvertJob, WaitForMediaConvert, FinaliseJob, NotifyUser, ReleaseCreditsAndFail); `FinaliseJob` and `ReleaseCreditsAndFail` IAM grants include `states:SendTaskSuccess` on the state machine ARN
+  - **PipelineStack**: Step Functions state machine (desktop-only path — no join step; single input video always; `WaitForSlot` and `StartRenderOverlay` both use `.waitForTaskToken` callback pattern — no polling Lambdas); Remotion Lambda IAM role + site bucket; MediaConvert IAM role; CDK constructs for pipeline Lambda functions (WaitForSlot, GrantSlot, StartRenderOverlay, CreateMediaConvertJob, WaitForMediaConvert, FinaliseJob, NotifyUser, ReleaseCreditsAndFail); `FinaliseJob`, `ReleaseCreditsAndFail`, and the Remotion webhook handler all require `states:SendTaskSuccess` + `states:SendTaskFailure` IAM grants on the state machine ARN
   - **NotificationsStack**: SES for render completion + failure emails; EventBridge rule on Step Functions terminal states → relay Lambda → `POST /api/webhooks/render`. The relay Lambda target URL (`WEBHOOK_TARGET_URL`) and `WEBHOOK_SECRET` are injected post-deploy once `cloud-rendering` has defined and deployed the endpoint. The CDK deploy is expected to be re-run after `cloud-rendering` lands.
   - **SocialStack**: ECS Fargate cluster + YouTube upload task definition (handler code owned by `cloud-youtube`); SQS queue for social upload jobs + DLQ; CDK construct for the SQS dispatch Lambda (handler code owned by `cloud-youtube`)
 - MediaConvert endpoint is discovered at runtime via `describeEndpoints()` — not an environment variable.
@@ -101,8 +104,8 @@ starts_at, expires_at, created_at, updated_at
 
 ### `feature/cloud-rendering`
 **Owns:** End-to-end cloud render pipeline from desktop to download, including Lambda handler code
-- `apps/api`: job endpoints — `POST /jobs` (create + reserve credits), `POST /jobs/:id/start-upload` (presigned S3 multipart URLs), `POST /jobs/:id/complete-upload` (complete multipart, start Step Functions execution), `GET /jobs/:id/status` (SSE stream), `GET /jobs/:id/download` (signed CloudFront URL, valid until `download_expires_at`), `POST /api/webhooks/render` (EventBridge relay receiver — validates `x-webhook-secret` with `timingSafeEqual`)
-- Pipeline Lambda handler code (`infra/lambdas/`): WaitForSlot (stores task token in DB; checks if slot already free and calls `SendTaskSuccess` immediately if so), GrantSlot (writes `status → 'rendering'`), StartRenderOverlay, WaitForRemotionLambda polling loop, CreateMediaConvertJob, WaitForMediaConvert polling loop, FinaliseJob (consume credits, `status → 'complete'`, signal next queued job via atomic token claim + `SendTaskSuccess`), NotifyUser (SES render completion email — separate Lambda so a notification failure does not roll back the completed job), ReleaseCreditsAndFail (release credits, signal next queued job)
+- `apps/api`: job endpoints — `POST /jobs` (create + reserve credits), `POST /jobs/:id/start-upload` (presigned S3 multipart URLs), `POST /jobs/:id/complete-upload` (complete multipart, start Step Functions execution), `GET /jobs/:id/status` (SSE stream), `GET /jobs/:id/download` (signed CloudFront URL, valid until `download_expires_at`), `POST /api/webhooks/remotion` (Remotion completion events — validates `X-Remotion-Signature` HMAC-SHA512; calls `SendTaskSuccess` or `SendTaskFailure` with task token from `customData`), `POST /api/webhooks/render` (EventBridge relay for Step Functions terminal states — validates `x-webhook-secret` with `timingSafeEqual`; used for slot signaling)
+- Pipeline Lambda handler code (`infra/lambdas/`): WaitForSlot (stores task token in DB; checks if slot already free and calls `SendTaskSuccess` immediately if so), GrantSlot (writes `status → 'rendering'`), StartRenderOverlay (calls `renderMediaOnLambda()` with webhook URL + task token in `customData`; stores `renderId` in DB), CreateMediaConvertJob (submits MediaConvert job; writes `status → 'compositing'`), WaitForMediaConvert polling loop, FinaliseJob (consume credits, `status → 'complete'`, signal next queued job via atomic token claim + `SendTaskSuccess`), NotifyUser (SES render completion email — separate Lambda so a notification failure does not roll back the completed job), ReleaseCreditsAndFail (release credits, signal next queued job)
 - Desktop Export tab: cloud render option alongside local render; upload progress UI; estimated upload time warning for large files
 - Desktop Cloud Renders tab: fully wired — reconcile `CloudRenderJob.status` type with canonical job status enum (`'uploading' | 'queued' | 'rendering' | 'compositing' | 'complete' | 'failed'`); live job status via SSE; `queued` state shows queue position (derived from `created_at` ordering among the user's `queued` jobs, returned by the SSE or status endpoint); progress indicators per pipeline stage; download action with 7-day expiry countdown; failed state with credit-restored message
 - SES emails sent by pipeline Lambdas on render completion and failure. `apps/api` does not call SES directly.
@@ -226,18 +229,20 @@ Step Functions
   │
   ├─ GrantSlot              (Lambda: writes jobs.status → 'rendering')
   │
-  ├─ StartRenderOverlay     (Remotion Lambda → overlay.mov → S3)
+  ├─ StartRenderOverlay     (.waitForTaskToken — Remotion webhook driven, no polling)
+  │    Lambda: calls renderMediaOnLambda() with webhook URL + task token in customData;
+  │    stores renderId in jobs.remotion_render_id; returns immediately.
+  │    Remotion spawns parallel chunk Lambdas internally, fires webhook on completion.
+  │    POST /api/webhooks/remotion → validates X-Remotion-Signature (HMAC-SHA512)
+  │    → calls SendTaskSuccess (success) or SendTaskFailure (error/timeout)
+  │    HeartbeatSeconds: 900 (15 min — renders typically complete in 60–120s)
+  │    ├─ SendTaskSuccess received  → CreateMediaConvertJob
+  │    └─ SendTaskFailure / heartbeat expired → ReleaseCreditsAndFail
+  │
+  ├─ CreateMediaConvertJob  (Lambda: submits MediaConvert job, writes status → 'compositing')
   │    Catch → ReleaseCreditsAndFail
   │
-  ├─ WaitForRemotionLambda  (polling, 10s interval, max 120 iterations)
-  │    ├─ done=true      → CreateMediaConvertJob
-  │    ├─ fatalError     → ReleaseCreditsAndFail
-  │    └─ iterCount=120  → ReleaseCreditsAndFail
-  │
-  ├─ CreateMediaConvertJob  (composite joined.mp4 + overlay.mov → output.mp4)
-  │    Catch → ReleaseCreditsAndFail
-  │
-  ├─ WaitForMediaConvert    (polling, 30s interval, max 60 iterations; writes status → 'compositing' on first poll)
+  ├─ WaitForMediaConvert    (polling, 30s interval, max 60 iterations)
   │    ├─ COMPLETE      → FinaliseJob
   │    ├─ ERROR         → ReleaseCreditsAndFail
   │    └─ iterCount=60  → ReleaseCreditsAndFail
@@ -300,6 +305,7 @@ YOUTUBE_CLIENT_ID
 YOUTUBE_CLIENT_SECRET
 SQS_SOCIAL_UPLOAD_QUEUE_URL
 WEBHOOK_SECRET                  (shared secret; validated with timingSafeEqual in /api/webhooks/render)
+REMOTION_WEBHOOK_SECRET         (used to validate X-Remotion-Signature HMAC-SHA512 in /api/webhooks/remotion)
 ```
 
 `apps/api` does not call SES directly. All transactional emails (render completion, failure) are sent by pipeline Lambdas or the YouTube Fargate task.
@@ -311,6 +317,8 @@ S3_UPLOAD_BUCKET
 S3_RENDERS_BUCKET
 REMOTION_SERVE_URL
 REMOTION_FUNCTION_NAME
+REMOTION_WEBHOOK_SECRET         (configured on renderMediaOnLambda() calls; also used by apps/api to validate inbound webhook)
+REMOTION_WEBHOOK_URL            (public URL of POST /api/webhooks/remotion; passed to renderMediaOnLambda())
 MEDIACONVERT_ROLE_ARN
 CLOUDFRONT_DOMAIN
 CLOUDFRONT_KEY_PAIR_ID
