@@ -500,7 +500,7 @@ async function reserveCredits(input: ReserveCreditsInput): Promise<ReserveCredit
 ```ts
 interface ReleaseCreditsInput {
   db: DrizzleDb;
-  reservationId: string;
+  jobId: string;   // credit_reservations.job_id (bare UUID for render jobs, 'su_{id}' for social uploads)
 }
 
 async function releaseCredits(input: ReleaseCreditsInput): Promise<void>;
@@ -508,7 +508,7 @@ async function releaseCredits(input: ReleaseCreditsInput): Promise<void>;
 
 **Behavioral contract:**
 
-1. Fetch the reservation. If `status !== 'reserved'`, return early (idempotent).
+1. Fetch the reservation by `jobId` (UNIQUE lookup on `credit_reservations.job_id`). If not found or `status !== 'reserved'`, return early (idempotent).
 2. Begin a database transaction.
 3. Fetch all `credit_reservation_packs` for this reservation, joined with their `credit_packs`.
 4. For each reservation pack entry:
@@ -522,7 +522,7 @@ async function releaseCredits(input: ReleaseCreditsInput): Promise<void>;
 ```ts
 interface ConsumeCreditsInput {
   db: DrizzleDb;
-  reservationId: string;
+  jobId: string;   // credit_reservations.job_id (bare UUID for render jobs, 'su_{id}' for social uploads)
 }
 
 async function consumeCredits(input: ConsumeCreditsInput): Promise<void>;
@@ -530,7 +530,7 @@ async function consumeCredits(input: ConsumeCreditsInput): Promise<void>;
 
 **Behavioral contract:**
 
-1. Fetch the reservation. If `status !== 'reserved'`, return early (idempotent).
+1. Fetch the reservation by `jobId` (UNIQUE lookup on `credit_reservations.job_id`). If not found or `status !== 'reserved'`, return early (idempotent).
 2. Update the reservation: `status = 'consumed'`, `settled_at = now()`.
 3. No pack balance changes needed — credits were already decremented at reservation time.
 

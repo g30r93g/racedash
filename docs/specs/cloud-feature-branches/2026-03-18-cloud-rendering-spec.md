@@ -145,8 +145,8 @@ Create a new cloud render job.
 ```
 
 **Error responses:**
-- `402 Payment Required` — insufficient credits (`{ error: 'INSUFFICIENT_CREDITS', available: number, required: number }`)
-- `403 Forbidden` — no active license
+- `402 Payment Required` — insufficient credits (`{ error: { code: 'INSUFFICIENT_CREDITS', message: '...' } }`)
+- `403 Forbidden` — no active license (`{ error: { code: 'LICENSE_REQUIRED', message: '...' } }`)
 
 ---
 
@@ -839,7 +839,6 @@ CDK constructs that reference these handler paths are owned by `feature/cloud-in
 | `CLOUDFRONT_KEY_PAIR_ID` | FinaliseJob |
 | `CLOUDFRONT_PRIVATE_KEY_PEM` | FinaliseJob |
 | `SES_FROM_ADDRESS` | NotifyUser, ReleaseCreditsAndFail |
-| `STEP_FUNCTIONS_STATE_MACHINE_ARN` | WaitForSlot, FinaliseJob, ReleaseCreditsAndFail |
 
 **API environment variables** (additional to those from `cloud-auth` and `cloud-licensing`):
 

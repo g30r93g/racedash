@@ -119,7 +119,7 @@ This branch creates the entire AWS infrastructure layer for RaceDash Cloud. It d
    - Task execution role: pull from ECR, write CloudWatch Logs
    - Task role: `s3:GetObject` on renders bucket, `ses:SendEmail` for failure notifications
 3. Create SQS queue `racedash-social-uploads-{env}`:
-   - Visibility timeout: 900s (15 minutes — long enough for large YouTube uploads)
+   - Visibility timeout: 2700s (45 minutes — covers upload phase up to 15 min + YouTube processing polling up to 30 min)
    - Message retention: 4 days
    - Dead-letter queue `racedash-social-uploads-dlq-{env}` with `maxReceiveCount: 3`
 4. Create SQS dispatch Lambda (`SocialDispatchFunction`, 256 MB, 30s timeout):
@@ -536,6 +536,8 @@ Resource: {socialUploadQueueArn}
 | `SQS_SOCIAL_UPLOAD_QUEUE_URL` | `SocialStack.queueUrl` |
 | `WEBHOOK_SECRET` | CDK context param |
 | `REMOTION_WEBHOOK_SECRET` | CDK context param |
+| `TOKEN_ENCRYPTION_KEY` | CDK context param (32-byte hex for AES-256-GCM OAuth token encryption) |
+| `REMOTION_WEBHOOK_SECRET` | CDK context param |
 
 **Cross-stack outputs:**
 
@@ -596,6 +598,7 @@ Resource: {sesIdentityArn}
 | `YOUTUBE_CLIENT_ID` | CDK context param |
 | `YOUTUBE_CLIENT_SECRET` | CDK context param |
 | `SES_FROM_ADDRESS` | `NotificationsStack.sesFromAddress` |
+| `TOKEN_ENCRYPTION_KEY` | CDK context param (32-byte hex for AES-256-GCM OAuth token decryption) |
 
 **Dispatch Lambda IAM:**
 ```
@@ -1121,7 +1124,7 @@ CDK assertion tests that verify each stack creates the expected resources with t
 
 1. ECS Fargate cluster exists.
 2. Task definition exists with CPU 512, memory 1024.
-3. SQS queue exists with `VisibilityTimeout: 900`, `MessageRetentionPeriod: 345600` (4 days).
+3. SQS queue exists with `VisibilityTimeout: 2700`, `MessageRetentionPeriod: 345600` (4 days).
 4. DLQ exists with `maxReceiveCount: 3` on the redrive policy.
 5. Dispatch Lambda exists and is triggered by the SQS queue.
 6. Dispatch Lambda has `ecs:RunTask` permission on the task definition.
