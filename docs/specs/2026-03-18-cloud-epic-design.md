@@ -4,6 +4,8 @@
 **Status:** Approved
 **Branch:** epic/cloud
 
+> **How to use this spec:** This document defines the epic-level architecture and workstream boundaries. It is the source of truth for creating individual feature branch specs. Each feature branch (`feature/cloud-*`) should have its own spec covering functional and non-functional requirements, success criteria, user stories, UI mocks to produce, and tests.
+
 ---
 
 ## Overview
