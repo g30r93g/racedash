@@ -278,7 +278,7 @@ If the query returns a token, call `states:SendTaskSuccess` with it. If it retur
 
 **`jobs.status` during WaitForSlot:** remains `queued`. `GrantSlot` writes `status → 'rendering'` only after the callback is received. The Desktop Cloud Renders tab shows a "Queued" state with position derived from `created_at` ordering among the user's `queued` jobs.
 
-**State machine timeout:** `TimeoutSeconds: 28800` (8 hours) — covers worst-case 6-hour heartbeat window + up to 2 hours of render pipeline.
+**State machine timeout:** `TimeoutSeconds: 28800` (8 hours) — covers worst-case 6-hour heartbeat window + up to 2 hours of render pipeline. **Review after load testing** — actual slot wait times under real concurrency may warrant tightening or relaxing this value.
 
 Output stored in `racedash-renders-{env}/renders/{jobId}/output.mp4`. Signed CloudFront download URL generated fresh on each `/jobs/:id/download` request, valid until `download_expires_at`.
 
