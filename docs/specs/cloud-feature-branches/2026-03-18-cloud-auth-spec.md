@@ -240,7 +240,7 @@ Clerk webhook receiver. Verifies the Svix signature, then processes the event.
 7. Clerk redirects to racedash://auth/callback#session_token=<jwt>
 8. Main process intercepts the redirect via protocol handler or will-navigate
 9. Main process extracts the session token from the URL
-10. Main process calls Clerk Backend API to get full user profile
+10. Main process calls `GET /api/auth/me` with the session token to get the user profile + license tier (profile data comes from Clerk session claims server-side; no `CLERK_SECRET_KEY` needed in Electron)
 11. Main process encrypts token + user profile with safeStorage.encryptString()
 12. Main process stores encrypted blob in app config dir
 13. Main process closes the OAuth BrowserWindow
@@ -252,7 +252,9 @@ Clerk webhook receiver. Verifies the Svix signature, then processes the event.
 
 ```
 1. Before each API request, main process checks token expiry (JWT exp claim)
-2. If token expires within 10 seconds, main process calls Clerk's token refresh
+2. If token expires within 10 seconds, main process re-opens a hidden
+   BrowserWindow to Clerk's token endpoint to obtain a fresh session token
+   (Clerk's JS SDK handles refresh via the hosted session — no secret key needed)
 3. New token is stored in safeStorage, replacing the old one
 4. Request proceeds with the fresh token
 5. If refresh fails (e.g., session revoked), main process clears stored session
@@ -265,11 +267,10 @@ Clerk webhook receiver. Verifies the Svix signature, then processes the event.
 1. User clicks "Sign out" in AccountDetails
 2. Renderer calls window.racedash.auth.signOut()
 3. Main process IPC handler receives 'racedash:auth:signOut'
-4. Main process calls Clerk Backend API to revoke the session
-5. Main process deletes the encrypted session from safeStorage / config dir
-6. Main process clears the 'persist:clerk-auth' session cookies
-7. Main process resolves the IPC response with void
-8. Renderer clears auth state via useAuth hook → UI shows signed-out state
+4. Main process deletes the encrypted session from safeStorage / config dir (session revocation is not performed client-side — the short-lived JWT expires naturally; server-side revocation can be added later if needed)
+5. Main process clears the 'persist:clerk-auth' session cookies
+6. Main process resolves the IPC response with void
+7. Renderer clears auth state via useAuth hook → UI shows signed-out state
 ```
 
 ---
@@ -375,7 +376,7 @@ export interface AuthUser {
 
 export interface AuthLicense {
   tier: 'plus' | 'pro'
-  status: 'active' | 'expired' | 'cancelled'
+  status: 'active'   // only active licenses are returned; expired/cancelled → license is null
   expiresAt: string
 }
 
@@ -590,7 +591,7 @@ export interface AuthMeUser {
 
 export interface AuthMeLicense {
   tier: 'plus' | 'pro'
-  status: 'active' | 'expired' | 'cancelled'
+  status: 'active'   // only active licenses are returned; expired/cancelled → license is null
   expiresAt: string // ISO 8601
 }
 
