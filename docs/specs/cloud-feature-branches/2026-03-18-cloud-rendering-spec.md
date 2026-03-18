@@ -17,7 +17,7 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
 
 ### In scope
 
-- `apps/api` route modules for all seven endpoints:
+- `apps/api` route modules for all eight endpoints:
   - `POST /jobs` — create job + reserve credits
   - `POST /jobs/:id/start-upload` — presigned S3 multipart URLs
   - `POST /jobs/:id/complete-upload` — complete multipart upload + start Step Functions execution
@@ -60,7 +60,7 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
 1. **FR-1:** `POST /jobs` must validate the authenticated user has an active license (via `@racedash/db` license helpers), calculate the credit cost using `computeCredits`, reserve credits using `reserveCredits`, insert a new job row with `status: 'uploading'` and `rc_cost` set to the computed cost, and return the job ID and upload key. If `reserveCredits` throws `InsufficientCreditsError`, return `402 Payment Required`.
 2. **FR-2:** `POST /jobs/:id/start-upload` must verify the job belongs to the authenticated user and is in `'uploading'` status. It must initiate a multipart upload on S3 (`uploads/{jobId}/joined.mp4`) and return presigned URLs for each part based on the `partCount` and `partSize` provided in the request body. The `uploadId` must be stored on the job row.
 3. **FR-3:** `POST /jobs/:id/complete-upload` must verify the job belongs to the authenticated user and is in `'uploading'` status. It must complete the S3 multipart upload using the provided `parts` array, transition the job to `status: 'queued'`, and start a Step Functions execution with `{ jobId, userId }` as input. The `sfn_execution_arn` must be stored on the job row. Step Functions is always started immediately — slot enforcement is handled inside the state machine by `WaitForSlot`.
-4. **FR-4:** `GET /jobs/:id/status` must verify the job belongs to the authenticated user. It must return an SSE stream (`Content-Type: text/event-stream`) that emits the current job status on connection and subsequent updates as they occur. Each SSE event must include `status`, `progress` (number 0-1 where applicable), `queuePosition` (for `'queued'` jobs), and `errorMessage` (for `'failed'` jobs). The SSE stream must use a polling interval of 2 seconds against the database. The stream must close when the job reaches a terminal state (`'complete'` or `'failed'`).
+4. **FR-4:** `GET /jobs/:id/status` must verify the job belongs to the authenticated user. It must return an SSE stream (`Content-Type: text/event-stream`) that emits the current job status on connection and subsequent updates as they occur. Each SSE event must include `status`, `progress` (number 0-1 where applicable), `queuePosition` (for `'queued'` jobs), `errorMessage` (for `'failed'` jobs), and `downloadExpiresAt` (ISO 8601 string, for `'complete'` jobs). The SSE stream must use a polling interval of 2 seconds against the database. The stream must close when the job reaches a terminal state (`'complete'` or `'failed'`).
 5. **FR-5:** `GET /jobs/:id/download` must verify the job belongs to the authenticated user, the job status is `'complete'`, and `download_expires_at` is in the future. It must return a signed CloudFront URL for `renders/{jobId}/output.mp4` that is valid for 1 hour (short-lived signed URL within the 7-day download window). If the download window has expired, return `410 Gone`.
 6. **FR-6:** `POST /api/webhooks/remotion` must validate the `X-Remotion-Signature` header using HMAC-SHA512 with `REMOTION_WEBHOOK_SECRET`. It must extract the `taskToken` from `customData` in the webhook payload. On `success` type, call `states:SendTaskSuccess` with the task token. On `error` or `timeout` type, call `states:SendTaskFailure`. Invalid signatures must return `401 Unauthorized`. This route must be excluded from Clerk auth middleware.
 7. **FR-7:** `POST /api/webhooks/render` must validate the `x-webhook-secret` header using `timingSafeEqual` with the `WEBHOOK_SECRET` environment variable. On Step Functions terminal state events (`SUCCEEDED`, `FAILED`, `TIMED_OUT`, `ABORTED`), the handler uses this as a signal to check for freed slots. For `SUCCEEDED` or `FAILED` terminal states involving a user's job, it calls `claimNextQueuedSlotToken` for that user and, if a token is returned, calls `states:SendTaskSuccess` to wake the next queued job. Invalid signatures must return `401 Unauthorized`. This route must be excluded from Clerk auth middleware.
@@ -101,7 +101,7 @@ This branch delivers the end-to-end cloud rendering pipeline from the desktop ap
 7. **NFR-7:** SSE connections must be cleaned up on client disconnect. The API must detect when the client closes the connection and stop polling the database for that job.
 8. **NFR-8:** All exported functions and interfaces must have complete TypeScript type signatures (no `any` types).
 9. **NFR-9:** Upload progress must be reported to the renderer at least once per second. The IPC progress event must include `bytesUploaded`, `bytesTotal`, and `uploadSpeed` (bytes/sec).
-10. **NFR-10:** All API endpoints must follow the error response conventions established by `cloud-auth` (structured JSON error responses with `error` and `message` fields).
+10. **NFR-10:** All API endpoints must follow the error response conventions established by `cloud-auth` (nested `{ error: { code, message } }` structure).
 
 ---
 
@@ -426,7 +426,7 @@ All Lambda handlers live in `infra/lambdas/` and are deployed by CDK constructs 
          OutputGroupSettings: {
            Type: 'FILE_GROUP_SETTINGS',
            FileGroupSettings: {
-             Destination: `s3://${S3_RENDERS_BUCKET}/renders/${jobId}/output`
+             Destination: `s3://${S3_RENDERS_BUCKET}/renders/${jobId}/output`  // MediaConvert appends .mp4 → renders/{jobId}/output.mp4
            }
          },
          Outputs: [{

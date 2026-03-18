@@ -55,7 +55,7 @@ This branch delivers the direct-to-YouTube upload pipeline for RaceDash Cloud. I
 3. **FR-3:** The `GET /auth/youtube/callback` route must be excluded from the Clerk auth middleware (it is an OAuth redirect from Google, not an authenticated API call). This route must be added to the middleware exclusion list. The full exclusion list after all branches land is: `/api/health`, `/api/webhooks/clerk` (cloud-auth), `/api/webhooks/stripe` (cloud-licensing), `/api/webhooks/remotion`, `/api/webhooks/render` (cloud-rendering), and `/auth/youtube/callback` (this branch). Each branch adds its own exclusions additively.
 
 4. **FR-4:** `GET /auth/youtube/callback` must:
-   a. Validate the `state` parameter against the stored value to prevent CSRF attacks. Invalid or missing state must return `400 Bad Request`.
+   a. Validate the `state` parameter by verifying the signed JWT (HS256, signed with `TOKEN_ENCRYPTION_KEY`, 10-minute expiry). Invalid, missing, or expired state must return `400 Bad Request`. The JWT contains the user ID, avoiding the need for server-side state storage.
    b. Exchange the authorization `code` for an access token and refresh token using the YouTube OAuth token endpoint.
    c. Fetch the YouTube channel name using the YouTube Data API (`channels.list?part=snippet&mine=true`) with the new access token.
    d. Encrypt both tokens using AES-256-GCM with the `TOKEN_ENCRYPTION_KEY` environment variable.
@@ -378,7 +378,7 @@ The YouTube upload Fargate task handler streams a completed render from S3 to Yo
     → social_uploads.error_message = descriptive message
     → releaseCredits({ db, jobId: reservationKey })
     → Send SES failure email to user
-    → Exit with code 0 (prevent ECS retry — SQS DLQ handles retries)
+    → Exit with code 0 (no retry — failure is terminal; credits already released, user notified via email)
 ```
 
 ### Error Handling
