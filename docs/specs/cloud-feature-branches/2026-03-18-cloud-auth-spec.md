@@ -409,7 +409,7 @@ export interface RacedashAPI {
   auth: {
     /** Open Clerk OAuth window, return session on success. */
     signIn(): Promise<AuthSession>
-    /** Clear local session, revoke on Clerk, notify renderer. */
+    /** Clear local session and notify renderer. */
     signOut(): Promise<void>
     /** Restore session from secure storage, or null if none. */
     getSession(): Promise<AuthSession | null>
@@ -418,7 +418,7 @@ export interface RacedashAPI {
   }
 
   // Auth events — main → renderer push
-  /** Fires when session expires or is revoked server-side. */
+  /** Fires when session expires or token refresh fails. */
   onAuthSessionExpired(cb: () => void): () => void
 }
 ```
@@ -431,7 +431,7 @@ export interface RacedashAPI {
 | `racedash:auth:signOut` | renderer -> main | Sign out and clear session |
 | `racedash:auth:getSession` | renderer -> main | Restore session from storage |
 | `racedash:auth:fetchWithAuth` | renderer -> main | Authenticated HTTP request |
-| `racedash:auth:sessionExpired` | main -> renderer | Session expired/revoked event |
+| `racedash:auth:sessionExpired` | main -> renderer | Session expired or refresh failed event |
 
 ---
 
@@ -439,7 +439,7 @@ export interface RacedashAPI {
 
 1. **SC-1:** A user can click "Sign in" in the ExportTab footer or Account tab, complete the Clerk OAuth flow in the popup window, and see their real name and email in the Account tab within 3 seconds of the redirect.
 2. **SC-2:** After signing in and restarting the app, the user's session is automatically restored from secure storage without requiring re-authentication (until the Clerk session itself expires).
-3. **SC-3:** Clicking "Sign out" in the Account tab clears the local session, revokes the Clerk session, and returns the UI to the signed-out state.
+3. **SC-3:** Clicking "Sign out" in the Account tab clears the local session (token, cookies, cached profile) and returns the UI to the signed-out state.
 4. **SC-4:** The `GET /api/auth/me` endpoint returns the correct user profile and license tier when called with a valid session token, and returns `401` for invalid or missing tokens.
 5. **SC-5:** The `POST /api/webhooks/clerk` endpoint correctly creates a `users` row when receiving a `user.created` event with a valid Svix signature, and rejects requests with invalid signatures (returning `400`).
 6. **SC-6:** The `GET /api/health` endpoint returns `{ status: 'ok' }` without authentication.
@@ -506,7 +506,7 @@ The following Paper mockups should be created before implementation begins. All 
 
 1. User navigates to the Account tab.
 2. User clicks the "Sign out" button (red, destructive variant).
-3. Main process revokes the Clerk session, clears `safeStorage`, clears cookies.
+3. Main process clears `safeStorage` token and session cookies (local-only; JWT expires naturally).
 4. UI transitions to signed-out state across all components.
 
 ### HP-4: Token refresh
@@ -537,7 +537,7 @@ The following Paper mockups should be created before implementation begins. All 
 5. **Replay attack prevention:** The Svix verification includes a timestamp tolerance check (default 5 minutes). The API must not disable or extend this tolerance.
 6. **CSRF protection:** The OAuth flow uses the `racedash://` custom protocol for the redirect, which cannot be triggered from a web page. The Clerk-issued `state` parameter provides additional CSRF protection.
 7. **Token scope:** Clerk session JWTs are short-lived (60 seconds) and audience-scoped. Even if intercepted, they expire quickly.
-8. **No secrets in renderer:** The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`) is safe to embed in renderer code. The secret key (`CLERK_SECRET_KEY`) is only used server-side in `apps/api`. It must never appear in the Electron main process or renderer bundle. Token refresh in the desktop is handled by calling the API (which holds the secret key), not by the Electron process directly.
+8. **No secrets in renderer:** The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`) is safe to embed in renderer code. The secret key (`CLERK_SECRET_KEY`) is only used server-side in `apps/api` for JWT verification and Clerk webhook processing. It must never appear in the Electron main process or renderer bundle. Token refresh in the desktop is handled via a hidden BrowserWindow that loads Clerk's hosted session page (which uses the publishable key, not the secret key).
 9. **IPC security:** The `fetchWithAuth` IPC handler in the main process must validate the target URL against an allowlist (the API base URL) to prevent the renderer from using it as a general-purpose authenticated proxy.
 
 ---
@@ -550,7 +550,7 @@ This branch does not own any infrastructure. The Lambda function, Function URL, 
 
 | Variable | Runtime | Description |
 |---|---|---|
-| `CLERK_SECRET_KEY` | `apps/api` (Lambda) | Clerk secret key for JWT verification and Backend API calls |
+| `CLERK_SECRET_KEY` | `apps/api` (Lambda) | Clerk secret key for JWT verification and webhook processing |
 | `CLERK_WEBHOOK_SECRET` | `apps/api` (Lambda) | Svix signing secret for webhook verification |
 | `DATABASE_URL` | `apps/api` (Lambda) | Neon pooled connection string |
 | `VITE_API_URL` | `apps/desktop` (Electron renderer) | Lambda Function URL base (e.g., `https://xxx.lambda-url.eu-west-2.on.aws`) |
