@@ -216,7 +216,7 @@ apps/api/src/
     admin/
       index.ts                          # Admin route prefix registration
       users.ts                          # GET /api/admin/users, GET /api/admin/users/:id
-      licenses.ts                       # POST + PATCH /api/admin/users/:id/licenses
+      licenses.ts                       # POST /api/admin/users/:id/licenses, PATCH /api/admin/users/:id/licenses/:licenseId
       jobs.ts                           # GET /api/admin/jobs, GET /api/admin/jobs/:id
       credits.ts                        # POST /api/admin/users/:id/credits
       stats.ts                          # GET /api/admin/stats/overview
