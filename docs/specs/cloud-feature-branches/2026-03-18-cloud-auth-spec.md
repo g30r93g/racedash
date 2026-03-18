@@ -51,7 +51,7 @@ This branch delivers two major pieces: the `apps/api` Fastify scaffold (deployed
 
 1. **FR-1:** `apps/api` must be a Fastify application that exports a Lambda handler via `@fastify/aws-lambda`. The Lambda Function URL is the sole HTTP entry point (no API Gateway).
 2. **FR-2:** The API must register a Clerk auth middleware plugin that validates the `Authorization: Bearer <session_token>` header on all routes except `/api/health` and `/api/webhooks/clerk`. Invalid or missing tokens must return `401 Unauthorized`.
-3. **FR-3:** `GET /api/auth/me` must return the authenticated user's profile (name, email, avatar URL) and their active license tier (`'plus'` or `'pro'`) or `null` if no active license. The endpoint must query the `users` and `licenses` tables from `@racedash/db`.
+3. **FR-3:** `GET /api/auth/me` must return the authenticated user's profile (name, email, avatar URL) and their active license tier (`'plus'` or `'pro'`) or `null` if no active license. Profile fields (name, avatar URL) are sourced from the Clerk session claims (not the DB — the `users` table does not store name or avatar). License tier is queried from the `licenses` table in `@racedash/db`.
 4. **FR-4:** `POST /api/webhooks/clerk` must verify the Clerk webhook signature using the `svix` library, then handle the `user.created` event by inserting a new row into the `users` table with the Clerk user ID and email. Unknown event types must be acknowledged with `200` and ignored.
 5. **FR-5:** `GET /api/health` must return `{ status: 'ok' }` with no authentication required. This endpoint is used by infrastructure health checks.
 6. **FR-6:** The Electron main process must open a BrowserWindow pointing to Clerk's hosted sign-in URL when the user initiates sign-in. The window must use a dedicated session partition (`persist:clerk-auth`) to isolate cookies from the main app window.
@@ -64,7 +64,7 @@ This branch delivers two major pieces: the `apps/api` Fastify scaffold (deployed
 13. **FR-13:** The `AppSidebar` component's `user.plan` prop type must change from `'free' | 'pro'` to `'plus' | 'pro'`. The sidebar footer must display "RaceDash Cloud PLUS" for Plus users and "RaceDash Cloud PRO" for Pro users. When no active license exists, no plan label is shown.
 14. **FR-14:** `AccountDetails.tsx` must accept user data as props (no longer hardcoded) and display the authenticated user's name, email, initials in the avatar, license tier badge, and subscription renewal date. When no user is signed in, it must show a sign-in prompt.
 15. **FR-15:** The sign-out button in `AccountDetails.tsx` must have its `disabled` attribute removed and be wired to call `window.racedash.auth.signOut()`, then reset the UI to the signed-out state.
-16. **FR-16:** The "Sign in" button in `ExportTab.tsx` footer must be wired to call `window.racedash.auth.signIn()`. After sign-in, the footer must update to show the user's name and a "Sign out" option.
+16. **FR-16:** The "Sign in" button in `ExportTab.tsx` footer must be wired to call `window.racedash.auth.signIn()`. After sign-in, the footer must update to show the user's name. (Sign-out is available in the Account tab — the ExportTab footer does not need a separate sign-out action.)
 17. **FR-17:** The Clerk webhook handler must verify the `svix-id`, `svix-timestamp`, and `svix-signature` headers before processing any event. Requests with invalid signatures must return `400 Bad Request`.
 
 ---
@@ -155,7 +155,7 @@ Unauthenticated health check.
 
 ### `GET /api/auth/me`
 
-Returns the authenticated user's profile and active license tier.
+Returns the authenticated user's profile and active license tier. `name` and `avatarUrl` are sourced from Clerk session claims; `id`, `clerkId`, `email`, `createdAt` from the `users` DB table; `license` from the `licenses` DB table.
 
 | Field | Value |
 |---|---|
@@ -523,7 +523,7 @@ The following Paper mockups should be created before implementation begins. All 
 3. API verifies the Svix signature.
 4. API inserts a new row in the `users` table with the Clerk user ID and email.
 5. API responds `200 { "received": true }`.
-6. When the user subsequently calls `GET /api/auth/me`, their profile is returned from the DB.
+6. When the user subsequently calls `GET /api/auth/me`, their profile (name, avatar) is returned from the Clerk session claims, and their license tier is queried from the DB.
 
 ---
 
@@ -536,7 +536,7 @@ The following Paper mockups should be created before implementation begins. All 
 5. **Replay attack prevention:** The Svix verification includes a timestamp tolerance check (default 5 minutes). The API must not disable or extend this tolerance.
 6. **CSRF protection:** The OAuth flow uses the `racedash://` custom protocol for the redirect, which cannot be triggered from a web page. The Clerk-issued `state` parameter provides additional CSRF protection.
 7. **Token scope:** Clerk session JWTs are short-lived (60 seconds) and audience-scoped. Even if intercepted, they expire quickly.
-8. **No secrets in renderer:** The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`) is safe to embed in renderer code. The secret key (`CLERK_SECRET_KEY`) is only used server-side in `apps/api` and in the Electron main process (for token refresh). It must never be bundled into the renderer.
+8. **No secrets in renderer:** The Clerk publishable key (`VITE_CLERK_PUBLISHABLE_KEY`) is safe to embed in renderer code. The secret key (`CLERK_SECRET_KEY`) is only used server-side in `apps/api`. It must never appear in the Electron main process or renderer bundle. Token refresh in the desktop is handled by calling the API (which holds the secret key), not by the Electron process directly.
 9. **IPC security:** The `fetchWithAuth` IPC handler in the main process must validate the target URL against an allowlist (the API base URL) to prevent the renderer from using it as a general-purpose authenticated proxy.
 
 ---
