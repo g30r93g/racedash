@@ -267,10 +267,12 @@ Clerk webhook receiver. Verifies the Svix signature, then processes the event.
 1. User clicks "Sign out" in AccountDetails
 2. Renderer calls window.racedash.auth.signOut()
 3. Main process IPC handler receives 'racedash:auth:signOut'
-4. Main process deletes the encrypted session from safeStorage / config dir (session revocation is not performed client-side — the short-lived JWT expires naturally; server-side revocation can be added later if needed)
-5. Main process clears the 'persist:clerk-auth' session cookies
-6. Main process resolves the IPC response with void
-7. Renderer clears auth state via useAuth hook → UI shows signed-out state
+4. Main process opens a hidden BrowserWindow to Clerk's hosted sign-out URL
+   to invalidate the Clerk session (uses publishable key, no secret key needed)
+5. Main process deletes the encrypted session from safeStorage / config dir
+6. Main process clears the 'persist:clerk-auth' session cookies
+7. Main process resolves the IPC response with void
+8. Renderer clears auth state via useAuth hook → UI shows signed-out state
 ```
 
 ---
@@ -409,7 +411,7 @@ export interface RacedashAPI {
   auth: {
     /** Open Clerk OAuth window, return session on success. */
     signIn(): Promise<AuthSession>
-    /** Clear local session and notify renderer. */
+    /** Invalidate Clerk session, clear local session, and notify renderer. */
     signOut(): Promise<void>
     /** Restore session from secure storage, or null if none. */
     getSession(): Promise<AuthSession | null>
@@ -439,7 +441,7 @@ export interface RacedashAPI {
 
 1. **SC-1:** A user can click "Sign in" in the ExportTab footer or Account tab, complete the Clerk OAuth flow in the popup window, and see their real name and email in the Account tab within 3 seconds of the redirect.
 2. **SC-2:** After signing in and restarting the app, the user's session is automatically restored from secure storage without requiring re-authentication (until the Clerk session itself expires).
-3. **SC-3:** Clicking "Sign out" in the Account tab clears the local session (token, cookies, cached profile) and returns the UI to the signed-out state.
+3. **SC-3:** Clicking "Sign out" in the Account tab invalidates the Clerk session (via hosted sign-out URL), clears the local session (token, cookies, cached profile), and returns the UI to the signed-out state.
 4. **SC-4:** The `GET /api/auth/me` endpoint returns the correct user profile and license tier when called with a valid session token, and returns `401` for invalid or missing tokens.
 5. **SC-5:** The `POST /api/webhooks/clerk` endpoint correctly creates a `users` row when receiving a `user.created` event with a valid Svix signature, and rejects requests with invalid signatures (returning `400`).
 6. **SC-6:** The `GET /api/health` endpoint returns `{ status: 'ok' }` without authentication.
@@ -506,7 +508,7 @@ The following Paper mockups should be created before implementation begins. All 
 
 1. User navigates to the Account tab.
 2. User clicks the "Sign out" button (red, destructive variant).
-3. Main process clears `safeStorage` token and session cookies (local-only; JWT expires naturally).
+3. Main process opens hidden BrowserWindow to Clerk's hosted sign-out URL, then clears `safeStorage` token and session cookies.
 4. UI transitions to signed-out state across all components.
 
 ### HP-4: Token refresh
