@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: racedash_test
+      POSTGRES_USER: racedash
+      POSTGRES_PASSWORD: racedash_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U racedash -d racedash_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 15
+    tmpfs:
+      - /var/lib/postgresql/data
