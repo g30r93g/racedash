@@ -95,6 +95,23 @@ const api: RacedashAPI = {
   },
   installUpdate: () =>
     ipcRenderer.invoke('racedash:update-install'),
+
+  // Auth
+  auth: {
+    signIn: () =>
+      ipcRenderer.invoke('racedash:auth:signIn'),
+    signOut: () =>
+      ipcRenderer.invoke('racedash:auth:signOut'),
+    getSession: () =>
+      ipcRenderer.invoke('racedash:auth:getSession'),
+    fetchWithAuth: (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) =>
+      ipcRenderer.invoke('racedash:auth:fetchWithAuth', url, init),
+  },
+  onAuthSessionExpired: (cb: () => void) => {
+    const handler = (_: IpcRendererEvent) => cb()
+    ipcRenderer.on('racedash:auth:sessionExpired', handler)
+    return () => ipcRenderer.removeListener('racedash:auth:sessionExpired', handler)
+  },
 }
 
 contextBridge.exposeInMainWorld('racedash', api)

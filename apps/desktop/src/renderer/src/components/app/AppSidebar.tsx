@@ -13,7 +13,7 @@ interface AppSidebarProps {
   user: {
     name: string
     email: string
-    plan: 'free' | 'pro'
+    plan: 'plus' | 'pro' | null
   }
 }
 
@@ -73,6 +73,9 @@ export function AppSidebar({
             <p className="truncate text-xs font-medium text-white">{user.name}</p>
             {user.plan === 'pro' && (
               <p className="text-[10px] text-blue-400">RaceDash Cloud PRO</p>
+            )}
+            {user.plan === 'plus' && (
+              <p className="text-[10px] text-emerald-400">RaceDash Cloud PLUS</p>
             )}
           </div>
         </div>

@@ -5,36 +5,77 @@ import { Separator } from '@/components/ui/separator'
 import React from 'react'
 import { InfoRow } from './InfoRow'
 import { SectionLabel } from './SectionLabel'
+import type { AuthUser, AuthLicense } from '../../../../types/ipc'
 
-export function AccountDetails(): React.ReactElement {
+function initials(name: string): string {
+  return name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+interface AccountDetailsProps {
+  user: AuthUser | null
+  license: AuthLicense | null
+  onSignIn: () => void
+  onSignOut: () => void
+}
+
+export function AccountDetails({ user, license, onSignIn, onSignOut }: AccountDetailsProps): React.ReactElement {
+  // Signed-out state
+  if (!user) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <p className="text-sm text-muted-foreground">Sign in to access RaceDash Cloud</p>
+        <Button onClick={onSignIn}>Sign in</Button>
+      </div>
+    )
+  }
+
+  const tierLabel = license?.tier === 'pro' ? 'PRO' : license?.tier === 'plus' ? 'PLUS' : null
+  const planName = license?.tier === 'pro' ? 'RaceDash Cloud Pro' : license?.tier === 'plus' ? 'RaceDash Cloud Plus' : null
+
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">GG</AvatarFallback>
+          <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">
+            {initials(user.name)}
+          </AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-foreground">G. Gorzynski</p>
-            <Badge className="text-[10px]">PRO</Badge>
+            <p className="text-sm font-semibold text-foreground">{user.name}</p>
+            {tierLabel && <Badge className="text-[10px]">{tierLabel}</Badge>}
           </div>
-          <p className="text-xs text-muted-foreground">george@university.ac.uk</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
       </div>
 
       <Separator />
 
-      <section>
-        <SectionLabel>Subscription</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          <InfoRow label="Plan" value="RaceDash Cloud Pro" />
-          <div className="border-t border-border" />
-          <InfoRow label="Renews" value="1 Apr 2026" />
-        </div>
-        <Button variant="outline" className="mt-3 w-full" size="sm">
-          Manage subscription ↗
-        </Button>
-      </section>
+      {license ? (
+        <section>
+          <SectionLabel>Subscription</SectionLabel>
+          <div className="rounded-md border border-border bg-accent px-3">
+            <InfoRow label="Plan" value={planName ?? '—'} />
+            <div className="border-t border-border" />
+            <InfoRow label="Renews" value={formatDate(license.expiresAt)} />
+          </div>
+          <Button variant="outline" className="mt-3 w-full" size="sm">
+            Manage subscription ↗
+          </Button>
+        </section>
+      ) : (
+        <section>
+          <SectionLabel>Subscription</SectionLabel>
+          <p className="text-sm text-muted-foreground">No active subscription</p>
+          <Button variant="outline" className="mt-3 w-full" size="sm">
+            Get RaceDash Cloud ↗
+          </Button>
+        </section>
+      )}
 
       <Separator />
 
@@ -47,7 +88,11 @@ export function AccountDetails(): React.ReactElement {
 
       <Separator />
 
-      <Button variant="destructive" className="w-full bg-red-950 text-red-500 hover:bg-red-900" disabled>
+      <Button
+        variant="destructive"
+        className="w-full bg-red-950 text-red-500 hover:bg-red-900"
+        onClick={onSignOut}
+      >
         Sign out
       </Button>
     </div>

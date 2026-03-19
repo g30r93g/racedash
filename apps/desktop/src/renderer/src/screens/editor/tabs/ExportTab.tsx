@@ -49,6 +49,8 @@ interface ExportTabProps {
   videoInfo?: VideoInfo | null
   onRenderingChange?: (rendering: boolean) => void
   overlayType: OverlayType
+  authUser?: { name: string } | null
+  onSignIn?: () => void
 }
 
 interface LastRender {
@@ -57,7 +59,7 @@ interface LastRender {
   timestamp: Date
 }
 
-export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }: ExportTabProps): React.ReactElement {
+export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, authUser, onSignIn }: ExportTabProps): React.ReactElement {
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -283,6 +285,18 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
           </div>
         </section>
       )}
+
+      {/* RaceDash Cloud footer */}
+      <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
+        <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
+        {authUser ? (
+          <span className="text-xs text-foreground">{authUser.name}</span>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={onSignIn}>
+            Sign in
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

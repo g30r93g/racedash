@@ -107,6 +107,41 @@ export interface RenderCompleteResult {
   overlayReused: boolean
 }
 
+// ── Auth types ────────────────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string
+  clerkId: string
+  email: string
+  name: string
+  avatarUrl: string | null
+  createdAt: string
+}
+
+export interface AuthLicense {
+  tier: 'plus' | 'pro'
+  status: 'active'
+  expiresAt: string
+}
+
+export interface AuthSession {
+  user: AuthUser
+  license: AuthLicense | null
+  token: string
+}
+
+export interface FetchWithAuthOptions {
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+}
+
+export interface FetchWithAuthResponse {
+  status: number
+  headers: Record<string, string>
+  body: string
+}
+
 // The full window.racedash API surface.
 // All methods are stubbed in the scaffold; sub-plans implement each section.
 export interface RacedashAPI {
@@ -165,4 +200,15 @@ export interface RacedashAPI {
 
   // Trigger install — renderer → main
   installUpdate(): Promise<void>
+
+  // Auth
+  auth: {
+    signIn(): Promise<AuthSession>
+    signOut(): Promise<void>
+    getSession(): Promise<AuthSession | null>
+    fetchWithAuth(url: string, init?: FetchWithAuthOptions): Promise<FetchWithAuthResponse>
+  }
+
+  // Auth events — main → renderer push
+  onAuthSessionExpired(cb: () => void): () => void
 }
