@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import type { RacedashAPI, RenderCompleteResult } from '../types/ipc'
+import type { RacedashAPI, RenderCompleteResult, LicenseInfo, CreditBalance } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 
@@ -107,10 +107,44 @@ const api: RacedashAPI = {
     fetchWithAuth: (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) =>
       ipcRenderer.invoke('racedash:auth:fetchWithAuth', url, init),
   },
+  // License
+  license: {
+    get: () =>
+      ipcRenderer.invoke('racedash:license:get'),
+    getCached: () =>
+      ipcRenderer.invoke('racedash:license:getCached'),
+  },
+
+  // Credits
+  credits: {
+    getBalance: () =>
+      ipcRenderer.invoke('racedash:credits:getBalance'),
+    getHistory: (cursor?: string) =>
+      ipcRenderer.invoke('racedash:credits:getHistory', cursor),
+  },
+
+  // Stripe Checkout
+  stripe: {
+    createSubscriptionCheckout: (opts: { tier: 'plus' | 'pro' }) =>
+      ipcRenderer.invoke('racedash:stripe:subscriptionCheckout', opts),
+    createCreditCheckout: (opts: { packSize: number }) =>
+      ipcRenderer.invoke('racedash:stripe:creditCheckout', opts),
+  },
+
   onAuthSessionExpired: (cb: () => void) => {
     const handler = (_: IpcRendererEvent) => cb()
     ipcRenderer.on('racedash:auth:sessionExpired', handler)
     return () => ipcRenderer.removeListener('racedash:auth:sessionExpired', handler)
+  },
+  onLicenseChanged: (cb: (license: LicenseInfo | null) => void) => {
+    const handler = (_: IpcRendererEvent, license: LicenseInfo | null) => cb(license)
+    ipcRenderer.on('racedash:license:changed', handler)
+    return () => ipcRenderer.removeListener('racedash:license:changed', handler)
+  },
+  onCreditsChanged: (cb: (balance: CreditBalance) => void) => {
+    const handler = (_: IpcRendererEvent, balance: CreditBalance) => cb(balance)
+    ipcRenderer.on('racedash:credits:changed', handler)
+    return () => ipcRenderer.removeListener('racedash:credits:changed', handler)
   },
 }
 

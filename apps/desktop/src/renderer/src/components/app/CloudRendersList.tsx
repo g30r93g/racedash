@@ -18,8 +18,6 @@ interface CloudRenderJob {
   outputUrl?: string
   youtubeUrl?: string
   timeRemaining?: string
-  storageUsedGb: number
-  storageLimitGb: number
 }
 
 export function CloudRendersList(): React.ReactElement {
@@ -69,23 +67,7 @@ export function CloudRendersList(): React.ReactElement {
             {completed.map((job) => <JobRow key={job.id} job={job} />)}
           </section>
         )}
-        {jobs[0] && (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Storage</span>
-                <span className="text-foreground">
-                  {jobs[0].storageUsedGb}GB / {jobs[0].storageLimitGb}GB
-                </span>
-              </div>
-              <Progress value={(jobs[0].storageUsedGb / jobs[0].storageLimitGb) * 100} />
-              <button className="text-left text-xs text-primary hover:underline">
-                Manage storage
-              </button>
-            </div>
-          </>
-        )}
+        {/* Storage usage bar removed — cloud storage sync deferred to phase 2 */}
       </div>
     </ScrollArea>
   )

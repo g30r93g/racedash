@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SpinnerInline } from '@/components/loaders/Spinner'
 import { LayoutGrid, Rows4 } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import type { ProjectData } from '../../../types/project'
+import { useAuth } from '../hooks/useAuth'
+import { useLicense } from '../hooks/useLicense'
+import { useCredits } from '../hooks/useCredits'
 
 type ProjectView = 'tile' | 'list'
 
@@ -23,12 +26,41 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   const [activeTab, setActiveTab] = useState<LibraryTab>('projects')
   const [view, setView] = useState<ProjectView>('tile')
 
+  const { user, license: authLicense, isSignedIn, signIn, signOut } = useAuth()
+  const { license } = useLicense(isSignedIn)
+  const { balance, fetchHistory } = useCredits(isSignedIn)
+
+  // Determine display plan from license hook (preferred) or auth session fallback
+  const displayPlan = license?.tier ?? authLicense?.tier ?? null
+
   useEffect(() => {
     window.racedash
       .listProjects()
       .then((result) => setProjects(result))
       .catch((err) => console.error('[racedash] failed to list projects', err))
       .finally(() => setLoading(false))
+  }, [])
+
+  const handleSubscribe = useCallback(async (tier: 'plus' | 'pro') => {
+    try {
+      await window.racedash.stripe.createSubscriptionCheckout({ tier })
+    } catch {
+      // User closed checkout or error
+    }
+  }, [])
+
+  const handleTopUpCredits = useCallback(async () => {
+    try {
+      await window.racedash.stripe.createCreditCheckout({ packSize: 100 })
+    } catch {
+      // User closed checkout or error
+    }
+  }, [])
+
+  const handleManageSubscription = useCallback(() => {
+    // Stripe Customer Portal deferred to a future branch.
+    // For now, open the Stripe billing page externally.
+    // This is a no-op placeholder — the button text indicates it's an external link (↗).
   }, [])
 
   function handleLocate(oldProjectPath: string, updated: ProjectData) {
@@ -41,7 +73,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
         activeTab={activeTab}
         onTabChange={setActiveTab}
         cloudRenderCount={0}
-        user={{ name: 'G. Gorzynski', email: 'george@university.ac.uk', plan: 'pro' }}
+        user={user ? { name: user.name, email: user.email, plan: displayPlan } : undefined}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden p-8">
@@ -118,7 +150,17 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <div className="mb-6 flex shrink-0 items-center">
                   <h1 className="text-lg font-semibold text-white">Account</h1>
                 </div>
-                <AccountDetails />
+                <AccountDetails
+                  user={user}
+                  license={authLicense}
+                  creditBalance={balance}
+                  onSignIn={signIn}
+                  onSignOut={signOut}
+                  onTopUpCredits={handleTopUpCredits}
+                  onManageSubscription={handleManageSubscription}
+                  onSubscribe={handleSubscribe}
+                  fetchCreditHistory={fetchHistory}
+                />
               </>
             )}
       </div>

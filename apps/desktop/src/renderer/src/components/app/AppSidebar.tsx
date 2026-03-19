@@ -10,7 +10,7 @@ interface AppSidebarProps {
   activeTab: LibraryTab
   onTabChange: (tab: LibraryTab) => void
   cloudRenderCount: number
-  user: {
+  user?: {
     name: string
     email: string
     plan: 'plus' | 'pro' | null
@@ -62,24 +62,26 @@ export function AppSidebar({
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4">
-        <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
-          <Avatar className="h-7 w-7 shrink-0">
-            <AvatarFallback className="bg-blue-700 text-[11px] font-bold text-white">
-              {initials(user.name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-white">{user.name}</p>
-            {user.plan === 'pro' && (
-              <p className="text-[10px] text-blue-400">RaceDash Cloud PRO</p>
-            )}
-            {user.plan === 'plus' && (
-              <p className="text-[10px] text-emerald-400">RaceDash Cloud PLUS</p>
-            )}
+      {user && (
+        <div className="px-3 py-4">
+          <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
+            <Avatar className="h-7 w-7 shrink-0">
+              <AvatarFallback className="bg-blue-700 text-[11px] font-bold text-white">
+                {initials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-white">{user.name}</p>
+              {user.plan === 'pro' && (
+                <p className="text-[10px] text-blue-400">RaceDash Cloud PRO</p>
+              )}
+              {user.plan === 'plus' && (
+                <p className="text-[10px] text-emerald-400">RaceDash Cloud PLUS</p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
