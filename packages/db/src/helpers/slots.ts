@@ -29,6 +29,7 @@ export async function claimNextQueuedSlotToken(
     RETURNING target.slot_task_token
   `)
 
-  const rows = result as unknown as Array<{ slot_task_token: string | null }>
+  // Handle both neon-http (returns rows directly) and node-postgres (returns { rows })
+  const rows = (Array.isArray(result) ? result : (result as any).rows ?? []) as Array<{ slot_task_token: string | null }>
   return rows[0]?.slot_task_token ?? null
 }
