@@ -4,10 +4,12 @@ import fs from 'node:fs'
 import { configureBundledFfmpegPath } from './ffmpeg'
 import { registerIpcHandlers } from './ipc'
 import { registerUpdaterHandlers } from './updater'
+import { registerAuthHandlers } from './auth'
 
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } },
+  { scheme: 'racedash', privileges: { secure: true } },
 ])
 
 app.setName('RaceDash')
@@ -98,6 +100,7 @@ app.whenReady().then(() => {
   })
   registerIpcHandlers()
   const win = createWindow()
+  registerAuthHandlers(win)
   registerUpdaterHandlers(win)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
