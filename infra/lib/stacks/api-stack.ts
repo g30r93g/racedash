@@ -48,7 +48,7 @@ export class ApiStack extends cdk.Stack {
       environment: {
         CLERK_SECRET_KEY: clerkSecretKey,
         DATABASE_URL: databaseUrlPooled,
-        AWS_REGION_NAME: cdk.Aws.REGION,
+        AWS_REGION_NAME: cdk.Aws.REGION, // AWS_REGION is reserved by Lambda runtime
         S3_UPLOAD_BUCKET: props.uploadsBucket.bucketName,
         S3_RENDERS_BUCKET: props.rendersBucket.bucketName,
         CLOUDFRONT_DOMAIN: props.cloudFrontDomain,

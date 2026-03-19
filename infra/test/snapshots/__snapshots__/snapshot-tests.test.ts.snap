@@ -551,9 +551,15 @@ exports[`Snapshot Tests PipelineStack snapshot 1`] = `
         "Name": "test-RemotionServeUrl",
       },
       "Value": {
-        "Fn::GetAtt": [
-          "RemotionSiteBucket5F4156DB",
-          "WebsiteURL",
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "RemotionSiteBucket5F4156DB",
+            },
+            ".s3.amazonaws.com",
+          ],
         ],
       },
     },
@@ -1642,7 +1648,7 @@ exports[`Snapshot Tests PipelineStack snapshot 1`] = `
           "Fn::Join": [
             "",
             [
-              "{"StartAt":"WaitForSlot","States":{"WaitForSlot":{"Next":"GrantSlot","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.Heartbeat"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"},{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","HeartbeatSeconds":21600,"ResultPath":"$.slotResult","Resource":"arn:",
+              "{"StartAt":"WaitForSlot","States":{"WaitForSlot":{"Next":"GrantSlot","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.HeartbeatTimeout"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"},{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","HeartbeatSeconds":21600,"ResultPath":"$.slotResult","Resource":"arn:",
               {
                 "Ref": "AWS::Partition",
               },
@@ -1664,7 +1670,7 @@ exports[`Snapshot Tests PipelineStack snapshot 1`] = `
                   "Arn",
                 ],
               },
-              "","Payload":{"jobId.$":"$.jobId"}}},"StartRenderOverlay":{"Next":"PrepareComposite","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.Heartbeat","States.TaskFailed"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"},{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","HeartbeatSeconds":900,"ResultPath":"$.renderResult","Resource":"arn:",
+              "","Payload":{"jobId.$":"$.jobId"}}},"StartRenderOverlay":{"Next":"PrepareComposite","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.HeartbeatTimeout","States.TaskFailed"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"},{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","HeartbeatSeconds":900,"ResultPath":"$.renderResult","Resource":"arn:",
               {
                 "Ref": "AWS::Partition",
               },
@@ -1719,7 +1725,7 @@ exports[`Snapshot Tests PipelineStack snapshot 1`] = `
                   "Arn",
                 ],
               },
-              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId","error.$":"$.error"}}},"Fail":{"Type":"Fail","Error":"RenderPipelineFailed","CausePath":"$.error"}},"TimeoutSeconds":28800}",
+              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId","error.$":"$.error"}}},"Fail":{"Type":"Fail","Error":"RenderPipelineFailed","CausePath":"$.error.Cause"}},"TimeoutSeconds":28800}",
             ],
           ],
         },
@@ -1993,9 +1999,15 @@ exports[`Snapshot Tests PipelineStack snapshot 1`] = `
               "Ref": "RemotionFunction2D473C37",
             },
             "REMOTION_SERVE_URL": {
-              "Fn::GetAtt": [
-                "RemotionSiteBucket5F4156DB",
-                "WebsiteURL",
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "RemotionSiteBucket5F4156DB",
+                  },
+                  ".s3.amazonaws.com",
+                ],
               ],
             },
             "REMOTION_WEBHOOK_SECRET": "remotion-secret-123",

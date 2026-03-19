@@ -129,7 +129,7 @@ export class PipelineStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(60),
       environment: {
         ...commonEnv,
-        REMOTION_SERVE_URL: remotionSiteBucket.bucketWebsiteUrl || `https://${remotionSiteBucket.bucketName}.s3.amazonaws.com`,
+        REMOTION_SERVE_URL: `https://${remotionSiteBucket.bucketName}.s3.amazonaws.com`,
         REMOTION_FUNCTION_NAME: remotionFunction.functionName,
         REMOTION_WEBHOOK_SECRET: remotionWebhookSecret,
         REMOTION_WEBHOOK_URL: remotionWebhookUrl,
@@ -322,7 +322,7 @@ export class PipelineStack extends cdk.Stack {
       exportName: `${config.env}-RemotionFunctionArn`,
     })
     new cdk.CfnOutput(this, 'RemotionServeUrl', {
-      value: remotionSiteBucket.bucketWebsiteUrl || `https://${remotionSiteBucket.bucketName}.s3.amazonaws.com`,
+      value: `https://${remotionSiteBucket.bucketName}.s3.amazonaws.com`,
       exportName: `${config.env}-RemotionServeUrl`,
     })
     new cdk.CfnOutput(this, 'MediaConvertRoleArn', {

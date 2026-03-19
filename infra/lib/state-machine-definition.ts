@@ -24,9 +24,10 @@ export function buildStateMachineDefinition(
     comment: 'Pipeline completed successfully',
   })
 
+  // $.error is an object from Catch blocks; causePath requires a string
   const fail = new sfn.Fail(scope, 'Fail', {
     error: 'RenderPipelineFailed',
-    causePath: '$.error',
+    causePath: '$.error.Cause',
   })
 
   // ReleaseCreditsAndFail — catches all error paths
@@ -124,7 +125,7 @@ export function buildStateMachineDefinition(
   })
   startRenderOverlay.next(prepareComposite)
   startRenderOverlay.addCatch(releaseCreditsAndFail, {
-    errors: ['States.Heartbeat', 'States.TaskFailed'],
+    errors: ['States.HeartbeatTimeout', 'States.TaskFailed'],
     resultPath: '$.error',
   })
   startRenderOverlay.addCatch(releaseCreditsAndFail, {
@@ -160,7 +161,7 @@ export function buildStateMachineDefinition(
   })
   waitForSlot.next(grantSlot)
   waitForSlot.addCatch(releaseCreditsAndFail, {
-    errors: ['States.Heartbeat'],
+    errors: ['States.HeartbeatTimeout'],
     resultPath: '$.error',
   })
   waitForSlot.addCatch(releaseCreditsAndFail, {
