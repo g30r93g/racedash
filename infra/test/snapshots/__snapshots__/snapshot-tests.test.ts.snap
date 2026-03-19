@@ -3609,44 +3609,6 @@ exports[`Snapshot Tests StorageStack snapshot 1`] = `
               ],
             },
             {
-              "Action": [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-              ],
-              "Effect": "Allow",
-              "Principal": {
-                "CanonicalUser": {
-                  "Fn::GetAtt": [
-                    "RendersOAI62BC960C",
-                    "S3CanonicalUserId",
-                  ],
-                },
-              },
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "RendersBucket07FBD0F6",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "RendersBucket07FBD0F6",
-                          "Arn",
-                        ],
-                      },
-                      "/*",
-                    ],
-                  ],
-                },
-              ],
-            },
-            {
               "Action": "s3:GetObject",
               "Effect": "Allow",
               "Principal": {

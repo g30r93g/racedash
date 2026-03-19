@@ -125,6 +125,19 @@ describe('StorageStack', () => {
     expect(dist.Properties.DistributionConfig.DefaultCacheBehavior.TrustedKeyGroups.length).toBeGreaterThan(0)
   })
 
+  test('renders bucket has OAI bucket policy granting s3:GetObject', () => {
+    template.hasResourceProperties('AWS::S3::BucketPolicy', Match.objectLike({
+      PolicyDocument: Match.objectLike({
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: 's3:GetObject',
+            Effect: 'Allow',
+          }),
+        ]),
+      }),
+    }))
+  })
+
   test('CloudFront distribution uses OAI (has S3OriginConfig with OriginAccessIdentity)', () => {
     template.hasResourceProperties('AWS::CloudFront::Distribution', Match.objectLike({
       DistributionConfig: Match.objectLike({
