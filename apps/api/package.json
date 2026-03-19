@@ -15,12 +15,14 @@
     "@racedash/db": "workspace:*",
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
-    "pg": "^8.13.0",
     "fastify-plugin": "^5.0.0",
+    "pg": "^8.13.0",
+    "stripe": "^20.4.1",
     "svix": "^1.45.0"
   },
   "devDependencies": {
     "@types/pg": "*",
+    "fast-check": "^4.6.0",
     "tsx": "*",
     "typescript": "*",
     "vitest": "*"

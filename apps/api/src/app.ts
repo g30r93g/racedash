@@ -4,6 +4,11 @@ import clerkAuth from './plugins/clerk-auth'
 import healthRoutes from './routes/health'
 import authRoutes from './routes/auth'
 import webhookRoutes from './routes/webhooks'
+import stripeRoutes from './routes/stripe'
+import stripeCreditRoutes from './routes/stripe-credits'
+import creditRoutes from './routes/credits'
+import licenseRoutes from './routes/license'
+import webhooksStripeRoutes from './routes/webhooks-stripe'
 
 export async function createApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -33,6 +38,11 @@ export async function createApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes)
   await app.register(authRoutes)
   await app.register(webhookRoutes)
+  await app.register(stripeRoutes)
+  await app.register(stripeCreditRoutes)
+  await app.register(creditRoutes)
+  await app.register(licenseRoutes)
+  await app.register(webhooksStripeRoutes)
 
   return app
 }
