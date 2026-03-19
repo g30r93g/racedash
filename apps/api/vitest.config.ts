@@ -4,6 +4,7 @@ import path from 'path'
 export default defineConfig({
   test: {
     root: '.',
+    setupFiles: ['./test/setup.ts'],
     // Allow workspace packages to be transformed so vi.mock can intercept them
     server: {
       deps: {

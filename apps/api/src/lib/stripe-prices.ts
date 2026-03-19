@@ -1,26 +1,62 @@
-/** Maps Stripe Price IDs to license tiers. */
-export const STRIPE_PRICE_TO_TIER: Record<string, 'plus' | 'pro'> = {
-  'price_plus_annual': 'plus',
-  'price_pro_annual': 'pro',
+/**
+ * Stripe Price ID configuration.
+ *
+ * All price IDs are read from environment variables so they can differ between
+ * test-mode and live-mode Stripe accounts without code changes.
+ */
+
+function requireEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) throw new Error(`${name} environment variable is required`)
+  return value
 }
 
-/** Maps pack sizes to Stripe Price IDs for credit packs. */
-export const CREDIT_PACK_PRICES: Record<number, string> = {
-  50: 'price_credits_50',
-  100: 'price_credits_100',
-  250: 'price_credits_250',
-  500: 'price_credits_500',
+/** Maps Stripe Price IDs to license tiers (populated lazily on first access). */
+let priceTierMap: Record<string, 'plus' | 'pro'> | null = null
+
+function getPriceTierMap(): Record<string, 'plus' | 'pro'> {
+  if (!priceTierMap) {
+    priceTierMap = {
+      [requireEnv('STRIPE_PRICE_PLUS')]: 'plus',
+      [requireEnv('STRIPE_PRICE_PRO')]: 'pro',
+    }
+  }
+  return priceTierMap
+}
+
+/** Maps pack sizes to Stripe Price IDs (populated lazily on first access). */
+let packPriceMap: Record<number, string> | null = null
+
+function getPackPriceMap(): Record<number, string> {
+  if (!packPriceMap) {
+    packPriceMap = {
+      50: requireEnv('STRIPE_PRICE_CREDITS_50'),
+      100: requireEnv('STRIPE_PRICE_CREDITS_100'),
+      250: requireEnv('STRIPE_PRICE_CREDITS_250'),
+      500: requireEnv('STRIPE_PRICE_CREDITS_500'),
+    }
+  }
+  return packPriceMap
 }
 
 export function tierFromPriceId(priceId: string): 'plus' | 'pro' | null {
-  return STRIPE_PRICE_TO_TIER[priceId] ?? null
+  return getPriceTierMap()[priceId] ?? null
 }
 
 export function priceIdForTier(tier: 'plus' | 'pro'): string | null {
-  const entry = Object.entries(STRIPE_PRICE_TO_TIER).find(([, t]) => t === tier)
+  const entry = Object.entries(getPriceTierMap()).find(([, t]) => t === tier)
   return entry?.[0] ?? null
 }
 
 export function priceIdForPack(packSize: number): string | null {
-  return CREDIT_PACK_PRICES[packSize] ?? null
+  return getPackPriceMap()[packSize] ?? null
+}
+
+/**
+ * Reset cached maps (for testing only).
+ * @internal
+ */
+export function _resetPriceMaps(): void {
+  priceTierMap = null
+  packPriceMap = null
 }
