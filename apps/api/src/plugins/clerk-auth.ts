@@ -1,6 +1,6 @@
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
 import fp from 'fastify-plugin'
-import { getClerkClient } from '../lib/clerk'
+import { verifyToken } from '@clerk/backend'
 import type { ClerkAuthContext } from '../types'
 
 declare module 'fastify' {
@@ -39,17 +39,19 @@ const clerkAuth: FastifyPluginAsync = async (fastify) => {
     const token = authHeader.slice(7)
 
     try {
-      const clerk = getClerkClient()
-      const { sub: userId, sid: sessionId } = await clerk.verifyToken(token)
+      const secretKey = process.env.CLERK_SECRET_KEY
+      if (!secretKey) throw new Error('CLERK_SECRET_KEY is required')
 
-      if (!userId) {
+      const payload = await verifyToken(token, { secretKey })
+
+      if (!payload.sub) {
         reply.status(401).send({
           error: { code: 'UNAUTHORIZED', message: 'Invalid session token' },
         })
         return
       }
 
-      request.clerk = { userId, sessionId: sessionId ?? '' }
+      request.clerk = { userId: payload.sub, sessionId: (payload.sid as string) ?? '' }
     } catch {
       reply.status(401).send({
         error: { code: 'SESSION_EXPIRED', message: 'Session token has expired' },

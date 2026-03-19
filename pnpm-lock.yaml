@@ -50,6 +50,9 @@ importers:
       '@racedash/db':
         specifier: workspace:*
         version: link:../../packages/db
+      drizzle-orm:
+        specifier: ^0.38.0
+        version: 0.38.4(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@18.3.28)(pg@8.20.0)(react@18.3.1)
       fastify:
         specifier: ^5.2.0
         version: 5.8.2

@@ -13,6 +13,7 @@
     "@clerk/backend": "^1.20.0",
     "@fastify/aws-lambda": "^5.0.0",
     "@racedash/db": "workspace:*",
+    "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
     "fastify-plugin": "^5.0.0",
     "svix": "^1.45.0"

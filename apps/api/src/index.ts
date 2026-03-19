@@ -1,15 +1,15 @@
 import awsLambdaFastify from '@fastify/aws-lambda'
 import { createApp } from './app'
 
-// Lambda handler
-let handler: ReturnType<typeof awsLambdaFastify> | null = null
+// Lambda handler — lazily initialized on first invocation
+let proxy: ((event: unknown, context: unknown) => Promise<unknown>) | null = null
 
-export const lambdaHandler = async (event: any, context: any) => {
-  if (!handler) {
+export const lambdaHandler = async (event: unknown, context: unknown) => {
+  if (!proxy) {
     const app = await createApp()
-    handler = awsLambdaFastify(app)
+    proxy = awsLambdaFastify(app) as any
   }
-  return handler(event, context)
+  return proxy!(event, context)
 }
 
 // Local dev server

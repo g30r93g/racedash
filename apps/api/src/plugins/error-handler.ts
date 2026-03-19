@@ -1,15 +1,15 @@
-import { FastifyPluginAsync } from 'fastify'
+import { FastifyPluginAsync, FastifyError } from 'fastify'
 import fp from 'fastify-plugin'
 import type { ApiError } from '../types'
 
 const errorHandler: FastifyPluginAsync = async (fastify) => {
-  fastify.setErrorHandler((error, _request, reply) => {
+  fastify.setErrorHandler((error: FastifyError, _request, reply) => {
     const statusCode = error.statusCode ?? 500
-    const code = statusCode === 500 ? 'INTERNAL_ERROR' : (error as any).code ?? 'UNKNOWN_ERROR'
+    const errorCode = statusCode === 500 ? 'INTERNAL_ERROR' : error.code ?? 'UNKNOWN_ERROR'
 
     const response: ApiError = {
       error: {
-        code,
+        code: errorCode,
         message: statusCode === 500 ? 'An unexpected error occurred' : error.message,
       },
     }
