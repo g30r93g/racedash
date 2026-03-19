@@ -370,3 +370,10 @@ Specs can be written in parallel where their subject branches have no dependency
 **Parallel opportunities:**
 - `cloud-db` and `cloud-infra` specs can be dispatched simultaneously — no shared dependencies
 - `cloud-rendering` and `cloud-youtube` specs can be dispatched simultaneously once their dependencies are written
+
+**Deferred work (post-launch):**
+
+| Item | Branch | Doc |
+|---|---|---|
+| Wire `useAuth` into component tree | `cloud-auth` | `2026-03-19-cloud-auth-deferred.md` |
+| 17 todo API tests (Clerk + Svix mocks) | `cloud-auth` | `2026-03-19-cloud-auth-deferred.md` |
