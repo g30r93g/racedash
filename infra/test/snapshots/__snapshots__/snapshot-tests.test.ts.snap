@@ -44,7 +44,8 @@ exports[`Snapshot Tests ApiStack snapshot 1`] = `
           "arm64",
         ],
         "Code": {
-          "ZipFile": "exports.handler = async () => ({ statusCode: 200, body: "placeholder" })",
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "ef6d1d804a1513b36cf26081a1a94f9578dc3d18cd14c8b5c3a41644eb523585.zip",
         },
         "Environment": {
           "Variables": {
@@ -82,7 +83,7 @@ exports[`Snapshot Tests ApiStack snapshot 1`] = `
           },
         },
         "FunctionName": "racedash-api-test",
-        "Handler": "lambda.handler",
+        "Handler": "index.handler",
         "MemorySize": 512,
         "Role": {
           "Fn::GetAtt": [
