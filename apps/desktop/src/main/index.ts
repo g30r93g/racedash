@@ -5,6 +5,7 @@ import { configureBundledFfmpegPath } from './ffmpeg'
 import { registerIpcHandlers } from './ipc'
 import { registerUpdaterHandlers } from './updater'
 import { registerAuthHandlers } from './auth'
+import { registerStripeHandlers } from './stripe-checkout'
 
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
@@ -101,6 +102,7 @@ app.whenReady().then(() => {
   registerIpcHandlers()
   const win = createWindow()
   registerAuthHandlers(win)
+  registerStripeHandlers(win)
   registerUpdaterHandlers(win)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

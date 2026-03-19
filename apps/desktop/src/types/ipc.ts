@@ -107,6 +107,54 @@ export interface RenderCompleteResult {
   overlayReused: boolean
 }
 
+// ── License types ─────────────────────────────────────────────────────────
+
+export interface LicenseInfo {
+  tier: 'plus' | 'pro'
+  status: 'active'
+  stripeSubscriptionId: string
+  startsAt: string   // ISO 8601
+  expiresAt: string  // ISO 8601
+  maxConcurrentRenders: number
+}
+
+// ── Credit types ──────────────────────────────────────────────────────────
+
+export interface CreditPack {
+  id: string
+  packName: string
+  rcTotal: number
+  rcRemaining: number
+  purchasedAt: string  // ISO 8601
+  expiresAt: string    // ISO 8601
+}
+
+export interface CreditBalance {
+  totalRc: number
+  packs: CreditPack[]
+}
+
+export interface CreditPurchase {
+  id: string
+  packName: string
+  rcTotal: number
+  priceGbp: string     // decimal string, e.g. "9.99"
+  purchasedAt: string  // ISO 8601
+  expiresAt: string    // ISO 8601
+}
+
+export interface CreditHistory {
+  purchases: CreditPurchase[]
+  nextCursor: string | null
+}
+
+// ── Stripe Checkout types ─────────────────────────────────────────────────
+
+export interface StripeCheckoutResult {
+  outcome: 'success' | 'cancelled'
+  sessionId: string
+}
+
 // ── Auth types ────────────────────────────────────────────────────────────
 
 export interface AuthUser {
@@ -209,6 +257,28 @@ export interface RacedashAPI {
     fetchWithAuth(url: string, init?: FetchWithAuthOptions): Promise<FetchWithAuthResponse>
   }
 
+  // License
+  license: {
+    get(): Promise<LicenseInfo | null>
+    getCached(): Promise<LicenseInfo | null>
+  }
+
+  // Credits
+  credits: {
+    getBalance(): Promise<CreditBalance>
+    getHistory(cursor?: string): Promise<CreditHistory>
+  }
+
+  // Stripe Checkout
+  stripe: {
+    createSubscriptionCheckout(opts: { tier: 'plus' | 'pro' }): Promise<StripeCheckoutResult>
+    createCreditCheckout(opts: { packSize: number }): Promise<StripeCheckoutResult>
+  }
+
   // Auth events — main → renderer push
   onAuthSessionExpired(cb: () => void): () => void
+
+  // License events — main → renderer push
+  onLicenseChanged(cb: (license: LicenseInfo | null) => void): () => void
+  onCreditsChanged(cb: (balance: CreditBalance) => void): () => void
 }
