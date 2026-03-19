@@ -118,7 +118,7 @@ export function buildStateMachineDefinition(
     payload: sfn.TaskInput.fromObject({
       'jobId.$': '$.jobId',
       'userId.$': '$.userId',
-      'taskToken.$': sfn.JsonPath.taskToken,
+      'taskToken': sfn.JsonPath.taskToken,
     }),
     heartbeatTimeout: sfn.Timeout.duration(cdk.Duration.seconds(900)),
     resultPath: '$.renderResult',
@@ -154,7 +154,7 @@ export function buildStateMachineDefinition(
     payload: sfn.TaskInput.fromObject({
       'jobId.$': '$.jobId',
       'userId.$': '$.userId',
-      'taskToken.$': sfn.JsonPath.taskToken,
+      'taskToken': sfn.JsonPath.taskToken,
     }),
     heartbeatTimeout: sfn.Timeout.duration(cdk.Duration.seconds(21600)),
     resultPath: '$.slotResult',

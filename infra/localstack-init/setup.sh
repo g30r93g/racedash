@@ -77,7 +77,7 @@ if [ -f /etc/localstack/init/ready.d/state-machine.asl.json ]; then
     --region "$REGION" || true
 fi
 
-# Write .env.localstack
+# Write .env.localstack (copied from /tmp after container exits)
 cat > /tmp/.env.localstack << ENV
 AWS_ENDPOINT_URL=http://localhost:4566
 AWS_REGION=us-east-1
