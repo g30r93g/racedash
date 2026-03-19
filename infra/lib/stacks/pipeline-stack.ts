@@ -80,9 +80,12 @@ export class PipelineStack extends cdk.Stack {
       actions: ['s3:GetObject'],
       resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
     }))
+    // Self-invoke for Remotion chunk parallelism — use constructed ARN to avoid cycle
     remotionFunction.addToRolePolicy(new iam.PolicyStatement({
       actions: ['lambda:InvokeFunction'],
-      resources: [remotionFunction.functionArn],
+      resources: [
+        `arn:aws:lambda:${this.region}:${this.account}:function:racedash-remotion-${config.env}`,
+      ],
     }))
 
     // MediaConvert IAM role
@@ -239,14 +242,17 @@ export class PipelineStack extends cdk.Stack {
       ],
     }))
 
-    // Grant callback permissions to Lambdas that need them
+    // Grant callback permissions to Lambdas that need them.
+    // Use constructed ARN to avoid cyclic dependency between Lambda roles
+    // and the state machine definition which references Lambda ARNs.
+    const stateMachineArnRef = `arn:aws:states:${this.region}:${this.account}:stateMachine:RenderPipeline-${config.env}`
     const taskTokenPolicy = new iam.PolicyStatement({
       actions: ['states:SendTaskSuccess', 'states:SendTaskFailure'],
-      resources: [stateMachine.stateMachineArn],
+      resources: [stateMachineArnRef],
     })
     waitForSlot.function.addToRolePolicy(new iam.PolicyStatement({
       actions: ['states:SendTaskSuccess'],
-      resources: [stateMachine.stateMachineArn],
+      resources: [stateMachineArnRef],
     }))
     finaliseJob.function.addToRolePolicy(taskTokenPolicy)
     releaseCreditsAndFail.function.addToRolePolicy(taskTokenPolicy)
