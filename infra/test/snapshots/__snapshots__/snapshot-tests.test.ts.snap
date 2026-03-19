@@ -1,0 +1,3890 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Snapshot Tests ApiStack snapshot 1`] = `
+{
+  "Outputs": {
+    "ApiFunctionArn": {
+      "Export": {
+        "Name": "test-ApiFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiFunctionCE271BD4",
+          "Arn",
+        ],
+      },
+    },
+    "ApiFunctionUrl": {
+      "Export": {
+        "Name": "test-ApiFunctionUrl",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiFunctionFunctionUrl73AD62DC",
+          "FunctionUrl",
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "ApiFunctionCE271BD4": {
+      "DependsOn": [
+        "ApiFunctionServiceRoleDefaultPolicy20A32B8D",
+        "ApiFunctionServiceRole52B9747B",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "ef6d1d804a1513b36cf26081a1a94f9578dc3d18cd14c8b5c3a41644eb523585.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "AWS_REGION_NAME": {
+              "Ref": "AWS::Region",
+            },
+            "CLERK_SECRET_KEY": "sk_test_123",
+            "CLOUDFRONT_DOMAIN": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B",
+            },
+            "CLOUDFRONT_KEY_PAIR_ID": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersSigningKey9A77E81526B4C3EB",
+            },
+            "CLOUDFRONT_PRIVATE_KEY_PEM": "PRIVATE_KEY_PEM_PLACEHOLDER",
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test-pooled",
+            "REMOTION_WEBHOOK_SECRET": "remotion-secret-123",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+            "SQS_SOCIAL_UPLOAD_QUEUE_URL": {
+              "Fn::ImportValue": "SocialStack-test:ExportsOutputRefSocialUploadQueueB3EC8EF013B843BD",
+            },
+            "STEP_FUNCTIONS_STATE_MACHINE_ARN": {
+              "Fn::ImportValue": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+            },
+            "STRIPE_SECRET_KEY": "sk_test_stripe_123",
+            "STRIPE_WEBHOOK_SECRET": "whsec_test_123",
+            "TOKEN_ENCRYPTION_KEY": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+            "WEBHOOK_SECRET": "webhook-secret-123",
+            "YOUTUBE_CLIENT_ID": "yt-client-id",
+            "YOUTUBE_CLIENT_SECRET": "yt-client-secret",
+          },
+        },
+        "FunctionName": "racedash-api-test",
+        "Handler": "index.handler",
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "ApiFunctionServiceRole52B9747B",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ApiFunctionFunctionUrl73AD62DC": {
+      "Properties": {
+        "AuthType": "NONE",
+        "TargetFunctionArn": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Url",
+    },
+    "ApiFunctionLogRetentionDCC3A405": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "ApiFunctionCE271BD4",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "ApiFunctionServiceRole52B9747B": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ApiFunctionServiceRoleDefaultPolicy20A32B8D": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                    },
+                    "/uploads/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "s3:ListMultipartUploadParts",
+                "s3:AbortMultipartUpload",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                    },
+                    "/uploads/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                    },
+                    "/renders/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "states:StartExecution",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+              },
+            },
+            {
+              "Action": [
+                "states:SendTaskSuccess",
+                "states:SendTaskFailure",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+              },
+            },
+            {
+              "Action": "sqs:SendMessage",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "SocialStack-test:ExportsOutputFnGetAttSocialUploadQueueB3EC8EF0Arn8DDE9212",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ApiFunctionServiceRoleDefaultPolicy20A32B8D",
+        "Roles": [
+          {
+            "Ref": "ApiFunctionServiceRole52B9747B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ApiFunctioninvokefunctionB5A175E4": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "InvokedViaFunctionUrl": true,
+        "Principal": "*",
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "ApiFunctioninvokefunctionurl0B8A0798": {
+      "Properties": {
+        "Action": "lambda:InvokeFunctionUrl",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "FunctionUrlAuthType": "NONE",
+        "Principal": "*",
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+      "DependsOn": [
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "Roles": [
+          {
+            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`Snapshot Tests NotificationsStack snapshot 1`] = `
+{
+  "Outputs": {
+    "SesFromAddress": {
+      "Export": {
+        "Name": "test-SesFromAddress",
+      },
+      "Value": "noreply@racedash.test",
+    },
+    "SesIdentityArn": {
+      "Export": {
+        "Name": "test-SesIdentityArn",
+      },
+      "Value": "arn:aws:ses:us-east-1:123456789012:identity/noreply@racedash.test",
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "RaceDashEmailIdentity5B8CFDF2": {
+      "Properties": {
+        "EmailIdentity": "noreply@racedash.test",
+      },
+      "Type": "AWS::SES::EmailIdentity",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`Snapshot Tests PipelineStack snapshot 1`] = `
+{
+  "Outputs": {
+    "ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31": {
+      "Export": {
+        "Name": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+      },
+      "Value": {
+        "Ref": "RenderPipelineStateMachineC5ADD428",
+      },
+    },
+    "FinaliseJobFunctionArn": {
+      "Export": {
+        "Name": "test-FinaliseJobFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "FinaliseJobFunctionHandlerAEE321A8",
+          "Arn",
+        ],
+      },
+    },
+    "GrantSlotFunctionArn": {
+      "Export": {
+        "Name": "test-GrantSlotFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "GrantSlotFunctionHandler95F97D39",
+          "Arn",
+        ],
+      },
+    },
+    "MediaConvertRoleArn": {
+      "Export": {
+        "Name": "test-MediaConvertRoleArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "MediaConvertRole031A64A9",
+          "Arn",
+        ],
+      },
+    },
+    "NotifyUserFunctionArn": {
+      "Export": {
+        "Name": "test-NotifyUserFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "NotifyUserFunctionHandlerE613B541",
+          "Arn",
+        ],
+      },
+    },
+    "PrepareCompositeFunctionArn": {
+      "Export": {
+        "Name": "test-PrepareCompositeFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "PrepareCompositeFunctionHandler4C1530F8",
+          "Arn",
+        ],
+      },
+    },
+    "ReleaseCreditsAndFailFunctionArn": {
+      "Export": {
+        "Name": "test-ReleaseCreditsAndFailFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "ReleaseCreditsAndFailFunctionHandler7B6EF428",
+          "Arn",
+        ],
+      },
+    },
+    "RemotionFunctionArn": {
+      "Export": {
+        "Name": "test-RemotionFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RemotionFunction2D473C37",
+          "Arn",
+        ],
+      },
+    },
+    "RemotionFunctionName": {
+      "Export": {
+        "Name": "test-RemotionFunctionName",
+      },
+      "Value": {
+        "Ref": "RemotionFunction2D473C37",
+      },
+    },
+    "RemotionServeUrl": {
+      "Export": {
+        "Name": "test-RemotionServeUrl",
+      },
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "RemotionSiteBucket5F4156DB",
+            },
+            ".s3.amazonaws.com",
+          ],
+        ],
+      },
+    },
+    "StartRenderOverlayFunctionArn": {
+      "Export": {
+        "Name": "test-StartRenderOverlayFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "StartRenderOverlayFunctionHandlerD15A8D25",
+          "Arn",
+        ],
+      },
+    },
+    "StateMachineArn": {
+      "Export": {
+        "Name": "test-StateMachineArn",
+      },
+      "Value": {
+        "Ref": "RenderPipelineStateMachineC5ADD428",
+      },
+    },
+    "StepFunctionsRelayFunctionArn": {
+      "Export": {
+        "Name": "test-StepFunctionsRelayFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "StepFunctionsRelayFunctionE167FF3E",
+          "Arn",
+        ],
+      },
+    },
+    "WaitForSlotFunctionArn": {
+      "Export": {
+        "Name": "test-WaitForSlotFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "WaitForSlotFunctionHandler3E1BF086",
+          "Arn",
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+      "DependsOn": [
+        "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip",
+        },
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Lambda function for auto-deleting objects in ",
+              {
+                "Ref": "RemotionSiteBucket5F4156DB",
+              },
+              " S3 bucket.",
+            ],
+          ],
+        },
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:\${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "FinaliseJobFunctionHandlerAEE321A8": {
+      "DependsOn": [
+        "FinaliseJobFunctionHandlerServiceRoleDefaultPolicyEF8FDD4D",
+        "FinaliseJobFunctionHandlerServiceRole6C694C1F",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "4360726488320108958144359bc3e60acaa3192dd0dc9e3f24f20d9d6e291f36.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "CLOUDFRONT_DOMAIN": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B",
+            },
+            "CLOUDFRONT_KEY_PAIR_ID": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersSigningKey9A77E81526B4C3EB",
+            },
+            "CLOUDFRONT_PRIVATE_KEY_PEM": "PRIVATE_KEY_PEM_PLACEHOLDER",
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+          },
+        },
+        "FunctionName": "racedash-finalise-job-test",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "FinaliseJobFunctionHandlerServiceRole6C694C1F",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "FinaliseJobFunctionHandlerLogRetentionF00EBAC4": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "FinaliseJobFunctionHandlerAEE321A8",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "FinaliseJobFunctionHandlerServiceRole6C694C1F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "FinaliseJobFunctionHandlerServiceRoleDefaultPolicyEF8FDD4D": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:DeleteObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                    },
+                    "/uploads/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "states:SendTaskSuccess",
+                "states:SendTaskFailure",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:states:us-east-1:123456789012:stateMachine:RenderPipeline-test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "FinaliseJobFunctionHandlerServiceRoleDefaultPolicyEF8FDD4D",
+        "Roles": [
+          {
+            "Ref": "FinaliseJobFunctionHandlerServiceRole6C694C1F",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "GrantSlotFunctionHandler95F97D39": {
+      "DependsOn": [
+        "GrantSlotFunctionHandlerServiceRole281B766D",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "c4a676812572f9c8d7ddd94cfcba0f1486bb3d061f121004f04d1ebcc37d69bc.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+          },
+        },
+        "FunctionName": "racedash-grant-slot-test",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "GrantSlotFunctionHandlerServiceRole281B766D",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "GrantSlotFunctionHandlerLogRetention52C1B184": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "GrantSlotFunctionHandler95F97D39",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "GrantSlotFunctionHandlerServiceRole281B766D": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+      "DependsOn": [
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "Roles": [
+          {
+            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MediaConvertRole031A64A9": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "mediaconvert.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "RoleName": "RaceDashMediaConvertRole-test",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MediaConvertRoleDefaultPolicy03164485": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                      },
+                      "/renders/*/overlay.mov",
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                      },
+                      "/uploads/*/joined.mp4",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "s3:PutObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                    },
+                    "/renders/*/output.mp4",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MediaConvertRoleDefaultPolicy03164485",
+        "Roles": [
+          {
+            "Ref": "MediaConvertRole031A64A9",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "NotifyUserFunctionHandlerE613B541": {
+      "DependsOn": [
+        "NotifyUserFunctionHandlerServiceRoleDefaultPolicyF220A16A",
+        "NotifyUserFunctionHandlerServiceRoleAFFA55E1",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "6f095ad863b12c29622883ceb31e9a7f7b39f04f2c2c7d85e2855e6ea281c636.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+            "SES_FROM_ADDRESS": "noreply@racedash.test",
+          },
+        },
+        "FunctionName": "racedash-notify-user-test",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "NotifyUserFunctionHandlerServiceRoleAFFA55E1",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "NotifyUserFunctionHandlerLogRetention59D4E8C3": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "NotifyUserFunctionHandlerE613B541",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "NotifyUserFunctionHandlerServiceRoleAFFA55E1": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "NotifyUserFunctionHandlerServiceRoleDefaultPolicyF220A16A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ses:SendEmail",
+              "Effect": "Allow",
+              "Resource": "arn:aws:ses:us-east-1:123456789012:identity/noreply@racedash.test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "NotifyUserFunctionHandlerServiceRoleDefaultPolicyF220A16A",
+        "Roles": [
+          {
+            "Ref": "NotifyUserFunctionHandlerServiceRoleAFFA55E1",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "PrepareCompositeFunctionHandler4C1530F8": {
+      "DependsOn": [
+        "PrepareCompositeFunctionHandlerServiceRole00D9AABF",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "05f224aa5ad39c89a251ad766ef4dc8749e80941edab5bb9f693d002129ad71b.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "MEDIACONVERT_ROLE_ARN": {
+              "Fn::GetAtt": [
+                "MediaConvertRole031A64A9",
+                "Arn",
+              ],
+            },
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+          },
+        },
+        "FunctionName": "racedash-prepare-composite-test",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "PrepareCompositeFunctionHandlerServiceRole00D9AABF",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "PrepareCompositeFunctionHandlerLogRetentionCD09C222": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "PrepareCompositeFunctionHandler4C1530F8",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "PrepareCompositeFunctionHandlerServiceRole00D9AABF": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ReleaseCreditsAndFailFunctionHandler7B6EF428": {
+      "DependsOn": [
+        "ReleaseCreditsAndFailFunctionHandlerServiceRoleDefaultPolicy0BA21488",
+        "ReleaseCreditsAndFailFunctionHandlerServiceRole988A84A0",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "ca23eb8d3738c42236dad22bf4e8566aec960bbc4893681f06df050bda6447d8.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+            "SES_FROM_ADDRESS": "noreply@racedash.test",
+          },
+        },
+        "FunctionName": "racedash-release-credits-and-fail-test",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "ReleaseCreditsAndFailFunctionHandlerServiceRole988A84A0",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ReleaseCreditsAndFailFunctionHandlerLogRetentionF611A728": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "ReleaseCreditsAndFailFunctionHandler7B6EF428",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "ReleaseCreditsAndFailFunctionHandlerServiceRole988A84A0": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ReleaseCreditsAndFailFunctionHandlerServiceRoleDefaultPolicy0BA21488": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ses:SendEmail",
+              "Effect": "Allow",
+              "Resource": "arn:aws:ses:us-east-1:123456789012:identity/noreply@racedash.test",
+            },
+            {
+              "Action": [
+                "states:SendTaskSuccess",
+                "states:SendTaskFailure",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:states:us-east-1:123456789012:stateMachine:RenderPipeline-test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ReleaseCreditsAndFailFunctionHandlerServiceRoleDefaultPolicy0BA21488",
+        "Roles": [
+          {
+            "Ref": "ReleaseCreditsAndFailFunctionHandlerServiceRole988A84A0",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "RemotionFunction2D473C37": {
+      "DependsOn": [
+        "RemotionFunctionServiceRoleDefaultPolicy29BDDA10",
+        "RemotionFunctionServiceRoleFBFC187A",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "ZipFile": "exports.handler = async () => {}",
+        },
+        "FunctionName": "racedash-remotion-test",
+        "Handler": "index.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "RemotionFunctionServiceRoleFBFC187A",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 120,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "RemotionFunctionLogRetention982CF701": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "RemotionFunction2D473C37",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "RemotionFunctionServiceRoleDefaultPolicy29BDDA10": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                    },
+                    "/renders/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "RemotionSiteBucket5F4156DB",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                    },
+                    "/uploads/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": "arn:aws:lambda:us-east-1:123456789012:function:racedash-remotion-test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "RemotionFunctionServiceRoleDefaultPolicy29BDDA10",
+        "Roles": [
+          {
+            "Ref": "RemotionFunctionServiceRoleFBFC187A",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "RemotionFunctionServiceRoleFBFC187A": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "RemotionSiteBucket5F4156DB": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "racedash-remotion-site-test",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RemotionSiteBucketAutoDeleteObjectsCustomResourceE528FC00": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "RemotionSiteBucketPolicy79F56A19",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "RemotionSiteBucket5F4156DB",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RemotionSiteBucketPolicy79F56A19": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "RemotionSiteBucket5F4156DB",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RemotionSiteBucket5F4156DB",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RemotionSiteBucket5F4156DB",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "RenderPipelineStateMachineC5ADD428": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "RenderPipelineStateMachineRoleDefaultPolicy06EDEB10",
+        "RenderPipelineStateMachineRoleF61C6271",
+      ],
+      "Properties": {
+        "DefinitionString": {
+          "Fn::Join": [
+            "",
+            [
+              "{"StartAt":"WaitForSlot","States":{"WaitForSlot":{"Next":"GrantSlot","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.HeartbeatTimeout"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"},{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","HeartbeatSeconds":21600,"ResultPath":"$.slotResult","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke.waitForTaskToken","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "WaitForSlotFunctionHandler3E1BF086",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId","taskToken.$":"$$.Task.Token"}}},"GrantSlot":{"Next":"StartRenderOverlay","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","ResultPath":"$.grantResult","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "GrantSlotFunctionHandler95F97D39",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId"}}},"StartRenderOverlay":{"Next":"PrepareComposite","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.HeartbeatTimeout","States.TaskFailed"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"},{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","HeartbeatSeconds":900,"ResultPath":"$.renderResult","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke.waitForTaskToken","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "StartRenderOverlayFunctionHandlerD15A8D25",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId","taskToken.$":"$$.Task.Token"}}},"PrepareComposite":{"Next":"RunMediaConvert","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","ResultPath":"$.compositeResult","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "PrepareCompositeFunctionHandler4C1530F8",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId"}}},"RunMediaConvert":{"Next":"FinaliseJob","Type":"Task","Resource":"arn:aws:states:::mediaconvert:createJob.sync","Parameters":{"Role.$":"$.compositeResult.Payload.mediaConvertRoleArn","Settings.$":"$.compositeResult.Payload.mediaConvertSettings"},"ResultPath":"$.mediaConvertResult","Catch":[{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}]},"FinaliseJob":{"Next":"NotifyUser","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"ReleaseCreditsAndFail"}],"Type":"Task","ResultPath":"$.finaliseResult","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "FinaliseJobFunctionHandlerAEE321A8",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId"}}},"NotifyUser":{"Next":"Succeed","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.ALL"],"ResultPath":"$.error","Next":"LogNotifyError"}],"Type":"Task","ResultPath":"$.notifyResult","Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "NotifyUserFunctionHandlerE613B541",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId"}}},"Succeed":{"Type":"Succeed","Comment":"Pipeline completed successfully"},"LogNotifyError":{"Type":"Pass","Comment":"Log SES failure; job already complete — do NOT release credits","Next":"Succeed"},"ReleaseCreditsAndFail":{"Next":"Fail","Retry":[{"ErrorEquals":["Lambda.ClientExecutionTimeoutException","Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Type":"Task","ResultPath":null,"ResultSelector":{"statusCode.$":"$.Payload.statusCode"},"Resource":"arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":states:::lambda:invoke","Parameters":{"FunctionName":"",
+              {
+                "Fn::GetAtt": [
+                  "ReleaseCreditsAndFailFunctionHandler7B6EF428",
+                  "Arn",
+                ],
+              },
+              "","Payload":{"jobId.$":"$.jobId","userId.$":"$.userId","error.$":"$.error"}}},"Fail":{"Type":"Fail","Error":"RenderPipelineFailed","CausePath":"$.error.Cause"}},"TimeoutSeconds":28800}",
+            ],
+          ],
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "RenderPipelineStateMachineRoleF61C6271",
+            "Arn",
+          ],
+        },
+        "StateMachineName": "RenderPipeline-test",
+      },
+      "Type": "AWS::StepFunctions::StateMachine",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RenderPipelineStateMachineRoleDefaultPolicy06EDEB10": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "WaitForSlotFunctionHandler3E1BF086",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "WaitForSlotFunctionHandler3E1BF086",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "GrantSlotFunctionHandler95F97D39",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "GrantSlotFunctionHandler95F97D39",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "StartRenderOverlayFunctionHandlerD15A8D25",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "StartRenderOverlayFunctionHandlerD15A8D25",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "PrepareCompositeFunctionHandler4C1530F8",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "PrepareCompositeFunctionHandler4C1530F8",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "FinaliseJobFunctionHandlerAEE321A8",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "FinaliseJobFunctionHandlerAEE321A8",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "NotifyUserFunctionHandlerE613B541",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "NotifyUserFunctionHandlerE613B541",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ReleaseCreditsAndFailFunctionHandler7B6EF428",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "ReleaseCreditsAndFailFunctionHandler7B6EF428",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "mediaconvert:CreateJob",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": "iam:PassRole",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "MediaConvertRole031A64A9",
+                  "Arn",
+                ],
+              },
+            },
+            {
+              "Action": [
+                "events:PutTargets",
+                "events:PutRule",
+                "events:DescribeRule",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:events:us-east-1:123456789012:rule/StepFunctionsGetEventsForMediaConvertJobRule",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "RenderPipelineStateMachineRoleDefaultPolicy06EDEB10",
+        "Roles": [
+          {
+            "Ref": "RenderPipelineStateMachineRoleF61C6271",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "RenderPipelineStateMachineRoleF61C6271": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StartRenderOverlayFunctionHandlerD15A8D25": {
+      "DependsOn": [
+        "StartRenderOverlayFunctionHandlerServiceRoleDefaultPolicy3C85FF48",
+        "StartRenderOverlayFunctionHandlerServiceRoleBEA8BBF5",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "fe31fa6d62eed5e1f0407e6d4e70fa63a4f700cf206485ce30dc00cfbeef5cb4.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "REMOTION_FUNCTION_NAME": {
+              "Ref": "RemotionFunction2D473C37",
+            },
+            "REMOTION_SERVE_URL": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "RemotionSiteBucket5F4156DB",
+                  },
+                  ".s3.amazonaws.com",
+                ],
+              ],
+            },
+            "REMOTION_WEBHOOK_SECRET": "remotion-secret-123",
+            "REMOTION_WEBHOOK_URL": "https://api.example.com/webhooks/remotion",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+          },
+        },
+        "FunctionName": "racedash-start-render-overlay-test",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "StartRenderOverlayFunctionHandlerServiceRoleBEA8BBF5",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "StartRenderOverlayFunctionHandlerLogRetention7B77DFCF": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "StartRenderOverlayFunctionHandlerD15A8D25",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "StartRenderOverlayFunctionHandlerServiceRoleBEA8BBF5": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StartRenderOverlayFunctionHandlerServiceRoleDefaultPolicy3C85FF48": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "RemotionFunction2D473C37",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StartRenderOverlayFunctionHandlerServiceRoleDefaultPolicy3C85FF48",
+        "Roles": [
+          {
+            "Ref": "StartRenderOverlayFunctionHandlerServiceRoleBEA8BBF5",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StepFunctionsRelayFunctionE167FF3E": {
+      "DependsOn": [
+        "StepFunctionsRelayFunctionServiceRoleC99FA4DC",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "abed73bb1cee92cf22f8dc25d76b3c249261275138ce1389b6284317fe5f5ce5.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "WEBHOOK_SECRET": "webhook-secret-123",
+            "WEBHOOK_TARGET_URL": "https://api.example.com/webhooks/sfn",
+          },
+        },
+        "FunctionName": "racedash-sfn-relay-test",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "StepFunctionsRelayFunctionServiceRoleC99FA4DC",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "StepFunctionsRelayFunctionLogRetention9364A079": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "StepFunctionsRelayFunctionE167FF3E",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "StepFunctionsRelayFunctionServiceRoleC99FA4DC": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StepFunctionsTerminalStateRuleAllowEventRulePipelineStacktestStepFunctionsRelayFunctionE7252963529F2506": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "StepFunctionsRelayFunctionE167FF3E",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "StepFunctionsTerminalStateRuleD35E121D",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "StepFunctionsTerminalStateRuleD35E121D": {
+      "Properties": {
+        "EventPattern": {
+          "detail": {
+            "stateMachineArn": [
+              {
+                "Ref": "RenderPipelineStateMachineC5ADD428",
+              },
+            ],
+            "status": [
+              "SUCCEEDED",
+              "FAILED",
+              "TIMED_OUT",
+              "ABORTED",
+            ],
+          },
+          "detail-type": [
+            "Step Functions Execution Status Change",
+          ],
+          "source": [
+            "aws.states",
+          ],
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "StepFunctionsRelayFunctionE167FF3E",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "WaitForSlotFunctionHandler3E1BF086": {
+      "DependsOn": [
+        "WaitForSlotFunctionHandlerServiceRoleDefaultPolicyBD2FB2FF",
+        "WaitForSlotFunctionHandlerServiceRole06BC51EA",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "68ab0885b86568c25581f6dafa2695655378cdd729232a220fa3cea9cf826898.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+          },
+        },
+        "FunctionName": "racedash-wait-for-slot-test",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "WaitForSlotFunctionHandlerServiceRole06BC51EA",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "WaitForSlotFunctionHandlerLogRetention9DA0B860": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "WaitForSlotFunctionHandler3E1BF086",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "WaitForSlotFunctionHandlerServiceRole06BC51EA": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "WaitForSlotFunctionHandlerServiceRoleDefaultPolicyBD2FB2FF": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "states:SendTaskSuccess",
+              "Effect": "Allow",
+              "Resource": "arn:aws:states:us-east-1:123456789012:stateMachine:RenderPipeline-test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "WaitForSlotFunctionHandlerServiceRoleDefaultPolicyBD2FB2FF",
+        "Roles": [
+          {
+            "Ref": "WaitForSlotFunctionHandlerServiceRole06BC51EA",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`Snapshot Tests SocialStack snapshot 1`] = `
+{
+  "Outputs": {
+    "ExportsOutputFnGetAttSocialUploadQueueB3EC8EF0Arn8DDE9212": {
+      "Export": {
+        "Name": "SocialStack-test:ExportsOutputFnGetAttSocialUploadQueueB3EC8EF0Arn8DDE9212",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "SocialUploadQueueB3EC8EF0",
+          "Arn",
+        ],
+      },
+    },
+    "ExportsOutputRefSocialUploadQueueB3EC8EF013B843BD": {
+      "Export": {
+        "Name": "SocialStack-test:ExportsOutputRefSocialUploadQueueB3EC8EF013B843BD",
+      },
+      "Value": {
+        "Ref": "SocialUploadQueueB3EC8EF0",
+      },
+    },
+    "SocialClusterArn": {
+      "Export": {
+        "Name": "test-SocialClusterArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "SocialCluster43B1154B",
+          "Arn",
+        ],
+      },
+    },
+    "SocialUploadQueueArn": {
+      "Export": {
+        "Name": "test-SocialUploadQueueArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "SocialUploadQueueB3EC8EF0",
+          "Arn",
+        ],
+      },
+    },
+    "SocialUploadQueueUrl": {
+      "Export": {
+        "Name": "test-SocialUploadQueueUrl",
+      },
+      "Value": {
+        "Ref": "SocialUploadQueueB3EC8EF0",
+      },
+    },
+    "YouTubeUploadTaskDefArn": {
+      "Export": {
+        "Name": "test-YouTubeUploadTaskDefArn",
+      },
+      "Value": {
+        "Ref": "YouTubeUploadTaskDef9428AE8B",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
+      "DependsOn": [
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
+        "Roles": [
+          {
+            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "SocialCluster43B1154B": {
+      "Properties": {
+        "ClusterName": "racedash-social-test",
+      },
+      "Type": "AWS::ECS::Cluster",
+    },
+    "SocialClusterVpc97F750B1": {
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::VPC",
+    },
+    "SocialClusterVpcIGW658E80DB": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::InternetGateway",
+    },
+    "SocialClusterVpcPrivateSubnet1DefaultRoute0DDD2FC6": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "SocialClusterVpcPublicSubnet1NATGateway461D0184",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet1RouteTableB4ED99C7",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPrivateSubnet1RouteTableAssociation36225D92": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet1RouteTableB4ED99C7",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPrivateSubnet1SubnetBFCB9AA9",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPrivateSubnet1RouteTableB4ED99C7": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPrivateSubnet1SubnetBFCB9AA9": {
+      "Properties": {
+        "AvailabilityZone": "dummy1a",
+        "CidrBlock": "10.0.128.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcPrivateSubnet2DefaultRouteA29B7D91": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "SocialClusterVpcPublicSubnet2NATGatewayAEEA2FAC",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet2RouteTableC8EB3DEE",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPrivateSubnet2RouteTableAssociation3AC4B95F": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet2RouteTableC8EB3DEE",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPrivateSubnet2Subnet5FDFB1BF",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPrivateSubnet2RouteTableC8EB3DEE": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPrivateSubnet2Subnet5FDFB1BF": {
+      "Properties": {
+        "AvailabilityZone": "dummy1b",
+        "CidrBlock": "10.0.192.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcPublicSubnet1DefaultRouteBB54F27E": {
+      "DependsOn": [
+        "SocialClusterVpcVPCGWE809A395",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "SocialClusterVpcIGW658E80DB",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet1RouteTableA25570C5",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPublicSubnet1EIP411D4731": {
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::EIP",
+    },
+    "SocialClusterVpcPublicSubnet1NATGateway461D0184": {
+      "DependsOn": [
+        "SocialClusterVpcPublicSubnet1DefaultRouteBB54F27E",
+        "SocialClusterVpcPublicSubnet1RouteTableAssociation6427FC83",
+      ],
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "SocialClusterVpcPublicSubnet1EIP411D4731",
+            "AllocationId",
+          ],
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet1Subnet00DB922B",
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::NatGateway",
+    },
+    "SocialClusterVpcPublicSubnet1RouteTableA25570C5": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPublicSubnet1RouteTableAssociation6427FC83": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet1RouteTableA25570C5",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet1Subnet00DB922B",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPublicSubnet1Subnet00DB922B": {
+      "Properties": {
+        "AvailabilityZone": "dummy1a",
+        "CidrBlock": "10.0.0.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcPublicSubnet2DefaultRoute9A90817D": {
+      "DependsOn": [
+        "SocialClusterVpcVPCGWE809A395",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "SocialClusterVpcIGW658E80DB",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet2RouteTableE08ACEF3",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPublicSubnet2EIP879A5EA6": {
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::EIP",
+    },
+    "SocialClusterVpcPublicSubnet2NATGatewayAEEA2FAC": {
+      "DependsOn": [
+        "SocialClusterVpcPublicSubnet2DefaultRoute9A90817D",
+        "SocialClusterVpcPublicSubnet2RouteTableAssociation95243A5F",
+      ],
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "SocialClusterVpcPublicSubnet2EIP879A5EA6",
+            "AllocationId",
+          ],
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet2Subnet29BC57BA",
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::NatGateway",
+    },
+    "SocialClusterVpcPublicSubnet2RouteTableAssociation95243A5F": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet2RouteTableE08ACEF3",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet2Subnet29BC57BA",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPublicSubnet2RouteTableE08ACEF3": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPublicSubnet2Subnet29BC57BA": {
+      "Properties": {
+        "AvailabilityZone": "dummy1b",
+        "CidrBlock": "10.0.64.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcVPCGWE809A395": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "SocialClusterVpcIGW658E80DB",
+        },
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+    },
+    "SocialDispatchFunctionC5A04332": {
+      "DependsOn": [
+        "SocialDispatchFunctionServiceRoleDefaultPolicy6010C75C",
+        "SocialDispatchFunctionServiceRoleE7490E8E",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "5d01243b5ba8136646145623b44decb9ec0e16284a78327406c9bcfb33c53700.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test-direct",
+            "ECS_CLUSTER_ARN": {
+              "Fn::GetAtt": [
+                "SocialCluster43B1154B",
+                "Arn",
+              ],
+            },
+            "TASK_SECURITY_GROUP": "sg-abc123",
+            "TASK_SUBNETS": "subnet-abc123",
+            "YOUTUBE_TASK_DEFINITION_ARN": {
+              "Ref": "YouTubeUploadTaskDef9428AE8B",
+            },
+          },
+        },
+        "FunctionName": "racedash-social-dispatch-test",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "SocialDispatchFunctionServiceRoleE7490E8E",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SocialDispatchFunctionLogRetention404D68FA": {
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "/aws/lambda/",
+              {
+                "Ref": "SocialDispatchFunctionC5A04332",
+              },
+            ],
+          ],
+        },
+        "RetentionInDays": 30,
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::LogRetention",
+    },
+    "SocialDispatchFunctionServiceRoleDefaultPolicy6010C75C": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ecs:RunTask",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "YouTubeUploadTaskDef9428AE8B",
+              },
+            },
+            {
+              "Action": "iam:PassRole",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "YouTubeUploadTaskDefExecutionRole552F98C9",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::GetAtt": [
+                    "YouTubeUploadTaskDefTaskRoleF3DC1CC8",
+                    "Arn",
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "SocialUploadQueueB3EC8EF0",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "SocialDispatchFunctionServiceRoleDefaultPolicy6010C75C",
+        "Roles": [
+          {
+            "Ref": "SocialDispatchFunctionServiceRoleE7490E8E",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "SocialDispatchFunctionServiceRoleE7490E8E": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SocialDispatchFunctionSqsEventSourceSocialStacktestSocialUploadQueue53E84F9DD8BB249C": {
+      "Properties": {
+        "BatchSize": 1,
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "SocialUploadQueueB3EC8EF0",
+            "Arn",
+          ],
+        },
+        "FunctionName": {
+          "Ref": "SocialDispatchFunctionC5A04332",
+        },
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "SocialUploadDLQ6A2C91B6": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "QueueName": "racedash-social-uploads-dlq-test",
+        "SqsManagedSseEnabled": true,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "SocialUploadQueueB3EC8EF0": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 345600,
+        "QueueName": "racedash-social-uploads-test",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "SocialUploadDLQ6A2C91B6",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 3,
+        },
+        "SqsManagedSseEnabled": true,
+        "VisibilityTimeout": 2700,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "YouTubeUploadTaskDef9428AE8B": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Environment": [
+              {
+                "Name": "DATABASE_URL",
+                "Value": "postgresql://test:test@localhost:5432/test-direct",
+              },
+              {
+                "Name": "S3_RENDERS_BUCKET",
+                "Value": {
+                  "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+                },
+              },
+              {
+                "Name": "YOUTUBE_CLIENT_ID",
+                "Value": "yt-client-id",
+              },
+              {
+                "Name": "YOUTUBE_CLIENT_SECRET",
+                "Value": "yt-client-secret",
+              },
+              {
+                "Name": "SES_FROM_ADDRESS",
+                "Value": "noreply@racedash.test",
+              },
+              {
+                "Name": "TOKEN_ENCRYPTION_KEY",
+                "Value": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+              },
+            ],
+            "Essential": true,
+            "Image": "public.ecr.aws/lambda/nodejs:20",
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "YouTubeUploadTaskDefYouTubeUploadContainerLogGroup1F621BB6",
+                },
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "youtube-upload",
+              },
+            },
+            "Name": "YouTubeUploadContainer",
+          },
+        ],
+        "Cpu": "512",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "YouTubeUploadTaskDefExecutionRole552F98C9",
+            "Arn",
+          ],
+        },
+        "Family": "racedash-youtube-upload-test",
+        "Memory": "1024",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE",
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "YouTubeUploadTaskDefTaskRoleF3DC1CC8",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ECS::TaskDefinition",
+    },
+    "YouTubeUploadTaskDefExecutionRole552F98C9": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "YouTubeUploadTaskDefExecutionRoleDefaultPolicy33998A22": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "YouTubeUploadTaskDefYouTubeUploadContainerLogGroup1F621BB6",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "YouTubeUploadTaskDefExecutionRoleDefaultPolicy33998A22",
+        "Roles": [
+          {
+            "Ref": "YouTubeUploadTaskDefExecutionRole552F98C9",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "YouTubeUploadTaskDefTaskRoleDefaultPolicy65B63B32": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                    },
+                    "/renders/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "ses:SendEmail",
+              "Effect": "Allow",
+              "Resource": "arn:aws:ses:us-east-1:123456789012:identity/noreply@racedash.test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "YouTubeUploadTaskDefTaskRoleDefaultPolicy65B63B32",
+        "Roles": [
+          {
+            "Ref": "YouTubeUploadTaskDefTaskRoleF3DC1CC8",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "YouTubeUploadTaskDefTaskRoleF3DC1CC8": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "YouTubeUploadTaskDefYouTubeUploadContainerLogGroup1F621BB6": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`Snapshot Tests StorageStack snapshot 1`] = `
+{
+  "Outputs": {
+    "CloudFrontDomain": {
+      "Export": {
+        "Name": "test-CloudFrontDomain",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersDistributionEC8036BE",
+          "DomainName",
+        ],
+      },
+    },
+    "CloudFrontKeyPairId": {
+      "Export": {
+        "Name": "test-CloudFrontKeyPairId",
+      },
+      "Value": {
+        "Ref": "RendersSigningKey9A77E815",
+      },
+    },
+    "ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersBucket07FBD0F6",
+          "Arn",
+        ],
+      },
+    },
+    "ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersDistributionEC8036BE",
+          "DomainName",
+        ],
+      },
+    },
+    "ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "UploadsBucket5E5E9B64",
+          "Arn",
+        ],
+      },
+    },
+    "ExportsOutputRefRendersBucket07FBD0F682625F27": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+      },
+      "Value": {
+        "Ref": "RendersBucket07FBD0F6",
+      },
+    },
+    "ExportsOutputRefRendersSigningKey9A77E81526B4C3EB": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputRefRendersSigningKey9A77E81526B4C3EB",
+      },
+      "Value": {
+        "Ref": "RendersSigningKey9A77E815",
+      },
+    },
+    "ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+      },
+      "Value": {
+        "Ref": "UploadsBucket5E5E9B64",
+      },
+    },
+    "RendersBucketArn": {
+      "Export": {
+        "Name": "test-RendersBucketArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersBucket07FBD0F6",
+          "Arn",
+        ],
+      },
+    },
+    "RendersBucketName": {
+      "Export": {
+        "Name": "test-RendersBucketName",
+      },
+      "Value": {
+        "Ref": "RendersBucket07FBD0F6",
+      },
+    },
+    "UploadsBucketArn": {
+      "Export": {
+        "Name": "test-UploadsBucketArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "UploadsBucket5E5E9B64",
+          "Arn",
+        ],
+      },
+    },
+    "UploadsBucketName": {
+      "Export": {
+        "Name": "test-UploadsBucketName",
+      },
+      "Value": {
+        "Ref": "UploadsBucket5E5E9B64",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+      "DependsOn": [
+        "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip",
+        },
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Lambda function for auto-deleting objects in ",
+              {
+                "Ref": "UploadsBucket5E5E9B64",
+              },
+              " S3 bucket.",
+            ],
+          ],
+        },
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:\${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "RendersBucket07FBD0F6": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "racedash-renders-test",
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 7,
+              "Id": "expire-renders",
+              "Prefix": "renders/",
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RendersBucketAutoDeleteObjectsCustomResourceEC5F8D8C": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "RendersBucketPolicy58E9010A",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "RendersBucket07FBD0F6",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RendersBucketPolicy58E9010A": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "RendersBucket07FBD0F6",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RendersBucket07FBD0F6",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RendersBucket07FBD0F6",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Principal": {
+                "CanonicalUser": {
+                  "Fn::GetAtt": [
+                    "RendersOAI62BC960C",
+                    "S3CanonicalUserId",
+                  ],
+                },
+              },
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "RendersBucket07FBD0F6",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "RendersDistributionEC8036BE": {
+      "Properties": {
+        "DistributionConfig": {
+          "DefaultCacheBehavior": {
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+            "Compress": true,
+            "TargetOriginId": "StorageStacktestRendersDistributionOrigin175FF0C87",
+            "TrustedKeyGroups": [
+              {
+                "Ref": "RendersKeyGroup3CD9D74E",
+              },
+            ],
+            "ViewerProtocolPolicy": "https-only",
+          },
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "Origins": [
+            {
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "RendersBucket07FBD0F6",
+                  "RegionalDomainName",
+                ],
+              },
+              "Id": "StorageStacktestRendersDistributionOrigin175FF0C87",
+              "S3OriginConfig": {
+                "OriginAccessIdentity": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "origin-access-identity/cloudfront/",
+                      {
+                        "Ref": "RendersOAI62BC960C",
+                      },
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
+          "PriceClass": "PriceClass_100",
+        },
+      },
+      "Type": "AWS::CloudFront::Distribution",
+    },
+    "RendersKeyGroup3CD9D74E": {
+      "Properties": {
+        "KeyGroupConfig": {
+          "Items": [
+            {
+              "Ref": "RendersSigningKey9A77E815",
+            },
+          ],
+          "Name": "StorageStacktestRendersKeyGroupEFF52A5C",
+        },
+      },
+      "Type": "AWS::CloudFront::KeyGroup",
+    },
+    "RendersOAI62BC960C": {
+      "Properties": {
+        "CloudFrontOriginAccessIdentityConfig": {
+          "Comment": "OAI for racedash-renders-test",
+        },
+      },
+      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+    },
+    "RendersSigningKey9A77E815": {
+      "Properties": {
+        "PublicKeyConfig": {
+          "CallerReference": "c848a4ad3099b0e5a9046409466b2f806cb08f9692",
+          "EncodedKey": "-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0YgX7RLEP3pXuH/i3OvR
+vJCxjl9XobSXkwGmeICXoiSS0tOqXaJPc0IQxh2M3LoHGKnE3sp5ed6dPPfbGHCi
+BthYMB9ITzCExNeSJGI7SZwSQSz/L2aSW4+o+dNkJ+L+LaRUPsViCsVp6ksOtMUz
+eMfYd+3IbeRMOp3bclJBRMdkRa8LLCEWMS9rF2pJh6eLv5m8V6FPGUlw6Ao+6K1L
+z0krBJN0WFkR7kzHhcEiM3sUVrOY4RocPvr4aI0rKMI7QOQB0d0+8bNRh6cCKqh2
+Q2Cxcq2eVMEpT2fJSLO7pMgQQ8i9hrVUL/HsJw3MNMr8DwqRcxjwYuJDdYAn+q3l
+3QIDAQAB
+-----END PUBLIC KEY-----",
+          "Name": "StorageStacktestRendersSigningKey4B7FD130",
+        },
+      },
+      "Type": "AWS::CloudFront::PublicKey",
+    },
+    "UploadsBucket5E5E9B64": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "racedash-uploads-test",
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedHeaders": [
+                "*",
+              ],
+              "AllowedMethods": [
+                "PUT",
+              ],
+              "AllowedOrigins": [
+                "*",
+              ],
+            },
+          ],
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 3,
+              "Id": "expire-uploads",
+              "Prefix": "uploads/",
+              "Status": "Enabled",
+            },
+            {
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 1,
+              },
+              "Id": "abort-incomplete-multipart",
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UploadsBucketAutoDeleteObjectsCustomResourceFFD11C72": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "UploadsBucketPolicy34A32B0B",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "UploadsBucket5E5E9B64",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UploadsBucketPolicy34A32B0B": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "UploadsBucket5E5E9B64",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "UploadsBucket5E5E9B64",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "UploadsBucket5E5E9B64",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
