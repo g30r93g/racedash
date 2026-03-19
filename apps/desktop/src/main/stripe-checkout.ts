@@ -1,35 +1,11 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import type { StripeCheckoutResult, LicenseInfo, CreditBalance } from '../types/ipc'
 import { cacheLicense } from './license-cache'
+import { fetchWithAuth } from './api-client'
 
-const API_URL = process.env.VITE_API_URL ?? ''
 const SUCCESS_HOST = 'racedash.com'
 const CHECKOUT_SUCCESS_PATH = '/checkout/success'
 const CHECKOUT_CANCEL_PATH = '/checkout/cancel'
-
-async function fetchWithAuth<T>(path: string, opts?: { method?: string; body?: string }): Promise<T> {
-  // Load the session token from the encrypted store via the existing IPC
-  // We need to call the same fetch logic used by the auth module
-  const { loadSessionToken } = await import('./auth-helpers')
-  const token = loadSessionToken()
-  if (!token) throw new Error('Not authenticated')
-
-  const response = await fetch(`${API_URL}${path}`, {
-    method: opts?.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: opts?.body,
-  })
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`API error ${response.status}: ${body}`)
-  }
-
-  return response.json() as Promise<T>
-}
 
 function openCheckoutWindow(
   parentWindow: BrowserWindow,
@@ -96,7 +72,6 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
       )
 
       if (outcome === 'success') {
-        // Refresh license and cache it
         try {
           const { license } = await fetchWithAuth<{ license: LicenseInfo | null }>('/api/license')
           cacheLicense(license)
@@ -125,7 +100,6 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
       )
 
       if (outcome === 'success') {
-        // Refresh credit balance
         try {
           const balance = await fetchWithAuth<CreditBalance>('/api/credits/balance')
           mainWindow.webContents.send('racedash:credits:changed', balance)
@@ -137,27 +111,4 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
       return { outcome, sessionId }
     },
   )
-
-  ipcMain.handle('racedash:license:get', async () => {
-    const { license } = await fetchWithAuth<{ license: LicenseInfo | null }>('/api/license')
-    cacheLicense(license)
-    mainWindow.webContents.send('racedash:license:changed', license)
-    return license
-  })
-
-  ipcMain.handle('racedash:license:getCached', async () => {
-    const { loadCachedLicense } = await import('./license-cache')
-    return loadCachedLicense()
-  })
-
-  ipcMain.handle('racedash:credits:getBalance', async () => {
-    return fetchWithAuth<CreditBalance>('/api/credits/balance')
-  })
-
-  ipcMain.handle('racedash:credits:getHistory', async (_event, cursor?: string) => {
-    const params = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
-    return fetchWithAuth<{ purchases: unknown[]; nextCursor: string | null }>(
-      `/api/credits/history${params}`,
-    )
-  })
 }
