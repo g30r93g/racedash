@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, gt, asc, desc, lt } from 'drizzle-orm'
+import { eq, and, gt, asc, desc, lt, or, sql } from 'drizzle-orm'
 import { users, creditPacks } from '@racedash/db'
 import { getDb } from '../lib/db'
 import type { CreditBalanceResponse, CreditHistoryResponse } from '../types'
@@ -78,13 +78,13 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
       .select()
       .from(creditPacks)
       .where(eq(creditPacks.userId, user.id))
-      .orderBy(desc(creditPacks.purchasedAt))
+      .orderBy(desc(creditPacks.purchasedAt), desc(creditPacks.id))
       .limit(limitParam + 1) // fetch one extra for nextCursor
 
     if (cursor) {
-      // Get the cursor pack's purchasedAt to paginate
+      // Composite keyset pagination on (purchased_at DESC, id DESC) to handle tied timestamps
       const [cursorPack] = await db
-        .select({ purchasedAt: creditPacks.purchasedAt })
+        .select({ purchasedAt: creditPacks.purchasedAt, id: creditPacks.id })
         .from(creditPacks)
         .where(eq(creditPacks.id, cursor))
         .limit(1)
@@ -96,10 +96,16 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
           .where(
             and(
               eq(creditPacks.userId, user.id),
-              lt(creditPacks.purchasedAt, cursorPack.purchasedAt),
+              or(
+                lt(creditPacks.purchasedAt, cursorPack.purchasedAt),
+                and(
+                  eq(creditPacks.purchasedAt, cursorPack.purchasedAt),
+                  lt(creditPacks.id, cursorPack.id),
+                ),
+              ),
             ),
           )
-          .orderBy(desc(creditPacks.purchasedAt))
+          .orderBy(desc(creditPacks.purchasedAt), desc(creditPacks.id))
           .limit(limitParam + 1)
       }
     }

@@ -8,6 +8,10 @@ import { tierFromPriceId } from '../lib/stripe-prices'
 import { licenseExistsForSubscription, creditPackExistsForPaymentIntent } from '../lib/webhook-idempotency'
 import type { StripeWebhookResponse } from '../types'
 
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23505'
+}
+
 function mapSubscriptionStatus(stripeStatus: string): 'active' | 'expired' | 'cancelled' {
   switch (stripeStatus) {
     case 'active':
@@ -27,6 +31,7 @@ function mapSubscriptionStatus(stripeStatus: string): 'active' | 'expired' | 'ca
 const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Reply: StripeWebhookResponse }>(
     '/api/webhooks/stripe',
+    { config: { rawBody: true } },
     async (request, reply) => {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
       if (!webhookSecret) {
@@ -86,15 +91,20 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
             break
           }
 
-          await db.insert(licenses).values({
-            userId: user.id,
-            tier,
-            stripeCustomerId,
-            stripeSubscriptionId,
-            status: 'active',
-            startsAt: new Date(item.current_period_start * 1000),
-            expiresAt: new Date(item.current_period_end * 1000),
-          })
+          try {
+            await db.insert(licenses).values({
+              userId: user.id,
+              tier,
+              stripeCustomerId,
+              stripeSubscriptionId,
+              status: 'active',
+              startsAt: new Date(item.current_period_start * 1000),
+              expiresAt: new Date(item.current_period_end * 1000),
+            })
+          } catch (err) {
+            // Silently ignore UNIQUE constraint violations (concurrent duplicate delivery)
+            if (!isUniqueViolation(err)) throw err
+          }
           break
         }
 
@@ -156,6 +166,7 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session
           if (session.metadata?.type !== 'credit_pack') break
+          if (session.payment_status !== 'paid') break
 
           const stripeCustomerId = typeof session.customer === 'string'
             ? session.customer
@@ -193,16 +204,21 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
           const expiresAt = new Date(now)
           expiresAt.setFullYear(expiresAt.getFullYear() + 1)
 
-          await db.insert(creditPacks).values({
-            userId: user.id,
-            packName: `${packSize} RC Pack`,
-            rcTotal: packSize,
-            rcRemaining: packSize,
-            priceGbp: String((session.amount_total ?? 0) / 100),
-            purchasedAt: now,
-            expiresAt,
-            stripePaymentIntentId: paymentIntentId,
-          })
+          try {
+            await db.insert(creditPacks).values({
+              userId: user.id,
+              packName: `${packSize} RC Pack`,
+              rcTotal: packSize,
+              rcRemaining: packSize,
+              priceGbp: String((session.amount_total ?? 0) / 100),
+              purchasedAt: now,
+              expiresAt,
+              stripePaymentIntentId: paymentIntentId,
+            })
+          } catch (err) {
+            // Silently ignore UNIQUE constraint violations (concurrent duplicate delivery)
+            if (!isUniqueViolation(err)) throw err
+          }
           break
         }
 

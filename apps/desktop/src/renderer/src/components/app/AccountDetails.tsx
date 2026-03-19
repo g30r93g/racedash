@@ -20,7 +20,7 @@ function formatDate(iso: string): string {
 interface AccountDetailsProps {
   user: AuthUser | null
   license: AuthLicense | null
-  creditBalance: CreditBalance | null
+  creditBalance: CreditBalanceType | null
   onSignIn: () => void
   onSignOut: () => void
   onTopUpCredits: () => void
@@ -82,9 +82,10 @@ export function AccountDetails({
             <div className="border-t border-border" />
             <InfoRow label="Renews" value={formatDate(license.expiresAt)} />
           </div>
-          <Button variant="outline" className="mt-3 w-full" size="sm" onClick={onManageSubscription}>
+          <Button variant="outline" className="mt-3 w-full" size="sm" onClick={onManageSubscription} disabled>
             Manage subscription ↗
           </Button>
+          <p className="mt-1 text-center text-[10px] text-muted-foreground">Coming soon</p>
         </section>
       ) : (
         <section>

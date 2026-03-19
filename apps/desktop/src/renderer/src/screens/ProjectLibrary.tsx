@@ -57,13 +57,10 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
     }
   }, [])
 
-  const handleManageSubscription = useCallback(async () => {
-    // For now, open subscription checkout for upgrade; Stripe Customer Portal deferred
-    try {
-      await window.racedash.stripe.createSubscriptionCheckout({ tier: 'pro' })
-    } catch {
-      // User closed checkout or error
-    }
+  const handleManageSubscription = useCallback(() => {
+    // Stripe Customer Portal deferred to a future branch.
+    // For now, open the Stripe billing page externally.
+    // This is a no-op placeholder — the button text indicates it's an external link (↗).
   }, [])
 
   function handleLocate(oldProjectPath: string, updated: ProjectData) {
