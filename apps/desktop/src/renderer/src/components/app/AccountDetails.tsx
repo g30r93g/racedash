@@ -2,10 +2,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import React from 'react'
+import React, { useState } from 'react'
 import { InfoRow } from './InfoRow'
 import { SectionLabel } from './SectionLabel'
-import type { AuthUser, AuthLicense } from '../../../../types/ipc'
+import { CreditBalance } from './CreditBalance'
+import { CreditHistory } from './CreditHistory'
+import type { AuthUser, AuthLicense, CreditBalance as CreditBalanceType, CreditHistory as CreditHistoryType } from '../../../../types/ipc'
 
 function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
@@ -18,11 +20,28 @@ function formatDate(iso: string): string {
 interface AccountDetailsProps {
   user: AuthUser | null
   license: AuthLicense | null
+  creditBalance: CreditBalance | null
   onSignIn: () => void
   onSignOut: () => void
+  onTopUpCredits: () => void
+  onManageSubscription: () => void
+  onSubscribe: (tier: 'plus' | 'pro') => void
+  fetchCreditHistory: (cursor?: string) => Promise<CreditHistoryType>
 }
 
-export function AccountDetails({ user, license, onSignIn, onSignOut }: AccountDetailsProps): React.ReactElement {
+export function AccountDetails({
+  user,
+  license,
+  creditBalance,
+  onSignIn,
+  onSignOut,
+  onTopUpCredits,
+  onManageSubscription,
+  onSubscribe,
+  fetchCreditHistory,
+}: AccountDetailsProps): React.ReactElement {
+  const [showHistory, setShowHistory] = useState(false)
+
   // Signed-out state
   if (!user) {
     return (
@@ -63,21 +82,47 @@ export function AccountDetails({ user, license, onSignIn, onSignOut }: AccountDe
             <div className="border-t border-border" />
             <InfoRow label="Renews" value={formatDate(license.expiresAt)} />
           </div>
-          <Button variant="outline" className="mt-3 w-full" size="sm">
+          <Button variant="outline" className="mt-3 w-full" size="sm" onClick={onManageSubscription}>
             Manage subscription ↗
           </Button>
         </section>
       ) : (
         <section>
           <SectionLabel>Subscription</SectionLabel>
-          <p className="text-sm text-muted-foreground">No active subscription</p>
-          <Button variant="outline" className="mt-3 w-full" size="sm">
-            Get RaceDash Cloud ↗
-          </Button>
+          <p className="mb-3 text-sm text-muted-foreground">No active subscription</p>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" size="sm" onClick={() => onSubscribe('plus')}>
+              Subscribe to Plus
+            </Button>
+            <Button className="flex-1" size="sm" onClick={() => onSubscribe('pro')}>
+              Subscribe to Pro
+            </Button>
+          </div>
         </section>
       )}
 
       <Separator />
+
+      {license && !showHistory && (
+        <>
+          <CreditBalance
+            balance={creditBalance}
+            onTopUp={onTopUpCredits}
+            onViewHistory={() => setShowHistory(true)}
+          />
+          <Separator />
+        </>
+      )}
+
+      {license && showHistory && (
+        <>
+          <CreditHistory
+            fetchHistory={fetchCreditHistory}
+            onBack={() => setShowHistory(false)}
+          />
+          <Separator />
+        </>
+      )}
 
       <section>
         <SectionLabel>Security</SectionLabel>
