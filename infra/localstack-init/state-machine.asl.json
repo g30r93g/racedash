@@ -1,0 +1,140 @@
+{
+  "Comment": "RaceDash Render Pipeline — LocalStack version. RunMediaConvert replaced with Pass state. Regenerate via: npx ts-node scripts/generate-local-asl.ts",
+  "StartAt": "WaitForSlot",
+  "TimeoutSeconds": 28800,
+  "States": {
+    "WaitForSlot": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-wait-for-slot-local",
+        "Payload": {
+          "jobId.$": "$.jobId",
+          "userId.$": "$.userId",
+          "taskToken.$": "$$.Task.Token"
+        }
+      },
+      "HeartbeatSeconds": 21600,
+      "ResultPath": "$.slotResult",
+      "Next": "GrantSlot",
+      "Catch": [
+        { "ErrorEquals": ["States.HeartbeatTimeout"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" },
+        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
+      ]
+    },
+    "GrantSlot": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-grant-slot-local",
+        "Payload": { "jobId.$": "$.jobId" }
+      },
+      "ResultPath": "$.grantResult",
+      "Next": "StartRenderOverlay",
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
+      ]
+    },
+    "StartRenderOverlay": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-start-render-overlay-local",
+        "Payload": {
+          "jobId.$": "$.jobId",
+          "userId.$": "$.userId",
+          "taskToken.$": "$$.Task.Token"
+        }
+      },
+      "HeartbeatSeconds": 900,
+      "ResultPath": "$.renderResult",
+      "Next": "PrepareComposite",
+      "Catch": [
+        { "ErrorEquals": ["States.HeartbeatTimeout", "States.TaskFailed"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" },
+        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
+      ]
+    },
+    "PrepareComposite": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-prepare-composite-local",
+        "Payload": { "jobId.$": "$.jobId" }
+      },
+      "ResultPath": "$.compositeResult",
+      "Next": "RunMediaConvert",
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
+      ]
+    },
+    "RunMediaConvert": {
+      "Type": "Pass",
+      "Comment": "Mock MediaConvert — LocalStack does not support mediaconvert:createJob.sync",
+      "Result": {
+        "Job": { "Id": "mock-mediaconvert-job-id", "Status": "COMPLETE" }
+      },
+      "ResultPath": "$.mediaConvertResult",
+      "Next": "FinaliseJob"
+    },
+    "FinaliseJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-finalise-job-local",
+        "Payload": {
+          "jobId.$": "$.jobId",
+          "userId.$": "$.userId"
+        }
+      },
+      "ResultPath": "$.finaliseResult",
+      "Next": "NotifyUser",
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
+      ]
+    },
+    "NotifyUser": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-notify-user-local",
+        "Payload": {
+          "jobId.$": "$.jobId",
+          "userId.$": "$.userId"
+        }
+      },
+      "ResultPath": "$.notifyResult",
+      "Next": "Succeed",
+      "Catch": [
+        { "ErrorEquals": ["States.ALL"], "Next": "LogNotifyError", "ResultPath": "$.error" }
+      ]
+    },
+    "LogNotifyError": {
+      "Type": "Pass",
+      "Comment": "Log SES failure; job already complete — do NOT release credits",
+      "Next": "Succeed"
+    },
+    "ReleaseCreditsAndFail": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:000000000000:function:racedash-release-credits-and-fail-local",
+        "Payload": {
+          "jobId.$": "$.jobId",
+          "userId.$": "$.userId",
+          "error.$": "$.error"
+        }
+      },
+      "ResultPath": null,
+      "Next": "Fail"
+    },
+    "Succeed": {
+      "Type": "Succeed",
+      "Comment": "Pipeline completed successfully"
+    },
+    "Fail": {
+      "Type": "Fail",
+      "Error": "RenderPipelineFailed",
+      "CausePath": "$.error.Cause"
+    }
+  }
+}
