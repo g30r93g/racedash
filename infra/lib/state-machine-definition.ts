@@ -2,7 +2,6 @@ import * as cdk from 'aws-cdk-lib'
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions'
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
-import * as iam from 'aws-cdk-lib/aws-iam'
 import { Construct } from 'constructs'
 
 export interface StateMachineDefinitionProps {
@@ -78,30 +77,18 @@ export function buildStateMachineDefinition(
   })
 
   // RunMediaConvert — SDK integration (sync)
-  const stack = cdk.Stack.of(scope)
-  const runMediaConvert = new tasks.CallAwsService(scope, 'RunMediaConvert', {
-    service: 'mediaconvert',
-    action: 'createJob',
-    parameters: {
-      'Role.$': '$.compositeResult.Payload.mediaConvertRoleArn',
-      'Settings.$': '$.compositeResult.Payload.mediaConvertSettings',
+  // Uses CustomState because CallAwsService doesn't support RUN_JOB.
+  // The .sync pattern uses arn:aws:states:::mediaconvert:createJob.sync
+  const runMediaConvert = new sfn.CustomState(scope, 'RunMediaConvert', {
+    stateJson: {
+      Type: 'Task',
+      Resource: 'arn:aws:states:::mediaconvert:createJob.sync',
+      Parameters: {
+        'Role.$': '$.compositeResult.Payload.mediaConvertRoleArn',
+        'Settings.$': '$.compositeResult.Payload.mediaConvertSettings',
+      },
+      ResultPath: '$.mediaConvertResult',
     },
-    iamResources: ['*'],
-    iamAction: 'mediaconvert:CreateJob',
-    additionalIamStatements: [
-      new iam.PolicyStatement({
-        actions: ['iam:PassRole'],
-        resources: [props.mediaConvertRoleArn],
-      }),
-      new iam.PolicyStatement({
-        actions: ['events:PutTargets', 'events:PutRule', 'events:DescribeRule'],
-        resources: [
-          `arn:aws:events:${stack.region}:${stack.account}:rule/StepFunctionsGetEventsForMediaConvertJobRule`,
-        ],
-      }),
-    ],
-    integrationPattern: sfn.IntegrationPattern.RUN_JOB,
-    resultPath: '$.mediaConvertResult',
   })
   runMediaConvert.next(finaliseJob)
   runMediaConvert.addCatch(releaseCreditsAndFail, {

@@ -1,11 +1,9 @@
 import * as cdk from 'aws-cdk-lib'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
-import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import { Construct } from 'constructs'
-import * as path from 'path'
 import { getConfig, getContextParam } from '../config'
 
 export interface ApiStackProps extends cdk.StackProps {
@@ -36,13 +34,14 @@ export class ApiStack extends cdk.Stack {
     const cloudFrontPrivateKeyPem = getContextParam(this, 'cloudFrontPrivateKeyPem', '')
     const tokenEncryptionKey = getContextParam(this, 'tokenEncryptionKey', '')
 
-    // API Lambda
-    const apiFunction = new lambdaNodejs.NodejsFunction(this, 'ApiFunction', {
+    // API Lambda — uses lambda.Function with placeholder code.
+    // Handler path: apps/api/dist/lambda.handler (actual code deployed by cloud-auth)
+    const apiFunction = new lambda.Function(this, 'ApiFunction', {
       functionName: `racedash-api-${config.env}`,
-      entry: path.join(__dirname, '../../../apps/api/dist/lambda.handler'),
-      handler: 'handler',
       runtime: lambda.Runtime.NODEJS_20_X,
       architecture: lambda.Architecture.ARM_64,
+      handler: 'lambda.handler',
+      code: lambda.Code.fromInline('exports.handler = async () => ({ statusCode: 200, body: "placeholder" })'),
       memorySize: 512,
       timeout: cdk.Duration.seconds(30),
       logRetention: logs.RetentionDays.ONE_MONTH,
@@ -64,10 +63,6 @@ export class ApiStack extends cdk.Stack {
         WEBHOOK_SECRET: webhookSecret,
         REMOTION_WEBHOOK_SECRET: remotionWebhookSecret,
         TOKEN_ENCRYPTION_KEY: tokenEncryptionKey,
-      },
-      bundling: {
-        minify: true,
-        sourceMap: true,
       },
     })
 

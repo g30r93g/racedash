@@ -223,6 +223,22 @@ export class PipelineStack extends cdk.Stack {
 
     this.stateMachineArn = stateMachine.stateMachineArn
 
+    // State machine execution role: MediaConvert + PassRole + EventBridge
+    stateMachine.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['mediaconvert:CreateJob'],
+      resources: ['*'],
+    }))
+    stateMachine.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['iam:PassRole'],
+      resources: [mediaConvertRole.roleArn],
+    }))
+    stateMachine.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['events:PutTargets', 'events:PutRule', 'events:DescribeRule'],
+      resources: [
+        `arn:aws:events:${this.region}:${this.account}:rule/StepFunctionsGetEventsForMediaConvertJobRule`,
+      ],
+    }))
+
     // Grant callback permissions to Lambdas that need them
     const taskTokenPolicy = new iam.PolicyStatement({
       actions: ['states:SendTaskSuccess', 'states:SendTaskFailure'],
