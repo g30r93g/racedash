@@ -9,6 +9,9 @@ import stripeCreditRoutes from './routes/stripe-credits'
 import creditRoutes from './routes/credits'
 import licenseRoutes from './routes/license'
 import webhooksStripeRoutes from './routes/webhooks-stripe'
+import youtubeAuthRoutes from './routes/youtube-auth'
+import socialUploadRoutes from './routes/social-upload'
+import socialUploadsListRoutes from './routes/social-uploads-list'
 
 export async function createApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -43,6 +46,9 @@ export async function createApp(): Promise<FastifyInstance> {
   await app.register(creditRoutes)
   await app.register(licenseRoutes)
   await app.register(webhooksStripeRoutes)
+  await app.register(youtubeAuthRoutes)
+  await app.register(socialUploadRoutes)
+  await app.register(socialUploadsListRoutes)
 
   return app
 }

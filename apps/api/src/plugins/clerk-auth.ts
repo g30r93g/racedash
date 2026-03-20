@@ -15,7 +15,7 @@ const EXCLUDED_ROUTES: Array<{ method: string; path: string }> = [
   { method: 'POST', path: '/api/webhooks/stripe' },
   // cloud-rendering adds: { method: 'POST', path: '/api/webhooks/remotion' }
   // cloud-rendering adds: { method: 'POST', path: '/api/webhooks/render' }
-  // cloud-youtube adds: { method: 'GET', path: '/api/auth/youtube/callback' }
+  { method: 'GET', path: '/api/auth/youtube/callback' },
 ]
 
 function isExcluded(method: string, url: string): boolean {
