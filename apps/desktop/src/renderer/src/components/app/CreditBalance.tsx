@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SectionLabel } from './SectionLabel'
 import type { CreditBalance as CreditBalanceType } from '../../../../types/ipc'
+
+const PACK_SIZES = [50, 100, 250, 500] as const
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -14,11 +16,13 @@ function isExpiringSoon(expiresAt: string): boolean {
 
 interface CreditBalanceProps {
   balance: CreditBalanceType | null
-  onTopUp: () => void
+  onTopUp: (packSize: number) => void
   onViewHistory: () => void
 }
 
 export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalanceProps): React.ReactElement {
+  const [selectedPack, setSelectedPack] = useState<number>(100)
+
   return (
     <section>
       <SectionLabel>Credits</SectionLabel>
@@ -57,9 +61,27 @@ export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalance
         </p>
       )}
 
-      <Button variant="outline" className="w-full" size="sm" onClick={onTopUp}>
-        Top up credits
-      </Button>
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 rounded-md border border-border">
+          {PACK_SIZES.map((size) => (
+            <button
+              key={size}
+              onClick={() => setSelectedPack(size)}
+              className={[
+                'flex-1 py-1.5 text-xs transition-colors first:rounded-l-md last:rounded-r-md',
+                selectedPack === size
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent',
+              ].join(' ')}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" className="shrink-0" onClick={() => onTopUp(selectedPack)}>
+          Buy
+        </Button>
+      </div>
 
       <button
         className="mt-2 w-full text-center text-xs text-primary hover:underline"

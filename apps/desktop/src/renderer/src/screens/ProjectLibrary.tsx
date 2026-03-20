@@ -51,9 +51,9 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
     }
   }, [])
 
-  const handleTopUpCredits = useCallback(async () => {
+  const handleTopUpCredits = useCallback(async (packSize: number = 100) => {
     try {
-      await window.racedash.stripe.createCreditCheckout({ packSize: 100 })
+      await window.racedash.stripe.createCreditCheckout({ packSize })
     } catch {
       // User closed checkout or error
     }
