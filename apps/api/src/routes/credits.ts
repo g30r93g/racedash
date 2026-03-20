@@ -2,11 +2,11 @@ import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, asc, desc, lt, or, sql } from 'drizzle-orm'
 import { users, creditPacks } from '@racedash/db'
 import { getDb } from '../lib/db'
-import type { CreditBalanceResponse, CreditHistoryResponse } from '../types'
+import type { CreditBalanceResponse, CreditHistoryResponse, ApiError } from '../types'
 
 const creditRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/credits/balance
-  fastify.get<{ Reply: CreditBalanceResponse }>('/api/credits/balance', async (request, reply) => {
+  fastify.get<{ Reply: CreditBalanceResponse | ApiError }>('/api/credits/balance', async (request, reply) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
@@ -19,7 +19,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user) {
       reply.status(404).send({
         error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
-      } as any)
+      })
       return
     }
 
@@ -53,7 +53,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/credits/history
   fastify.get<{
     Querystring: { cursor?: string; limit?: string }
-    Reply: CreditHistoryResponse
+    Reply: CreditHistoryResponse | ApiError
   }>('/api/credits/history', async (request, reply) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
@@ -67,7 +67,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user) {
       reply.status(404).send({
         error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
-      } as any)
+      })
       return
     }
 

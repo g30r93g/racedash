@@ -22,6 +22,7 @@ import type {
   DownloadResponse,
   ListJobsResponse, ListJobsItem,
   JobStatusEvent, JobConfig,
+  ApiError,
 } from '../types'
 
 async function resolveUser(clerkUserId: string) {
@@ -55,13 +56,13 @@ function computeQueuePositions(queuedJobIds: string[], allQueuedJobs: Array<{ id
 
 const jobRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/jobs — create a new cloud render job
-  fastify.post<{ Body: CreateJobRequest; Reply: CreateJobResponse }>(
+  fastify.post<{ Body: CreateJobRequest; Reply: CreateJobResponse | ApiError }>(
     '/api/jobs',
     async (request, reply) => {
       const db = getDb()
       const user = await resolveUser(request.clerk.userId)
       if (!user) {
-        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
         return
       }
 
@@ -70,7 +71,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
       if (!licenseResult.hasActiveLicense) {
         reply.status(403).send({
           error: { code: 'LICENSE_REQUIRED', message: 'An active license is required for cloud rendering' },
-        } as any)
+        })
         return
       }
 
@@ -78,7 +79,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
       if (!sourceVideo || !reqConfig) {
         reply.status(400).send({
           error: { code: 'INVALID_REQUEST', message: 'Missing required fields: config and sourceVideo' },
-        } as any)
+        })
         return
       }
 
@@ -125,7 +126,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
               code: 'INSUFFICIENT_CREDITS',
               message: `Insufficient credits: ${err.available} available, ${err.required} required`,
             },
-          } as any)
+          })
           return
         }
         throw err
@@ -145,21 +146,21 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: StartUploadRequest
-    Reply: StartUploadResponse
+    Reply: StartUploadResponse | ApiError
   }>('/api/jobs/:id/start-upload', async (request, reply) => {
     const user = await resolveUser(request.clerk.userId)
     if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 
     const job = await findOwnedJob(user.id, request.params.id)
     if (!job) {
-      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } } as any)
+      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
       return
     }
     if (job.status !== 'uploading') {
-      reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` } } as any)
+      reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` } })
       return
     }
 
@@ -207,21 +208,21 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: CompleteUploadRequest
-    Reply: CompleteUploadResponse
+    Reply: CompleteUploadResponse | ApiError
   }>('/api/jobs/:id/complete-upload', async (request, reply) => {
     const user = await resolveUser(request.clerk.userId)
     if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 
     const job = await findOwnedJob(user.id, request.params.id)
     if (!job) {
-      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } } as any)
+      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
       return
     }
     if (job.status !== 'uploading') {
-      reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` } } as any)
+      reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` } })
       return
     }
 
@@ -230,7 +231,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
 
     const uploadIds = job.uploadIds as { uploadId: string } | null
     if (!uploadIds?.uploadId) {
-      reply.status(409).send({ error: { code: 'UPLOAD_NOT_STARTED', message: 'Multipart upload was not started' } } as any)
+      reply.status(409).send({ error: { code: 'UPLOAD_NOT_STARTED', message: 'Multipart upload was not started' } })
       return
     }
 
@@ -271,18 +272,18 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // GET /api/jobs/:id/status — SSE stream
-  fastify.get<{ Params: { id: string } }>(
+  fastify.get<{ Params: { id: string }; Reply: ApiError }>(
     '/api/jobs/:id/status',
     async (request, reply) => {
       const user = await resolveUser(request.clerk.userId)
       if (!user) {
-        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
         return
       }
 
       const job = await findOwnedJob(user.id, request.params.id)
       if (!job) {
-        reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } } as any)
+        reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
         return
       }
 
@@ -361,26 +362,26 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
   )
 
   // GET /api/jobs/:id/download — signed CloudFront URL
-  fastify.get<{ Params: { id: string }; Reply: DownloadResponse }>(
+  fastify.get<{ Params: { id: string }; Reply: DownloadResponse | ApiError }>(
     '/api/jobs/:id/download',
     async (request, reply) => {
       const user = await resolveUser(request.clerk.userId)
       if (!user) {
-        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
         return
       }
 
       const job = await findOwnedJob(user.id, request.params.id)
       if (!job) {
-        reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } } as any)
+        reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
         return
       }
       if (job.status !== 'complete') {
-        reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: 'Job is not complete' } } as any)
+        reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: 'Job is not complete' } })
         return
       }
       if (!job.downloadExpiresAt || job.downloadExpiresAt < new Date()) {
-        reply.status(410).send({ error: { code: 'DOWNLOAD_EXPIRED', message: 'Download window has expired' } } as any)
+        reply.status(410).send({ error: { code: 'DOWNLOAD_EXPIRED', message: 'Download window has expired' } })
         return
       }
 
@@ -408,12 +409,12 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/jobs — list jobs with pagination
   fastify.get<{
     Querystring: { cursor?: string; limit?: string }
-    Reply: ListJobsResponse
+    Reply: ListJobsResponse | ApiError
   }>('/api/jobs', async (request, reply) => {
     const db = getDb()
     const user = await resolveUser(request.clerk.userId)
     if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 

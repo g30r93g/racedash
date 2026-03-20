@@ -4,10 +4,10 @@ import { users, licenses } from '@racedash/db'
 import { getDb } from '../lib/db'
 import { getStripe } from '../lib/stripe'
 import { priceIdForTier } from '../lib/stripe-prices'
-import type { CheckoutResponse, CreateSubscriptionCheckoutRequest } from '../types'
+import type { CheckoutResponse, CreateSubscriptionCheckoutRequest, ApiError } from '../types'
 
 const stripeRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{ Body: CreateSubscriptionCheckoutRequest; Reply: CheckoutResponse }>(
+  fastify.post<{ Body: CreateSubscriptionCheckoutRequest; Reply: CheckoutResponse | ApiError }>(
     '/api/stripe/checkout',
     async (request, reply) => {
       const { tier } = request.body ?? {}
@@ -15,7 +15,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       if (tier !== 'plus' && tier !== 'pro') {
         reply.status(400).send({
           error: { code: 'INVALID_TIER', message: 'tier must be "plus" or "pro"' },
-        } as any)
+        })
         return
       }
 
@@ -31,7 +31,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       if (!user) {
         reply.status(404).send({
           error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
-        } as any)
+        })
         return
       }
 
@@ -51,7 +51,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       if (existingLicense) {
         reply.status(409).send({
           error: { code: 'SUBSCRIPTION_EXISTS', message: 'User already has an active subscription' },
-        } as any)
+        })
         return
       }
 
@@ -72,7 +72,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       if (!priceId) {
         reply.status(400).send({
           error: { code: 'INVALID_TIER', message: 'No price configured for this tier' },
-        } as any)
+        })
         return
       }
 
@@ -96,7 +96,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.log.error(err, 'Stripe checkout session creation failed')
         reply.status(502).send({
           error: { code: 'STRIPE_ERROR', message: 'Failed to create checkout session' },
-        } as any)
+        })
       }
     },
   )

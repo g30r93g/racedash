@@ -6,7 +6,7 @@ import { getDb } from '../lib/db'
 import { getStripe } from '../lib/stripe'
 import { tierFromPriceId } from '../lib/stripe-prices'
 import { licenseExistsForSubscription, creditPackExistsForPaymentIntent } from '../lib/webhook-idempotency'
-import type { StripeWebhookResponse } from '../types'
+import type { StripeWebhookResponse, ApiError } from '../types'
 
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23505'
@@ -29,7 +29,7 @@ function mapSubscriptionStatus(stripeStatus: string): 'active' | 'expired' | 'ca
 }
 
 const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{ Reply: StripeWebhookResponse }>(
+  fastify.post<{ Reply: StripeWebhookResponse | ApiError }>(
     '/api/webhooks/stripe',
     { config: { rawBody: true } },
     async (request, reply) => {
@@ -42,7 +42,7 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
       if (!signature) {
         reply.status(400).send({
           error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Missing stripe-signature header' },
-        } as any)
+        })
         return
       }
 
@@ -55,7 +55,7 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
       } catch {
         reply.status(400).send({
           error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' },
-        } as any)
+        })
         return
       }
 

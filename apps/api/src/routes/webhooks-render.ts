@@ -4,7 +4,7 @@ import { SendTaskSuccessCommand } from '@aws-sdk/client-sfn'
 import { claimNextQueuedSlotToken } from '@racedash/db'
 import { getDb } from '../lib/db'
 import { sfn } from '../lib/aws'
-import type { RenderWebhookPayload } from '../types'
+import type { RenderWebhookPayload, ApiError } from '../types'
 
 function verifyWebhookSecret(provided: string, expected: string): boolean {
   const a = Buffer.from(provided)
@@ -14,7 +14,7 @@ function verifyWebhookSecret(provided: string, expected: string): boolean {
 }
 
 const webhooksRenderRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/api/webhooks/render', async (request, reply) => {
+  fastify.post<{ Reply: ApiError }>('/api/webhooks/render', async (request, reply) => {
     const secret = process.env.WEBHOOK_SECRET
     if (!secret) throw new Error('WEBHOOK_SECRET is required')
 
@@ -22,14 +22,14 @@ const webhooksRenderRoutes: FastifyPluginAsync = async (fastify) => {
     if (!provided) {
       reply.status(401).send({
         error: { code: 'UNAUTHORIZED', message: 'Missing x-webhook-secret header' },
-      } as any)
+      })
       return
     }
 
     if (!verifyWebhookSecret(provided, secret)) {
       reply.status(401).send({
         error: { code: 'UNAUTHORIZED', message: 'Invalid webhook secret' },
-      } as any)
+      })
       return
     }
 

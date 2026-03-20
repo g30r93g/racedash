@@ -2,10 +2,10 @@ import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, desc } from 'drizzle-orm'
 import { users, licenses, getSlotLimit } from '@racedash/db'
 import { getDb } from '../lib/db'
-import type { LicenseResponse } from '../types'
+import type { LicenseResponse, ApiError } from '../types'
 
 const licenseRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{ Reply: LicenseResponse }>('/api/license', async (request, reply) => {
+  fastify.get<{ Reply: LicenseResponse | ApiError }>('/api/license', async (request, reply) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
@@ -18,7 +18,7 @@ const licenseRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user) {
       reply.status(404).send({
         error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
-      } as any)
+      })
       return
     }
 

@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import crypto from 'node:crypto'
 import { SendTaskSuccessCommand, SendTaskFailureCommand } from '@aws-sdk/client-sfn'
 import { sfn } from '../lib/aws'
-import type { RemotionWebhookPayload } from '../types'
+import type { RemotionWebhookPayload, ApiError } from '../types'
 
 function verifyRemotionSignature(rawBody: string, signature: string, secret: string): boolean {
   const expected = crypto.createHmac('sha512', secret).update(rawBody).digest('hex')
@@ -10,7 +10,7 @@ function verifyRemotionSignature(rawBody: string, signature: string, secret: str
 }
 
 const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/api/webhooks/remotion', async (request, reply) => {
+  fastify.post<{ Reply: ApiError }>('/api/webhooks/remotion', async (request, reply) => {
     const secret = process.env.REMOTION_WEBHOOK_SECRET
     if (!secret) throw new Error('REMOTION_WEBHOOK_SECRET is required')
 
@@ -18,7 +18,7 @@ const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
     if (!signature) {
       reply.status(401).send({
         error: { code: 'UNAUTHORIZED', message: 'Missing X-Remotion-Signature header' },
-      } as any)
+      })
       return
     }
 
@@ -28,13 +28,13 @@ const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
       if (!verifyRemotionSignature(rawBody, signature, secret)) {
         reply.status(401).send({
           error: { code: 'UNAUTHORIZED', message: 'Invalid webhook signature' },
-        } as any)
+        })
         return
       }
     } catch {
       reply.status(401).send({
         error: { code: 'UNAUTHORIZED', message: 'Invalid webhook signature' },
-      } as any)
+      })
       return
     }
 
