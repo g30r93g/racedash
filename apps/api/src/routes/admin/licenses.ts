@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and } from 'drizzle-orm'
-import { users, licenses, adminAuditLog, logAdminAction } from '@racedash/db'
+import { users, licenses, logAdminAction } from '@racedash/db'
 import { getDb } from '../../lib/db'
 import type { AdminIssueLicenseRequest, AdminUpdateLicenseRequest } from '../../types'
 
@@ -129,18 +129,6 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    const [existing] = await db
-      .select()
-      .from(licenses)
-      .where(and(eq(licenses.id, licenseId), eq(licenses.userId, userId)))
-      .limit(1)
-
-    if (!existing) {
-      return reply.status(404).send({
-        error: { code: 'LICENSE_NOT_FOUND', message: 'License not found' },
-      })
-    }
-
     const now = new Date()
     const updateData: Record<string, unknown> = { updatedAt: now }
     let action: 'license.extend' | 'license.revoke'
@@ -153,11 +141,21 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
       action = 'license.revoke'
     }
 
-    const [updated] = await db.transaction(async (tx) => {
-      const [result] = await tx
+    const result = await db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(licenses)
+        .where(and(eq(licenses.id, licenseId), eq(licenses.userId, userId)))
+        .limit(1)
+
+      if (!existing) {
+        return null
+      }
+
+      const [updated] = await tx
         .update(licenses)
         .set(updateData)
-        .where(eq(licenses.id, licenseId))
+        .where(and(eq(licenses.id, licenseId), eq(licenses.userId, userId)))
         .returning()
 
       await logAdminAction(tx as any, {
@@ -169,8 +167,16 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
         payload: expiresAt ? { expiresAt } : { status: 'cancelled' },
       })
 
-      return [result]
+      return updated
     })
+
+    if (!result) {
+      return reply.status(404).send({
+        error: { code: 'LICENSE_NOT_FOUND', message: 'License not found' },
+      })
+    }
+
+    const updated = result
 
     return {
       license: {

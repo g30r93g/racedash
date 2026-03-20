@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, gt, gte, sql, desc, inArray } from 'drizzle-orm'
+import { eq, and, gt, lt, gte, sql, desc, or, inArray } from 'drizzle-orm'
 import { jobs, users, creditReservations, creditReservationPacks, creditPacks } from '@racedash/db'
 import { getDb } from '../../lib/db'
 import type { AdminJobListResponse, AdminJobDetailResponse, JobStatus } from '../../types'
@@ -23,7 +23,8 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
     const conditions = []
 
     if (status) {
-      const statuses = status.split(',').filter(Boolean) as JobStatus[]
+      const VALID_STATUSES: JobStatus[] = ['uploading', 'queued', 'rendering', 'compositing', 'complete', 'failed']
+      const statuses = status.split(',').filter((s): s is JobStatus => VALID_STATUSES.includes(s as JobStatus))
       if (statuses.length > 0) {
         conditions.push(inArray(jobs.status, statuses))
       }
@@ -36,7 +37,21 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     if (cursor) {
-      conditions.push(gt(jobs.id, cursor))
+      // Composite keyset pagination on (created_at DESC, id DESC)
+      const [cursorJob] = await db
+        .select({ createdAt: jobs.createdAt, id: jobs.id })
+        .from(jobs)
+        .where(eq(jobs.id, cursor))
+        .limit(1)
+
+      if (cursorJob) {
+        conditions.push(
+          or(
+            lt(jobs.createdAt, cursorJob.createdAt),
+            and(eq(jobs.createdAt, cursorJob.createdAt), lt(jobs.id, cursorJob.id)),
+          )!,
+        )
+      }
     }
 
     const rows = await db
@@ -52,7 +67,7 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
       .from(jobs)
       .innerJoin(users, eq(jobs.userId, users.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(jobs.createdAt))
+      .orderBy(desc(jobs.createdAt), desc(jobs.id))
       .limit(limit + 1)
 
     const hasMore = rows.length > limit

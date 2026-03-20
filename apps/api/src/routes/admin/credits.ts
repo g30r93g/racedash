@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, asc, sql } from 'drizzle-orm'
-import { users, creditPacks, logAdminAction } from '@racedash/db'
+import { users, creditPacks, logAdminAction, type CreditPack } from '@racedash/db'
 import { getDb } from '../../lib/db'
 import type { AdminCreditAdjustmentRequest } from '../../types'
 
@@ -15,7 +15,7 @@ const creditsRoutes: FastifyPluginAsync = async (fastify) => {
     const { rcAmount, reason } = request.body
     const adminClerkId = request.clerk.userId
 
-    if (!rcAmount || rcAmount === 0) {
+    if (!Number.isInteger(rcAmount) || rcAmount === 0) {
       return reply.status(400).send({
         error: { code: 'VALIDATION_ERROR', message: 'rcAmount must be a non-zero integer' },
       })
@@ -125,7 +125,7 @@ const creditsRoutes: FastifyPluginAsync = async (fastify) => {
 
           await tx
             .update(creditPacks)
-            .set({ rcRemaining: pack.rcRemaining - deduct })
+            .set({ rcRemaining: sql`${creditPacks.rcRemaining} - ${deduct}` })
             .where(eq(creditPacks.id, pack.id))
 
           packsAffected.push({ packId: pack.id, packName: pack.packName, rcDeducted: deduct })

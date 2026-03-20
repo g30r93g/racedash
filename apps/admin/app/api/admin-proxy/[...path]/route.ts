@@ -12,8 +12,19 @@ async function proxyRequest(request: NextRequest, { params }: { params: Promise<
   }
 
   const { path } = await params
+
+  // Reject path traversal attempts
+  if (path.some((segment) => segment === '..' || segment === '.')) {
+    return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'Invalid path' } }, { status: 400 })
+  }
+
   const targetPath = `/api/admin/${path.join('/')}`
   const url = new URL(targetPath, API_URL)
+
+  // Verify resolved path is still under /api/admin/
+  if (!url.pathname.startsWith('/api/admin/')) {
+    return NextResponse.json({ error: { code: 'BAD_REQUEST', message: 'Invalid path' } }, { status: 400 })
+  }
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,

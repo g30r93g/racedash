@@ -6,6 +6,10 @@ export async function adminFetch<T>(path: string, options?: RequestInit): Promis
   const { getToken } = await auth()
   const token = await getToken()
 
+  if (!token) {
+    throw new Error('Not authenticated')
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {

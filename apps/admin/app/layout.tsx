@@ -11,7 +11,17 @@ export const metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { userId, sessionClaims } = await auth()
 
-  if (userId && (sessionClaims?.publicMetadata as Record<string, unknown>)?.role !== 'admin') {
+  if (!userId) {
+    return (
+      <ClerkProvider>
+        <html lang="en">
+          <body>{children}</body>
+        </html>
+      </ClerkProvider>
+    )
+  }
+
+  if ((sessionClaims?.publicMetadata as Record<string, unknown>)?.role !== 'admin') {
     redirect('/access-denied')
   }
 
