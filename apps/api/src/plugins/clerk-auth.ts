@@ -13,8 +13,8 @@ const EXCLUDED_ROUTES: Array<{ method: string; path: string }> = [
   { method: 'GET', path: '/api/health' },
   { method: 'POST', path: '/api/webhooks/clerk' },
   { method: 'POST', path: '/api/webhooks/stripe' },
-  // cloud-rendering adds: { method: 'POST', path: '/api/webhooks/remotion' }
-  // cloud-rendering adds: { method: 'POST', path: '/api/webhooks/render' }
+  { method: 'POST', path: '/api/webhooks/remotion' },
+  { method: 'POST', path: '/api/webhooks/render' },
   // cloud-youtube adds: { method: 'GET', path: '/api/auth/youtube/callback' }
 ]
 
