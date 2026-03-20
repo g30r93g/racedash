@@ -23,6 +23,9 @@ interface EditorTabsPaneProps {
   onRedo: () => void
   canUndo: boolean
   canRedo: boolean
+  authUser?: { name: string } | null
+  licenseTier?: 'plus' | 'pro' | null
+  onSignIn?: () => void
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -34,7 +37,7 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange, styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange, styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo, authUser, licenseTier, onSignIn }: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('timing')
 
@@ -67,14 +70,18 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
           <StyleTab styleState={styleState} onStyleChange={onStyleChange} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} />
         </TabsContent>
         <TabsContent value="export" className="mt-0 flex-1 overflow-auto">
-          <ExportTab project={project} videoInfo={videoInfo} onRenderingChange={setRendering} overlayType={styleState.overlayType} />
+          <ExportTab project={project} videoInfo={videoInfo} onRenderingChange={setRendering} overlayType={styleState.overlayType} authUser={authUser} licenseTier={licenseTier} onSignIn={onSignIn} />
         </TabsContent>
       </Tabs>
 
-      {/* RaceDash Cloud footer — coming soon */}
+      {/* RaceDash Cloud footer */}
       <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
         <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
-        <Button variant="ghost" size="sm" disabled>Sign in</Button>
+        {authUser ? (
+          <span className="text-xs text-foreground">{authUser.name}</span>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={onSignIn}>Sign in</Button>
+        )}
       </div>
     </div>
   )

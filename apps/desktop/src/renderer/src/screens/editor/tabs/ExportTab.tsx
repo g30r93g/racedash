@@ -15,6 +15,7 @@ import type {
 } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { OverlayType } from './OverlayPickerModal'
+import { FeatureGate } from '@/components/app/FeatureGate'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ interface ExportTabProps {
   onRenderingChange?: (rendering: boolean) => void
   overlayType: OverlayType
   authUser?: { name: string } | null
+  licenseTier?: 'plus' | 'pro' | null
   onSignIn?: () => void
 }
 
@@ -69,7 +71,7 @@ interface LastRender {
   timestamp: Date
 }
 
-export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, authUser, onSignIn }: ExportTabProps): React.ReactElement {
+export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, authUser, licenseTier, onSignIn }: ExportTabProps): React.ReactElement {
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -299,7 +301,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
     animation: 'shimmer 3.5s linear infinite',
   }
 
-  const isCloudDisabled = !authUser || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
+  const isCloudDisabled = !authUser || !licenseTier || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
   const isBusy = rendering || cloudUploading
 
   return (
@@ -366,6 +368,12 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
               <p className="text-xs text-muted-foreground">Sign in to use cloud rendering</p>
               <Button variant="outline" size="sm" className="mt-2" onClick={onSignIn}>Sign in</Button>
             </div>
+          ) : !licenseTier ? (
+            <div className="rounded-md border border-border bg-accent px-3 py-3">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Subscription required:</span> Cloud rendering requires a RaceDash Cloud subscription
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col gap-2 rounded-md border border-border bg-accent px-3 py-3">
               <div className="flex items-center justify-between">
@@ -376,9 +384,18 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
                 <span className="text-xs text-muted-foreground">Credit balance</span>
                 <span className="text-xs font-medium">{creditBalance ?? '—'} RC remaining</span>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Concurrent slots</span>
+                <span className="text-xs font-medium">{licenseTier === 'pro' ? 3 : 1}</span>
+              </div>
               {videoInfo && videoInfo.durationSeconds * 2_500_000 > 500 * 1024 * 1024 && (
                 <p className="text-[10px] text-amber-600">
                   Large file — upload may take several minutes on a typical connection
+                </p>
+              )}
+              {licenseTier === 'plus' && (
+                <p className="text-[10px] text-muted-foreground">
+                  Upgrade to Pro for 3 concurrent render slots
                 </p>
               )}
             </div>

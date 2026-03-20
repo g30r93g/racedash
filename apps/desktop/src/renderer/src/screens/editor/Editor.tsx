@@ -7,6 +7,7 @@ import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayProps } from '@racedash/core'
+import { useAuth } from '../../hooks/useAuth'
 
 function parsePositionString(pos: string): number {
   return parseInt(pos.replace(/^P/i, ''), 10)
@@ -53,6 +54,7 @@ interface EditorProps {
 }
 
 export function Editor({ project, onClose }: EditorProps): React.ReactElement {
+  const { user, license: authLicense, isSignedIn, signIn } = useAuth()
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
@@ -221,7 +223,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} overrides={overrides} onOverridesChange={setOverrides} styleState={styleState} onStyleChange={handleStyleChange} onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo} />
+        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} overrides={overrides} onOverridesChange={setOverrides} styleState={styleState} onStyleChange={handleStyleChange} onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo} authUser={user ? { name: user.name } : null} licenseTier={authLicense?.tier ?? null} onSignIn={signIn} />
       </div>
     </div>
   )
