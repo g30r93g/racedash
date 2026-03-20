@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, lt, gte, sql, desc, or, inArray } from 'drizzle-orm'
 import { jobs, users, creditReservations, creditReservationPacks, creditPacks } from '@racedash/db'
 import { getDb } from '../../lib/db'
-import type { AdminJobListResponse, AdminJobDetailResponse, JobStatus } from '../../types'
+import type { AdminJobListResponse, AdminJobDetailResponse, JobStatus, ApiError } from '../../types'
 
 const AWS_REGION = process.env.AWS_REGION ?? 'eu-west-2'
 
@@ -99,7 +99,7 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/admin/jobs/:id
   fastify.get<{
     Params: { id: string }
-    Reply: AdminJobDetailResponse
+    Reply: AdminJobDetailResponse | ApiError
   }>('/api/admin/jobs/:id', async (request, reply) => {
     const db = getDb()
     const { id } = request.params
@@ -132,7 +132,7 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
     if (!row) {
       return reply.status(404).send({
         error: { code: 'JOB_NOT_FOUND', message: 'Job not found' },
-      } as any)
+      })
     }
 
     // Fetch credit reservation if exists

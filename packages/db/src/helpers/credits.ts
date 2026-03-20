@@ -3,10 +3,10 @@ import { creditPacks } from '../schema/credit-packs'
 import { creditReservations } from '../schema/credit-reservations'
 import { creditReservationPacks } from '../schema/credit-reservation-packs'
 import { InsufficientCreditsError } from '../errors'
-import type { DrizzleDb } from '../client'
+import type { DrizzleDb, DbOrTx } from '../client'
 
 export interface ReserveCreditsInput {
-  db: DrizzleDb
+  db: DbOrTx
   userId: string
   jobId: string
   rcAmount: number

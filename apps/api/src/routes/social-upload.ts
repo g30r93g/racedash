@@ -3,7 +3,7 @@ import { eq, and, gt, desc, inArray } from 'drizzle-orm'
 import { users, licenses, jobs, connectedAccounts, socialUploads, reserveCredits, releaseCredits, InsufficientCreditsError } from '@racedash/db'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { getDb } from '../lib/db'
-import type { SocialUploadRequest, SocialUploadResponse, SocialUploadPayload, YouTubeUploadMetadata } from '../types'
+import type { SocialUploadRequest, SocialUploadResponse, SocialUploadPayload, YouTubeUploadMetadata, ApiError } from '../types'
 
 const sqs = new SQSClient({})
 
@@ -43,7 +43,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: { id: string }
     Body: SocialUploadRequest
-    Reply: SocialUploadResponse
+    Reply: SocialUploadResponse | ApiError
   }>('/api/jobs/:id/social-upload', async (request, reply) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
@@ -57,7 +57,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 
@@ -76,7 +76,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!license) {
-      reply.status(403).send({ error: { code: 'LICENSE_REQUIRED', message: 'An active license is required' } } as any)
+      reply.status(403).send({ error: { code: 'LICENSE_REQUIRED', message: 'An active license is required' } })
       return
     }
 
@@ -88,19 +88,19 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!job) {
-      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } } as any)
+      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
       return
     }
 
     // Validate ownership
     if (job.userId !== user.id) {
-      reply.status(403).send({ error: { code: 'JOB_NOT_OWNED', message: 'You do not own this job' } } as any)
+      reply.status(403).send({ error: { code: 'JOB_NOT_OWNED', message: 'You do not own this job' } })
       return
     }
 
     // Validate job is complete
     if (job.status !== 'complete') {
-      reply.status(422).send({ error: { code: 'JOB_NOT_COMPLETE', message: 'Only completed jobs can be uploaded to YouTube' } } as any)
+      reply.status(422).send({ error: { code: 'JOB_NOT_COMPLETE', message: 'Only completed jobs can be uploaded to YouTube' } })
       return
     }
 
@@ -112,20 +112,20 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!youtubeAccount) {
-      reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected. Connect YouTube in the Account tab.' } } as any)
+      reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected. Connect YouTube in the Account tab.' } })
       return
     }
 
     // Validate request body
     const body = request.body
     if (body.platform !== 'youtube') {
-      reply.status(400).send({ error: { code: 'INVALID_REQUEST', message: 'platform must be "youtube"' } } as any)
+      reply.status(400).send({ error: { code: 'INVALID_REQUEST', message: 'platform must be "youtube"' } })
       return
     }
 
     const metadataResult = validateMetadata(body.metadata)
     if (!metadataResult.valid) {
-      reply.status(400).send({ error: { code: 'INVALID_REQUEST', message: metadataResult.message } } as any)
+      reply.status(400).send({ error: { code: 'INVALID_REQUEST', message: metadataResult.message } })
       return
     }
 
@@ -143,7 +143,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (existingUpload) {
-      reply.status(409).send({ error: { code: 'UPLOAD_ALREADY_EXISTS', message: 'An active or completed YouTube upload already exists for this job' } } as any)
+      reply.status(409).send({ error: { code: 'UPLOAD_ALREADY_EXISTS', message: 'An active or completed YouTube upload already exists for this job' } })
       return
     }
 
@@ -167,7 +167,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
         const reservationKey = `su_${upload.id}`
         const reservation = await reserveCredits({
-          db: tx as any,
+          db: tx,
           userId: user.id,
           jobId: reservationKey,
           rcAmount: rcCost,
@@ -182,7 +182,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       })
     } catch (err) {
       if (err instanceof InsufficientCreditsError) {
-        reply.status(402).send({ error: { code: 'INSUFFICIENT_CREDITS', message: 'Insufficient credits. You need at least 10 RC to upload to YouTube.' } } as any)
+        reply.status(402).send({ error: { code: 'INSUFFICIENT_CREDITS', message: 'Insufficient credits. You need at least 10 RC to upload to YouTube.' } })
         return
       }
       throw err

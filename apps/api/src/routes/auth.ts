@@ -3,10 +3,10 @@ import { eq, and, gt, desc } from 'drizzle-orm'
 import { users, licenses } from '@racedash/db'
 import { getDb } from '../lib/db'
 import { getClerkClient } from '../lib/clerk'
-import type { AuthMeResponse } from '../types'
+import type { AuthMeResponse, ApiError } from '../types'
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get<{ Reply: AuthMeResponse }>('/api/auth/me', async (request, reply) => {
+  fastify.get<{ Reply: AuthMeResponse | ApiError }>('/api/auth/me', async (request, reply) => {
     const { userId: clerkUserId } = request.clerk
     const db = getDb()
 
@@ -20,7 +20,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user) {
       reply.status(404).send({
         error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
-      } as any)
+      })
       return
     }
 

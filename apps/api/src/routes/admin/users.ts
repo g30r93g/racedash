@@ -3,7 +3,7 @@ import { eq, and, gt, asc, desc, sql, ilike } from 'drizzle-orm'
 import { users, licenses, creditPacks, jobs } from '@racedash/db'
 import { getDb } from '../../lib/db'
 import { userSearchSchema } from './schemas'
-import type { AdminUserListResponse, AdminUserDetailResponse } from '../../types'
+import type { AdminUserListResponse, AdminUserDetailResponse, ApiError } from '../../types'
 
 const usersRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/admin/users
@@ -60,7 +60,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/admin/users/:id
   fastify.get<{
     Params: { id: string }
-    Reply: AdminUserDetailResponse
+    Reply: AdminUserDetailResponse | ApiError
   }>('/api/admin/users/:id', async (request, reply) => {
     const db = getDb()
     const { id } = request.params
@@ -74,7 +74,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user) {
       reply.status(404).send({
         error: { code: 'USER_NOT_FOUND', message: 'User not found' },
-      } as any)
+      })
       return
     }
 

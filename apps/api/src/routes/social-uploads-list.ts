@@ -2,13 +2,13 @@ import { FastifyPluginAsync } from 'fastify'
 import { eq, and, desc } from 'drizzle-orm'
 import { users, jobs, socialUploads } from '@racedash/db'
 import { getDb } from '../lib/db'
-import type { SocialUploadsListResponse, YouTubeUploadMetadata } from '../types'
+import type { SocialUploadsListResponse, YouTubeUploadMetadata, ApiError } from '../types'
 
 const socialUploadsListRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/jobs/:id/social-uploads
   fastify.get<{
     Params: { id: string }
-    Reply: SocialUploadsListResponse
+    Reply: SocialUploadsListResponse | ApiError
   }>('/api/jobs/:id/social-uploads', async (request, reply) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
@@ -21,7 +21,7 @@ const socialUploadsListRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 
@@ -32,12 +32,12 @@ const socialUploadsListRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!job) {
-      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } } as any)
+      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
       return
     }
 
     if (job.userId !== user.id) {
-      reply.status(403).send({ error: { code: 'JOB_NOT_OWNED', message: 'You do not own this job' } } as any)
+      reply.status(403).send({ error: { code: 'JOB_NOT_OWNED', message: 'You do not own this job' } })
       return
     }
 

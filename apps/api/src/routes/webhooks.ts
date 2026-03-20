@@ -3,7 +3,7 @@ import { Webhook } from 'svix'
 import { eq } from 'drizzle-orm'
 import { users } from '@racedash/db'
 import { getDb } from '../lib/db'
-import type { ClerkWebhookResponse } from '../types'
+import type { ClerkWebhookResponse, ApiError } from '../types'
 
 interface ClerkWebhookEvent {
   type: string
@@ -16,7 +16,7 @@ interface ClerkWebhookEvent {
 }
 
 const webhookRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{ Reply: ClerkWebhookResponse }>(
+  fastify.post<{ Reply: ClerkWebhookResponse | ApiError }>(
     '/api/webhooks/clerk',
     { config: { rawBody: true } },
     async (request, reply) => {
@@ -32,7 +32,7 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       if (!svixId || !svixTimestamp || !svixSignature) {
         reply.status(400).send({
           error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Missing svix headers' },
-        } as any)
+        })
         return
       }
 
@@ -49,7 +49,7 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       } catch {
         reply.status(400).send({
           error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' },
-        } as any)
+        })
         return
       }
 

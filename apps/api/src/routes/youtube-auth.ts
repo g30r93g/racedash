@@ -4,7 +4,7 @@ import { users, licenses, connectedAccounts } from '@racedash/db'
 import { getDb } from '../lib/db'
 import { encryptToken, decryptToken } from '../lib/token-crypto'
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import type { YouTubeStatusResponse, YouTubeDisconnectResponse } from '../types'
+import type { YouTubeStatusResponse, YouTubeDisconnectResponse, ApiError } from '../types'
 
 function signJwt(payload: Record<string, unknown>, secret: string): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -247,7 +247,7 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // DELETE /api/auth/youtube/disconnect
-  fastify.delete<{ Reply: YouTubeDisconnectResponse }>('/api/auth/youtube/disconnect', async (request, reply) => {
+  fastify.delete<{ Reply: YouTubeDisconnectResponse | ApiError }>('/api/auth/youtube/disconnect', async (request, reply) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
@@ -258,7 +258,7 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } } as any)
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 
@@ -269,7 +269,7 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!account) {
-      reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected' } } as any)
+      reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected' } })
       return
     }
 
