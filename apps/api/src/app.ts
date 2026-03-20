@@ -10,6 +10,9 @@ import creditRoutes from './routes/credits'
 import licenseRoutes from './routes/license'
 import webhooksStripeRoutes from './routes/webhooks-stripe'
 import adminRoutes from './routes/admin'
+import jobRoutes from './routes/jobs'
+import webhooksRemotionRoutes from './routes/webhooks-remotion'
+import webhooksRenderRoutes from './routes/webhooks-render'
 
 export async function createApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -45,6 +48,9 @@ export async function createApp(): Promise<FastifyInstance> {
   await app.register(licenseRoutes)
   await app.register(webhooksStripeRoutes)
   await app.register(adminRoutes)
+  await app.register(jobRoutes)
+  await app.register(webhooksRemotionRoutes)
+  await app.register(webhooksRenderRoutes)
 
   return app
 }

@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import type { RacedashAPI, RenderCompleteResult, LicenseInfo, CreditBalance } from '../types/ipc'
+import type {
+  RacedashAPI, RenderCompleteResult, LicenseInfo, CreditBalance,
+  CreateCloudJobOpts, StartUploadOpts, CompletedPart,
+  CloudUploadProgressEvent, VideoInfo,
+} from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 
@@ -129,6 +133,48 @@ const api: RacedashAPI = {
       ipcRenderer.invoke('racedash:stripe:subscriptionCheckout', opts),
     createCreditCheckout: (opts: { packSize: number }) =>
       ipcRenderer.invoke('racedash:stripe:creditCheckout', opts),
+  },
+
+  // Cloud render
+  cloudRender: {
+    createJob: (opts: CreateCloudJobOpts) =>
+      ipcRenderer.invoke('racedash:cloudRender:createJob', opts),
+    startUpload: (jobId: string, opts: StartUploadOpts) =>
+      ipcRenderer.invoke('racedash:cloudRender:startUpload', jobId, opts),
+    uploadPart: (jobId: string, url: string, filePath: string, partNumber: number, offset: number, size: number) =>
+      ipcRenderer.invoke('racedash:cloudRender:uploadPart', jobId, url, filePath, partNumber, offset, size),
+    getFileSize: (filePath: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:getFileSize', filePath),
+    completeUpload: (jobId: string, parts: CompletedPart[]) =>
+      ipcRenderer.invoke('racedash:cloudRender:completeUpload', jobId, parts),
+    cancelUpload: (jobId: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:cancelUpload', jobId),
+    getStatusUrl: (jobId: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:getStatusUrl', jobId),
+    getDownloadUrl: (jobId: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:getDownloadUrl', jobId),
+    downloadRender: (jobId: string, outputPath: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:downloadRender', jobId, outputPath),
+    listJobs: (cursor?: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:listJobs', cursor),
+    estimateCost: (sourceVideo: VideoInfo, resolution: string, frameRate: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:estimateCost', sourceVideo, resolution, frameRate),
+  },
+
+  onCloudUploadProgress: (cb: (event: CloudUploadProgressEvent) => void) => {
+    const handler = (_: IpcRendererEvent, event: CloudUploadProgressEvent) => cb(event)
+    ipcRenderer.on('racedash:cloudUpload:progress', handler)
+    return () => ipcRenderer.removeListener('racedash:cloudUpload:progress', handler)
+  },
+  onCloudUploadComplete: (cb: (event: { jobId: string }) => void) => {
+    const handler = (_: IpcRendererEvent, event: { jobId: string }) => cb(event)
+    ipcRenderer.on('racedash:cloudUpload:complete', handler)
+    return () => ipcRenderer.removeListener('racedash:cloudUpload:complete', handler)
+  },
+  onCloudUploadError: (cb: (event: { jobId: string; message: string }) => void) => {
+    const handler = (_: IpcRendererEvent, event: { jobId: string; message: string }) => cb(event)
+    ipcRenderer.on('racedash:cloudUpload:error', handler)
+    return () => ipcRenderer.removeListener('racedash:cloudUpload:error', handler)
   },
 
   onAuthSessionExpired: (cb: () => void) => {

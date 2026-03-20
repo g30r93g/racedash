@@ -148,6 +148,93 @@ export interface CreditHistory {
   nextCursor: string | null
 }
 
+// ── Cloud Render types ───────────────────────────────────────────────────
+
+export type CloudJobStatus = 'uploading' | 'queued' | 'rendering' | 'compositing' | 'complete' | 'failed'
+
+export interface CloudRenderJob {
+  id: string
+  projectName: string
+  sessionType: string
+  status: CloudJobStatus
+  config: {
+    resolution: string
+    frameRate: string
+    renderMode: string
+  }
+  rcCost: number | null
+  queuePosition: number | null
+  progress: number
+  downloadExpiresAt: string | null
+  errorMessage: string | null
+  createdAt: string
+}
+
+export interface CreateCloudJobOpts {
+  config: {
+    resolution: string
+    frameRate: string
+    renderMode: string
+    overlayStyle: string
+    config: Record<string, unknown>
+  }
+  sourceVideo: VideoInfo & { fileSizeBytes: number }
+  projectName: string
+  sessionType: string
+}
+
+export interface CreateCloudJobResult {
+  jobId: string
+  rcCost: number
+  uploadKey: string
+}
+
+export interface StartUploadOpts {
+  partCount: number
+  partSize: number
+  contentType: string
+}
+
+export interface StartUploadResult {
+  uploadId: string
+  presignedUrls: Array<{ partNumber: number; url: string }>
+}
+
+export interface UploadPartResult {
+  partNumber: number
+  etag: string
+}
+
+export interface CompletedPart {
+  partNumber: number
+  etag: string
+}
+
+export interface CompleteUploadResult {
+  jobId: string
+  status: 'queued'
+  executionArn: string
+}
+
+export interface DownloadUrlResult {
+  downloadUrl: string
+  expiresAt: string
+}
+
+export interface ListJobsResult {
+  jobs: CloudRenderJob[]
+  nextCursor: string | null
+}
+
+export interface CloudUploadProgressEvent {
+  jobId: string
+  bytesUploaded: number
+  bytesTotal: number
+  uploadSpeed: number
+  partNumber: number
+  totalParts: number
+}
+
 // ── Stripe Checkout types ─────────────────────────────────────────────────
 
 export interface StripeCheckoutResult {
@@ -274,6 +361,26 @@ export interface RacedashAPI {
     createSubscriptionCheckout(opts: { tier: 'plus' | 'pro' }): Promise<StripeCheckoutResult>
     createCreditCheckout(opts: { packSize: number }): Promise<StripeCheckoutResult>
   }
+
+  // Cloud render
+  cloudRender: {
+    createJob(opts: CreateCloudJobOpts): Promise<CreateCloudJobResult>
+    startUpload(jobId: string, opts: StartUploadOpts): Promise<StartUploadResult>
+    uploadPart(jobId: string, url: string, filePath: string, partNumber: number, offset: number, size: number): Promise<UploadPartResult>
+    getFileSize(filePath: string): Promise<number>
+    completeUpload(jobId: string, parts: CompletedPart[]): Promise<CompleteUploadResult>
+    cancelUpload(jobId: string): Promise<void>
+    getStatusUrl(jobId: string): Promise<string>
+    getDownloadUrl(jobId: string): Promise<DownloadUrlResult>
+    downloadRender(jobId: string, outputPath: string): Promise<void>
+    listJobs(cursor?: string): Promise<ListJobsResult>
+    estimateCost(sourceVideo: VideoInfo, resolution: string, frameRate: string): number
+  }
+
+  // Cloud render upload events — main → renderer push
+  onCloudUploadProgress(cb: (event: CloudUploadProgressEvent) => void): () => void
+  onCloudUploadComplete(cb: (event: { jobId: string }) => void): () => void
+  onCloudUploadError(cb: (event: { jobId: string; message: string }) => void): () => void
 
   // Auth events — main → renderer push
   onAuthSessionExpired(cb: () => void): () => void
