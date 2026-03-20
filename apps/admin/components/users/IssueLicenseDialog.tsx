@@ -16,12 +16,14 @@ export function IssueLicenseDialog({ userId, open, onClose, onSuccess }: IssueLi
     new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   )
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (!open) return null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
+    setError(null)
     try {
       const res = await fetch(`/api/admin-proxy/users/${userId}/licenses`, {
         method: 'POST',
@@ -35,6 +37,9 @@ export function IssueLicenseDialog({ userId, open, onClose, onSuccess }: IssueLi
       if (res.ok) {
         onSuccess()
         onClose()
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setError(body?.error?.message ?? 'Failed to issue license')
       }
     } finally {
       setSubmitting(false)
@@ -75,6 +80,7 @@ export function IssueLicenseDialog({ userId, open, onClose, onSuccess }: IssueLi
               className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background"
             />
           </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2 justify-end">
             <button
               type="button"

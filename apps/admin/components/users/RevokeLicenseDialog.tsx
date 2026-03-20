@@ -20,11 +20,13 @@ export function RevokeLicenseDialog({
   onSuccess,
 }: RevokeLicenseDialogProps) {
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (!open) return null
 
   async function handleRevoke() {
     setSubmitting(true)
+    setError(null)
     try {
       const res = await fetch(`/api/admin-proxy/users/${userId}/licenses/${licenseId}`, {
         method: 'PATCH',
@@ -34,6 +36,9 @@ export function RevokeLicenseDialog({
       if (res.ok) {
         onSuccess()
         onClose()
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setError(body?.error?.message ?? 'Failed to revoke license')
       }
     } finally {
       setSubmitting(false)
@@ -48,6 +53,7 @@ export function RevokeLicenseDialog({
           This will cancel the user&apos;s {tier.toUpperCase()} license. This action cannot be
           undone.
         </p>
+        {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="flex gap-2 justify-end">
           <button
             type="button"
