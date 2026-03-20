@@ -141,8 +141,10 @@ const api: RacedashAPI = {
       ipcRenderer.invoke('racedash:cloudRender:createJob', opts),
     startUpload: (jobId: string, opts: StartUploadOpts) =>
       ipcRenderer.invoke('racedash:cloudRender:startUpload', jobId, opts),
-    uploadPart: (url: string, filePath: string, partNumber: number, offset: number, size: number) =>
-      ipcRenderer.invoke('racedash:cloudRender:uploadPart', url, filePath, partNumber, offset, size),
+    uploadPart: (jobId: string, url: string, filePath: string, partNumber: number, offset: number, size: number) =>
+      ipcRenderer.invoke('racedash:cloudRender:uploadPart', jobId, url, filePath, partNumber, offset, size),
+    getFileSize: (filePath: string) =>
+      ipcRenderer.invoke('racedash:cloudRender:getFileSize', filePath),
     completeUpload: (jobId: string, parts: CompletedPart[]) =>
       ipcRenderer.invoke('racedash:cloudRender:completeUpload', jobId, parts),
     cancelUpload: (jobId: string) =>

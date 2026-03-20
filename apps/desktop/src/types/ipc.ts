@@ -366,7 +366,8 @@ export interface RacedashAPI {
   cloudRender: {
     createJob(opts: CreateCloudJobOpts): Promise<CreateCloudJobResult>
     startUpload(jobId: string, opts: StartUploadOpts): Promise<StartUploadResult>
-    uploadPart(url: string, filePath: string, partNumber: number, offset: number, size: number): Promise<UploadPartResult>
+    uploadPart(jobId: string, url: string, filePath: string, partNumber: number, offset: number, size: number): Promise<UploadPartResult>
+    getFileSize(filePath: string): Promise<number>
     completeUpload(jobId: string, parts: CompletedPart[]): Promise<CompleteUploadResult>
     cancelUpload(jobId: string): Promise<void>
     getStatusUrl(jobId: string): Promise<string>

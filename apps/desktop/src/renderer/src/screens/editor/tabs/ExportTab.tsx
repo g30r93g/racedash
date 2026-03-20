@@ -205,7 +205,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
       // Join chapters if needed
       const joinResult = await window.racedash.joinVideos(project.videoPaths)
       const filePath = joinResult.joinedPath
-      const fileSizeBytes = videoInfo.durationSeconds * 2_500_000 // rough estimate: ~2.5 MB/s
+      const fileSizeBytes = await window.racedash.cloudRender.getFileSize(filePath)
 
       // Create job
       const config = await window.racedash.readProjectConfig(project.configPath)
@@ -242,7 +242,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
           const { partNumber, url } = presignedUrls[idx]
           const offset = (partNumber - 1) * partSize
           const size = Math.min(partSize, fileSizeBytes - offset)
-          const result = await window.racedash.cloudRender.uploadPart(url, filePath, partNumber, offset, size)
+          const result = await window.racedash.cloudRender.uploadPart(jobId, url, filePath, partNumber, offset, size)
           parts.push(result)
         }
       }

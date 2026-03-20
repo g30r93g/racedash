@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron'
-import type { WebContents } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
@@ -11,7 +10,7 @@ import type {
   StartUploadOpts, StartUploadResult,
   CompletedPart, CompleteUploadResult,
   DownloadUrlResult, ListJobsResult,
-  CloudUploadProgressEvent, VideoInfo,
+  VideoInfo,
 } from '../types/ipc'
 
 const API_URL = process.env.VITE_API_URL ?? ''
@@ -52,7 +51,14 @@ export function registerCloudRenderHandlers(): void {
   // Upload a single part — main process handles the HTTP PUT
   ipcMain.handle(
     'racedash:cloudRender:uploadPart',
-    async (event, url: string, filePath: string, partNumber: number, offset: number, size: number) => {
+    async (_event, jobId: string, url: string, filePath: string, partNumber: number, offset: number, size: number) => {
+      // Register an AbortController so cancelUpload can abort in-flight fetches
+      let controller = activeUploads.get(jobId)
+      if (!controller) {
+        controller = new AbortController()
+        activeUploads.set(jobId, controller)
+      }
+
       const fd = fs.openSync(filePath, 'r')
       const buffer = Buffer.alloc(size)
       fs.readSync(fd, buffer, 0, size, offset)
@@ -62,6 +68,7 @@ export function registerCloudRenderHandlers(): void {
         method: 'PUT',
         body: buffer,
         headers: { 'Content-Length': String(size) },
+        signal: controller.signal,
       })
 
       if (!response.ok) {
@@ -77,6 +84,7 @@ export function registerCloudRenderHandlers(): void {
   ipcMain.handle(
     'racedash:cloudRender:completeUpload',
     async (_event, jobId: string, parts: CompletedPart[]): Promise<CompleteUploadResult> => {
+      activeUploads.delete(jobId)
       return fetchWithAuth<CompleteUploadResult>(`/api/jobs/${jobId}/complete-upload`, {
         method: 'POST',
         body: JSON.stringify({ parts }),
@@ -165,6 +173,14 @@ export function registerCloudRenderHandlers(): void {
         })),
         nextCursor: result.nextCursor,
       }
+    },
+  )
+
+  // Get actual file size (used by renderer to compute correct part count)
+  ipcMain.handle(
+    'racedash:cloudRender:getFileSize',
+    (_event, filePath: string): number => {
+      return fs.statSync(filePath).size
     },
   )
 

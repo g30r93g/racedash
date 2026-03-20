@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, desc, lt, sql, inArray } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import {
   users, jobs, licenses,
   reserveCredits, computeCredits, checkLicenseExpiry,

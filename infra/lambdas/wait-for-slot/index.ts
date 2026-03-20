@@ -1,7 +1,7 @@
 import { eq, and, gt, desc } from 'drizzle-orm'
 import { jobs, licenses, countActiveRenders, getSlotLimit } from '@racedash/db'
 import { getDb } from '../shared/db'
-import { sendTaskSuccess } from '../shared/sfn'
+import { sendTaskSuccess, sendTaskFailure } from '../shared/sfn'
 
 interface WaitForSlotEvent {
   jobId: string
@@ -33,7 +33,10 @@ export const handler = async (event: WaitForSlotEvent): Promise<void> => {
     .orderBy(desc(licenses.expiresAt))
     .limit(1)
 
-  if (!license) return
+  if (!license) {
+    await sendTaskFailure(taskToken, 'NO_ACTIVE_LICENSE', 'No active license found for user')
+    return
+  }
 
   const slotLimit = getSlotLimit(license.tier)
   const activeRenders = await countActiveRenders(db, userId)

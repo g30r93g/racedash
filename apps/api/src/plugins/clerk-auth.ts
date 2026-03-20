@@ -29,14 +29,23 @@ const clerkAuth: FastifyPluginAsync = async (fastify) => {
     if (isExcluded(request.method, request.url)) return
 
     const authHeader = request.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+
+    // Support token via query param for SSE endpoints (EventSource cannot set headers)
+    const queryToken = (request.query as Record<string, string>)?.token
+    let token: string | undefined
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7)
+    } else if (queryToken) {
+      token = queryToken
+    }
+
+    if (!token) {
       reply.status(401).send({
         error: { code: 'UNAUTHORIZED', message: 'Missing or invalid Authorization header' },
       })
       return
     }
-
-    const token = authHeader.slice(7)
 
     try {
       const secretKey = process.env.CLERK_SECRET_KEY
