@@ -425,7 +425,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
       const [cursorJob] = await db
         .select({ createdAt: jobs.createdAt, id: jobs.id })
         .from(jobs)
-        .where(eq(jobs.id, cursor))
+        .where(and(eq(jobs.id, cursor), eq(jobs.userId, user.id)))
         .limit(1)
 
       if (cursorJob) {
