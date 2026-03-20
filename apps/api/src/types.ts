@@ -56,6 +56,10 @@ export interface CheckoutResponse {
   sessionId: string
 }
 
+export interface PortalResponse {
+  portalUrl: string
+}
+
 // ── Credits ───────────────────────────────────────────────────────────────
 
 export interface CreditPackResponse {

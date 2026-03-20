@@ -4,7 +4,7 @@ import { users, licenses } from '@racedash/db'
 import { getDb } from '../lib/db'
 import { getStripe } from '../lib/stripe'
 import { priceIdForTier } from '../lib/stripe-prices'
-import type { CheckoutResponse, CreateSubscriptionCheckoutRequest, ApiError } from '../types'
+import type { CheckoutResponse, CreateSubscriptionCheckoutRequest, PortalResponse, ApiError } from '../types'
 
 const stripeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: CreateSubscriptionCheckoutRequest; Reply: CheckoutResponse | ApiError }>(
@@ -96,6 +96,52 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.log.error(err, 'Stripe checkout session creation failed')
         reply.status(502).send({
           error: { code: 'STRIPE_ERROR', message: 'Failed to create checkout session' },
+        })
+      }
+    },
+  )
+
+  // POST /api/stripe/portal — create a Stripe Customer Portal session
+  fastify.post<{ Reply: PortalResponse | ApiError }>(
+    '/api/stripe/portal',
+    async (request, reply) => {
+      const db = getDb()
+      const { userId: clerkUserId } = request.clerk
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.clerkId, clerkUserId))
+        .limit(1)
+
+      if (!user) {
+        reply.status(404).send({
+          error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
+        })
+        return
+      }
+
+      if (!user.stripeCustomerId) {
+        reply.status(404).send({
+          error: { code: 'NO_STRIPE_CUSTOMER', message: 'No Stripe customer associated with this account' },
+        })
+        return
+      }
+
+      const stripe = getStripe()
+      const returnUrl = process.env.APP_RETURN_URL ?? 'https://racedash.com'
+
+      try {
+        const session = await stripe.billingPortal.sessions.create({
+          customer: user.stripeCustomerId,
+          return_url: returnUrl,
+        })
+
+        return { portalUrl: session.url }
+      } catch (err) {
+        fastify.log.error(err, 'Stripe Customer Portal session creation failed')
+        reply.status(502).send({
+          error: { code: 'STRIPE_ERROR', message: 'Failed to create portal session' },
         })
       }
     },

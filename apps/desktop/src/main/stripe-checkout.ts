@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow, ipcMain, shell } from 'electron'
 import type { StripeCheckoutResult, LicenseInfo, CreditBalance } from '../types/ipc'
 import { cacheLicense } from './license-cache'
 import { fetchWithAuth } from './api-client'
@@ -111,4 +111,13 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
       return { outcome, sessionId }
     },
   )
+
+  ipcMain.handle('racedash:stripe:portal', async (): Promise<{ portalUrl: string }> => {
+    const { portalUrl } = await fetchWithAuth<{ portalUrl: string }>(
+      '/api/stripe/portal',
+      { method: 'POST' },
+    )
+    shell.openExternal(portalUrl)
+    return { portalUrl }
+  })
 }

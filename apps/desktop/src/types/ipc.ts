@@ -397,6 +397,7 @@ export interface RacedashAPI {
   stripe: {
     createSubscriptionCheckout(opts: { tier: 'plus' | 'pro' }): Promise<StripeCheckoutResult>
     createCreditCheckout(opts: { packSize: number }): Promise<StripeCheckoutResult>
+    openPortal(): Promise<{ portalUrl: string }>
   }
 
   // Cloud render

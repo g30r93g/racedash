@@ -133,6 +133,8 @@ const api: RacedashAPI = {
       ipcRenderer.invoke('racedash:stripe:subscriptionCheckout', opts),
     createCreditCheckout: (opts: { packSize: number }) =>
       ipcRenderer.invoke('racedash:stripe:creditCheckout', opts),
+    openPortal: () =>
+      ipcRenderer.invoke('racedash:stripe:portal'),
   },
 
   // Cloud render
