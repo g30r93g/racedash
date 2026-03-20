@@ -174,4 +174,28 @@ describe('PipelineStack', () => {
     expect(allOutputText).toContain('RemotionServeUrl')
     expect(allOutputText).toContain('MediaConvertRoleArn')
   })
+
+  test('every non-terminal state has a Catch block', () => {
+    const defStr = getStateMachineDefinitionString()
+    const definition = JSON.parse(defStr)
+    const states: Record<string, any> = definition.States
+
+    const nonTerminalStateNames = [
+      'WaitForSlot',
+      'GrantSlot',
+      'StartRenderOverlay',
+      'PrepareComposite',
+      'RunMediaConvert',
+      'FinaliseJob',
+      'NotifyUser',
+    ]
+
+    for (const name of nonTerminalStateNames) {
+      const state = states[name]
+      expect(state).toBeDefined()
+      expect(state.Catch).toBeDefined()
+      expect(Array.isArray(state.Catch)).toBe(true)
+      expect(state.Catch.length).toBeGreaterThan(0)
+    }
+  })
 })

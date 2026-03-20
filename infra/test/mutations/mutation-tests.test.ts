@@ -262,6 +262,56 @@ describe('Mutation Tests', () => {
     }).toThrow()
   })
 
+  test('mutation: remove Catch from StartRenderOverlay — must fail the Catch spec test', () => {
+    const templateJson = JSON.parse(JSON.stringify(pipelineTemplateJson))
+
+    const resources: Record<string, any> = templateJson.Resources
+    const smKey = Object.keys(resources).find(
+      (key) => resources[key].Type === 'AWS::StepFunctions::StateMachine',
+    )
+    expect(smKey).toBeDefined()
+
+    const def = resources[smKey!].Properties.DefinitionString
+    let defStr: string
+    if (typeof def === 'object' && def['Fn::Join']) {
+      defStr = def['Fn::Join'][1]
+        .map((part: any) => (typeof part === 'string' ? part : JSON.stringify(part)))
+        .join('')
+    } else {
+      defStr = typeof def === 'string' ? def : JSON.stringify(def)
+    }
+
+    const definition = JSON.parse(defStr)
+    expect(definition.States.StartRenderOverlay).toBeDefined()
+    expect(definition.States.StartRenderOverlay.Catch).toBeDefined()
+
+    // Mutate: remove Catch from StartRenderOverlay
+    delete definition.States.StartRenderOverlay.Catch
+
+    // Rebuild DefinitionString as a plain string
+    resources[smKey!].Properties.DefinitionString = JSON.stringify(definition)
+
+    // Verify that asserting all non-terminal states have Catch now fails
+    const nonTerminalStateNames = [
+      'WaitForSlot',
+      'GrantSlot',
+      'StartRenderOverlay',
+      'PrepareComposite',
+      'RunMediaConvert',
+      'FinaliseJob',
+      'NotifyUser',
+    ]
+
+    expect(() => {
+      for (const name of nonTerminalStateNames) {
+        const state = definition.States[name]
+        if (!state || !state.Catch || !Array.isArray(state.Catch) || state.Catch.length === 0) {
+          throw new Error(`State ${name} is missing a Catch block`)
+        }
+      }
+    }).toThrow()
+  })
+
   test('mutation: add Resource * to a Lambda S3 policy statement', () => {
     const templateJson = JSON.parse(JSON.stringify(pipelineTemplateJson))
 
