@@ -1,4 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify'
+import cors from '@fastify/cors'
 import errorHandler from './plugins/error-handler'
 import clerkAuth from './plugins/clerk-auth'
 import healthRoutes from './routes/health'
@@ -38,6 +39,10 @@ export async function createApp(): Promise<FastifyInstance> {
   )
 
   // Plugins
+  await app.register(cors, {
+    origin: process.env.ADMIN_APP_ORIGIN || false,
+    credentials: true,
+  })
   await app.register(errorHandler)
   await app.register(clerkAuth)
 
