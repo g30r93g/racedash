@@ -141,7 +141,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <div className="mb-6 flex shrink-0 items-center">
                   <h1 className="text-lg font-semibold text-white">Cloud Renders</h1>
                 </div>
-                <CloudRendersList />
+                <CloudRendersList authUser={user ? { name: user.name } : null} />
               </>
             )}
 
