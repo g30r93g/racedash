@@ -424,7 +424,7 @@ describe('POST /api/jobs/:id/complete-upload', () => {
 
   it('returns 404 when user does not own the job', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce(undefined)
+    mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
       method: 'POST',
@@ -549,7 +549,7 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('returns 404 when job does not exist', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce(undefined)
+    mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
       method: 'GET',
@@ -562,7 +562,7 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('returns 404 when user does not own the job', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce(undefined)
+    mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
       method: 'GET',
@@ -727,7 +727,7 @@ describe('GET /api/jobs/:id/download', () => {
 
   it('returns 404 when job does not exist', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce(undefined)
+    mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
       method: 'GET',
@@ -740,7 +740,7 @@ describe('GET /api/jobs/:id/download', () => {
 
   it('returns 404 when user does not own the job', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce(undefined)
+    mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
       method: 'GET',

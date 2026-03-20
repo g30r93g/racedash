@@ -31,8 +31,9 @@ describe('Credit conservation', () => {
             expect(consumed).toBe(rcCost)
             expect(reserved).toBe(0)
           } else {
-            // Net change = consumed - released = 0
-            expect(consumed - released).toBe(0)
+            // Net change to user balance: credits released = credits reserved
+            expect(released).toBe(rcCost)
+            expect(consumed).toBe(0)
             expect(reserved).toBe(0)
           }
         },

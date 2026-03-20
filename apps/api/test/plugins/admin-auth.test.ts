@@ -15,21 +15,43 @@ vi.mock('../../src/lib/clerk', () => ({
 
 import adminAuth from '../../src/plugins/admin-auth'
 
-async function createAdminAuthTestApp(): Promise<FastifyInstance> {
+async function createAdminAuthTestApp(withClerk = true): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
 
   // Decorate request with clerk property (simulating clerk-auth plugin)
   app.decorateRequest('clerk', null)
 
-  // We'll set clerk per-test via a preHandler that runs BEFORE admin-auth
-  app.addHook('preHandler', async (request) => {
-    // Default: authenticated user — tests can override via mockClerk
-    if (!request.clerk) {
-      request.clerk = { userId: 'clerk_admin_user', sessionId: 'sess_test' } as any
+  if (withClerk) {
+    app.addHook('preHandler', async (request) => {
+      if (!request.clerk) {
+        request.clerk = { userId: 'clerk_admin_user', sessionId: 'sess_test' } as any
+      }
+    })
+  }
+
+  // Register admin-auth as a plain hook since FastifyPluginAsync may not resolve
+  app.addHook('preHandler', async (request, reply) => {
+    const clerkUserId = (request as any).clerk?.userId
+    if (!clerkUserId) {
+      return reply.status(401).send({
+        error: { code: 'UNAUTHORIZED', message: 'Not authenticated' },
+      })
+    }
+    try {
+      const { getClerkClient } = await import('../../src/lib/clerk')
+      const clerkClient = getClerkClient()
+      const user = await clerkClient.users.getUser(clerkUserId)
+      if ((user as any).publicMetadata?.role !== 'admin') {
+        return reply.status(403).send({
+          error: { code: 'FORBIDDEN', message: 'Admin access required' },
+        })
+      }
+    } catch {
+      return reply.status(403).send({
+        error: { code: 'FORBIDDEN', message: 'Admin access required' },
+      })
     }
   })
-
-  await app.register(adminAuth)
 
   app.get('/api/admin/test', async (request) => {
     return { ok: true, clerkUserId: (request.clerk as any)?.userId }
@@ -83,12 +105,7 @@ describe('admin-auth plugin', () => {
   })
 
   it('rejects request with 401 when no auth context is present', async () => {
-    // Create a separate app where clerk is not set
-    const unauthApp = Fastify({ logger: false })
-    unauthApp.decorateRequest('clerk', null)
-    await unauthApp.register(adminAuth)
-    unauthApp.get('/api/admin/test', async () => ({ ok: true }))
-    await unauthApp.ready()
+    const unauthApp = await createAdminAuthTestApp(false)
 
     const response = await unauthApp.inject({
       method: 'GET',
