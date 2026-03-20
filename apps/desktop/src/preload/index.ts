@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import type { RacedashAPI, RenderCompleteResult, LicenseInfo, CreditBalance } from '../types/ipc'
+import type { RacedashAPI, RenderCompleteResult, LicenseInfo, CreditBalance, YouTubeUploadMetadata } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 
@@ -129,6 +129,20 @@ const api: RacedashAPI = {
       ipcRenderer.invoke('racedash:stripe:subscriptionCheckout', opts),
     createCreditCheckout: (opts: { packSize: number }) =>
       ipcRenderer.invoke('racedash:stripe:creditCheckout', opts),
+  },
+
+  // YouTube
+  youtube: {
+    connect: () =>
+      ipcRenderer.invoke('racedash:youtube:connect'),
+    disconnect: () =>
+      ipcRenderer.invoke('racedash:youtube:disconnect'),
+    getStatus: () =>
+      ipcRenderer.invoke('racedash:youtube:getStatus'),
+    upload: (jobId: string, metadata: YouTubeUploadMetadata) =>
+      ipcRenderer.invoke('racedash:youtube:upload', jobId, metadata),
+    getUploads: (jobId: string) =>
+      ipcRenderer.invoke('racedash:youtube:getUploads', jobId),
   },
 
   onAuthSessionExpired: (cb: () => void) => {

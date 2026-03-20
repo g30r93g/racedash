@@ -7,6 +7,7 @@ import { registerUpdaterHandlers } from './updater'
 import { registerAuthHandlers } from './auth'
 import { registerStripeHandlers } from './stripe-checkout'
 import { registerLicenseHandlers } from './license-handlers'
+import { registerYouTubeHandlers } from './youtube'
 
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
@@ -106,6 +107,7 @@ app.whenReady().then(() => {
   registerLicenseHandlers(win)
   registerStripeHandlers(win)
   registerUpdaterHandlers(win)
+  registerYouTubeHandlers(win)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

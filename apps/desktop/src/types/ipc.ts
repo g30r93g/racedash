@@ -190,6 +190,43 @@ export interface FetchWithAuthResponse {
   body: string
 }
 
+// ── YouTube types ─────────────────────────────────────────────────────────
+
+export interface YouTubeAccount {
+  accountName: string
+  accountId: string
+  connectedAt: string // ISO 8601
+}
+
+export interface YouTubeConnectionStatus {
+  connected: boolean
+  account: YouTubeAccount | null
+}
+
+export interface YouTubeUploadMetadata {
+  title: string
+  description: string
+  privacy: 'public' | 'unlisted' | 'private'
+}
+
+export interface YouTubeUploadResult {
+  socialUploadId: string
+  status: 'queued'
+  rcCost: number
+}
+
+export interface SocialUploadStatus {
+  id: string
+  platform: 'youtube'
+  status: 'queued' | 'uploading' | 'processing' | 'live' | 'failed'
+  metadata: YouTubeUploadMetadata
+  rcCost: number
+  platformUrl: string | null
+  errorMessage: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // The full window.racedash API surface.
 // All methods are stubbed in the scaffold; sub-plans implement each section.
 export interface RacedashAPI {
@@ -273,6 +310,15 @@ export interface RacedashAPI {
   stripe: {
     createSubscriptionCheckout(opts: { tier: 'plus' | 'pro' }): Promise<StripeCheckoutResult>
     createCreditCheckout(opts: { packSize: number }): Promise<StripeCheckoutResult>
+  }
+
+  // YouTube
+  youtube: {
+    connect(): Promise<YouTubeConnectionStatus>
+    disconnect(): Promise<void>
+    getStatus(): Promise<YouTubeConnectionStatus>
+    upload(jobId: string, metadata: YouTubeUploadMetadata): Promise<YouTubeUploadResult>
+    getUploads(jobId: string): Promise<SocialUploadStatus[]>
   }
 
   // Auth events — main → renderer push
