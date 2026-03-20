@@ -1,9 +1,9 @@
 import { adminFetch } from '@/lib/api'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { JobStatusBadge } from '@/components/jobs/JobStatusBadge'
+import { JobFilterForm } from '@/components/jobs/JobFilterForm'
 import { formatDateTime, formatDuration } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
 
@@ -38,23 +38,10 @@ export default async function JobsPage({
     <div>
       <PageHeader title="Jobs" />
 
-      <form className="flex gap-3 mb-4">
-        <Select name="status" defaultValue={status ?? ''}>
-          <option value="">All Statuses</option>
-          <option value="uploading">Uploading</option>
-          <option value="queued">Queued</option>
-          <option value="rendering">Rendering</option>
-          <option value="compositing">Compositing</option>
-          <option value="complete">Complete</option>
-          <option value="failed">Failed</option>
-        </Select>
-        <Select name="range" defaultValue={range}>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-          <option value="all">All time</option>
-        </Select>
-        <Button type="submit">Filter</Button>
-      </form>
+      <JobFilterForm
+        initialStatuses={status ? status.split(',') : []}
+        initialRange={range}
+      />
 
       <Table>
         <TableHeader>
