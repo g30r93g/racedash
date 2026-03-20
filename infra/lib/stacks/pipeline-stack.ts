@@ -51,8 +51,8 @@ export class PipelineStack extends cdk.Stack {
       bucketName: config.remotionSiteBucketName,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy: config.env === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: config.env !== 'prod',
     })
 
     // Remotion Lambda function

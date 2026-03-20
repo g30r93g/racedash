@@ -40,8 +40,8 @@ export class StorageStack extends cdk.Stack {
           abortIncompleteMultipartUploadAfter: cdk.Duration.days(1),
         },
       ],
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy: config.env === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: config.env !== 'prod',
     })
 
     // Renders bucket — download window is 7 days
@@ -57,8 +57,8 @@ export class StorageStack extends cdk.Stack {
           expiration: cdk.Duration.days(7),
         },
       ],
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy: config.env === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: config.env !== 'prod',
     })
 
     // CloudFront OAI for renders bucket
