@@ -8,6 +8,26 @@ const replayHtml = readFileSync(
   'utf-8',
 )
 
+const replayBukcCls = readFileSync(
+  join(__dirname, '__fixtures__/replay_bukc_cls.html'),
+  'utf-8',
+)
+
+const replayBukcSectors = readFileSync(
+  join(__dirname, '__fixtures__/replay_bukc_sectors.html'),
+  'utf-8',
+)
+
+const replayClub100 = readFileSync(
+  join(__dirname, '__fixtures__/replay_club100.html'),
+  'utf-8',
+)
+
+const replayIame = readFileSync(
+  join(__dirname, '__fixtures__/replay_iame.html'),
+  'utf-8',
+)
+
 const sampleHtml = readFileSync(
   join(__dirname, '__fixtures__/laptimes_sample.html'),
   'utf8',
@@ -218,5 +238,138 @@ describe('parseReplayLapData', () => {
   it('throws if JSON has no laps array', () => {
     const html = `<html><body><script type="application/json" id="lapData">{"other":true}</script></body></html>`
     expect(() => parseReplayLapData(html)).toThrow('laps')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Alpha Timing column layout variants
+// ---------------------------------------------------------------------------
+
+describe('parseReplayLapData — BUKC with Cls column (12 D columns)', () => {
+  it('extracts kart number from HTML number-plate span', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[0][0].kart).toBe('31')
+    expect(result[0][1].kart).toBe('58')
+  })
+
+  it('maps position correctly despite extra Cls column', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[0][0].position).toBe(1)
+    expect(result[0][1].position).toBe(22)
+    expect(result[1][1].position).toBe(15)
+  })
+
+  it('maps lapsCompleted correctly (D[5] not D[4])', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[0][1].lapsCompleted).toBe(0)
+    expect(result[1][1].lapsCompleted).toBe(1)
+  })
+
+  it('maps name correctly', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[0][0].name).toBe('Portsmouth A')
+    expect(result[0][1].name).toBe('Surrey A')
+  })
+
+  it('maps totalSeconds from Time column', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[0][1].totalSeconds).toBeCloseTo(2.346) // pre-race grid gap used as Time value
+    expect(result[1][0].totalSeconds).toBeCloseTo(55.902)
+    expect(result[1][1].totalSeconds).toBeCloseTo(59.795)
+  })
+
+  it('maps gapToLeader from Gap to 1st column', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[1][0].gapToLeader).toBe('0.000')
+    expect(result[1][1].gapToLeader).toBe('3.893')
+  })
+
+  it('maps intervalToAhead from Gap column', () => {
+    const result = parseReplayLapData(replayBukcCls)
+    expect(result[1][0].intervalToAhead).toBe('')
+    expect(result[1][1].intervalToAhead).toBe('0.214')
+  })
+})
+
+describe('parseReplayLapData — BUKC with sector columns (14 D columns)', () => {
+  it('extracts plain-text kart number', () => {
+    const result = parseReplayLapData(replayBukcSectors)
+    expect(result[0][0].kart).toBe('71')
+  })
+
+  it('maps position and lapsCompleted correctly', () => {
+    const result = parseReplayLapData(replayBukcSectors)
+    expect(result[0][0].position).toBe(1)
+    expect(result[0][0].lapsCompleted).toBe(0)
+    expect(result[1][0].lapsCompleted).toBe(1)
+  })
+
+  it('maps totalSeconds from Time column', () => {
+    const result = parseReplayLapData(replayBukcSectors)
+    expect(result[1][0].totalSeconds).toBeCloseTo(71.490)
+  })
+
+  it('maps gapToLeader and intervalToAhead correctly', () => {
+    const result = parseReplayLapData(replayBukcSectors)
+    expect(result[1][0].gapToLeader).toBe('0.000')
+    expect(result[1][0].intervalToAhead).toBe('')
+  })
+})
+
+describe('parseReplayLapData — Club100 (11 D columns, no Cls)', () => {
+  it('extracts kart number from HTML', () => {
+    const result = parseReplayLapData(replayClub100)
+    expect(result[0][0].kart).toBe('26')
+  })
+
+  it('maps all fields correctly', () => {
+    const result = parseReplayLapData(replayClub100)
+    const snap1 = result[1][0]
+    expect(snap1.position).toBe(1)
+    expect(snap1.name).toBe('Charlie Walmsley-ryde')
+    expect(snap1.lapsCompleted).toBe(1)
+    expect(snap1.totalSeconds).toBeCloseTo(89.006)
+    expect(snap1.gapToLeader).toBe('0.000')
+    expect(snap1.intervalToAhead).toBe('')
+  })
+})
+
+describe('parseReplayLapData — IAME (10 D columns, no Time column)', () => {
+  it('extracts kart number from HTML', () => {
+    const result = parseReplayLapData(replayIame)
+    expect(result[0][0].kart).toBe('20')
+  })
+
+  it('maps position and lapsCompleted correctly', () => {
+    const result = parseReplayLapData(replayIame)
+    expect(result[0][0].position).toBe(1)
+    expect(result[0][0].lapsCompleted).toBe(0)
+    expect(result[1][0].lapsCompleted).toBe(1)
+  })
+
+  it('totalSeconds is null when Time column is absent', () => {
+    const result = parseReplayLapData(replayIame)
+    expect(result[0][0].totalSeconds).toBeNull()
+    expect(result[1][0].totalSeconds).toBeNull()
+  })
+
+  it('maps gapToLeader and intervalToAhead correctly', () => {
+    const result = parseReplayLapData(replayIame)
+    expect(result[1][0].gapToLeader).toBe('0.000')
+    expect(result[1][0].intervalToAhead).toBe('')
+  })
+})
+
+describe('parseReplayLapData — legacy fixture (no #replayTable)', () => {
+  it('falls back to hardcoded indices when table headers are absent', () => {
+    const result = parseReplayLapData(replayHtml)
+    const p1 = result[1][0]
+    expect(p1.position).toBe(1)
+    expect(p1.kart).toBe('71')
+    expect(p1.name).toBe('Alice Smith')
+    expect(p1.lapsCompleted).toBe(1)
+    expect(p1.totalSeconds).toBeCloseTo(69.707)
+    expect(p1.gapToLeader).toBe('0.000')
+    expect(p1.intervalToAhead).toBe('')
   })
 })
