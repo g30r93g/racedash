@@ -11,6 +11,7 @@ export {
   jobs,
   socialUploads,
   connectedAccounts,
+  adminAuditLog,
 } from './schema'
 
 // Drizzle pgEnum objects (needed by downstream migration configs)
@@ -24,7 +25,7 @@ export {
 
 // Inferred row types
 export type { users as UsersTable } from './schema'
-import type { users, licenses, creditPacks, creditReservations, creditReservationPacks, jobs, socialUploads, connectedAccounts } from './schema'
+import type { users, licenses, creditPacks, creditReservations, creditReservationPacks, jobs, socialUploads, connectedAccounts, adminAuditLog } from './schema'
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type License = typeof licenses.$inferSelect
@@ -40,6 +41,8 @@ export type SocialUpload = typeof socialUploads.$inferSelect
 export type NewSocialUpload = typeof socialUploads.$inferInsert
 export type ConnectedAccount = typeof connectedAccounts.$inferSelect
 export type NewConnectedAccount = typeof connectedAccounts.$inferInsert
+export type AdminAuditLogEntry = typeof adminAuditLog.$inferSelect
+export type NewAdminAuditLogEntry = typeof adminAuditLog.$inferInsert
 
 // Enum types
 export type { LicenseTier, LicenseStatus, JobStatus, SocialUploadStatus, ReservationStatus } from './types'
@@ -56,6 +59,7 @@ export {
   checkLicenseExpiry,
   claimNextQueuedSlotToken,
   computeCredits,
+  logAdminAction,
 } from './helpers'
 
 export type {
@@ -69,6 +73,8 @@ export type {
   CheckLicenseExpiryResult,
   ClaimNextQueuedSlotTokenInput,
   ComputeCreditsInput,
+  AdminAuditAction,
+  LogAdminActionParams,
 } from './helpers'
 
 // Errors
