@@ -234,6 +234,11 @@ export class PipelineStack extends cdk.Stack {
     stateMachine.addToRolePolicy(new iam.PolicyStatement({
       actions: ['iam:PassRole'],
       resources: [mediaConvertRole.roleArn],
+      conditions: {
+        StringEquals: {
+          'iam:PassedToService': 'mediaconvert.amazonaws.com',
+        },
+      },
     }))
     stateMachine.addToRolePolicy(new iam.PolicyStatement({
       actions: ['events:PutTargets', 'events:PutRule', 'events:DescribeRule'],

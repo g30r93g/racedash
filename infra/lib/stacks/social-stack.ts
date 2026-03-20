@@ -126,6 +126,11 @@ export class SocialStack extends cdk.Stack {
         taskDef.executionRole!.roleArn,
         taskDef.taskRole.roleArn,
       ],
+      conditions: {
+        StringEquals: {
+          'iam:PassedToService': 'ecs-tasks.amazonaws.com',
+        },
+      },
     }))
 
     // SQS triggers dispatch Lambda
