@@ -13,6 +13,9 @@ import adminRoutes from './routes/admin'
 import jobRoutes from './routes/jobs'
 import webhooksRemotionRoutes from './routes/webhooks-remotion'
 import webhooksRenderRoutes from './routes/webhooks-render'
+import youtubeAuthRoutes from './routes/youtube-auth'
+import socialUploadRoutes from './routes/social-upload'
+import socialUploadsListRoutes from './routes/social-uploads-list'
 
 export async function createApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -51,6 +54,9 @@ export async function createApp(): Promise<FastifyInstance> {
   await app.register(jobRoutes)
   await app.register(webhooksRemotionRoutes)
   await app.register(webhooksRenderRoutes)
+  await app.register(youtubeAuthRoutes)
+  await app.register(socialUploadRoutes)
+  await app.register(socialUploadsListRoutes)
 
   return app
 }

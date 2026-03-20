@@ -231,6 +231,71 @@ export interface RenderWebhookPayload {
   }
 }
 
+// ── YouTube OAuth ──────────────────────────────────────────────────────────
+
+export interface YouTubeAccount {
+  accountName: string
+  accountId: string
+  connectedAt: string // ISO 8601
+}
+
+export interface YouTubeStatusResponse {
+  connected: boolean
+  account: YouTubeAccount | null
+}
+
+export interface YouTubeDisconnectResponse {
+  disconnected: true
+}
+
+// ── Social Upload ──────────────────────────────────────────────────────────
+
+export interface SocialUploadRequest {
+  platform: 'youtube'
+  metadata: YouTubeUploadMetadata
+}
+
+export interface YouTubeUploadMetadata {
+  title: string       // 1-100 chars
+  description: string // 0-5000 chars
+  privacy: 'public' | 'unlisted' | 'private'
+}
+
+export interface SocialUploadResponse {
+  socialUploadId: string
+  status: 'queued'
+  platform: 'youtube'
+  rcCost: number
+}
+
+export interface SocialUploadStatusEntry {
+  id: string
+  platform: 'youtube'
+  status: 'queued' | 'uploading' | 'processing' | 'live' | 'failed'
+  metadata: YouTubeUploadMetadata
+  rcCost: number
+  platformUrl: string | null
+  errorMessage: string | null
+  createdAt: string // ISO 8601
+  updatedAt: string // ISO 8601
+}
+
+export interface SocialUploadsListResponse {
+  uploads: SocialUploadStatusEntry[]
+}
+
+// ── SQS Message Payload ──────────────────────────────────────────────────
+
+export interface SocialUploadPayload {
+  socialUploadId: string
+  reservationKey: string // `su_${socialUploadId}`
+  jobId: string
+  userId: string
+  platform: 'youtube'
+  outputS3Key: string   // `renders/${jobId}/output.mp4`
+  metadata: YouTubeUploadMetadata
+}
+
 // ── Clerk auth context (injected by middleware into request) ──────────────
 
 export interface ClerkAuthContext {
@@ -240,7 +305,6 @@ export interface ClerkAuthContext {
 
 // ── Admin types ──────────────────────────────────────────────────────────
 
-export type JobStatus = 'uploading' | 'queued' | 'rendering' | 'compositing' | 'complete' | 'failed'
 export type LicenseTier = 'plus' | 'pro'
 export type LicenseStatus = 'active' | 'expired' | 'cancelled'
 

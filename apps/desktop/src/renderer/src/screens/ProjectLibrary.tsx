@@ -12,6 +12,7 @@ import type { ProjectData } from '../../../types/project'
 import { useAuth } from '../hooks/useAuth'
 import { useLicense } from '../hooks/useLicense'
 import { useCredits } from '../hooks/useCredits'
+import { useYouTube } from '../hooks/useYouTube'
 
 type ProjectView = 'tile' | 'list'
 
@@ -29,6 +30,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   const { user, license: authLicense, isSignedIn, signIn, signOut } = useAuth()
   const { license } = useLicense(isSignedIn)
   const { balance, fetchHistory } = useCredits(isSignedIn)
+  const { status: youtubeStatus, connect: youtubeConnect, disconnect: youtubeDisconnect } = useYouTube()
 
   // Determine display plan from license hook (preferred) or auth session fallback
   const displayPlan = license?.tier ?? authLicense?.tier ?? null
@@ -141,7 +143,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <div className="mb-6 flex shrink-0 items-center">
                   <h1 className="text-lg font-semibold text-white">Cloud Renders</h1>
                 </div>
-                <CloudRendersList authUser={user ? { name: user.name } : null} />
+                <CloudRendersList authUser={user ? { name: user.name } : null} youtubeConnected={youtubeStatus.connected} creditBalance={balance?.totalRc ?? 0} />
               </>
             )}
 
@@ -154,11 +156,14 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                   user={user}
                   license={authLicense}
                   creditBalance={balance}
+                  youtubeStatus={youtubeStatus}
                   onSignIn={signIn}
                   onSignOut={signOut}
                   onTopUpCredits={handleTopUpCredits}
                   onManageSubscription={handleManageSubscription}
                   onSubscribe={handleSubscribe}
+                  onYouTubeConnect={youtubeConnect}
+                  onYouTubeDisconnect={youtubeDisconnect}
                   fetchCreditHistory={fetchHistory}
                 />
               </>

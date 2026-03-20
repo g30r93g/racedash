@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { SectionLabel } from './SectionLabel'
-import type { CloudRenderJob, CloudJobStatus } from '../../../../types/ipc'
+import { YouTubeUploadDialog } from './YouTubeUploadDialog'
+import type { CloudRenderJob, CloudJobStatus, SocialUploadStatus, YouTubeUploadMetadata } from '../../../../types/ipc'
 
 function formatCountdown(expiresAt: string): string {
   const diff = new Date(expiresAt).getTime() - Date.now()
@@ -31,9 +32,11 @@ const ACTIVE_STATUSES: CloudJobStatus[] = ['uploading', 'queued', 'rendering', '
 
 interface CloudRendersListProps {
   authUser?: { name: string } | null
+  youtubeConnected: boolean
+  creditBalance: number
 }
 
-export function CloudRendersList({ authUser }: CloudRendersListProps): React.ReactElement {
+export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: CloudRendersListProps): React.ReactElement {
   const [jobs, setJobs] = useState<CloudRenderJob[]>([])
   const [loading, setLoading] = useState(true)
   const sseRefs = useRef<Map<string, EventSource>>(new Map())
@@ -135,6 +138,14 @@ export function CloudRendersList({ authUser }: CloudRendersListProps): React.Rea
     return () => clearInterval(interval)
   }, [authUser, fetchJobs])
 
+  const [uploadDialogJob, setUploadDialogJob] = useState<CloudRenderJob | null>(null)
+
+  const handleUpload = useCallback(async (metadata: YouTubeUploadMetadata) => {
+    if (!uploadDialogJob) return
+    await window.racedash.youtube.upload(uploadDialogJob.id, metadata)
+    setUploadDialogJob(null)
+  }, [uploadDialogJob])
+
   if (loading) {
     return <p className="p-4 text-xs text-muted-foreground">Loading…</p>
   }
@@ -155,42 +166,68 @@ export function CloudRendersList({ authUser }: CloudRendersListProps): React.Rea
   const failed = jobs.filter((j) => j.status === 'failed')
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="flex flex-col gap-4 p-4">
-        {active.length > 0 && (
-          <section>
-            <SectionLabel>Active</SectionLabel>
-            <div className="flex flex-col gap-2">
-              {active.map((job) => <JobCard key={job.id} job={job} />)}
-            </div>
-          </section>
-        )}
-        {active.length > 0 && (completed.length > 0 || failed.length > 0) && <Separator />}
-        {completed.length > 0 && (
-          <section>
-            <SectionLabel>Completed</SectionLabel>
-            <div className="flex flex-col gap-2">
-              {completed.map((job) => <JobCard key={job.id} job={job} />)}
-            </div>
-          </section>
-        )}
-        {completed.length > 0 && failed.length > 0 && <Separator />}
-        {failed.length > 0 && (
-          <section>
-            <SectionLabel>Failed</SectionLabel>
-            <div className="flex flex-col gap-2">
-              {failed.map((job) => <JobCard key={job.id} job={job} />)}
-            </div>
-          </section>
-        )}
-      </div>
-    </ScrollArea>
+    <>
+      <ScrollArea className="flex-1">
+        <div className="flex flex-col gap-4 p-4">
+          {active.length > 0 && (
+            <section>
+              <SectionLabel>Active</SectionLabel>
+              <div className="flex flex-col gap-2">
+                {active.map((job) => <JobCard key={job.id} job={job} youtubeConnected={youtubeConnected} onUploadClick={setUploadDialogJob} />)}
+              </div>
+            </section>
+          )}
+          {active.length > 0 && (completed.length > 0 || failed.length > 0) && <Separator />}
+          {completed.length > 0 && (
+            <section>
+              <SectionLabel>Completed</SectionLabel>
+              <div className="flex flex-col gap-2">
+                {completed.map((job) => <JobCard key={job.id} job={job} youtubeConnected={youtubeConnected} onUploadClick={setUploadDialogJob} />)}
+              </div>
+            </section>
+          )}
+          {completed.length > 0 && failed.length > 0 && <Separator />}
+          {failed.length > 0 && (
+            <section>
+              <SectionLabel>Failed</SectionLabel>
+              <div className="flex flex-col gap-2">
+                {failed.map((job) => <JobCard key={job.id} job={job} youtubeConnected={youtubeConnected} onUploadClick={setUploadDialogJob} />)}
+              </div>
+            </section>
+          )}
+        </div>
+      </ScrollArea>
+
+      {uploadDialogJob && (
+        <YouTubeUploadDialog
+          open={!!uploadDialogJob}
+          onOpenChange={(open) => { if (!open) setUploadDialogJob(null) }}
+          onUpload={handleUpload}
+          defaultTitle={`${uploadDialogJob.projectName} - ${uploadDialogJob.sessionType}`}
+          creditBalance={creditBalance}
+        />
+      )}
+    </>
   )
 }
 
-function JobCard({ job }: { job: CloudRenderJob }): React.ReactElement {
+function JobCard({ job, youtubeConnected, onUploadClick }: {
+  job: CloudRenderJob
+  youtubeConnected: boolean
+  onUploadClick: (job: CloudRenderJob) => void
+}): React.ReactElement {
   const badge = statusBadge(job.status)
   const isExpired = job.downloadExpiresAt ? new Date(job.downloadExpiresAt) < new Date() : false
+  const [uploads, setUploads] = useState<SocialUploadStatus[]>([])
+
+  useEffect(() => {
+    if (job.status === 'complete') {
+      window.racedash.youtube.getUploads(job.id).then(setUploads).catch(() => {})
+    }
+  }, [job.id, job.status])
+
+  const youtubeUpload = uploads.find((u) => u.platform === 'youtube')
+  const hasActiveUpload = youtubeUpload && ['queued', 'uploading', 'processing', 'live'].includes(youtubeUpload.status)
 
   async function handleDownload() {
     try {
@@ -250,22 +287,60 @@ function JobCard({ job }: { job: CloudRenderJob }): React.ReactElement {
         </div>
       )}
 
-      {/* Complete — download button and expiry */}
+      {/* Complete — download button, expiry, and YouTube upload */}
       {job.status === 'complete' && (
-        <div className="mt-1 flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs"
-            onClick={handleDownload}
-            disabled={isExpired}
-          >
-            {isExpired ? 'Expired' : 'Download'}
-          </Button>
-          {job.downloadExpiresAt && (
-            <span className="text-[10px] text-muted-foreground">
-              {formatCountdown(job.downloadExpiresAt)}
-            </span>
+        <div className="mt-1 flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={handleDownload}
+              disabled={isExpired}
+            >
+              {isExpired ? 'Expired' : 'Download'}
+            </Button>
+            {youtubeUpload?.status === 'live' && (
+              <Button variant="outline" size="sm" className="text-xs"
+                onClick={() => window.open(youtubeUpload.platformUrl ?? undefined)}>
+                View on YouTube
+              </Button>
+            )}
+            {!hasActiveUpload && youtubeConnected && (
+              <Button variant="outline" size="sm" className="text-xs"
+                onClick={() => onUploadClick(job)}>
+                Upload to YouTube
+              </Button>
+            )}
+            {job.downloadExpiresAt && (
+              <span className="text-[10px] text-muted-foreground">
+                {formatCountdown(job.downloadExpiresAt)}
+              </span>
+            )}
+          </div>
+
+          {youtubeUpload?.status === 'failed' && (
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] text-destructive">{youtubeUpload.errorMessage}</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="text-xs"
+                  onClick={() => onUploadClick(job)}>
+                  Retry Upload
+                </Button>
+                <span className="text-[10px] text-muted-foreground">10 RC refunded</span>
+              </div>
+            </div>
+          )}
+
+          {youtubeUpload && ['queued', 'uploading', 'processing'].includes(youtubeUpload.status) && (
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+              <span className="text-[10px] text-muted-foreground">
+                {youtubeUpload.status === 'queued' ? 'Queued...' :
+                 youtubeUpload.status === 'uploading' ? 'Uploading to YouTube...' :
+                 'Processing on YouTube...'}
+              </span>
+            </div>
           )}
         </div>
       )}

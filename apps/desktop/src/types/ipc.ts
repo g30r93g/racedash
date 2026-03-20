@@ -277,6 +277,43 @@ export interface FetchWithAuthResponse {
   body: string
 }
 
+// ── YouTube types ─────────────────────────────────────────────────────────
+
+export interface YouTubeAccount {
+  accountName: string
+  accountId: string
+  connectedAt: string // ISO 8601
+}
+
+export interface YouTubeConnectionStatus {
+  connected: boolean
+  account: YouTubeAccount | null
+}
+
+export interface YouTubeUploadMetadata {
+  title: string
+  description: string
+  privacy: 'public' | 'unlisted' | 'private'
+}
+
+export interface YouTubeUploadResult {
+  socialUploadId: string
+  status: 'queued'
+  rcCost: number
+}
+
+export interface SocialUploadStatus {
+  id: string
+  platform: 'youtube'
+  status: 'queued' | 'uploading' | 'processing' | 'live' | 'failed'
+  metadata: YouTubeUploadMetadata
+  rcCost: number
+  platformUrl: string | null
+  errorMessage: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // The full window.racedash API surface.
 // All methods are stubbed in the scaffold; sub-plans implement each section.
 export interface RacedashAPI {
@@ -377,10 +414,20 @@ export interface RacedashAPI {
     estimateCost(sourceVideo: VideoInfo, resolution: string, frameRate: string): number
   }
 
+  // YouTube
+  youtube: {
+    connect(): Promise<YouTubeConnectionStatus>
+    disconnect(): Promise<void>
+    getStatus(): Promise<YouTubeConnectionStatus>
+    upload(jobId: string, metadata: YouTubeUploadMetadata): Promise<YouTubeUploadResult>
+    getUploads(jobId: string): Promise<SocialUploadStatus[]>
+  }
+
   // Cloud render upload events — main → renderer push
   onCloudUploadProgress(cb: (event: CloudUploadProgressEvent) => void): () => void
   onCloudUploadComplete(cb: (event: { jobId: string }) => void): () => void
   onCloudUploadError(cb: (event: { jobId: string; message: string }) => void): () => void
+
 
   // Auth events — main → renderer push
   onAuthSessionExpired(cb: () => void): () => void

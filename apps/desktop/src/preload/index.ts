@@ -3,7 +3,7 @@ import type { IpcRendererEvent } from 'electron'
 import type {
   RacedashAPI, RenderCompleteResult, LicenseInfo, CreditBalance,
   CreateCloudJobOpts, StartUploadOpts, CompletedPart,
-  CloudUploadProgressEvent, VideoInfo,
+  CloudUploadProgressEvent, VideoInfo, YouTubeUploadMetadata,
 } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
@@ -159,6 +159,20 @@ const api: RacedashAPI = {
       ipcRenderer.invoke('racedash:cloudRender:listJobs', cursor),
     estimateCost: (sourceVideo: VideoInfo, resolution: string, frameRate: string) =>
       ipcRenderer.invoke('racedash:cloudRender:estimateCost', sourceVideo, resolution, frameRate),
+  },
+
+  // YouTube
+  youtube: {
+    connect: () =>
+      ipcRenderer.invoke('racedash:youtube:connect'),
+    disconnect: () =>
+      ipcRenderer.invoke('racedash:youtube:disconnect'),
+    getStatus: () =>
+      ipcRenderer.invoke('racedash:youtube:getStatus'),
+    upload: (jobId: string, metadata: YouTubeUploadMetadata) =>
+      ipcRenderer.invoke('racedash:youtube:upload', jobId, metadata),
+    getUploads: (jobId: string) =>
+      ipcRenderer.invoke('racedash:youtube:getUploads', jobId),
   },
 
   onCloudUploadProgress: (cb: (event: CloudUploadProgressEvent) => void) => {
