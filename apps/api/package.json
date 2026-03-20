@@ -17,6 +17,8 @@
     "@aws-sdk/s3-request-presigner": "^3.1013.0",
     "@clerk/backend": "^1.20.0",
     "@fastify/aws-lambda": "^5.0.0",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@racedash/db": "workspace:*",
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
