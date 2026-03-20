@@ -64,7 +64,7 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
         })
         .returning()
 
-      await logAdminAction(tx as any, {
+      await logAdminAction(tx, {
         adminClerkId,
         action: 'license.issue',
         targetUserId: userId,
@@ -158,7 +158,7 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
         .where(and(eq(licenses.id, licenseId), eq(licenses.userId, userId)))
         .returning()
 
-      await logAdminAction(tx as any, {
+      await logAdminAction(tx, {
         adminClerkId,
         action,
         targetUserId: userId,

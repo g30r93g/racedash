@@ -1,5 +1,5 @@
 // Client
-export { createDb, type DrizzleDb } from './client'
+export { createDb, type DrizzleDb, type DrizzleTx, type DbOrTx } from './client'
 
 // Schema (all table objects for use in Drizzle queries)
 export {

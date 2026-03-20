@@ -1,5 +1,5 @@
 import { adminAuditLog } from '../schema/admin-audit-log'
-import type { DrizzleDb } from '../client'
+import type { DbOrTx } from '../client'
 
 export type AdminAuditAction =
   | 'license.issue'
@@ -18,7 +18,7 @@ export interface LogAdminActionParams {
 }
 
 export async function logAdminAction(
-  db: DrizzleDb,
+  db: DbOrTx,
   params: LogAdminActionParams,
 ): Promise<void> {
   await db.insert(adminAuditLog).values({

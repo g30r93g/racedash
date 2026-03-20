@@ -65,7 +65,7 @@ const creditsRoutes: FastifyPluginAsync = async (fastify) => {
           })
           .returning()
 
-        await logAdminAction(tx as any, {
+        await logAdminAction(tx, {
           adminClerkId,
           action: 'credits.grant',
           targetUserId: userId,
@@ -132,7 +132,7 @@ const creditsRoutes: FastifyPluginAsync = async (fastify) => {
           remaining -= deduct
         }
 
-        await logAdminAction(tx as any, {
+        await logAdminAction(tx, {
           adminClerkId,
           action: 'credits.correction',
           targetUserId: userId,
