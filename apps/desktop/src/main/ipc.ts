@@ -11,6 +11,7 @@ import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConf
 import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
+import { registerCloudRenderHandlers } from './cloud-render-handlers'
 
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
@@ -693,4 +694,7 @@ export function registerIpcHandlers(): void {
     }
     activeRenderSender = null
   })
+
+  // Cloud render handlers
+  registerCloudRenderHandlers()
 }
