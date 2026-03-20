@@ -1,6 +1,3 @@
-import React, { useEffect, useState } from 'react'
-import type { SegmentConfig } from '../../../../types/project'
-import type { LapPreview } from '../../../../types/ipc'
 import { Spinner } from '@/components/loaders/Spinner'
 import {
   Table,
@@ -10,6 +7,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import React, { useEffect, useState } from 'react'
+import type { LapPreview } from '../../../../types/ipc'
+import type { SegmentConfig } from '../../../../types/project'
 
 interface LapTimeVerifyTableProps {
   segment: SegmentConfig
