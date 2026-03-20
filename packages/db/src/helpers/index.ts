@@ -28,3 +28,9 @@ export {
   computeCredits,
   type ComputeCreditsInput,
 } from './compute-credits'
+
+export {
+  logAdminAction,
+  type AdminAuditAction,
+  type LogAdminActionParams,
+} from './audit'
