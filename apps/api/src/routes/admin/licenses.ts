@@ -1,40 +1,42 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and } from 'drizzle-orm'
 import { users, licenses, logAdminAction } from '@racedash/db'
+import { ZodError } from 'zod'
 import { getDb } from '../../lib/db'
-import type { AdminIssueLicenseRequest, AdminUpdateLicenseRequest } from '../../types'
+import { issueLicenseSchema, updateLicenseSchema } from './schemas'
 
 const licensesRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/admin/users/:id/licenses
   fastify.post<{
     Params: { id: string }
-    Body: AdminIssueLicenseRequest
+    Body: { tier: string; startsAt: string; expiresAt: string }
   }>('/api/admin/users/:id/licenses', async (request, reply) => {
+    let tier: 'plus' | 'pro'
+    let startsAt: string
+    let expiresAt: string
+
+    try {
+      const parsed = issueLicenseSchema.parse(request.body)
+      tier = parsed.tier
+      startsAt = parsed.startsAt
+      expiresAt = parsed.expiresAt
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return reply.status(400).send({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: err.issues.map((e) => e.message).join('; '),
+          },
+        })
+      }
+      throw err
+    }
+
     const db = getDb()
     const { id: userId } = request.params
-    const { tier, startsAt, expiresAt } = request.body
     const adminClerkId = request.clerk.userId
-
-    if (!tier || !['plus', 'pro'].includes(tier)) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'tier must be "plus" or "pro"' },
-      })
-    }
-
     const startsAtDate = new Date(startsAt)
     const expiresAtDate = new Date(expiresAt)
-
-    if (isNaN(startsAtDate.getTime())) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'startsAt must be a valid ISO 8601 date' },
-      })
-    }
-
-    if (isNaN(expiresAtDate.getTime()) || expiresAtDate <= startsAtDate) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'expiresAt must be a valid ISO 8601 date after startsAt' },
-      })
-    }
 
     const [user] = await db
       .select({ id: users.id })
@@ -95,39 +97,30 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
   // PATCH /api/admin/users/:id/licenses/:licenseId
   fastify.patch<{
     Params: { id: string; licenseId: string }
-    Body: AdminUpdateLicenseRequest
+    Body: { expiresAt?: string; status?: string }
   }>('/api/admin/users/:id/licenses/:licenseId', async (request, reply) => {
-    const db = getDb()
-    const { id: userId, licenseId } = request.params
-    const { expiresAt, status } = request.body
-    const adminClerkId = request.clerk.userId
+    let expiresAt: string | undefined
+    let status: 'cancelled' | undefined
 
-    if (!expiresAt && !status) {
-      return reply.status(400).send({
-        error: { code: 'INVALID_LICENSE_UPDATE', message: 'At least one of expiresAt or status must be provided' },
-      })
-    }
-
-    if (expiresAt && status) {
-      return reply.status(400).send({
-        error: { code: 'INVALID_LICENSE_UPDATE', message: 'expiresAt and status are mutually exclusive' },
-      })
-    }
-
-    if (status && status !== 'cancelled') {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'status must be "cancelled"' },
-      })
-    }
-
-    if (expiresAt) {
-      const expiresAtDate = new Date(expiresAt)
-      if (isNaN(expiresAtDate.getTime()) || expiresAtDate <= new Date()) {
+    try {
+      const parsed = updateLicenseSchema.parse(request.body)
+      expiresAt = parsed.expiresAt
+      status = parsed.status
+    } catch (err) {
+      if (err instanceof ZodError) {
         return reply.status(400).send({
-          error: { code: 'VALIDATION_ERROR', message: 'expiresAt must be a valid future ISO 8601 date' },
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: err.issues.map((e) => e.message).join('; '),
+          },
         })
       }
+      throw err
     }
+
+    const db = getDb()
+    const { id: userId, licenseId } = request.params
+    const adminClerkId = request.clerk.userId
 
     const now = new Date()
     const updateData: Record<string, unknown> = { updatedAt: now }

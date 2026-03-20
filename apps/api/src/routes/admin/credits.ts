@@ -1,37 +1,38 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, asc, sql } from 'drizzle-orm'
 import { users, creditPacks, logAdminAction, type CreditPack } from '@racedash/db'
+import { ZodError } from 'zod'
 import { getDb } from '../../lib/db'
-import type { AdminCreditAdjustmentRequest } from '../../types'
+import { creditAdjustmentSchema } from './schemas'
 
 const creditsRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/admin/users/:id/credits
   fastify.post<{
     Params: { id: string }
-    Body: AdminCreditAdjustmentRequest
+    Body: { rcAmount: number; reason: string }
   }>('/api/admin/users/:id/credits', async (request, reply) => {
+    let rcAmount: number
+    let reason: string
+
+    try {
+      const parsed = creditAdjustmentSchema.parse(request.body)
+      rcAmount = parsed.rcAmount
+      reason = parsed.reason
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return reply.status(400).send({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: err.issues.map((e) => e.message).join('; '),
+          },
+        })
+      }
+      throw err
+    }
+
     const db = getDb()
     const { id: userId } = request.params
-    const { rcAmount, reason } = request.body
     const adminClerkId = request.clerk.userId
-
-    if (!Number.isInteger(rcAmount) || rcAmount === 0) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'rcAmount must be a non-zero integer' },
-      })
-    }
-
-    if (!reason || reason.trim().length === 0) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'reason is required' },
-      })
-    }
-
-    if (reason.length > 500) {
-      return reply.status(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'reason must not exceed 500 characters' },
-      })
-    }
 
     const [user] = await db
       .select({ id: users.id })

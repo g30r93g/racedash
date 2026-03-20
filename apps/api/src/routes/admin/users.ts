@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, asc, desc, sql, ilike } from 'drizzle-orm'
 import { users, licenses, creditPacks, jobs } from '@racedash/db'
 import { getDb } from '../../lib/db'
+import { userSearchSchema } from './schemas'
 import type { AdminUserListResponse, AdminUserDetailResponse } from '../../types'
 
 const usersRoutes: FastifyPluginAsync = async (fastify) => {
@@ -11,8 +12,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     Reply: AdminUserListResponse
   }>('/api/admin/users', async (request) => {
     const db = getDb()
-    const limit = Math.min(Math.max(parseInt(request.query.limit ?? '50', 10) || 50, 1), 100)
-    const { search, cursor } = request.query
+    const { search, cursor, limit } = userSearchSchema.parse(request.query)
 
     const conditions = []
     if (search) {
