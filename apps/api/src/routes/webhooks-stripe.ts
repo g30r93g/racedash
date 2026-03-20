@@ -50,7 +50,7 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
       let event: Stripe.Event
 
       try {
-        const rawBody = (request as any).rawBody ?? JSON.stringify(request.body)
+        const rawBody = request.rawBody ?? JSON.stringify(request.body)
         event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
       } catch {
         reply.status(400).send({

@@ -29,7 +29,7 @@ export async function createApp(): Promise<FastifyInstance> {
     (req, body, done) => {
       try {
         const parsed = JSON.parse(body as string)
-        ;(req as any).rawBody = body
+        req.rawBody = body
         done(null, parsed)
       } catch (err) {
         done(err as Error, undefined)

@@ -22,7 +22,7 @@ const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
 
-    const rawBody = (request as any).rawBody ?? JSON.stringify(request.body)
+    const rawBody = request.rawBody ?? JSON.stringify(request.body)
 
     try {
       if (!verifyRemotionSignature(rawBody, signature, secret)) {

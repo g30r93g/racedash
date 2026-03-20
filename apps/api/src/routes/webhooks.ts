@@ -40,7 +40,7 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       let event: ClerkWebhookEvent
 
       try {
-        const body = (request as any).rawBody ?? JSON.stringify(request.body)
+        const body = request.rawBody ?? JSON.stringify(request.body)
         event = wh.verify(body, {
           'svix-id': svixId,
           'svix-timestamp': svixTimestamp,

@@ -4,6 +4,7 @@ import type { ClerkAuthContext } from '../../src/types'
 declare module 'fastify' {
   interface FastifyRequest {
     clerk: ClerkAuthContext
+    rawBody?: string
   }
 }
 
@@ -26,7 +27,7 @@ export async function createTestApp(
     (req, body, done) => {
       try {
         const parsed = JSON.parse(body as string)
-        ;(req as any).rawBody = body
+        req.rawBody = body
         done(null, parsed)
       } catch (err) {
         done(err as Error, undefined)
@@ -64,7 +65,7 @@ export async function createUnauthenticatedTestApp(
     (req, body, done) => {
       try {
         const parsed = JSON.parse(body as string)
-        ;(req as any).rawBody = body
+        req.rawBody = body
         done(null, parsed)
       } catch (err) {
         done(err as Error, undefined)
