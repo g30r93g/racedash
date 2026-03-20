@@ -3,7 +3,7 @@ import { eq, and, gt, desc } from 'drizzle-orm'
 import { users, licenses, connectedAccounts } from '@racedash/db'
 import { getDb } from '../lib/db'
 import { encryptToken, decryptToken } from '../lib/token-crypto'
-import { createHmac } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { YouTubeStatusResponse, YouTubeDisconnectResponse } from '../types'
 
 function signJwt(payload: Record<string, unknown>, secret: string): string {
@@ -18,7 +18,9 @@ function verifyJwt(token: string, secret: string): Record<string, unknown> | nul
   if (parts.length !== 3) return null
 
   const expectedSig = createHmac('sha256', secret).update(`${parts[0]}.${parts[1]}`).digest('base64url')
-  if (expectedSig !== parts[2]) return null
+  const expectedBuf = Buffer.from(expectedSig)
+  const actualBuf = Buffer.from(parts[2])
+  if (expectedBuf.length !== actualBuf.length || !timingSafeEqual(expectedBuf, actualBuf)) return null
 
   try {
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString())
@@ -92,7 +94,7 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
       state,
     })
 
-    reply.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+    return { authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }
   })
 
   // GET /api/auth/youtube/callback — OAuth redirect from Google (excluded from Clerk auth)

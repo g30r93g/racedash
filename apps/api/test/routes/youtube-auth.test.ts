@@ -66,7 +66,7 @@ describe('YouTube Auth Routes', () => {
   })
 
   describe('GET /api/auth/youtube/connect', () => {
-    it('returns 302 redirect to Google OAuth URL with correct scope and state', async () => {
+    it('returns 200 with authUrl containing Google OAuth URL with correct scope and state', async () => {
       mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])  // user lookup
       mockDb.limit.mockResolvedValueOnce([{ id: 'lic-1' }])   // license lookup
 
@@ -75,12 +75,12 @@ describe('YouTube Auth Routes', () => {
         url: '/api/auth/youtube/connect',
       })
 
-      expect(response.statusCode).toBe(302)
-      const location = response.headers.location as string
-      expect(location).toContain('accounts.google.com/o/oauth2/v2/auth')
-      expect(location).toContain('scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.upload')
-      expect(location).toContain('state=')
-      expect(location).toContain(`client_id=${process.env.YOUTUBE_CLIENT_ID}`)
+      expect(response.statusCode).toBe(200)
+      const body = response.json()
+      expect(body.authUrl).toContain('accounts.google.com/o/oauth2/v2/auth')
+      expect(body.authUrl).toContain('scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.upload')
+      expect(body.authUrl).toContain('state=')
+      expect(body.authUrl).toContain(`client_id=${process.env.YOUTUBE_CLIENT_ID}`)
     })
 
     it('returns 403 when user has no active license', async () => {

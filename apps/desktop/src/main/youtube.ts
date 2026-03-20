@@ -20,7 +20,17 @@ function fetchWithSession(url: string, opts?: { method?: string; body?: string }
 
 export function registerYouTubeHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('racedash:youtube:connect', async (): Promise<YouTubeConnectionStatus> => {
-    return new Promise<YouTubeConnectionStatus>((resolve, reject) => {
+    // Fetch the OAuth URL from the authenticated API endpoint
+    const connectResponse = await fetchWithSession(`${API_URL}/api/auth/youtube/connect`)
+    if (!connectResponse.ok) {
+      const err = await connectResponse.json().catch(() => ({ error: { message: 'Failed to initiate YouTube connection' } }))
+      throw new Error((err as any).error?.message ?? `Connect failed: ${connectResponse.status}`)
+    }
+    const { authUrl } = await connectResponse.json() as { authUrl: string }
+
+    return new Promise<YouTubeConnectionStatus>((resolve) => {
+      let resolved = false
+
       const authWindow = new BrowserWindow({
         width: 500,
         height: 700,
@@ -34,43 +44,33 @@ export function registerYouTubeHandlers(mainWindow: BrowserWindow): void {
         },
       })
 
-      authWindow.loadURL(`${API_URL}/api/auth/youtube/connect`)
+      function resolveOnce(status: YouTubeConnectionStatus) {
+        if (resolved) return
+        resolved = true
+        resolve(status)
+      }
 
-      // Detect success redirect
+      authWindow.loadURL(authUrl)
+
       authWindow.webContents.on('will-navigate', async (_event, url) => {
         if (url.includes('/auth/youtube/success')) {
           authWindow.close()
-          // Fetch the connection status
           try {
             const response = await fetchWithSession(`${API_URL}/api/auth/youtube/status`)
             const data = await response.json()
-            resolve(data as YouTubeConnectionStatus)
+            resolveOnce(data as YouTubeConnectionStatus)
           } catch {
-            resolve({ connected: true, account: null })
-          }
-        }
-      })
-
-      // Also detect did-navigate for the success page
-      authWindow.webContents.on('did-navigate', async (_event, url) => {
-        if (url.includes('/auth/youtube/success')) {
-          authWindow.close()
-          try {
-            const response = await fetchWithSession(`${API_URL}/api/auth/youtube/status`)
-            const data = await response.json()
-            resolve(data as YouTubeConnectionStatus)
-          } catch {
-            resolve({ connected: true, account: null })
+            resolveOnce({ connected: true, account: null })
           }
         }
       })
 
       authWindow.on('closed', () => {
-        // If window closed without success, return current status
+        if (resolved) return
         fetchWithSession(`${API_URL}/api/auth/youtube/status`)
           .then((r) => r.json())
-          .then((data) => resolve(data as YouTubeConnectionStatus))
-          .catch(() => resolve({ connected: false, account: null }))
+          .then((data) => resolveOnce(data as YouTubeConnectionStatus))
+          .catch(() => resolveOnce({ connected: false, account: null }))
       })
     })
   })

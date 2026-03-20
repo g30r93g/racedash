@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, desc, inArray } from 'drizzle-orm'
-import { users, licenses, jobs, connectedAccounts, socialUploads, reserveCredits, InsufficientCreditsError } from '@racedash/db'
+import { users, licenses, jobs, connectedAccounts, socialUploads, reserveCredits, releaseCredits, InsufficientCreditsError } from '@racedash/db'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { getDb } from '../lib/db'
 import type { SocialUploadRequest, SocialUploadResponse, SocialUploadPayload, YouTubeUploadMetadata } from '../types'
@@ -188,7 +188,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       throw err
     }
 
-    // Send SQS message
+    // Send SQS message — if this fails, clean up the DB row and release credits
     const outputS3Key = job.outputS3Key ?? `renders/${jobId}/output.mp4`
     const sqsPayload: SocialUploadPayload = {
       socialUploadId,
@@ -203,10 +203,19 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
     const queueUrl = process.env.SQS_SOCIAL_UPLOAD_QUEUE_URL
     if (!queueUrl) throw new Error('SQS_SOCIAL_UPLOAD_QUEUE_URL is required')
 
-    await sqs.send(new SendMessageCommand({
-      QueueUrl: queueUrl,
-      MessageBody: JSON.stringify(sqsPayload),
-    }))
+    try {
+      await sqs.send(new SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: JSON.stringify(sqsPayload),
+      }))
+    } catch (sqsErr) {
+      // Compensate: mark upload as failed and release credits
+      await db.update(socialUploads)
+        .set({ status: 'failed', errorMessage: 'Failed to dispatch upload job', updatedAt: new Date() })
+        .where(eq(socialUploads.id, socialUploadId))
+      await releaseCredits({ db, jobId: `su_${socialUploadId}` })
+      throw sqsErr
+    }
 
     reply.status(201)
     return {

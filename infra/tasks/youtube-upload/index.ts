@@ -194,6 +194,10 @@ async function main(): Promise<void> {
   try {
     const headResult = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: payload.outputS3Key }))
     fileSize = headResult.ContentLength ?? 0
+    if (fileSize <= 0) {
+      await failUpload(db, payload, 'Render output file is empty or has unknown size.', userEmail)
+      process.exit(0)
+    }
   } catch {
     await failUpload(db, payload, 'Render output not found. The download window may have expired.', userEmail)
     process.exit(0)
@@ -253,9 +257,39 @@ async function main(): Promise<void> {
     const getResult = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: payload.outputS3Key }))
     const bodyStream = getResult.Body as Readable
 
-    // Read chunks and upload
-    const chunks: Buffer[] = []
     let currentBuffer = Buffer.alloc(0)
+    let lastPutResponse: Response | null = null
+
+    async function uploadChunkToYouTube(chunk: Buffer, isFinal: boolean): Promise<Response> {
+      if (Date.now() - uploadStartTime > UPLOAD_TIMEOUT_MS) {
+        await failUpload(db, payload, 'Upload timed out. Please try again with a smaller file.', userEmail)
+        process.exit(0)
+      }
+
+      const end = bytesUploaded + chunk.length - 1
+      const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Length': String(chunk.length),
+          'Content-Range': `bytes ${bytesUploaded}-${end}/${fileSize}`,
+          'Content-Type': 'video/mp4',
+        },
+        body: chunk,
+      })
+
+      if (isFinal) {
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error(`YouTube upload final chunk failed: ${response.status}`)
+        }
+      } else {
+        if (response.status !== 308 && response.status !== 200 && response.status !== 201) {
+          throw new Error(`YouTube upload chunk failed: ${response.status}`)
+        }
+      }
+
+      bytesUploaded += chunk.length
+      return response
+    }
 
     for await (const chunk of bodyStream) {
       currentBuffer = Buffer.concat([currentBuffer, chunk as Buffer])
@@ -264,110 +298,77 @@ async function main(): Promise<void> {
         const uploadChunk = currentBuffer.subarray(0, CHUNK_SIZE)
         currentBuffer = currentBuffer.subarray(CHUNK_SIZE)
 
-        if (Date.now() - uploadStartTime > UPLOAD_TIMEOUT_MS) {
-          await failUpload(db, payload, 'Upload timed out. Please try again with a smaller file.', userEmail)
-          process.exit(0)
-        }
-
-        const end = bytesUploaded + uploadChunk.length - 1
-        const putResponse = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Length': String(uploadChunk.length),
-            'Content-Range': `bytes ${bytesUploaded}-${end}/${fileSize}`,
-            'Content-Type': 'video/mp4',
-          },
-          body: uploadChunk,
-        })
-
-        if (putResponse.status !== 308 && putResponse.status !== 200 && putResponse.status !== 201) {
-          throw new Error(`YouTube upload chunk failed: ${putResponse.status}`)
-        }
-
-        bytesUploaded += uploadChunk.length
+        const isFinal = currentBuffer.length === 0 && bytesUploaded + uploadChunk.length === fileSize
+        lastPutResponse = await uploadChunkToYouTube(uploadChunk, isFinal)
       }
     }
 
     // Upload any remaining bytes
     if (currentBuffer.length > 0) {
-      if (Date.now() - uploadStartTime > UPLOAD_TIMEOUT_MS) {
-        await failUpload(db, payload, 'Upload timed out. Please try again with a smaller file.', userEmail)
-        process.exit(0)
-      }
+      lastPutResponse = await uploadChunkToYouTube(currentBuffer, true)
+    }
 
-      const end = bytesUploaded + currentBuffer.length - 1
-      const putResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Length': String(currentBuffer.length),
-          'Content-Range': `bytes ${bytesUploaded}-${end}/${fileSize}`,
-          'Content-Type': 'video/mp4',
-        },
-        body: currentBuffer,
-      })
+    if (!lastPutResponse) {
+      throw new Error('No upload response received — file may be empty')
+    }
 
-      if (putResponse.status !== 200 && putResponse.status !== 201) {
-        throw new Error(`YouTube upload final chunk failed: ${putResponse.status}`)
-      }
+    // Extract video ID from the final response
+    const uploadResult = await lastPutResponse.json() as { id: string }
+    const videoId = uploadResult.id
 
-      // Extract video ID from final response
-      const uploadResult = await putResponse.json() as { id: string }
-      const videoId = uploadResult.id
+    // Update status to processing
+    await db
+      .update(socialUploads)
+      .set({ status: 'processing', updatedAt: new Date() })
+      .where(eq(socialUploads.id, payload.socialUploadId))
 
-      // Update status to processing
-      await db
-        .update(socialUploads)
-        .set({ status: 'processing', updatedAt: new Date() })
-        .where(eq(socialUploads.id, payload.socialUploadId))
+    // Poll for processing completion
+    let pollDelay = 10_000
+    const maxPollTime = 30 * 60 * 1000
+    const pollStart = Date.now()
 
-      // Poll for processing completion
-      let pollDelay = 10_000
-      const maxPollTime = 30 * 60 * 1000
-      const pollStart = Date.now()
+    while (Date.now() - pollStart < maxPollTime) {
+      await new Promise((resolve) => setTimeout(resolve, pollDelay))
 
-      while (Date.now() - pollStart < maxPollTime) {
-        await new Promise((resolve) => setTimeout(resolve, pollDelay))
+      const statusResponse = await youtubeApiFetch(
+        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=status`,
+        { accessToken, refreshToken, db, userId: payload.userId },
+      )
 
-        const statusResponse = await youtubeApiFetch(
-          `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=status`,
-          { accessToken, refreshToken, db, userId: payload.userId },
-        )
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json() as { items: Array<{ status: { uploadStatus: string } }> }
+        if (statusData.items?.[0]?.status?.uploadStatus === 'processed') {
+          // Success
+          const platformUrl = `https://youtube.com/watch?v=${videoId}`
 
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json() as { items: Array<{ status: { uploadStatus: string } }> }
-          if (statusData.items?.[0]?.status?.uploadStatus === 'processed') {
-            // Success
-            const platformUrl = `https://youtube.com/watch?v=${videoId}`
+          await db
+            .update(socialUploads)
+            .set({ status: 'live', platformUrl, updatedAt: new Date() })
+            .where(eq(socialUploads.id, payload.socialUploadId))
 
-            await db
-              .update(socialUploads)
-              .set({ status: 'live', platformUrl, updatedAt: new Date() })
-              .where(eq(socialUploads.id, payload.socialUploadId))
+          await consumeCredits({ db, jobId: payload.reservationKey })
 
-            await consumeCredits({ db, jobId: payload.reservationKey })
+          await db
+            .update(connectedAccounts)
+            .set({ lastUsedAt: new Date() })
+            .where(and(eq(connectedAccounts.userId, payload.userId), eq(connectedAccounts.platform, 'youtube')))
 
-            await db
-              .update(connectedAccounts)
-              .set({ lastUsedAt: new Date() })
-              .where(and(eq(connectedAccounts.userId, payload.userId), eq(connectedAccounts.platform, 'youtube')))
-
-            console.log(`Upload complete: ${platformUrl}`)
-            process.exit(0)
-          }
-
-          if (statusData.items?.[0]?.status?.uploadStatus === 'failed') {
-            await failUpload(db, payload, 'YouTube rejected the video during processing. Please check the video format and try again.', userEmail)
-            process.exit(0)
-          }
+          console.log(`Upload complete: ${platformUrl}`)
+          process.exit(0)
         }
 
-        pollDelay = Math.min(pollDelay * 2, 60_000)
+        if (statusData.items?.[0]?.status?.uploadStatus === 'failed') {
+          await failUpload(db, payload, 'YouTube rejected the video during processing. Please check the video format and try again.', userEmail)
+          process.exit(0)
+        }
       }
 
-      // Processing timeout
-      await failUpload(db, payload, "YouTube processing timed out. The video may still be processing — check your YouTube Studio.", userEmail)
-      process.exit(0)
+      pollDelay = Math.min(pollDelay * 2, 60_000)
     }
+
+    // Processing timeout
+    await failUpload(db, payload, "YouTube processing timed out. The video may still be processing — check your YouTube Studio.", userEmail)
+    process.exit(0)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error during upload'
 
