@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 
 interface RevokeLicenseDialogProps {
   userId: string
@@ -21,8 +23,6 @@ export function RevokeLicenseDialog({
 }: RevokeLicenseDialogProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  if (!open) return null
 
   async function handleRevoke() {
     setSubmitting(true)
@@ -46,31 +46,20 @@ export function RevokeLicenseDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md">
-        <h2 className="text-lg font-semibold mb-2">Revoke License</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          This will cancel the user&apos;s {tier.toUpperCase()} license. This action cannot be
-          undone.
-        </p>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        <div className="flex gap-2 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm border border-border rounded-md hover:bg-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleRevoke}
-            disabled={submitting}
-            className="px-3 py-1.5 text-sm bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-50"
-          >
-            {submitting ? 'Revoking...' : 'Revoke'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Revoke License</DialogTitle>
+      <DialogDescription>
+        This will cancel the user&apos;s {tier.toUpperCase()} license. This action cannot be undone.
+      </DialogDescription>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <DialogFooter>
+        <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="destructive" size="sm" disabled={submitting} onClick={handleRevoke}>
+          {submitting ? 'Revoking...' : 'Revoke'}
+        </Button>
+      </DialogFooter>
+    </Dialog>
   )
 }

@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 
 const STATUS_STYLES: Record<string, string> = {
   uploading: 'bg-blue-100 text-blue-700',
@@ -20,13 +20,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function JobStatusBadge({ status }: { status: string }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-        STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700',
-      )}
-    >
+    <Badge className={STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700'}>
       {STATUS_LABELS[status] ?? status}
-    </span>
+    </Badge>
   )
 }

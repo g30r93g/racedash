@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 
 interface ExtendLicenseDialogProps {
   userId: string
@@ -27,8 +30,6 @@ export function ExtendLicenseDialog({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!open) return null
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
@@ -52,41 +53,26 @@ export function ExtendLicenseDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md">
-        <h2 className="text-lg font-semibold mb-4">Extend License</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Current expiry: {new Date(currentExpiresAt).toLocaleDateString('en-GB')}
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">New Expires At</label>
-            <input
-              type="date"
-              value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background"
-            />
-          </div>
-          {error && <p className="text-xs text-destructive">{error}</p>}
-          <div className="flex gap-2 justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-sm border border-border rounded-md hover:bg-secondary"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
-            >
-              {submitting ? 'Extending...' : 'Extend'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Extend License</DialogTitle>
+      <DialogDescription>
+        Current expiry: {new Date(currentExpiresAt).toLocaleDateString('en-GB')}
+      </DialogDescription>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">New Expires At</label>
+          <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+        </div>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" disabled={submitting}>
+            {submitting ? 'Extending...' : 'Extend'}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   )
 }
