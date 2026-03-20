@@ -98,6 +98,54 @@ describe('parseGrid', () => {
     expect(drivers[0].laps.every(l => !isNaN(l.lapTime))).toBe(true)
     expect(drivers[0].laps.every(l => !isNaN(l.cumulative))).toBe(true)
   })
+
+  it('parses sub-minute lap times in SS.mmm format', () => {
+    const html = `
+      <table class="at-lap-chart-legend-table">
+        <tbody>
+          <tr>
+            <td>
+              <div class="at-lap-chart-legend-table-competitor">
+                <span>58</span>
+                <span>Surrey A</span>
+              </div>
+            </td>
+            <td class="at-lap-chart-legend-table-laptime"><div>57.449</div></td>
+            <td class="at-lap-chart-legend-table-laptime"><div>53.377</div></td>
+            <td class="at-lap-chart-legend-table-laptime"><div>53.265</div></td>
+          </tr>
+        </tbody>
+      </table>`
+    const drivers = parseDrivers(html)
+    expect(drivers[0].laps).toHaveLength(3)
+    expect(drivers[0].laps[0]).toMatchObject({ number: 1, lapTime: 57.449, cumulative: 57.449 })
+    expect(drivers[0].laps[1]).toMatchObject({ number: 2, lapTime: 53.377, cumulative: 110.826 })
+    expect(drivers[0].laps[2]).toMatchObject({ number: 3, lapTime: 53.265, cumulative: 164.091 })
+  })
+
+  it('parses mixed M:SS.mmm and SS.mmm lap times', () => {
+    const html = `
+      <table class="at-lap-chart-legend-table">
+        <tbody>
+          <tr>
+            <td>
+              <div class="at-lap-chart-legend-table-competitor">
+                <span>58</span>
+                <span>Surrey A</span>
+              </div>
+            </td>
+            <td class="at-lap-chart-legend-table-laptime"><div>57.449</div></td>
+            <td class="at-lap-chart-legend-table-laptime"><div>1:05.608</div></td>
+            <td class="at-lap-chart-legend-table-laptime"><div>53.377</div></td>
+          </tr>
+        </tbody>
+      </table>`
+    const drivers = parseDrivers(html)
+    expect(drivers[0].laps).toHaveLength(3)
+    expect(drivers[0].laps[0]).toMatchObject({ number: 1, lapTime: 57.449 })
+    expect(drivers[0].laps[1]).toMatchObject({ number: 2, lapTime: 65.608 })
+    expect(drivers[0].laps[2]).toMatchObject({ number: 3, lapTime: 53.377 })
+  })
 })
 
 describe('parseReplayLapData', () => {

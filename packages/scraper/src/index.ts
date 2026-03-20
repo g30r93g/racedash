@@ -1,6 +1,6 @@
+import type { Lap } from '@racedash/core'
 import * as cheerio from 'cheerio'
 import type { AnyNode } from 'domhandler'
-import type { Lap } from '@racedash/core'
 
 export interface DriverRow {
   kart: string
@@ -69,6 +69,11 @@ function parseRow($: cheerio.CheerioAPI, row: AnyNode): DriverRow {
 function parseLapTimeStr(s: string): number | null {
   s = s.trim()
   if (!s) return null
+  if (!s.includes(':')) {
+    if (!s.includes('.')) return null
+    const result = parseFloat(s)
+    return isNaN(result) ? null : result
+  }
   const [minutesPart, rest] = s.split(':')
   const result = parseInt(minutesPart, 10) * 60 + parseFloat(rest)
   if (isNaN(result)) return null
