@@ -8,14 +8,11 @@ import {
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
-import { formatLapTime } from '@racedash/timestamps'
-import { getLapAtTime, getLapElapsed, getCompletedLaps, getSessionBest } from '../../timing'
 import { useActiveSegment } from '../../activeSegment'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
-import { useLivePosition } from '../../livePosition'
-import { useDisplayedPosition } from '../../displayedPosition'
+import { useCardOverlayState } from '../../useCardOverlayState'
 
 const EMPTY_TIME = '—:--.---'
 
@@ -111,16 +108,11 @@ export const Esports: React.FC<OverlayProps> = ({
 
   const currentTime = frame / fps
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
-  const { session, sessionAllLaps, mode } = segment
+  const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
 
   const raceStart = session.timestamps[0].ytSeconds
-  const segEnd = useMemo(() => {
-    const lastTs = session.timestamps[session.timestamps.length - 1]
-    return lastTs.ytSeconds + lastTs.lap.lapTime
-  }, [session.timestamps])
-
   const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom = raceStart - preRoll
 
@@ -130,43 +122,12 @@ export const Esports: React.FC<OverlayProps> = ({
     ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
     : 1
 
-  // Freeze time at last moment of session when in END state (between segments)
-  const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
-
-  const currentLap = useMemo(
-    () => getLapAtTime(session.timestamps, effectiveTime),
-    [session.timestamps, effectiveTime],
-  )
-  const currentIdx = useMemo(
-    () => session.timestamps.indexOf(currentLap),
-    [session.timestamps, currentLap],
-  )
-  const livePosition = useLivePosition(segment, effectiveTime)
-  const displayedPosition = useDisplayedPosition({
-    timestamps: session.timestamps,
-    currentLaps: session.laps,
-    sessionAllLaps,
-    currentIdx,
-    currentTime: effectiveTime,
-    mode,
-    startingGridPosition,
-    livePosition,
-    positionOverrides: segment.positionOverrides,
+  const {
+    currentLap, elapsedFormatted,
+    lastLapTime, sessionBestTime, displayedPosition,
+  } = useCardOverlayState({
+    segment, isEnd, currentTime, startingGridPosition, placeholder: EMPTY_TIME,
   })
-  const completedLaps = useMemo(
-    () => getCompletedLaps(session.timestamps, currentIdx, isEnd),
-    [session.timestamps, currentIdx, isEnd],
-  )
-  const lastLapTime = useMemo(
-    () => completedLaps.length > 0
-      ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
-      : EMPTY_TIME,
-    [completedLaps],
-  )
-  const sessionBestTime = useMemo(() => {
-    const best = getSessionBest(completedLaps)
-    return best !== null ? formatLapTime(best) : EMPTY_TIME
-  }, [completedLaps])
 
   const es = styling?.esports
   const accentBarColor    = es?.accentBarColor     ?? '#2563eb'
@@ -268,9 +229,6 @@ export const Esports: React.FC<OverlayProps> = ({
       stopwatchSize: 18 * sc,
     }
   }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor])
-
-  const elapsed = getLapElapsed(currentLap, effectiveTime)
-  const elapsedFormatted = formatLapTime(elapsed)
 
   if (currentTime < showFrom && !isEnd) return null
 

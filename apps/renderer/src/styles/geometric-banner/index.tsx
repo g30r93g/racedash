@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
@@ -8,12 +8,12 @@ import {
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
-import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter, computeLapColors } from '../../components/banners'
+import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { SegmentLabel } from '../../SegmentLabel'
-import { getLapAtTime, getLapElapsed } from '../../timing'
+import { getLapElapsed } from '../../timing'
 import { GeometricBannerBackground } from './GeometricBannerBackground'
-import { useLivePosition } from '../../livePosition'
 import { resolveInfoSegments } from '../../infoSegments'
+import { useBannerOverlayState } from '../../useBannerOverlayState'
 
 // SVG natural aspect ratio: viewBox 1010.181 × 110.2687
 const SVG_W = 1010.181
@@ -32,9 +32,11 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
   const { session, sessionAllLaps, mode } = segment
 
-  const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
+  const {
+    currentLap, currentIdx, raceEnd, livePosition, lapColors,
+  } = useBannerOverlayState({ segment, currentTime })
+
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const livePosition = useLivePosition(segment, currentTime)
 
   const gb = styling?.geometricBanner
   const infoSegments = resolveInfoSegments({
@@ -63,13 +65,6 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const raceStart  = session.timestamps[0].ytSeconds
   const preRoll    = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom   = raceStart - preRoll
-
-  const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
-  const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
-  const raceEnd    = useMemo(() => {
-    const lastTs = session.timestamps[session.timestamps.length - 1]
-    return lastTs.ytSeconds + lastTs.lap.lapTime
-  }, [session.timestamps])
 
   if (currentTime < showFrom && !isEnd) return null
 
