@@ -36,6 +36,13 @@ function formatTime(date: Date): string {
     : date.toLocaleDateString()
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.ceil(seconds)}s`
+  const m = Math.floor(seconds / 60)
+  const s = Math.ceil(seconds % 60)
+  return s > 0 ? `${m}m ${s}s` : `${m}m`
+}
+
 /** Extract directory from an absolute path without node:path (renderer-safe). */
 function dirname(p: string): string {
   const i = p.lastIndexOf('/')
@@ -68,7 +75,9 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
   const [renderProgress, setRenderProgress] = useState(0)
   const [renderFrames, setRenderFrames] = useState<{ rendered: number; total: number } | null>(null)
   const [lastRender, setLastRender] = useState<LastRender | null>(null)
+  const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
 
+  const renderStartRef = useRef<number>(0)
   const cleanupRef = useRef<Array<() => void>>([])
   useEffect(() => {
     return () => { cleanupRef.current.forEach((fn) => fn()) }
@@ -94,6 +103,8 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
     setRenderPhase('Starting…')
     setRenderProgress(0)
     setRenderFrames(null)
+    setEtaSeconds(null)
+    renderStartRef.current = Date.now()
     cleanupRef.current.forEach((fn) => fn())
     cleanupRef.current = []
 
@@ -103,6 +114,11 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
         setRenderProgress(event.progress)
         if (event.renderedFrames != null && event.totalFrames != null) {
           setRenderFrames({ rendered: event.renderedFrames, total: event.totalFrames })
+        }
+        if (event.progress > 0.02) {
+          const elapsed = (Date.now() - renderStartRef.current) / 1000
+          const remaining = (elapsed / event.progress) * (1 - event.progress)
+          setEtaSeconds(remaining)
         }
       })
     )
@@ -243,11 +259,14 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
               <span>{Math.round(renderProgress * 100)}%</span>
             </div>
             <Progress value={Math.round(renderProgress * 100)} />
-            {renderFrames && (
-              <p className="text-[10px] text-muted-foreground">
-                Frame {renderFrames.rendered} of {renderFrames.total}
-              </p>
-            )}
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              {renderFrames && (
+                <span>Frame {renderFrames.rendered} of {renderFrames.total}</span>
+              )}
+              {etaSeconds != null && (
+                <span className={renderFrames ? '' : 'ml-auto'}>{formatDuration(etaSeconds)} remaining</span>
+              )}
+            </div>
             <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
               Cancel
             </Button>
