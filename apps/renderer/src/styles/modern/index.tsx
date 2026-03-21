@@ -77,8 +77,8 @@ export const Modern: React.FC<OverlayProps> = ({
     positionOverrides: segment.positionOverrides,
   })
   const completedLaps = useMemo(
-    () => getCompletedLaps(session.timestamps, currentIdx),
-    [session.timestamps, currentIdx],
+    () => getCompletedLaps(session.timestamps, currentIdx, isEnd),
+    [session.timestamps, currentIdx, isEnd],
   )
   const sessionBestTime = useMemo(() => {
     const best = getSessionBest(completedLaps)
@@ -86,10 +86,10 @@ export const Modern: React.FC<OverlayProps> = ({
   }, [completedLaps])
 
   const lastLapTime = useMemo(
-    () => currentIdx >= 1
-      ? formatLapTime(session.timestamps[currentIdx - 1].lap.lapTime)
+    () => completedLaps.length > 0
+      ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
       : PLACEHOLDER,
-    [currentIdx, session.timestamps],
+    [completedLaps],
   )
 
   const mo = styling?.modern

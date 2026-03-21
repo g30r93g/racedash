@@ -20,9 +20,12 @@ export function getLapElapsed(ts: LapTimestamp, currentTime: number): number {
   return Math.max(0, currentTime - ts.ytSeconds)
 }
 
-/** All laps completed before the current in-progress lap (indices 0..currentIdx-1). */
-export function getCompletedLaps(timestamps: LapTimestamp[], currentIdx: number): LapTimestamp[] {
-  return timestamps.slice(0, currentIdx)
+/**
+ * All laps completed before the current in-progress lap (indices 0..currentIdx-1).
+ * When isEnd is true the session is over, so the lap at currentIdx is also complete.
+ */
+export function getCompletedLaps(timestamps: LapTimestamp[], currentIdx: number, isEnd = false): LapTimestamp[] {
+  return timestamps.slice(0, isEnd ? currentIdx + 1 : currentIdx)
 }
 
 /**

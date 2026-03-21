@@ -113,8 +113,8 @@ export const Minimal: React.FC<OverlayProps> = ({
     positionOverrides: segment.positionOverrides,
   })
   const completedLaps = useMemo(
-    () => getCompletedLaps(session.timestamps, currentIdx),
-    [session.timestamps, currentIdx],
+    () => getCompletedLaps(session.timestamps, currentIdx, isEnd),
+    [session.timestamps, currentIdx, isEnd],
   )
   const lastLapTime = useMemo(
     () => completedLaps.length > 0

@@ -152,6 +152,7 @@ export const Banner: React.FC<OverlayProps> = ({
                   timestamps={session.timestamps}
                   currentIdx={currentIdx}
                   currentTime={currentTime}
+                  isEnd={isEnd}
                   textColor={text}
                   placeholderText={TIME_PLACEHOLDER}
                 />
@@ -167,6 +168,7 @@ export const Banner: React.FC<OverlayProps> = ({
                   timestamps={session.timestamps}
                   currentIdx={currentIdx}
                   currentTime={currentTime}
+                  isEnd={isEnd}
                   textColor={text}
                   placeholderText={TIME_PLACEHOLDER}
                 />
