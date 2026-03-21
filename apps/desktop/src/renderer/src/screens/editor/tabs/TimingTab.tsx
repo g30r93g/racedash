@@ -9,6 +9,7 @@ import type { LapRow } from '@/components/app/TimingTable'
 import { DriverPickerModal } from '@/components/app/DriverPickerModal'
 import { OptionGroup } from '@/components/ui/option-group'
 import { Spinner } from '@/components/loaders/Spinner'
+import { ProjectEditWizard } from '@/screens/wizard/ProjectEditWizard'
 
 
 interface TimingTabProps {
@@ -18,6 +19,10 @@ interface TimingTabProps {
   playing?: boolean
   overrides: Override[]
   onOverridesChange: (overrides: Override[]) => void
+  timestampsResult?: TimestampsResult | null
+  timingLoading?: boolean
+  timingError?: string | null
+  onProjectUpdate: (updated: ProjectData) => void
 }
 
 export interface Override {
@@ -27,17 +32,17 @@ export interface Override {
   position: string
 }
 
-export function TimingTab({ project, videoInfo, currentTime = 0, playing = false, overrides, onOverridesChange }: TimingTabProps): React.ReactElement {
+export function TimingTab({ project, videoInfo, currentTime = 0, playing = false, overrides, onOverridesChange, timestampsResult = null, timingLoading = false, timingError = null, onProjectUpdate }: TimingTabProps): React.ReactElement {
   // ── Driver ──────────────────────────────────────────────────────────────────
   const [selectedDriver, setSelectedDriver] = useState(project.selectedDriver)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
 
+  // ── Edit wizard ─────────────────────────────────────────────────────────────
+  const [editWizardOpen, setEditWizardOpen] = useState(false)
+
   // ── Timing data ─────────────────────────────────────────────────────────────
   const segmentLabels = project.segments.map((s, i) => s.label || `Segment ${i + 1}`)
   const [activeSegment, setActiveSegment] = useState(0)
-  const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
-  const [timingLoading, setTimingLoading] = useState(false)
-  const [timingError, setTimingError] = useState<string | null>(null)
 
   // Auto-switch segment on boundary crossings and when playback starts.
   // While within the same segment the user may switch freely to compare.
@@ -70,20 +75,10 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
     if (seg !== null) setActiveSegment(seg)
   }, [playing, getPlayheadSegment])
 
+  // Sync selectedDriver when project updates (e.g. after edit wizard save)
   useEffect(() => {
-    // videoInfo===null means still loading; wait for fps before calling generateTimestamps
-    // so frame-based offsets (e.g. "5568 F") can be converted correctly.
-    if (videoInfo === null) return
-    let cancelled = false
-    setTimingLoading(true)
-    setTimingError(null)
-    window.racedash
-      .generateTimestamps({ configPath: project.configPath, fps: videoInfo?.fps ?? undefined })
-      .then((result) => { if (!cancelled) setTimestampsResult(result) })
-      .catch((err) => { if (!cancelled) setTimingError(err instanceof Error ? err.message : String(err)) })
-      .finally(() => { if (!cancelled) setTimingLoading(false) })
-    return () => { cancelled = true }
-  }, [project.configPath, videoInfo])
+    setSelectedDriver(project.selectedDriver)
+  }, [project.selectedDriver])
 
   const lapRows = React.useMemo<LapRow[]>(() => {
     if (!timestampsResult) return []
@@ -107,13 +102,11 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
 
       if (mode === 'race') {
         if (hasSnapshots && seg.replayData) {
-          // Live race position from replay snapshots: find our kart at the moment it completed this lap
           for (const snapshot of seg.replayData) {
             const entry = snapshot.find(e => e.kart === selectedKart && e.lapsCompleted === lap.number)
             if (entry) { position = entry.position; break }
           }
         } else if (canPosition && allDrivers.length > 0) {
-          // Approximate race position: rank by cumulative time at lap N across all drivers
           const ourCumulative = lap.cumulative
           const betterCount = allDrivers.filter(d => {
             if (isSelected(d)) return false
@@ -123,7 +116,6 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
           position = betterCount + 1
         }
       } else {
-        // Practice / Qualifying: rank by best lap time through lap N (position can only improve)
         if (canPosition && allDrivers.length > 0) {
           let bestSoFar = Infinity
           for (let i = 0; i <= lapIndex; i++) {
@@ -165,7 +157,6 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
     const laps = seg?.selectedDriver?.laps
     if (!laps || laps.length === 0) return null
     const offset = timestampsResult.offsets[activeSegment] ?? 0
-    // Find the lap whose video time window contains currentTime
     for (let i = 0; i < laps.length; i++) {
       const lapStart = offset + laps[i].cumulative - laps[i].lapTime
       const lapEnd = offset + laps[i].cumulative
@@ -202,6 +193,18 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
         onSelect={(name) => setSelectedDriver(name)}
       />
 
+      {/* EDIT WIZARD */}
+      {editWizardOpen && (
+        <ProjectEditWizard
+          project={project}
+          onSave={(updated) => {
+            setEditWizardOpen(false)
+            onProjectUpdate(updated)
+          }}
+          onCancel={() => setEditWizardOpen(false)}
+        />
+      )}
+
       {/* DRIVER */}
       <section>
         <SectionLabel>Driver</SectionLabel>
@@ -215,7 +218,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       <section>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Timing Data</SectionLabel>
-          <Button variant="ghost" size="sm">Edit</Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditWizardOpen(true)}>Edit</Button>
         </div>
 
         {segmentLabels.length > 1 && (

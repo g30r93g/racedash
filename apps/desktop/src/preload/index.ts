@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { RacedashAPI, RenderCompleteResult } from '../types/ipc'
-import type { ProjectData, CreateProjectOpts } from '../types/project'
+import type { ProjectData, CreateProjectOpts, SegmentConfig } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 
 const api: RacedashAPI = {
@@ -30,6 +30,8 @@ const api: RacedashAPI = {
     ipcRenderer.invoke('racedash:renameProject', projectPath, name),
   relocateProject: (oldProjectPath: string) =>
     ipcRenderer.invoke('racedash:relocateProject', oldProjectPath),
+  updateProject: (projectPath: string, segments: SegmentConfig[], selectedDriver: string) =>
+    ipcRenderer.invoke('racedash:updateProject', projectPath, segments, selectedDriver),
   readProjectConfig: (configPath: string) =>
     ipcRenderer.invoke('racedash:readProjectConfig', configPath),
   updateProjectConfigOverrides: (configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>) =>
