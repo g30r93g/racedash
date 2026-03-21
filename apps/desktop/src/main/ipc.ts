@@ -518,8 +518,8 @@ export async function previewTimestampsImpl(
           const snapshot = snapshots.find((s) =>
             s.entries.some((e) => e.kart === kart && e.lapsCompleted === lap.number)
           )
-          const entryIndex = snapshot?.entries.findIndex((e) => e.kart === kart) ?? -1
-          return { ...lap, position: entryIndex >= 0 ? entryIndex + 1 : undefined }
+          const entry = snapshot?.entries.find((e) => e.kart === kart)
+          return { ...lap, position: entry?.position }
         })
       } else {
         // Practice / qualifying — rank each lap by time across all drivers' best laps

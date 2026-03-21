@@ -1,6 +1,6 @@
+import type { Lap } from '@racedash/core'
 import * as cheerio from 'cheerio'
 import type { AnyNode } from 'domhandler'
-import type { Lap } from '@racedash/core'
 
 export interface DriverRow {
   kart: string
@@ -69,6 +69,11 @@ function parseRow($: cheerio.CheerioAPI, row: AnyNode): DriverRow {
 function parseLapTimeStr(s: string): number | null {
   s = s.trim()
   if (!s) return null
+  if (!s.includes(':')) {
+    if (!s.includes('.')) return null
+    const result = parseFloat(s)
+    return isNaN(result) ? null : result
+  }
   const [minutesPart, rest] = s.split(':')
   const result = parseInt(minutesPart, 10) * 60 + parseFloat(rest)
   if (isNaN(result)) return null
@@ -118,6 +123,44 @@ export async function fetchReplayHtml(url: string): Promise<string> {
   return fetchTab(url, '/replay')
 }
 
+/**
+ * Build a mapping from header name → D-array index by reading the
+ * `<th>` elements inside `#replayTable thead`.
+ *
+ * D[0] is always the hidden position-change indicator ("+3", "=", "-1")
+ * which has no `<th>`.  The i-th `<th>` therefore corresponds to D[i+1].
+ *
+ * Falls back to the legacy 10-column layout (no Cls, no sectors) when
+ * the table is absent — e.g. in minimal test fixtures.
+ */
+function buildReplayColumnMap($: cheerio.CheerioAPI): Record<string, number> {
+  const headers: string[] = []
+  $('#replayTable thead th').each((_, el) => {
+    headers.push($(el).text().trim())
+  })
+
+  if (headers.length === 0) {
+    // Legacy fallback: Pos, No., Name, Laps, Time, Last, Best, Gap to 1st, Gap
+    return { Pos: 1, 'No.': 2, Name: 3, Laps: 4, Time: 5, 'Gap to 1st': 8, Gap: 9 }
+  }
+
+  const map: Record<string, number> = {}
+  for (let i = 0; i < headers.length; i++) {
+    map[headers[i]] = i + 1   // +1 because D[0] has no header
+  }
+  return map
+}
+
+function extractKartFromColumn(raw: string): string {
+  // The kart column may be plain text ("71") or HTML containing
+  // an <span class="at-number-plate">58</span>.
+  if (raw.includes('<')) {
+    const m = raw.match(/>(\d+)</)
+    return m ? m[1] : raw
+  }
+  return raw
+}
+
 export function parseReplayLapData(html: string): ReplayLapData {
   const $ = cheerio.load(html)
   const tag = $('script[type="application/json"]#lapData')
@@ -125,16 +168,26 @@ export function parseReplayLapData(html: string): ReplayLapData {
   const raw = JSON.parse(tag.text()) as { laps?: unknown }
   if (!Array.isArray(raw.laps)) throw new Error('lapData JSON is missing a "laps" array')
   if (raw.laps.length === 0) return []
+
+  const col = buildReplayColumnMap($)
+  const posIdx = col['Pos']
+  const kartIdx = col['No.']
+  const nameIdx = col['Name']
+  const lapsIdx = col['Laps']
+  const timeIdx = col['Time']          // may be undefined (e.g. IAME)
+  const gapIdx = col['Gap to 1st']
+  const intervalIdx = col['Gap']
+
   return (raw.laps as Array<Array<{ C: number; D: [string, string][] }>>) .map(snapshot =>
     snapshot.map(entry => ({
       driverId: entry.C,
-      position: parseInt(entry.D[1][0], 10),
-      kart: entry.D[2][0],
-      name: entry.D[3][0],
-      lapsCompleted: parseInt(entry.D[4][0], 10),
-      totalSeconds: parseLapTimeStr(entry.D[5][0]),
-      gapToLeader: entry.D[8][0],
-      intervalToAhead: entry.D[9][0],
+      position: parseInt(entry.D[posIdx][0], 10),
+      kart: extractKartFromColumn(entry.D[kartIdx][0]),
+      name: entry.D[nameIdx][0],
+      lapsCompleted: parseInt(entry.D[lapsIdx][0], 10),
+      totalSeconds: timeIdx != null ? parseLapTimeStr(entry.D[timeIdx][0]) : null,
+      gapToLeader: gapIdx != null ? entry.D[gapIdx][0] : '',
+      intervalToAhead: intervalIdx != null ? entry.D[intervalIdx][0] : '',
     })),
   )
 }

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import os from 'node:os'
 import { configureBundledFfmpegPath } from './ffmpeg'
 import { registerIpcHandlers } from './ipc'
 import { registerUpdaterHandlers } from './updater'
@@ -47,6 +48,36 @@ function createWindow(): BrowserWindow {
   }
 
   return win
+}
+
+export async function cleanupEmptyRacedashTempDirs(
+  tempRoot: string = os.tmpdir(),
+  prefix: string = 'racedash-',
+): Promise<void> {
+  let entries: string[]
+  try {
+    entries = await fs.promises.readdir(tempRoot)
+  } catch {
+    return
+  }
+
+  await Promise.all(entries
+    .filter(name => name.startsWith(prefix))
+    .map(async (name) => {
+      const targetPath = path.join(tempRoot, name)
+
+      try {
+        const stats = await fs.promises.lstat(targetPath)
+        if (!stats.isDirectory()) return
+
+        const children = await fs.promises.readdir(targetPath)
+        if (children.length !== 0) return
+
+        await fs.promises.rmdir(targetPath)
+      } catch {
+        // Ignore races and permission issues in the shared temp directory.
+      }
+    }))
 }
 
 app.whenReady().then(() => {
@@ -101,6 +132,7 @@ app.whenReady().then(() => {
       },
     })
   })
+  void cleanupEmptyRacedashTempDirs()
   registerIpcHandlers()
   const win = createWindow()
   registerAuthHandlers(win)

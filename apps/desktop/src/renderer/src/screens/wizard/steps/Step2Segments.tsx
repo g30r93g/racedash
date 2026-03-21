@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 
 interface Step2SegmentsProps {
   videoPaths: string[]
+  joinedVideoPath?: string
   segments: SegmentConfig[]
   onChange: (segments: SegmentConfig[]) => void
   onSubFormChange?: (active: boolean) => void
@@ -14,7 +15,7 @@ interface Step2SegmentsProps {
 
 type FormMode = { mode: 'add' } | { mode: 'edit'; index: number }
 
-export function Step2Segments({ videoPaths, segments, onChange, onSubFormChange }: Step2SegmentsProps) {
+export function Step2Segments({ videoPaths, joinedVideoPath, segments, onChange, onSubFormChange }: Step2SegmentsProps) {
   const [formMode, setFormMode] = useState<FormMode | null>(null)
 
   function openForm(mode: FormMode) {
@@ -41,6 +42,7 @@ export function Step2Segments({ videoPaths, segments, onChange, onSubFormChange 
     return (
       <SegmentForm
         videoPaths={videoPaths}
+        joinedVideoPath={joinedVideoPath}
         initial={formMode.mode === 'edit' ? segments[formMode.index] : undefined}
         mode={formMode.mode}
         onSave={handleSave}

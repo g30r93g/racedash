@@ -101,6 +101,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
           {step === 2 && (
             <Step2Segments
               videoPaths={state.videoPaths}
+              joinedVideoPath={state.joinedVideoPath}
               segments={state.segments}
               onChange={(segments) => updateState({ segments })}
               onSubFormChange={setSegmentSubForm}
