@@ -178,6 +178,22 @@ describe('handleCreateProject', () => {
     )
   })
 
+  it('rejects when saveDir exists and is not empty', async () => {
+    vi.mocked(fs.existsSync).mockReturnValueOnce(true)
+    vi.mocked(fs.readdirSync).mockReturnValueOnce(['old-file.txt'] as unknown as ReturnType<typeof fs.readdirSync>)
+
+    await expect(handleCreateProject(baseOpts)).rejects.toThrow('Save directory is not empty')
+    expect(mockMkdirSync).not.toHaveBeenCalled()
+  })
+
+  it('allows saving when saveDir exists but is empty', async () => {
+    vi.mocked(fs.existsSync).mockReturnValueOnce(true)
+    vi.mocked(fs.readdirSync).mockReturnValueOnce([] as unknown as ReturnType<typeof fs.readdirSync>)
+
+    await handleCreateProject(baseOpts)
+    expect(mockMkdirSync).toHaveBeenCalled()
+  })
+
   it('rolls back written files when addToRegistry fails', async () => {
     mockAddToRegistry.mockRejectedValueOnce(new Error('disk full'))
 

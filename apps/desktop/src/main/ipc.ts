@@ -261,6 +261,15 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     .replace(/^-|-$/g, '')
 
   const saveDir = opts.saveDir ?? path.join(os.homedir(), 'Videos', 'racedash', slug)
+
+  // Prevent overwriting an existing non-empty directory
+  if (fs.existsSync(saveDir)) {
+    const entries = fs.readdirSync(saveDir)
+    if (entries.length > 0) {
+      throw new Error(`Save directory is not empty: ${saveDir}`)
+    }
+  }
+
   fs.mkdirSync(saveDir, { recursive: true })
 
   // Preserve original single-source inputs, but move temp joined outputs into the project directory.
