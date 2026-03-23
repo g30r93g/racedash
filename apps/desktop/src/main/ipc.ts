@@ -17,6 +17,27 @@ import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } fro
 // ---------------------------------------------------------------------------
 
 /**
+ * Converts wizard SegmentConfig[] into the engine's config format.
+ * Used by both handleCreateProject and updateProjectHandler.
+ */
+export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<string, unknown>[] {
+  return segments.map((seg) => {
+    const base = {
+      source: seg.source,
+      mode: seg.session ?? 'race',
+      offset: `${seg.videoOffsetFrame ?? 0} F`,
+      label: seg.label,
+    }
+    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
+    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'manual') return { ...base, timingData: [] }
+    return base
+  })
+}
+
+/**
  * Checks whether ffmpeg is available on PATH.
  * Uses execSync with a hardcoded string — no user input, no injection risk.
  */
@@ -181,6 +202,56 @@ export async function renameProjectHandler(projectPath: string, name: string): P
   return updated
 }
 
+export async function updateProjectHandler(
+  projectPath: string,
+  segments: WizardSegmentConfig[],
+  selectedDriver: string,
+): Promise<ProjectData> {
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('updateProject: projectPath must be a non-empty string')
+  }
+  if (!projectPath.endsWith('project.json')) {
+    throw new Error('updateProject: path must point to a project.json file')
+  }
+  if (!Array.isArray(segments) || segments.length === 0) {
+    throw new Error('updateProject: segments must be a non-empty array')
+  }
+  if (typeof selectedDriver !== 'string' || selectedDriver.trim().length === 0) {
+    throw new Error('updateProject: selectedDriver must be a non-empty string')
+  }
+
+  // Read existing project
+  const raw = fs.readFileSync(projectPath, 'utf-8') as string
+  const project = JSON.parse(raw) as ProjectData
+  const configPath = project.configPath ?? path.join(path.dirname(projectPath), 'config.json')
+
+  // Read existing config.json, preserve non-segment keys (styling, overrides, etc.)
+  let existingConfig: Record<string, unknown> = {}
+  try {
+    existingConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8') as string) as Record<string, unknown>
+  } catch { /* config may not exist yet */ }
+
+  // Rebuild config with new segments + driver, preserving other keys
+  const engineSegments = buildEngineSegments(segments)
+  const updatedConfig = {
+    ...existingConfig,
+    segments: engineSegments,
+    driver: selectedDriver,
+  }
+  fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2), 'utf-8')
+
+  // Update project.json
+  const updatedProject: ProjectData = {
+    ...project,
+    segments,
+    selectedDriver,
+    configPath,
+  }
+  fs.writeFileSync(projectPath, JSON.stringify(updatedProject, null, 2), 'utf-8')
+
+  return updatedProject
+}
+
 export async function deleteProjectHandler(projectPath: string): Promise<void> {
   if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
     throw new Error('deleteProject: projectPath must be a non-empty string')
@@ -289,21 +360,7 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   }
 
   // Write engine timing config (config.json) — segments in engine format.
-  // Wizard segments lack `mode` and `offset`; derive them here.
-  const engineSegments = opts.segments.map((seg) => {
-    const base = {
-      source: seg.source,
-      mode: seg.session ?? 'race',
-      offset: `${seg.videoOffsetFrame ?? 0} F`,
-      label: seg.label,
-    }
-    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
-    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
-    return base
-  })
+  const engineSegments = buildEngineSegments(opts.segments)
 
   const configPath = path.join(saveDir, 'config.json')
   fs.writeFileSync(configPath, JSON.stringify({
@@ -623,6 +680,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
   ipcMain.handle('racedash:relocateProject', (_event, oldProjectPath: string) => relocateProjectHandler(oldProjectPath))
   ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
+  ipcMain.handle('racedash:updateProject', (_event, projectPath: string, segments: WizardSegmentConfig[], selectedDriver: string) => updateProjectHandler(projectPath, segments, selectedDriver))
   ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
   ipcMain.handle(
