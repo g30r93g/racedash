@@ -25,6 +25,12 @@ import type { DriversCommandSegment, RenderProgressEvent } from '@racedash/engin
 
 type OutputResolutionPreset = '1080p' | '1440p' | '2160p'
 
+function displaySource(config: { source: string; originalSource?: string }): string {
+  return config.source === 'cached' && config.originalSource
+    ? config.originalSource
+    : config.source
+}
+
 const OUTPUT_RESOLUTIONS: Record<OutputResolutionPreset, { width: number; height: number }> = {
   '1080p': { width: 1920, height: 1080 },
   '1440p': { width: 2560, height: 1440 },
@@ -73,7 +79,7 @@ program
 
       process.stderr.write('\n')
       result.segments.forEach((segment, index) => {
-        stat(`Segment ${index + 1}`, `[${segment.config.source}]  [${segment.config.mode}]`)
+        stat(`Segment ${index + 1}`, `[${displaySource(segment.config)}]  [${segment.config.mode}]`)
         if (segment.config.label) stat('  Label', segment.config.label)
         printCapabilities(segment.capabilities)
       })
@@ -84,7 +90,7 @@ program
       } else {
         result.segments.forEach((segment, index) => {
           if (index > 0) process.stdout.write('\n')
-          process.stdout.write(`Segment ${index + 1}  [${segment.config.source}]  [${segment.config.mode}]\n`)
+          process.stdout.write(`Segment ${index + 1}  [${displaySource(segment.config)}]  [${segment.config.mode}]\n`)
           if (segment.config.label) process.stdout.write(`  Label: ${segment.config.label}\n`)
           printDriverList(segment.drivers, opts.driver)
         })
@@ -111,7 +117,7 @@ program
         const selectedDriver = resolvedSegment.selectedDriver!
         stat(
           `Segment ${index + 1}`,
-          `[${resolvedSegment.config.source}]  [${resolvedSegment.config.mode}]  ${formatDriverDisplay(selectedDriver)}  ·  ${selectedDriver.laps.length} laps`,
+          `[${displaySource(resolvedSegment.config)}]  [${resolvedSegment.config.mode}]  ${formatDriverDisplay(selectedDriver)}  ·  ${selectedDriver.laps.length} laps`,
         )
         stat('  Offset', formatOffsetTime(result.offsets[index]))
         if (resolvedSegment.config.label) stat('  Label', resolvedSegment.config.label)
