@@ -94,6 +94,207 @@ describe('loadTimingConfig', () => {
   })
 })
 
+describe('cached source validation', () => {
+  const baseCachedSegment = {
+    source: 'cached',
+    mode: 'race',
+    offset: '1:00.000',
+    originalSource: 'alphaTiming',
+    drivers: [{ kart: '42', name: 'Alice', laps: [] }],
+    capabilities: {
+      driverDiscovery: true,
+      lapTimes: true,
+      bestLap: true,
+      lastLap: true,
+      position: true,
+      classificationPosition: true,
+      leaderboard: true,
+      gapToLeader: true,
+      gapToKartAhead: true,
+      gapToKartBehind: false,
+      startingGrid: true,
+      raceSnapshots: true,
+    },
+    startingGrid: [{ kart: '42', position: 1 }],
+    replayData: [[
+      { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 60.0, gapToLeader: '', intervalToAhead: '' },
+    ]],
+  }
+
+  it('accepts a valid cached segment', async () => {
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [baseCachedSegment],
+    })
+    const result = await loadTimingConfig(configPath, true)
+    expect(result.segments[0].source).toBe('cached')
+  })
+
+  it('rejects cached segment missing drivers', async () => {
+    const { drivers: _, ...noDrivers } = baseCachedSegment
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [noDrivers],
+    })
+    await expect(loadTimingConfig(configPath, true)).rejects.toThrow('drivers must be an array')
+  })
+
+  it('rejects cached segment missing capabilities', async () => {
+    const { capabilities: _, ...noCaps } = baseCachedSegment
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [noCaps],
+    })
+    await expect(loadTimingConfig(configPath, true)).rejects.toThrow('capabilities is required')
+  })
+
+  it('rejects cached segment missing originalSource', async () => {
+    const { originalSource: _, ...noOriginal } = baseCachedSegment
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [noOriginal],
+    })
+    await expect(loadTimingConfig(configPath, true)).rejects.toThrow('originalSource must be one of')
+  })
+
+  it('rejects cached segment with invalid originalSource', async () => {
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [{ ...baseCachedSegment, originalSource: 'invalidSource' }],
+    })
+    await expect(loadTimingConfig(configPath, true)).rejects.toThrow('originalSource must be one of')
+  })
+})
+
+describe('resolveCachedSegment', () => {
+  it('returns cached data directly without network calls', async () => {
+    const drivers = [
+      { kart: '42', name: 'Alice', laps: [{ number: 1, lapTime: 60.123, cumulative: 60.123 }] },
+      { kart: '7', name: 'Bob', laps: [{ number: 1, lapTime: 61.0, cumulative: 61.0 }] },
+    ]
+    const capabilities = {
+      driverDiscovery: true,
+      lapTimes: true,
+      bestLap: true,
+      lastLap: true,
+      position: true,
+      classificationPosition: true,
+      leaderboard: true,
+      gapToLeader: true,
+      gapToKartAhead: true,
+      gapToKartBehind: false,
+      startingGrid: true,
+      raceSnapshots: true,
+    }
+    const startingGrid = [{ kart: '42', position: 1 }, { kart: '7', position: 2 }]
+    const replayData: unknown[][] = [[
+      { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 60.123, gapToLeader: '', intervalToAhead: '' },
+    ]]
+
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [{
+        source: 'cached',
+        mode: 'race',
+        offset: '1:00.000',
+        originalSource: 'alphaTiming',
+        drivers,
+        capabilities,
+        startingGrid,
+        replayData,
+      }],
+    })
+    const loaded = await loadTimingConfig(configPath, true)
+    const resolved = await resolveTimingSegments(loaded.segments)
+
+    expect(resolved[0].drivers).toEqual(drivers)
+    expect(resolved[0].capabilities).toEqual(capabilities)
+    expect(resolved[0].startingGrid).toEqual(startingGrid)
+    expect(resolved[0].replayData).toEqual(replayData)
+  })
+
+  it('matches selectedDriver from cached drivers by query', async () => {
+    const drivers = [
+      { kart: '42', name: 'Alice Example', laps: [] },
+      { kart: '7', name: 'Bob Example', laps: [] },
+    ]
+    const capabilities = {
+      driverDiscovery: true,
+      lapTimes: true,
+      bestLap: true,
+      lastLap: true,
+      position: false,
+      classificationPosition: false,
+      leaderboard: false,
+      gapToLeader: false,
+      gapToKartAhead: false,
+      gapToKartBehind: false,
+      startingGrid: false,
+      raceSnapshots: false,
+    }
+
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [{
+        source: 'cached',
+        mode: 'practice',
+        offset: '0:30.000',
+        originalSource: 'manual',
+        drivers,
+        capabilities,
+      }],
+    })
+    const loaded = await loadTimingConfig(configPath, true)
+    const resolved = await resolveTimingSegments(loaded.segments, loaded.driverQuery)
+
+    expect(resolved[0].selectedDriver).toMatchObject({ name: 'Alice Example', kart: '42' })
+  })
+
+  it('round-trips through JSON serialization without data loss', async () => {
+    const replayData: unknown[][] = [[
+      { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 60.123, gapToLeader: '', intervalToAhead: '' },
+      { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 1, totalSeconds: 61.0, gapToLeader: '0.877', intervalToAhead: '0.877' },
+    ]]
+
+    const segment = {
+      source: 'cached',
+      mode: 'race',
+      offset: '1:00.000',
+      originalSource: 'alphaTiming',
+      drivers: [
+        { kart: '42', name: 'Alice', laps: [{ number: 1, lapTime: 60.123, cumulative: 60.123 }] },
+      ],
+      capabilities: {
+        driverDiscovery: true,
+        lapTimes: true,
+        bestLap: true,
+        lastLap: true,
+        position: true,
+        classificationPosition: true,
+        leaderboard: true,
+        gapToLeader: true,
+        gapToKartAhead: true,
+        gapToKartBehind: false,
+        startingGrid: false,
+        raceSnapshots: true,
+      },
+      replayData,
+    }
+
+    const configPath = await writeTempConfig({
+      driver: 'Alice',
+      segments: [segment],
+    })
+
+    const loaded = await loadTimingConfig(configPath, true)
+    const resolved = await resolveTimingSegments(loaded.segments, loaded.driverQuery)
+
+    expect(resolved[0].replayData).toBeDefined()
+    expect((resolved[0].replayData as unknown[][])[0][0]).toMatchObject({ totalSeconds: 60.123 })
+    expect((resolved[0].replayData as unknown[][])[0][1]).toMatchObject({ totalSeconds: 61.0, gapToLeader: '0.877' })
+  })
+})
+
 describe('validateManualTimingData', () => {
   it('accepts sequential laps starting at lap 0', () => {
     expect(validateManualTimingData([
@@ -583,5 +784,350 @@ describe('resolvePositionOverrides', () => {
         0,
       ),
     ).toThrow('timestamp must be >= the segment offset')
+  })
+})
+
+describe('cached source property and characterisation tests', () => {
+  describe('round-trip equivalence', () => {
+    it('preserves all fields through cache → serialize → deserialize → resolve', async () => {
+      // Build a rich dataset: 3 drivers, 3 laps each, race mode
+      // with startingGrid and replayData (2 lap snapshots)
+      const drivers = [
+        { kart: '42', name: 'Alice', laps: [
+          { number: 1, lapTime: 62.345, cumulative: 62.345 },
+          { number: 2, lapTime: 58.901, cumulative: 121.246 },
+          { number: 3, lapTime: 59.100, cumulative: 180.346 },
+        ]},
+        { kart: '7', name: 'Bob', laps: [
+          { number: 1, lapTime: 63.000, cumulative: 63.000 },
+          { number: 2, lapTime: 59.500, cumulative: 122.500 },
+          { number: 3, lapTime: 60.200, cumulative: 182.700 },
+        ]},
+        { kart: '13', name: 'Charlie', laps: [
+          { number: 1, lapTime: 64.100, cumulative: 64.100 },
+          { number: 2, lapTime: 60.000, cumulative: 124.100 },
+          { number: 3, lapTime: 58.500, cumulative: 182.600 },
+        ]},
+      ]
+      const capabilities = {
+        driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
+        position: true, classificationPosition: true, leaderboard: true,
+        gapToLeader: true, gapToKartAhead: true, gapToKartBehind: false,
+        startingGrid: true, raceSnapshots: true,
+      }
+      const startingGrid = [
+        { position: 1, kart: '42', name: 'Alice' },
+        { position: 2, kart: '7', name: 'Bob' },
+        { position: 3, kart: '13', name: 'Charlie' },
+      ]
+      // replayData: index 0 = pre-race, index 1 = after lap 1, index 2 = after lap 2
+      const replayData = [
+        // Pre-race (index 0) — positions from grid
+        [
+          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 3, position: 3, kart: '13', name: 'Charlie', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+        ],
+        // After leader lap 1
+        [
+          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 62.345, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 1, totalSeconds: 63.000, gapToLeader: '0.655', intervalToAhead: '0.655' },
+          { driverId: 3, position: 3, kart: '13', name: 'Charlie', lapsCompleted: 1, totalSeconds: 64.100, gapToLeader: '1.755', intervalToAhead: '1.100' },
+        ],
+        // After leader lap 2
+        [
+          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 2, totalSeconds: 121.246, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 2, totalSeconds: 122.500, gapToLeader: '1.254', intervalToAhead: '1.254' },
+          { driverId: 3, position: 3, kart: '13', name: 'Charlie', lapsCompleted: 2, totalSeconds: 124.100, gapToLeader: '2.854', intervalToAhead: '1.600' },
+        ],
+      ]
+
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'race', offset: '0:00.000',
+          originalSource: 'alphaTiming',
+          drivers, capabilities, startingGrid, replayData,
+        }],
+        driver: 'Alice',
+      })
+
+      const loaded = await loadTimingConfig(configPath, true)
+      const resolved = await resolveTimingSegments(loaded.segments, 'Alice')
+      const seg = resolved[0]
+
+      // Every field must survive the round-trip
+      expect(seg.drivers).toEqual(drivers)
+      expect(seg.selectedDriver?.name).toBe('Alice')
+      expect(seg.selectedDriver?.laps).toEqual(drivers[0].laps)
+      expect(seg.capabilities).toEqual(capabilities)
+      expect(seg.startingGrid).toEqual(startingGrid)
+      expect(seg.replayData).toEqual(replayData)
+      // Verify each driver's laps individually
+      for (let d = 0; d < drivers.length; d++) {
+        expect(seg.drivers[d].laps).toHaveLength(drivers[d].laps.length)
+        for (let l = 0; l < drivers[d].laps.length; l++) {
+          expect(seg.drivers[d].laps[l].lapTime).toBe(drivers[d].laps[l].lapTime)
+          expect(seg.drivers[d].laps[l].cumulative).toBe(drivers[d].laps[l].cumulative)
+        }
+      }
+    })
+  })
+
+  describe('numeric precision preservation', () => {
+    it('preserves floating-point precision through JSON round-trip', async () => {
+      // Edge cases: very small differences, repeating decimals, accumulated sums
+      const edgeCaseLaps = [
+        { number: 1, lapTime: 0.001, cumulative: 0.001 },           // very small
+        { number: 2, lapTime: 59.999, cumulative: 60.0 },           // near-integer sum
+        { number: 3, lapTime: 0.1 + 0.2, cumulative: 60.0 + 0.3 }, // IEEE 754 classic
+        { number: 4, lapTime: 123.456789, cumulative: 183.756789 }, // many decimals
+      ]
+
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'practice', offset: '0:00.000',
+          originalSource: 'alphaTiming',
+          drivers: [{ kart: '1', name: 'Precision Test', laps: edgeCaseLaps }],
+          capabilities: {
+            driverDiscovery: false, lapTimes: true, bestLap: true, lastLap: true,
+            position: false, classificationPosition: false, leaderboard: false,
+            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
+            startingGrid: false, raceSnapshots: false,
+          },
+        }],
+        driver: 'Precision Test',
+      })
+
+      const loaded = await loadTimingConfig(configPath, true)
+      const resolved = await resolveTimingSegments(loaded.segments, 'Precision Test')
+      const laps = resolved[0].selectedDriver!.laps
+
+      for (let i = 0; i < edgeCaseLaps.length; i++) {
+        expect(laps[i].lapTime).toBe(edgeCaseLaps[i].lapTime)
+        expect(laps[i].cumulative).toBe(edgeCaseLaps[i].cumulative)
+      }
+    })
+  })
+
+  describe('driver matching equivalence', () => {
+    it('finds the same driver by partial query on cached data', async () => {
+      const drivers = [
+        { kart: '42', name: 'George Gorzynski', laps: [{ number: 1, lapTime: 60.0, cumulative: 60.0 }] },
+        { kart: '7', name: 'Georgie Porgie', laps: [{ number: 1, lapTime: 61.0, cumulative: 61.0 }] },
+        { kart: '13', name: 'Alice Smith', laps: [{ number: 1, lapTime: 62.0, cumulative: 62.0 }] },
+      ]
+
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'race', offset: '0:00.000',
+          originalSource: 'alphaTiming',
+          drivers,
+          capabilities: {
+            driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
+            position: true, classificationPosition: true, leaderboard: true,
+            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
+            startingGrid: false, raceSnapshots: false,
+          },
+        }],
+        driver: 'Alice',
+      })
+
+      const loaded = await loadTimingConfig(configPath, true)
+
+      // Unique match
+      const resolved1 = await resolveTimingSegments(loaded.segments, 'Alice')
+      expect(resolved1[0].selectedDriver?.name).toBe('Alice Smith')
+      expect(resolved1[0].selectedDriver?.kart).toBe('13')
+
+      // Ambiguous match should throw (same behavior as all other sources)
+      await expect(resolveTimingSegments(loaded.segments, 'Georg')).rejects.toThrow(/ambiguous/i)
+
+      // No match should throw
+      await expect(resolveTimingSegments(loaded.segments, 'Nonexistent')).rejects.toThrow(/no driver/i)
+    })
+  })
+
+  describe('no nested caching', () => {
+    it('cached segments resolve with source still set to cached', async () => {
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'race', offset: '0:00.000',
+          originalSource: 'alphaTiming',
+          drivers: [{ kart: '1', name: 'Test', laps: [{ number: 1, lapTime: 60, cumulative: 60 }] }],
+          capabilities: {
+            driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
+            position: true, classificationPosition: true, leaderboard: true,
+            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
+            startingGrid: false, raceSnapshots: false,
+          },
+        }],
+        driver: 'Test',
+      })
+
+      const loaded = await loadTimingConfig(configPath, true)
+      const resolved = await resolveTimingSegments(loaded.segments, 'Test')
+
+      // The resolved config should still be 'cached', not double-wrapped
+      expect(resolved[0].config.source).toBe('cached')
+      // And originalSource should be preserved (not 'cached')
+      expect((resolved[0].config as any).originalSource).toBe('alphaTiming')
+    })
+
+    it('rejects originalSource set to cached at validation level', async () => {
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'race', offset: '0:00.000',
+          originalSource: 'cached',  // THIS SHOULD BE REJECTED
+          drivers: [],
+          capabilities: {
+            driverDiscovery: false, lapTimes: true, bestLap: true, lastLap: true,
+            position: false, classificationPosition: false, leaderboard: false,
+            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
+            startingGrid: false, raceSnapshots: false,
+          },
+        }],
+      })
+
+      await expect(loadTimingConfig(configPath, true)).rejects.toThrow(/originalSource/)
+    })
+  })
+
+  describe('full pipeline: cached → buildSessionSegments', () => {
+    it('produces correct SessionSegment with leaderboard, grid position, and race snapshots', async () => {
+      const drivers = [
+        { kart: '42', name: 'Alice', laps: [
+          { number: 1, lapTime: 62.0, cumulative: 62.0 },
+          { number: 2, lapTime: 58.0, cumulative: 120.0 },
+        ]},
+        { kart: '7', name: 'Bob', laps: [
+          { number: 1, lapTime: 63.0, cumulative: 63.0 },
+          { number: 2, lapTime: 59.0, cumulative: 122.0 },
+        ]},
+      ]
+      const startingGrid = [
+        { position: 1, kart: '42', name: 'Alice' },
+        { position: 2, kart: '7', name: 'Bob' },
+      ]
+      const replayData = [
+        // Pre-race
+        [
+          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+        ],
+        // After lap 1
+        [
+          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 62.0, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 1, totalSeconds: 63.0, gapToLeader: '1.000', intervalToAhead: '1.000' },
+        ],
+        // After lap 2
+        [
+          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 2, totalSeconds: 120.0, gapToLeader: '', intervalToAhead: '' },
+          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 2, totalSeconds: 122.0, gapToLeader: '2.000', intervalToAhead: '2.000' },
+        ],
+      ]
+      const capabilities = {
+        driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
+        position: true, classificationPosition: true, leaderboard: true,
+        gapToLeader: true, gapToKartAhead: true, gapToKartBehind: false,
+        startingGrid: true, raceSnapshots: true,
+      }
+
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'race', offset: '10:00.000',
+          originalSource: 'alphaTiming',
+          drivers, capabilities, startingGrid, replayData,
+        }],
+        driver: 'Alice',
+      })
+
+      const loaded = await loadTimingConfig(configPath, true)
+      const resolved = await resolveTimingSegments(loaded.segments, 'Alice')
+      const offset = 600 // 10:00.000 in seconds
+      const { segments, startingGridPosition } = buildSessionSegments(resolved, [offset])
+
+      // --- Session data ---
+      expect(segments).toHaveLength(1)
+      const seg = segments[0]
+      expect(seg.mode).toBe('race')
+      expect(seg.session.driver).toEqual({ kart: '42', name: 'Alice' })
+      expect(seg.session.laps).toHaveLength(2)
+      expect(seg.label).toBe(undefined) // no label set
+
+      // --- Lap timestamps offset by 600s ---
+      // ytSeconds = cumulative - lapTime + offset
+      expect(seg.session.timestamps).toHaveLength(2)
+      expect(seg.session.timestamps[0].ytSeconds).toBe(offset + 62.0 - 62.0)   // lap 1 start
+      expect(seg.session.timestamps[1].ytSeconds).toBe(offset + 120.0 - 58.0)  // lap 2 start
+
+      // --- Starting grid position ---
+      expect(startingGridPosition).toBe(1) // Alice is P1
+
+      // --- Leaderboard drivers (both drivers since leaderboard capability is true) ---
+      expect(seg.leaderboardDrivers).toBeDefined()
+      expect(seg.leaderboardDrivers).toHaveLength(2)
+      expect(seg.leaderboardDrivers![0].kart).toBe('42')
+      expect(seg.leaderboardDrivers![1].kart).toBe('7')
+
+      // --- Race lap snapshots from replay data ---
+      expect(seg.raceLapSnapshots).toBeDefined()
+      expect(seg.raceLapSnapshots).toHaveLength(2) // 2 laps (index 0 = pre-race is skipped)
+
+      // Snapshot after lap 1
+      const snap1 = seg.raceLapSnapshots![0]
+      expect(snap1.leaderLap).toBe(1)
+      expect(snap1.videoTimestamp).toBe(offset + 62.0) // P1 totalSeconds + offset
+      expect(snap1.entries).toHaveLength(2)
+      expect(snap1.entries[0].position).toBe(1)
+      expect(snap1.entries[0].kart).toBe('42')
+      expect(snap1.entries[1].position).toBe(2)
+      expect(snap1.entries[1].gapToLeader).toBe('1.000')
+
+      // Snapshot after lap 2
+      const snap2 = seg.raceLapSnapshots![1]
+      expect(snap2.leaderLap).toBe(2)
+      expect(snap2.videoTimestamp).toBe(offset + 120.0)
+      expect(snap2.entries[1].gapToLeader).toBe('2.000')
+    })
+
+    it('handles practice mode without replayData or startingGrid', async () => {
+      const drivers = [
+        { kart: '42', name: 'Alice', laps: [
+          { number: 1, lapTime: 62.0, cumulative: 62.0 },
+        ]},
+        { kart: '7', name: 'Bob', laps: [
+          { number: 1, lapTime: 63.0, cumulative: 63.0 },
+        ]},
+      ]
+
+      const configPath = await writeTempConfig({
+        segments: [{
+          source: 'cached', mode: 'practice', offset: '0:00.000',
+          originalSource: 'alphaTiming',
+          drivers,
+          capabilities: {
+            driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
+            position: false, classificationPosition: false, leaderboard: true,
+            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
+            startingGrid: false, raceSnapshots: false,
+          },
+          // No startingGrid, no replayData
+        }],
+        driver: 'Alice',
+      })
+
+      const loaded = await loadTimingConfig(configPath, true)
+      const resolved = await resolveTimingSegments(loaded.segments, 'Alice')
+      const { segments, startingGridPosition } = buildSessionSegments(resolved, [0])
+
+      const seg = segments[0]
+      expect(seg.mode).toBe('practice')
+      expect(seg.session.driver.name).toBe('Alice')
+      expect(seg.raceLapSnapshots).toBeUndefined()
+      expect(startingGridPosition).toBeUndefined()
+      // Leaderboard still populated (capability is true, drivers have laps)
+      expect(seg.leaderboardDrivers).toBeDefined()
+      expect(seg.leaderboardDrivers).toHaveLength(2)
+    })
   })
 })

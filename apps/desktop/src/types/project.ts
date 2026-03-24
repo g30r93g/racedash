@@ -1,4 +1,5 @@
-// TimingSource values must match the engine exactly (packages/engine/src/timingSources.ts).
+// Wizard-selectable timing sources. The engine also supports 'cached' (produced at
+// save time by cacheRemoteTimingData), but it is not user-selectable.
 export type TimingSource =
   | 'alphaTiming'
   | 'mylapsSpeedhive'

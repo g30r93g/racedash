@@ -38,29 +38,18 @@ export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<str
 }
 
 /**
- * Formats a lap time in seconds to a "M:SS.sss" string for manual timing data.
- */
-function formatLapTimeForManual(seconds: number): string {
-  const totalMs = Math.round(seconds * 1000)
-  const ms = totalMs % 1000
-  const totalS = Math.floor(totalMs / 1000)
-  const m = Math.floor(totalS / 60)
-  const s = totalS % 60
-  return `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
-}
-
-/**
- * Resolves remote timing sources (alphaTiming, mylapsSpeedhive, etc.) and
- * converts them to manual segments with inline lap data. This avoids
- * re-fetching from external servers every time the project is opened.
+ * Resolves remote timing sources and converts them to `cached` segments
+ * that store the full resolved data (all drivers, grid, replay snapshots,
+ * capabilities) inline. This avoids re-fetching on every project open.
  *
- * Segments that are already `manual` or that fail to resolve are returned unchanged.
+ * Manual and already-cached segments are returned unchanged. If resolution
+ * fails for a remote segment, the original segment is returned so the
+ * fetch will be retried when the project is opened.
  */
 async function cacheRemoteTimingData(
   engineSegments: Record<string, unknown>[],
   selectedDriver: string | undefined,
 ): Promise<Record<string, unknown>[]> {
-  // Write a temporary config so the engine can resolve segments
   const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
   try {
     fs.writeFileSync(
@@ -74,24 +63,26 @@ async function cacheRemoteTimingData(
 
     return engineSegments.map((original, i) => {
       const source = original.source as string
-      if (source === 'manual') return original
+      if (source === 'manual' || source === 'cached') return original
 
       const seg = resolved[i]
-      if (!seg.selectedDriver || seg.selectedDriver.laps.length === 0) return original
-
-      const timingData = seg.selectedDriver.laps.map((lap) => ({
-        lap: lap.number,
-        time: formatLapTimeForManual(lap.lapTime),
-      }))
 
       return {
-        source: 'manual' as const,
+        source: 'cached',
         mode: original.mode,
         offset: original.offset,
         label: original.label,
-        timingData,
+        positionOverrides: original.positionOverrides,
+        originalSource: source,
+        drivers: seg.drivers,
+        capabilities: seg.capabilities,
+        startingGrid: seg.startingGrid,
+        replayData: seg.replayData,
       }
     })
+  } catch (err) {
+    console.error('[racedash] Failed to cache timing data, segments will fetch on open:', err)
+    return engineSegments
   } finally {
     try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
   }
@@ -293,9 +284,13 @@ export async function updateProjectHandler(
 
   // Rebuild config with new segments + driver, preserving other keys
   const engineSegments = buildEngineSegments(segments)
+  const cachedSegments = await cacheRemoteTimingData(
+    engineSegments,
+    selectedDriver || undefined,
+  )
   const updatedConfig = {
     ...existingConfig,
-    segments: engineSegments,
+    segments: cachedSegments,
     driver: selectedDriver,
   }
   fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2), 'utf-8')
