@@ -27,6 +27,7 @@ export type {
   DaytonaEmailSegmentConfig,
   MylapsSpeedhiveSegmentConfig,
   ManualSegmentConfig,
+  CachedSegmentConfig,
   BaseSegmentConfig,
   TimingConfig,
   LoadedTimingConfig,

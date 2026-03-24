@@ -25,7 +25,7 @@ import {
 import type { DriverRow, GridEntry, ReplayLapData } from '@racedash/scraper'
 import { parseOffset } from '@racedash/timestamps'
 
-export type TimingSource = 'alphaTiming' | 'teamsportEmail' | 'daytonaEmail' | 'mylapsSpeedhive' | 'manual'
+export type TimingSource = 'alphaTiming' | 'teamsportEmail' | 'daytonaEmail' | 'mylapsSpeedhive' | 'manual' | 'cached'
 
 type JsonPrimitive = string | number | boolean | null
 type JsonValue = JsonPrimitive | JsonObject | JsonValue[]
@@ -76,12 +76,22 @@ export interface ManualSegmentConfig extends BaseSegmentConfig {
   timingData: ManualTimingEntry[]
 }
 
+export interface CachedSegmentConfig extends BaseSegmentConfig {
+  source: 'cached'
+  originalSource: Exclude<TimingSource, 'cached'>
+  drivers: DriverRow[]
+  capabilities: TimingCapabilities
+  startingGrid?: GridEntry[]
+  replayData?: ReplayLapData
+}
+
 export type SegmentConfig =
   | AlphaTimingSegmentConfig
   | TeamSportEmailSegmentConfig
   | DaytonaEmailSegmentConfig
   | MylapsSpeedhiveSegmentConfig
   | ManualSegmentConfig
+  | CachedSegmentConfig
 
 export interface TimingConfig {
   segments: JsonObject[]
@@ -668,7 +678,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
   const offset = value.offset
   const label = value.label
 
-  if (typeof source !== 'string' || !['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual'].includes(source)) {
+  if (typeof source !== 'string' || !['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual', 'cached'].includes(source)) {
     throw new Error(`segments[${segmentIndex}] is missing a valid "source"`)
   }
   const timingSource = source as TimingSource
@@ -773,6 +783,33 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         timingData: validateManualTimingData(value.timingData, segmentIndex),
       }
     }
+    case 'cached': {
+      const VALID_ORIGINAL_SOURCES = ['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual']
+      const originalSource = value.originalSource
+      if (typeof originalSource !== 'string' || !VALID_ORIGINAL_SOURCES.includes(originalSource)) {
+        throw new Error(
+          `segments[${segmentIndex}].originalSource must be one of: ${VALID_ORIGINAL_SOURCES.join(', ')}`,
+        )
+      }
+      if (!Array.isArray(value.drivers)) {
+        throw new Error(`segments[${segmentIndex}].drivers must be an array for cached source`)
+      }
+      if (value.capabilities == null || typeof value.capabilities !== 'object') {
+        throw new Error(`segments[${segmentIndex}].capabilities is required for cached source`)
+      }
+      return {
+        source: 'cached' as const,
+        mode,
+        offset,
+        label,
+        positionOverrides,
+        originalSource: originalSource as Exclude<TimingSource, 'cached'>,
+        drivers: value.drivers as unknown as DriverRow[],
+        capabilities: value.capabilities as unknown as TimingCapabilities,
+        startingGrid: Array.isArray(value.startingGrid) ? value.startingGrid as unknown as GridEntry[] : undefined,
+        replayData: Array.isArray(value.replayData) ? value.replayData as unknown as ReplayLapData : undefined,
+      } satisfies CachedSegmentConfig
+    }
   }
 
   return assertNever(timingSource)
@@ -790,6 +827,8 @@ async function resolveTimingSegment(segment: SegmentConfig, driverQuery?: string
       return resolveMylapsSpeedhiveSegment(segment, driverQuery)
     case 'manual':
       return resolveManualSegment(segment, driverQuery)
+    case 'cached':
+      return resolveCachedSegment(segment, driverQuery)
   }
 
   throw new Error('Unsupported timing source')
@@ -987,6 +1026,24 @@ async function resolveManualSegment(
       startingGrid: false,
       raceSnapshots: false,
     },
+  }
+}
+
+async function resolveCachedSegment(
+  segment: CachedSegmentConfig,
+  driverQuery?: string,
+): Promise<ResolvedTimingSegment> {
+  const selectedDriver = driverQuery
+    ? matchDriver(segment.drivers, driverQuery, 'cached data')
+    : undefined
+
+  return {
+    config: segment,
+    drivers: segment.drivers,
+    selectedDriver,
+    capabilities: segment.capabilities,
+    startingGrid: segment.startingGrid,
+    replayData: segment.replayData,
   }
 }
 
