@@ -8,7 +8,7 @@ import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
 import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments, loadTimingConfig, resolvePositionOverrides, resolveTimingSegments } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 
@@ -35,6 +35,66 @@ export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<str
     if (seg.source === 'manual') return { ...base, timingData: [] }
     return base
   })
+}
+
+/**
+ * Formats a lap time in seconds to a "M:SS.sss" string for manual timing data.
+ */
+function formatLapTimeForManual(seconds: number): string {
+  const totalMs = Math.round(seconds * 1000)
+  const ms = totalMs % 1000
+  const totalS = Math.floor(totalMs / 1000)
+  const m = Math.floor(totalS / 60)
+  const s = totalS % 60
+  return `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
+}
+
+/**
+ * Resolves remote timing sources (alphaTiming, mylapsSpeedhive, etc.) and
+ * converts them to manual segments with inline lap data. This avoids
+ * re-fetching from external servers every time the project is opened.
+ *
+ * Segments that are already `manual` or that fail to resolve are returned unchanged.
+ */
+async function cacheRemoteTimingData(
+  engineSegments: Record<string, unknown>[],
+  selectedDriver: string | undefined,
+): Promise<Record<string, unknown>[]> {
+  // Write a temporary config so the engine can resolve segments
+  const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
+  try {
+    fs.writeFileSync(
+      tempPath,
+      JSON.stringify({ segments: engineSegments, driver: selectedDriver }, null, 2),
+      'utf-8',
+    )
+
+    const { segments: segmentConfigs } = await loadTimingConfig(tempPath, true)
+    const resolved = await resolveTimingSegments(segmentConfigs, selectedDriver)
+
+    return engineSegments.map((original, i) => {
+      const source = original.source as string
+      if (source === 'manual') return original
+
+      const seg = resolved[i]
+      if (!seg.selectedDriver || seg.selectedDriver.laps.length === 0) return original
+
+      const timingData = seg.selectedDriver.laps.map((lap) => ({
+        lap: lap.number,
+        time: formatLapTimeForManual(lap.lapTime),
+      }))
+
+      return {
+        source: 'manual' as const,
+        mode: original.mode,
+        offset: original.offset,
+        label: original.label,
+        timingData,
+      }
+    })
+  } finally {
+    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+  }
 }
 
 /**
@@ -360,11 +420,17 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   }
 
   // Write engine timing config (config.json) — segments in engine format.
+  // For remote sources (alphaTiming, mylapsSpeedhive, etc.), resolve the timing data
+  // now and save it as manual source to avoid re-fetching on every project open.
   const engineSegments = buildEngineSegments(opts.segments)
+  const cachedSegments = await cacheRemoteTimingData(
+    engineSegments,
+    opts.selectedDriver || undefined,
+  )
 
   const configPath = path.join(saveDir, 'config.json')
   fs.writeFileSync(configPath, JSON.stringify({
-    segments: engineSegments,
+    segments: cachedSegments,
     driver: opts.selectedDriver || undefined,
   }, null, 2), 'utf-8')
 
@@ -622,6 +688,18 @@ export async function generateTimestampsHandler(
     result.segments,
     result.offsets,
   )
+
+  // Attach position overrides to session segments (mirrors renderSession in operations.ts)
+  const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
+  sessionSegments.forEach((seg, index) => {
+    seg.positionOverrides = resolvePositionOverrides(
+      segmentConfigs[index].positionOverrides,
+      result.offsets[index],
+      index,
+      opts.fps,
+    )
+  })
+
   return { ...result, sessionSegments, startingGridPosition }
 }
 
