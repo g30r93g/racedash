@@ -184,9 +184,11 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       timestamp: timecode,
       position: parsePositionString(position),
     }))
-    window.racedash.updateProjectConfigOverrides(projectState.configPath, payload).catch((err: unknown) => {
-      console.warn('[Editor] failed to save position overrides:', err)
-    })
+    window.racedash.updateProjectConfigOverrides(projectState.configPath, payload)
+      .then(() => { setConfigRevision((r) => r + 1) })
+      .catch((err: unknown) => {
+        console.warn('[Editor] failed to save position overrides:', err)
+      })
   }, [overrides, projectState.configPath])
 
   const [playing, setPlaying] = useState(false)
