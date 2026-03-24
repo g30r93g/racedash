@@ -98,7 +98,11 @@ export const Minimal: React.FC<OverlayProps> = ({
   const styles = useMemo(() => {
     const margin = 20 * scale
     const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
-    const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
+    const hPos = boxPosition.endsWith('left')
+      ? { left: margin }
+      : boxPosition.endsWith('right')
+        ? { right: margin }
+        : { left: '50%', transform: 'translateX(-50%)' }
     const padV = 14 * scale
     const padH = 20 * scale
     const badgeSize = 36 * scale

@@ -142,7 +142,11 @@ export const Esports: React.FC<OverlayProps> = ({
     const margin = 20 * sc
     const pad = 16 * sc
     const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
-    const hPos = boxPosition.endsWith('right') ? { right: margin } : { left: margin }
+    const hPos = boxPosition.endsWith('left')
+      ? { left: margin }
+      : boxPosition.endsWith('right')
+        ? { right: margin }
+        : { left: '50%', transform: 'translateX(-50%)' }
     return {
       container: {
         position: 'absolute' as const,
