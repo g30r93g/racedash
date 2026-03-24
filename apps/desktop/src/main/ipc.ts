@@ -8,7 +8,7 @@ import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
 import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments, loadTimingConfig, resolveTimingSegments } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 
@@ -35,6 +35,57 @@ export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<str
     if (seg.source === 'manual') return { ...base, timingData: [] }
     return base
   })
+}
+
+/**
+ * Resolves remote timing sources and converts them to `cached` segments
+ * that store the full resolved data (all drivers, grid, replay snapshots,
+ * capabilities) inline. This avoids re-fetching on every project open.
+ *
+ * Manual and already-cached segments are returned unchanged. If resolution
+ * fails for a remote segment, the original segment is returned so the
+ * fetch will be retried when the project is opened.
+ */
+async function cacheRemoteTimingData(
+  engineSegments: Record<string, unknown>[],
+  selectedDriver: string | undefined,
+): Promise<Record<string, unknown>[]> {
+  const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
+  try {
+    fs.writeFileSync(
+      tempPath,
+      JSON.stringify({ segments: engineSegments, driver: selectedDriver }, null, 2),
+      'utf-8',
+    )
+
+    const { segments: segmentConfigs } = await loadTimingConfig(tempPath, true)
+    const resolved = await resolveTimingSegments(segmentConfigs, selectedDriver)
+
+    return engineSegments.map((original, i) => {
+      const source = original.source as string
+      if (source === 'manual' || source === 'cached') return original
+
+      const seg = resolved[i]
+
+      return {
+        source: 'cached',
+        mode: original.mode,
+        offset: original.offset,
+        label: original.label,
+        positionOverrides: original.positionOverrides,
+        originalSource: source,
+        drivers: seg.drivers,
+        capabilities: seg.capabilities,
+        startingGrid: seg.startingGrid,
+        replayData: seg.replayData,
+      }
+    })
+  } catch (err) {
+    console.error('[racedash] Failed to cache timing data, segments will fetch on open:', err)
+    return engineSegments
+  } finally {
+    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+  }
 }
 
 /**
@@ -361,10 +412,14 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 
   // Write engine timing config (config.json) — segments in engine format.
   const engineSegments = buildEngineSegments(opts.segments)
+  const cachedSegments = await cacheRemoteTimingData(
+    engineSegments,
+    opts.selectedDriver || undefined,
+  )
 
   const configPath = path.join(saveDir, 'config.json')
   fs.writeFileSync(configPath, JSON.stringify({
-    segments: engineSegments,
+    segments: cachedSegments,
     driver: opts.selectedDriver || undefined,
   }, null, 2), 'utf-8')
 
