@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
-import { parseDrivers, parseGrid, parseReplayLapData } from './index'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  _resetRateLimit,
+  fetchHtml,
+  MAX_REQUESTS_PER_WINDOW,
+  parseDrivers,
+  parseGrid,
+  parseReplayLapData,
+} from './index'
 
 const replayHtml = readFileSync(
   join(__dirname, '__fixtures__/replay_sample.html'),
@@ -371,5 +378,134 @@ describe('parseReplayLapData — legacy fixture (no #replayTable)', () => {
     expect(p1.totalSeconds).toBeCloseTo(69.707)
     expect(p1.gapToLeader).toBe('0.000')
     expect(p1.intervalToAhead).toBe('')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Rate limiting
+// ---------------------------------------------------------------------------
+
+describe('rate limiting', () => {
+  const fakeHtml = '<html><body>ok</body></html>'
+
+  beforeEach(() => {
+    _resetRateLimit()
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(fakeHtml),
+      }),
+    )
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    _resetRateLimit()
+  })
+
+  it(`allows up to ${MAX_REQUESTS_PER_WINDOW} requests without delay`, async () => {
+    const promises: Promise<string>[] = []
+    for (let i = 0; i < MAX_REQUESTS_PER_WINDOW; i++) {
+      promises.push(fetchHtml('http://example.com/session'))
+    }
+    // All should resolve immediately (within the same tick after microtasks flush)
+    await vi.runAllTimersAsync()
+    const results = await Promise.all(promises)
+    expect(results).toHaveLength(MAX_REQUESTS_PER_WINDOW)
+    expect(fetch).toHaveBeenCalledTimes(MAX_REQUESTS_PER_WINDOW)
+  })
+
+  it('delays the 11th request until the window elapses', async () => {
+    // Fire off 10 requests that should go through immediately
+    const resolved: number[] = []
+    for (let i = 0; i < MAX_REQUESTS_PER_WINDOW; i++) {
+      fetchHtml('http://example.com/session').then(() => resolved.push(i))
+    }
+    await vi.advanceTimersByTimeAsync(0)
+    expect(resolved).toHaveLength(MAX_REQUESTS_PER_WINDOW)
+
+    // 11th request — should not resolve immediately
+    let eleventhDone = false
+    fetchHtml('http://example.com/session').then(() => {
+      eleventhDone = true
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(eleventhDone).toBe(false)
+    expect(fetch).toHaveBeenCalledTimes(MAX_REQUESTS_PER_WINDOW)
+
+    // Advance past the first backoff — still within the 60s window so stays blocked
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(eleventhDone).toBe(false)
+
+    // Advance well past the window (backoffs chain: 1+2+4+8+16+30=61s needed)
+    // so we advance enough for all backoffs to fire and the window to expire
+    await vi.advanceTimersByTimeAsync(61_000)
+    expect(eleventhDone).toBe(true)
+    expect(fetch).toHaveBeenCalledTimes(MAX_REQUESTS_PER_WINDOW + 1)
+  })
+
+  it('uses exponential backoff when rate limited', async () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+
+    // Exhaust the window
+    for (let i = 0; i < MAX_REQUESTS_PER_WINDOW; i++) {
+      fetchHtml('http://example.com/session')
+    }
+    await vi.advanceTimersByTimeAsync(0)
+
+    // Trigger rate-limited request
+    fetchHtml('http://example.com/session')
+
+    // First backoff should be 1000ms (1000 * 2^0)
+    await vi.advanceTimersByTimeAsync(0)
+    const backoffCalls = setTimeoutSpy.mock.calls.filter(([, ms]) => ms === 1000)
+    expect(backoffCalls.length).toBeGreaterThanOrEqual(1)
+
+    // After first backoff, still rate limited → second backoff should be 2000ms (1000 * 2^1)
+    await vi.advanceTimersByTimeAsync(1_000)
+    const secondBackoffs = setTimeoutSpy.mock.calls.filter(([, ms]) => ms === 2000)
+    expect(secondBackoffs.length).toBeGreaterThanOrEqual(1)
+
+    setTimeoutSpy.mockRestore()
+  })
+
+  it('recovers after the window elapses and allows new requests', async () => {
+    // Exhaust the limit
+    for (let i = 0; i < MAX_REQUESTS_PER_WINDOW; i++) {
+      fetchHtml('http://example.com/session')
+    }
+    await vi.advanceTimersByTimeAsync(0)
+    expect(fetch).toHaveBeenCalledTimes(MAX_REQUESTS_PER_WINDOW)
+
+    // Advance past the full window
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    // New requests should go through immediately
+    let done = false
+    fetchHtml('http://example.com/session').then(() => {
+      done = true
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(done).toBe(true)
+    expect(fetch).toHaveBeenCalledTimes(MAX_REQUESTS_PER_WINDOW + 1)
+  })
+
+  it('counts retry attempts against the rate limit', async () => {
+    // Make fetch fail once then succeed — the retry should also consume a rate limit slot
+    const mockFetch = vi.fn()
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValue({ ok: true, text: () => Promise.resolve(fakeHtml) })
+    vi.stubGlobal('fetch', mockFetch)
+
+    await vi.runAllTimersAsync()
+    const promise = fetchHtml('http://example.com/session')
+    await vi.runAllTimersAsync()
+    await promise
+
+    // Both the failed attempt and the retry should have called fetch
+    expect(mockFetch).toHaveBeenCalledTimes(2)
   })
 })
