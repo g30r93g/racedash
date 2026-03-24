@@ -284,9 +284,13 @@ export async function updateProjectHandler(
 
   // Rebuild config with new segments + driver, preserving other keys
   const engineSegments = buildEngineSegments(segments)
+  const cachedSegments = await cacheRemoteTimingData(
+    engineSegments,
+    selectedDriver || undefined,
+  )
   const updatedConfig = {
     ...existingConfig,
-    segments: engineSegments,
+    segments: cachedSegments,
     driver: selectedDriver,
   }
   fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2), 'utf-8')
