@@ -10,24 +10,25 @@ echo "=== RaceDash LocalStack Bootstrap ==="
 awslocal s3 mb s3://racedash-uploads-local --region "$REGION" 2>/dev/null || true
 awslocal s3 mb s3://racedash-renders-local --region "$REGION" 2>/dev/null || true
 
-# S3 lifecycle rules
+# S3 lifecycle rules (use Filter instead of top-level Prefix for LocalStack 4.x compatibility)
 awslocal s3api put-bucket-lifecycle-configuration \
   --bucket racedash-uploads-local \
   --lifecycle-configuration '{
     "Rules": [
       {
         "ID": "expire-uploads",
-        "Prefix": "uploads/",
+        "Filter": { "Prefix": "uploads/" },
         "Status": "Enabled",
         "Expiration": { "Days": 3 }
       },
       {
         "ID": "abort-incomplete-multipart",
+        "Filter": { "Prefix": "" },
         "Status": "Enabled",
         "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
       }
     ]
-  }'
+  }' 2>/dev/null || true
 
 awslocal s3api put-bucket-lifecycle-configuration \
   --bucket racedash-renders-local \
@@ -35,12 +36,12 @@ awslocal s3api put-bucket-lifecycle-configuration \
     "Rules": [
       {
         "ID": "expire-renders",
-        "Prefix": "renders/",
+        "Filter": { "Prefix": "renders/" },
         "Status": "Enabled",
         "Expiration": { "Days": 7 }
       }
     ]
-  }'
+  }' 2>/dev/null || true
 
 # SQS DLQ
 awslocal sqs create-queue \

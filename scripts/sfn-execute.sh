@@ -38,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --status) [[ $# -ge 2 ]] || { echo "ERROR: --status requires an execution ARN"; exit 1; }; ACTION="status"; STATUS_ARN="$2"; shift 2 ;;
     --list)   ACTION="list"; shift ;;
     -h|--help) usage; exit 0 ;;
+    --) shift ;;  # skip pnpm's -- separator
     *) echo "Unknown option: $1"; usage; exit 1 ;;
   esac
 done

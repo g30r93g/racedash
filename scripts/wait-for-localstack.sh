@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ENDPOINT="${AWS_ENDPOINT_URL:-http://localhost:4566}"
+REGION="${AWS_REGION:-us-east-1}"
 MAX_WAIT="${1:-90}"  # seconds, default 90
 INTERVAL=2
 
@@ -57,9 +58,9 @@ echo "  Waiting for init resources (buckets, queues, state machine)..."
 remaining=$((MAX_WAIT - elapsed))
 while [ "$elapsed" -lt "$MAX_WAIT" ]; do
   # Check that the S3 uploads bucket exists (last resource created before SFN)
-  bucket_check=$(aws --endpoint-url "$ENDPOINT" s3api head-bucket --bucket racedash-uploads-local 2>&1) && {
+  bucket_check=$(aws --endpoint-url "$ENDPOINT" --region "$REGION" s3api head-bucket --bucket racedash-uploads-local 2>&1) && {
     # Also verify the state machine exists (created last in setup.sh)
-    sm_check=$(aws --endpoint-url "$ENDPOINT" stepfunctions list-state-machines --query 'stateMachines[?name==`RenderPipeline-local`].name' --output text 2>/dev/null) || true
+    sm_check=$(aws --endpoint-url "$ENDPOINT" --region "$REGION" stepfunctions list-state-machines --query 'stateMachines[?name==`RenderPipeline-local`].name' --output text 2>/dev/null) || true
     if [ -n "$sm_check" ]; then
       echo "  Init resources ready (${elapsed}s total)."
       echo "LocalStack is ready."

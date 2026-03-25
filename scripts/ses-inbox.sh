@@ -29,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --id)    [[ $# -ge 2 ]] || { echo "ERROR: --id requires a message ID argument"; exit 1; }; FILTER="?id=$2"; shift 2 ;;
     --clear) ACTION="clear"; shift ;;
     -h|--help) usage; exit 0 ;;
+    --) shift ;;  # skip pnpm's -- separator
     *) echo "Unknown option: $1"; usage; exit 1 ;;
   esac
 done
