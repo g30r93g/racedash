@@ -271,10 +271,13 @@ describe('GET /api/admin/jobs/:id', () => {
       id: 'res-1', rcAmount: 10, status: 'settled',
       createdAt: now, settledAt: now,
     }])
-    // Pack breakdown
-    mockDb.where.mockResolvedValueOnce([{
-      packId: 'cp-1', packName: 'Starter', rcDeducted: 10,
-    }])
+    // Skip .where() for job query and credit reservation query — keep chain intact
+    mockDb.where
+      .mockReturnValueOnce(mockDb)   // job query .where()
+      .mockReturnValueOnce(mockDb)   // credit reservation .where()
+      .mockResolvedValueOnce([{      // pack breakdown .where() — terminates
+        packId: 'cp-1', packName: 'Starter', rcDeducted: 10,
+      }])
 
     const response = await app.inject({
       method: 'GET',

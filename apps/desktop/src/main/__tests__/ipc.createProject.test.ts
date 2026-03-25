@@ -55,6 +55,19 @@ const mockAddToRegistry = vi.mocked(registry.addToRegistry)
 
 const mockMkdirSync = vi.mocked(fs.mkdirSync)
 
+/** Find the project.json write among all writeFileSync calls (order may vary). */
+function findProjectJsonWrite(): Record<string, unknown> {
+  const calls = vi.mocked(fs.writeFileSync).mock.calls
+  for (let i = calls.length - 1; i >= 0; i--) {
+    const content = calls[i][1] as string
+    try {
+      const parsed = JSON.parse(content)
+      if (parsed.name && parsed.projectPath) return parsed
+    } catch { /* skip non-JSON */ }
+  }
+  throw new Error('project.json write not found in writeFileSync calls')
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -124,23 +137,21 @@ describe('handleCreateProject', () => {
   it('writes project.json with videoPaths pointing to the copied video', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
-    const written = JSON.parse(writtenJson)
+    const written = findProjectJsonWrite()
     expect(written.videoPaths).toEqual([path.join(expectedDir, 'video.mp4')])
   })
 
   it('writes project.json with correct fields', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
-    const written = JSON.parse(writtenJson)
+    const written = findProjectJsonWrite()
     expect(written).toMatchObject({
       name: 'My Race',
       projectPath: path.join(expectedDir, 'project.json'),
       selectedDriver: 'G. Gorzynski',
     })
-    expect(written.segments).toHaveLength(1)
-    expect(written.segments[0].label).toBe('Race')
+    expect((written as any).segments).toHaveLength(1)
+    expect((written as any).segments[0].label).toBe('Race')
   })
 
   it('returns ProjectData with projectPath set to the new project.json path', async () => {
@@ -165,8 +176,7 @@ describe('handleCreateProject', () => {
       segments: [{ label: 'Race', source: 'mylapsSpeedhive' as const, eventId: '12345', session: 'race' as const, videoOffsetFrame: 150 }],
     }
     await handleCreateProject(opts)
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
-    const written = JSON.parse(writtenJson)
+    const written = findProjectJsonWrite() as any
     expect(written.segments[0].videoOffsetFrame).toBe(150)
     expect(written.segments[0].eventId).toBe('12345')
   })

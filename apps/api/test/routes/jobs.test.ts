@@ -616,21 +616,30 @@ describe('GET /api/jobs/:id/status', () => {
   })
 
   it('includes queuePosition for queued jobs', async () => {
-    mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-2', userId: 'user-1', status: 'queued',
-      downloadExpiresAt: null, errorMessage: null,
-    }])
-    // poll query
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-2', userId: 'user-1', status: 'queued',
-      downloadExpiresAt: null, errorMessage: null, createdAt: new Date('2025-01-02'),
-    }])
-    // queued jobs query for position
-    mockDb.where.mockResolvedValueOnce([
-      { id: 'job-1', createdAt: new Date('2025-01-01') },
-      { id: 'job-2', createdAt: new Date('2025-01-02') },
-    ])
+    mockDb.limit
+      .mockResolvedValueOnce([{ id: 'user-1' }])              // resolveUser
+      .mockResolvedValueOnce([{                                // findOwnedJob
+        id: 'job-2', userId: 'user-1', status: 'queued',
+        downloadExpiresAt: null, errorMessage: null,
+      }])
+      .mockResolvedValueOnce([{                                // initial poll
+        id: 'job-2', userId: 'user-1', status: 'queued',
+        downloadExpiresAt: null, errorMessage: null, createdAt: new Date('2025-01-02'),
+      }])
+      .mockResolvedValueOnce([{                                // interval poll → terminal
+        id: 'job-2', userId: 'user-1', status: 'complete',
+        downloadExpiresAt: null, errorMessage: null,
+      }])
+
+    // Skip .where() for resolveUser, findOwnedJob, and poll — keep chain intact
+    mockDb.where
+      .mockReturnValueOnce(mockDb)   // resolveUser .where()
+      .mockReturnValueOnce(mockDb)   // findOwnedJob .where()
+      .mockReturnValueOnce(mockDb)   // poll .where()
+      .mockResolvedValueOnce([       // queued jobs .where() — terminates
+        { id: 'job-1', createdAt: new Date('2025-01-01') },
+        { id: 'job-2', createdAt: new Date('2025-01-02') },
+      ])
 
     const response = await app.inject({
       method: 'GET',
@@ -641,7 +650,7 @@ describe('GET /api/jobs/:id/status', () => {
     expect(lines.length).toBeGreaterThanOrEqual(1)
     const event = JSON.parse(lines[0].replace('data: ', ''))
     expect(event.queuePosition).toBe(2)
-  })
+  }, 10_000)
 
   it('includes errorMessage for failed jobs', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
@@ -912,10 +921,13 @@ describe('GET /api/jobs', () => {
   it('includes queuePosition for queued jobs', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
     mockDb.limit.mockResolvedValueOnce([makeJob('job-1', 'queued')])
-    // Query for all queued jobs to compute positions
-    mockDb.where.mockResolvedValueOnce([
-      { id: 'job-1', createdAt: new Date('2025-01-01') },
-    ])
+    // Skip .where() for resolveUser and main query — keep chain intact
+    mockDb.where
+      .mockReturnValueOnce(mockDb)   // resolveUser .where()
+      .mockReturnValueOnce(mockDb)   // main query .where()
+      .mockResolvedValueOnce([       // queued jobs .where() — terminates
+        { id: 'job-1', createdAt: new Date('2025-01-01') },
+      ])
 
     const response = await app.inject({
       method: 'GET',

@@ -4,6 +4,9 @@ vi.mock('@racedash/engine', () => ({
   joinVideos: vi.fn(), listDrivers: vi.fn(), generateTimestamps: vi.fn(),
   renderSession: vi.fn(), parseFpsValue: vi.fn(), buildRaceLapSnapshots: vi.fn(),
   buildSessionSegments: vi.fn(),
+  loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{ positionOverrides: [] }] }),
+  resolvePositionOverrides: vi.fn().mockReturnValue([]),
+  resolveTimingSegments: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
