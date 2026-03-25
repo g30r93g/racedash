@@ -3,7 +3,14 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+} from '@/components/ui/dialog'
 
 interface ExtendLicenseDialogProps {
   userId: string
@@ -53,26 +60,30 @@ export function ExtendLicenseDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Extend License</DialogTitle>
-      <DialogDescription>
-        Current expiry: {new Date(currentExpiresAt).toLocaleDateString('en-GB')}
-      </DialogDescription>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">New Expires At</label>
-          <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-        </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        <DialogFooter>
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" disabled={submitting}>
-            {submitting ? 'Extending...' : 'Extend'}
-          </Button>
-        </DialogFooter>
-      </form>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Extend License</DialogTitle>
+          <DialogDescription>
+            Current expiry: {new Date(currentExpiresAt).toLocaleDateString('en-GB')}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">New Expires At</label>
+            <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={submitting}>
+              {submitting ? 'Extending...' : 'Extend'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </Dialog>
   )
 }

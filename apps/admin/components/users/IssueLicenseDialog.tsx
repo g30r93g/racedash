@@ -3,8 +3,20 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Dialog, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogFooter,
+  DialogHeader,
+} from '@/components/ui/dialog'
 
 interface IssueLicenseDialogProps {
   userId: string
@@ -49,38 +61,43 @@ export function IssueLicenseDialog({ userId, open, onClose, onSuccess }: IssueLi
   }
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Issue New License</DialogTitle>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Tier</label>
-          <Select
-            value={tier}
-            onChange={(e) => setTier(e.target.value as 'plus' | 'pro')}
-            className="w-full"
-          >
-            <option value="plus">Plus</option>
-            <option value="pro">Pro</option>
-          </Select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Starts At</label>
-          <Input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Expires At</label>
-          <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-        </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        <DialogFooter>
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" disabled={submitting}>
-            {submitting ? 'Issuing...' : 'Issue License'}
-          </Button>
-        </DialogFooter>
-      </form>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Issue New License</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Tier</label>
+            <Select value={tier} onValueChange={(v) => setTier(v as 'plus' | 'pro')}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="plus">Plus</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Starts At</label>
+            <Input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Expires At</label>
+            <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={submitting}>
+              {submitting ? 'Issuing...' : 'Issue License'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </Dialog>
   )
 }

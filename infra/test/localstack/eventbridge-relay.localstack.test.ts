@@ -98,7 +98,7 @@ describe('EventBridge Relay (LocalStack)', () => {
         if (logEvents.events && logEvents.events.length > 0) {
           // Verify the Lambda received the expected execution ARN in its payload
           const matchingEvent = logEvents.events.find(
-            (e) => e.message && e.message.includes(uniqueExecId),
+            (e: { message?: string }) => e.message && e.message.includes(uniqueExecId),
           )
           expect(matchingEvent).toBeDefined()
           found = true

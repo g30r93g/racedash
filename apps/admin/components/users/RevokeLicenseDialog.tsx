@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+} from '@/components/ui/dialog'
 
 interface RevokeLicenseDialogProps {
   userId: string
@@ -46,20 +53,24 @@ export function RevokeLicenseDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Revoke License</DialogTitle>
-      <DialogDescription>
-        This will cancel the user&apos;s {tier.toUpperCase()} license. This action cannot be undone.
-      </DialogDescription>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      <DialogFooter>
-        <Button type="button" variant="outline" size="sm" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button variant="destructive" size="sm" disabled={submitting} onClick={handleRevoke}>
-          {submitting ? 'Revoking...' : 'Revoke'}
-        </Button>
-      </DialogFooter>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Revoke License</DialogTitle>
+          <DialogDescription>
+            This will cancel the user&apos;s {tier.toUpperCase()} license. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="destructive" size="sm" disabled={submitting} onClick={handleRevoke}>
+            {submitting ? 'Revoking...' : 'Revoke'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }

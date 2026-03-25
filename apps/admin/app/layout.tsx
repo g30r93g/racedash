@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Sidebar } from '@/components/layout/Sidebar'
 import './globals.css'
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata = {
   title: 'RaceDash Admin',
@@ -14,7 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (!userId) {
     return (
       <ClerkProvider>
-        <html lang="en">
+        <html lang="en" className={cn("font-sans", geist.variable)}>
           <body>{children}</body>
         </html>
       </ClerkProvider>

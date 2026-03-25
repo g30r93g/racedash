@@ -3,7 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import { MultiSelect } from '@/components/ui/multi-select'
 
 const STATUS_OPTIONS = [
@@ -48,10 +54,15 @@ export function JobFilterForm({ initialStatuses, initialRange }: JobFilterFormPr
           placeholder="All Statuses"
         />
       </div>
-      <Select value={range} onChange={(e) => setRange(e.target.value)}>
-        <option value="7d">Last 7 days</option>
-        <option value="30d">Last 30 days</option>
-        <option value="all">All time</option>
+      <Select value={range} onValueChange={(v) => v && setRange(v)}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="7d">Last 7 days</SelectItem>
+          <SelectItem value="30d">Last 30 days</SelectItem>
+          <SelectItem value="all">All time</SelectItem>
+        </SelectContent>
       </Select>
       <Button type="submit">Filter</Button>
     </form>

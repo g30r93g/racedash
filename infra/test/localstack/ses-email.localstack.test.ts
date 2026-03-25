@@ -49,7 +49,7 @@ describe('SES Email (LocalStack)', () => {
     // LocalStack captures sent emails at /_aws/ses endpoint
     const endpoint = process.env.AWS_ENDPOINT_URL || 'http://localhost:4566'
     const response = await fetch(`${endpoint}/_aws/ses`)
-    const data = await response.json()
+    const data = await response.json() as { messages: unknown[] }
 
     expect(data.messages).toBeDefined()
     expect(data.messages.length).toBeGreaterThan(0)
