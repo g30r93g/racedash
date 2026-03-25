@@ -55,29 +55,39 @@ interface EditorProps {
 
 export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const { user, license: authLicense, isSignedIn, signIn } = useAuth()
+  const [projectState, setProjectState] = useState(project)
+  const [configRevision, setConfigRevision] = useState(0)
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
+  const [timingLoading, setTimingLoading] = useState(false)
+  const [timingError, setTimingError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (project.videoPaths.length === 0) return
+    if (projectState.videoPaths.length === 0) return
     window.racedash
-      .getVideoInfo(project.videoPaths[0])
+      .getVideoInfo(projectState.videoPaths[0])
       .then(setVideoInfo)
       .catch((err: unknown) => {
         console.warn('[Editor] getVideoInfo failed:', err)
       })
-  }, [project.videoPaths])
+  }, [projectState.videoPaths])
 
   useEffect(() => {
     if (videoInfo === null) return
+    let cancelled = false
+    setTimingLoading(true)
+    setTimingError(null)
     window.racedash
-      .generateTimestamps({ configPath: project.configPath, fps: videoInfo.fps })
-      .then(setTimestampsResult)
+      .generateTimestamps({ configPath: projectState.configPath, fps: videoInfo.fps })
+      .then((result) => { if (!cancelled) setTimestampsResult(result) })
       .catch((err: unknown) => {
+        if (!cancelled) setTimingError(err instanceof Error ? err.message : String(err))
         console.warn('[Editor] generateTimestamps failed:', err)
       })
-  }, [project.configPath, videoInfo])
+      .finally(() => { if (!cancelled) setTimingLoading(false) })
+    return () => { cancelled = true }
+  }, [projectState.configPath, videoInfo, configRevision])
 
   // ── Style state + undo/redo history ─────────────────────────────────────────
   const [styleHistoryState, dispatchStyle] = useReducer(styleHistoryReducer, {
@@ -88,9 +98,9 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const canUndo = styleHistoryState.cursor > 0
   const canRedo = styleHistoryState.cursor < styleHistoryState.history.length - 1
 
-  // Load initial style from config.json on mount
+  // Load initial style from config.json on mount (and after project edit)
   useEffect(() => {
-    window.racedash.readProjectConfig(project.configPath).then((config) => {
+    window.racedash.readProjectConfig(projectState.configPath).then((config) => {
       const overlayType = (config.overlayType as StyleState['overlayType']) ?? 'banner'
       const styling = (config.styling as StyleState['styling']) ?? {}
       const boxPosition = config.boxPosition as BoxPosition | undefined
@@ -98,41 +108,41 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       const overlayComponents = (config.overlayComponents as OverlayComponentsConfig | undefined) ?? DEFAULT_STYLE_STATE.overlayComponents
       dispatchStyle({ type: 'init', initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents } })
     }).catch(() => { /* no style saved yet — defaults are fine */ })
-  }, [project.configPath])
+  }, [projectState.configPath, configRevision])
 
   const handleStyleChange = useCallback((next: StyleState) => {
     dispatchStyle({ type: 'change', next })
-    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling, {
+    window.racedash.saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
       boxPosition: next.boxPosition,
       qualifyingTablePosition: next.qualifyingTablePosition,
       overlayComponents: next.overlayComponents,
     })
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig failed:', err) })
-  }, [project.configPath])
+  }, [projectState.configPath])
 
   const handleUndo = useCallback(() => {
     const newCursor = Math.max(styleHistoryState.cursor - 1, 0)
     const next = styleHistoryState.history[newCursor]
     dispatchStyle({ type: 'undo' })
-    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling, {
+    window.racedash.saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
       boxPosition: next.boxPosition,
       qualifyingTablePosition: next.qualifyingTablePosition,
       overlayComponents: next.overlayComponents,
     })
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (undo) failed:', err) })
-  }, [styleHistoryState, project.configPath])
+  }, [styleHistoryState, projectState.configPath])
 
   const handleRedo = useCallback(() => {
     const newCursor = Math.min(styleHistoryState.cursor + 1, styleHistoryState.history.length - 1)
     const next = styleHistoryState.history[newCursor]
     dispatchStyle({ type: 'redo' })
-    window.racedash.saveStyleToConfig(project.configPath, next.overlayType, next.styling, {
+    window.racedash.saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
       boxPosition: next.boxPosition,
       qualifyingTablePosition: next.qualifyingTablePosition,
       overlayComponents: next.overlayComponents,
     })
       .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (redo) failed:', err) })
-  }, [styleHistoryState, project.configPath])
+  }, [styleHistoryState, projectState.configPath])
 
   // Keyboard undo/redo
   useEffect(() => {
@@ -151,9 +161,9 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   // Load initial overrides from config.json
   useEffect(() => {
-    if (overridesInitialisedRef.current) return
+    if (overridesInitialisedRef.current && configRevision === 0) return
     overridesInitialisedRef.current = true
-    window.racedash.readProjectConfig(project.configPath).then((config) => {
+    window.racedash.readProjectConfig(projectState.configPath).then((config) => {
       const segments = (config.segments ?? []) as Array<{ positionOverrides?: Array<{ timestamp: string; position: number }> }>
       const loaded: Override[] = []
       segments.forEach((seg, segmentIndex) => {
@@ -163,7 +173,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
       setOverrides(loaded)
     }).catch(() => { /* config may have no overrides yet */ })
-  }, [project.configPath])
+  }, [projectState.configPath, configRevision])
 
   // Auto-save overrides to config.json whenever they change (skip initial empty state)
   const overridesSavedRef = useRef(false)
@@ -176,10 +186,12 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       timestamp: timecode,
       position: parsePositionString(position),
     }))
-    window.racedash.updateProjectConfigOverrides(project.configPath, payload).catch((err: unknown) => {
-      console.warn('[Editor] failed to save position overrides:', err)
-    })
-  }, [overrides, project.configPath])
+    window.racedash.updateProjectConfigOverrides(projectState.configPath, payload)
+      .then(() => { setConfigRevision((r) => r + 1) })
+      .catch((err: unknown) => {
+        console.warn('[Editor] failed to save position overrides:', err)
+      })
+  }, [overrides, projectState.configPath])
 
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
@@ -189,6 +201,13 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     videoPaneRef.current?.pause()
     onClose()
   }, [onClose])
+
+  const handleProjectUpdate = useCallback((updated: ProjectData) => {
+    setProjectState(updated)
+    setConfigRevision((r) => r + 1)
+    setOverrides([])
+    overridesSavedRef.current = false
+  }, [])
 
   const overlayProps = useMemo<OverlayProps | undefined>(() => {
     if (!timestampsResult || !videoInfo) return undefined
@@ -210,9 +229,9 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
-        <VideoPane ref={videoPaneRef} videoPath={project.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} onPlayingChange={setPlaying} overlayType={styleState.overlayType} overlayProps={overlayProps} />
+        <VideoPane ref={videoPaneRef} videoPath={projectState.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} onPlayingChange={setPlaying} overlayType={styleState.overlayType} overlayProps={overlayProps} />
         <Timeline
-          project={project}
+          project={projectState}
           videoInfo={videoInfo}
           currentTime={currentTime}
           timestampsResult={timestampsResult}
@@ -223,7 +242,28 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
       {/* Right pane — tabbed panel */}
       <div className="flex min-w-0 flex-col overflow-hidden bg-card">
-        <EditorTabsPane project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} onSave={handleSave} overrides={overrides} onOverridesChange={setOverrides} styleState={styleState} onStyleChange={handleStyleChange} onUndo={handleUndo} onRedo={handleRedo} canUndo={canUndo} canRedo={canRedo} authUser={user ? { name: user.name } : null} licenseTier={authLicense?.tier ?? null} onSignIn={signIn} />
+        <EditorTabsPane
+          project={projectState}
+          videoInfo={videoInfo}
+          currentTime={currentTime}
+          playing={playing}
+          onSave={handleSave}
+          overrides={overrides}
+          onOverridesChange={setOverrides}
+          styleState={styleState}
+          onStyleChange={handleStyleChange}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          timestampsResult={timestampsResult}
+          timingLoading={timingLoading}
+          timingError={timingError}
+          onProjectUpdate={handleProjectUpdate}
+          authUser={user ? { name: user.name } : null}
+          licenseTier={authLicense?.tier ?? null}
+          onSignIn={signIn}
+        />
       </div>
     </div>
   )

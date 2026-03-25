@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Save } from 'lucide-react'
 import React, { useState } from 'react'
-import type { VideoInfo } from '../../../../types/ipc'
+import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
 import { ExportTab } from './tabs/ExportTab'
 import { StyleTab } from './tabs/StyleTab'
@@ -23,6 +23,10 @@ interface EditorTabsPaneProps {
   onRedo: () => void
   canUndo: boolean
   canRedo: boolean
+  timestampsResult?: TimestampsResult | null
+  timingLoading?: boolean
+  timingError?: string | null
+  onProjectUpdate: (updated: ProjectData) => void
   authUser?: { name: string } | null
   licenseTier?: 'plus' | 'pro' | null
   onSignIn?: () => void
@@ -37,7 +41,7 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange, styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo, authUser, licenseTier, onSignIn }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange, styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo, timestampsResult, timingLoading, timingError, onProjectUpdate, authUser, licenseTier, onSignIn }: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('timing')
 
@@ -64,7 +68,7 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
         </TabsList>
 
         <TabsContent value="timing" className="mt-0 flex-1 overflow-auto">
-          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} overrides={overrides} onOverridesChange={onOverridesChange} />
+          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} overrides={overrides} onOverridesChange={onOverridesChange} timestampsResult={timestampsResult} timingLoading={timingLoading} timingError={timingError} onProjectUpdate={onProjectUpdate} />
         </TabsContent>
         <TabsContent value="style" className="mt-0 flex-1 overflow-auto">
           <StyleTab styleState={styleState} onStyleChange={onStyleChange} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} />

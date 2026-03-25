@@ -334,6 +334,7 @@ export interface RacedashAPI {
   deleteProject(projectPath: string): Promise<void>
   renameProject(projectPath: string, name: string): Promise<ProjectData>
   relocateProject(oldProjectPath: string): Promise<ProjectData>
+  updateProject(projectPath: string, segments: SegmentConfig[], selectedDriver: string): Promise<ProjectData>
   readProjectConfig(configPath: string): Promise<Record<string, unknown>>
   updateProjectConfigOverrides(configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>): Promise<void>
   saveStyleToConfig(

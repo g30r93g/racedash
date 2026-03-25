@@ -8,7 +8,7 @@ import os from 'node:os'
 import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
 import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments } from '@racedash/engine'
+import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments, loadTimingConfig, resolvePositionOverrides, resolveTimingSegments } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 import { registerCloudRenderHandlers } from './cloud-render-handlers'
@@ -16,6 +16,78 @@ import { registerCloudRenderHandlers } from './cloud-render-handlers'
 // ---------------------------------------------------------------------------
 // Exported implementation helpers (used by tests)
 // ---------------------------------------------------------------------------
+
+/**
+ * Converts wizard SegmentConfig[] into the engine's config format.
+ * Used by both handleCreateProject and updateProjectHandler.
+ */
+export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<string, unknown>[] {
+  return segments.map((seg) => {
+    const base = {
+      source: seg.source,
+      mode: seg.session ?? 'race',
+      offset: `${seg.videoOffsetFrame ?? 0} F`,
+      label: seg.label,
+    }
+    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
+    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
+    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'manual') return { ...base, timingData: [] }
+    return base
+  })
+}
+
+/**
+ * Resolves remote timing sources and converts them to `cached` segments
+ * that store the full resolved data (all drivers, grid, replay snapshots,
+ * capabilities) inline. This avoids re-fetching on every project open.
+ *
+ * Manual and already-cached segments are returned unchanged. If resolution
+ * fails for a remote segment, the original segment is returned so the
+ * fetch will be retried when the project is opened.
+ */
+async function cacheRemoteTimingData(
+  engineSegments: Record<string, unknown>[],
+  selectedDriver: string | undefined,
+): Promise<Record<string, unknown>[]> {
+  const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
+  try {
+    fs.writeFileSync(
+      tempPath,
+      JSON.stringify({ segments: engineSegments, driver: selectedDriver }, null, 2),
+      'utf-8',
+    )
+
+    const { segments: segmentConfigs } = await loadTimingConfig(tempPath, true)
+    const resolved = await resolveTimingSegments(segmentConfigs, selectedDriver)
+
+    return engineSegments.map((original, i) => {
+      const source = original.source as string
+      if (source === 'manual' || source === 'cached') return original
+
+      const seg = resolved[i]
+
+      return {
+        source: 'cached',
+        mode: original.mode,
+        offset: original.offset,
+        label: original.label,
+        positionOverrides: original.positionOverrides,
+        originalSource: source,
+        drivers: seg.drivers,
+        capabilities: seg.capabilities,
+        startingGrid: seg.startingGrid,
+        replayData: seg.replayData,
+      }
+    })
+  } catch (err) {
+    console.error('[racedash] Failed to cache timing data, segments will fetch on open:', err)
+    return engineSegments
+  } finally {
+    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+  }
+}
 
 /**
  * Checks whether ffmpeg is available on PATH.
@@ -182,6 +254,60 @@ export async function renameProjectHandler(projectPath: string, name: string): P
   return updated
 }
 
+export async function updateProjectHandler(
+  projectPath: string,
+  segments: WizardSegmentConfig[],
+  selectedDriver: string,
+): Promise<ProjectData> {
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('updateProject: projectPath must be a non-empty string')
+  }
+  if (!projectPath.endsWith('project.json')) {
+    throw new Error('updateProject: path must point to a project.json file')
+  }
+  if (!Array.isArray(segments) || segments.length === 0) {
+    throw new Error('updateProject: segments must be a non-empty array')
+  }
+  if (typeof selectedDriver !== 'string' || selectedDriver.trim().length === 0) {
+    throw new Error('updateProject: selectedDriver must be a non-empty string')
+  }
+
+  // Read existing project
+  const raw = fs.readFileSync(projectPath, 'utf-8') as string
+  const project = JSON.parse(raw) as ProjectData
+  const configPath = project.configPath ?? path.join(path.dirname(projectPath), 'config.json')
+
+  // Read existing config.json, preserve non-segment keys (styling, overrides, etc.)
+  let existingConfig: Record<string, unknown> = {}
+  try {
+    existingConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8') as string) as Record<string, unknown>
+  } catch { /* config may not exist yet */ }
+
+  // Rebuild config with new segments + driver, preserving other keys
+  const engineSegments = buildEngineSegments(segments)
+  const cachedSegments = await cacheRemoteTimingData(
+    engineSegments,
+    selectedDriver || undefined,
+  )
+  const updatedConfig = {
+    ...existingConfig,
+    segments: cachedSegments,
+    driver: selectedDriver,
+  }
+  fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2), 'utf-8')
+
+  // Update project.json
+  const updatedProject: ProjectData = {
+    ...project,
+    segments,
+    selectedDriver,
+    configPath,
+  }
+  fs.writeFileSync(projectPath, JSON.stringify(updatedProject, null, 2), 'utf-8')
+
+  return updatedProject
+}
+
 export async function deleteProjectHandler(projectPath: string): Promise<void> {
   if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
     throw new Error('deleteProject: projectPath must be a non-empty string')
@@ -262,6 +388,15 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     .replace(/^-|-$/g, '')
 
   const saveDir = opts.saveDir ?? path.join(os.homedir(), 'Videos', 'racedash', slug)
+
+  // Prevent overwriting an existing non-empty directory
+  if (fs.existsSync(saveDir)) {
+    const entries = fs.readdirSync(saveDir)
+    if (entries.length > 0) {
+      throw new Error(`Save directory is not empty: ${saveDir}`)
+    }
+  }
+
   fs.mkdirSync(saveDir, { recursive: true })
 
   // Preserve original single-source inputs, but move temp joined outputs into the project directory.
@@ -281,25 +416,17 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   }
 
   // Write engine timing config (config.json) — segments in engine format.
-  // Wizard segments lack `mode` and `offset`; derive them here.
-  const engineSegments = opts.segments.map((seg) => {
-    const base = {
-      source: seg.source,
-      mode: seg.session ?? 'race',
-      offset: `${seg.videoOffsetFrame ?? 0} F`,
-      label: seg.label,
-    }
-    if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
-    if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
-    return base
-  })
+  // For remote sources (alphaTiming, mylapsSpeedhive, etc.), resolve the timing data
+  // now and save it as manual source to avoid re-fetching on every project open.
+  const engineSegments = buildEngineSegments(opts.segments)
+  const cachedSegments = await cacheRemoteTimingData(
+    engineSegments,
+    opts.selectedDriver || undefined,
+  )
 
   const configPath = path.join(saveDir, 'config.json')
   fs.writeFileSync(configPath, JSON.stringify({
-    segments: engineSegments,
+    segments: cachedSegments,
     driver: opts.selectedDriver || undefined,
   }, null, 2), 'utf-8')
 
@@ -557,6 +684,18 @@ export async function generateTimestampsHandler(
     result.segments,
     result.offsets,
   )
+
+  // Attach position overrides to session segments (mirrors renderSession in operations.ts)
+  const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
+  sessionSegments.forEach((seg, index) => {
+    seg.positionOverrides = resolvePositionOverrides(
+      segmentConfigs[index].positionOverrides,
+      result.offsets[index],
+      index,
+      opts.fps,
+    )
+  })
+
   return { ...result, sessionSegments, startingGridPosition }
 }
 
@@ -615,6 +754,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
   ipcMain.handle('racedash:relocateProject', (_event, oldProjectPath: string) => relocateProjectHandler(oldProjectPath))
   ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
+  ipcMain.handle('racedash:updateProject', (_event, projectPath: string, segments: WizardSegmentConfig[], selectedDriver: string) => updateProjectHandler(projectPath, segments, selectedDriver))
   ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
   ipcMain.handle(

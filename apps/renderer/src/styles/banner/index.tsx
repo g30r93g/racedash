@@ -9,13 +9,13 @@ import {
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
-import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter, computeLapColors } from '../../components/banners'
+import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { SegmentLabel } from '../../SegmentLabel'
-import { getLapAtTime, getLapElapsed } from '../../timing'
+import { getLapElapsed } from '../../timing'
 import { BannerBackground } from './BannerBackground'
-import { useLivePosition } from '../../livePosition'
 import { resolveInfoSegments } from '../../infoSegments'
+import { useBannerOverlayState } from '../../useBannerOverlayState'
 
 const DEFAULT_ACCENT = '#3DD73D'
 const TIME_PLACEHOLDER = '-:--.---'
@@ -36,11 +36,12 @@ export const Banner: React.FC<OverlayProps> = ({
   const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
   const { session, sessionAllLaps, mode } = segment
 
-  const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
+  const {
+    currentLap, currentIdx, raceEnd, livePosition, lapColors,
+  } = useBannerOverlayState({ segment, currentTime })
+
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
-
-  const livePosition = useLivePosition(segment, currentTime)
 
   const accent = styling?.accentColor ?? DEFAULT_ACCENT
   const text = styling?.textColor ?? 'white'
@@ -56,13 +57,6 @@ export const Banner: React.FC<OverlayProps> = ({
   const raceStart = session.timestamps[0].ytSeconds
   const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
   const showFrom = raceStart - preRoll
-
-  const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
-  const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
-  const raceEnd = useMemo(() => {
-    const lastTs = session.timestamps[session.timestamps.length - 1]
-    return lastTs.ytSeconds + lastTs.lap.lapTime
-  }, [session.timestamps])
 
   if (currentTime < showFrom && !isEnd) return null
 
@@ -152,6 +146,7 @@ export const Banner: React.FC<OverlayProps> = ({
                   timestamps={session.timestamps}
                   currentIdx={currentIdx}
                   currentTime={currentTime}
+                  isEnd={isEnd}
                   textColor={text}
                   placeholderText={TIME_PLACEHOLDER}
                 />
@@ -167,6 +162,7 @@ export const Banner: React.FC<OverlayProps> = ({
                   timestamps={session.timestamps}
                   currentIdx={currentIdx}
                   currentTime={currentTime}
+                  isEnd={isEnd}
                   textColor={text}
                   placeholderText={TIME_PLACEHOLDER}
                 />

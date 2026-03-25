@@ -19,6 +19,34 @@ const USER_AGENT =
   'AppleWebKit/537.36 (KHTML, like Gecko) ' +
   'Chrome/121.0.0.0 Safari/537.36'
 
+export const MAX_REQUESTS_PER_WINDOW = 10
+export const WINDOW_MS = 60_000 // 1 minute
+const requestTimestamps: number[] = []
+
+/** @internal Clear rate-limit state between tests. */
+export function _resetRateLimit(): void {
+  requestTimestamps.length = 0
+}
+
+async function waitForRateLimit(): Promise<void> {
+  let backoffAttempt = 0
+  while (true) {
+    const now = Date.now()
+    // Purge timestamps outside the current window
+    while (requestTimestamps.length > 0 && requestTimestamps[0] <= now - WINDOW_MS) {
+      requestTimestamps.shift()
+    }
+    if (requestTimestamps.length < MAX_REQUESTS_PER_WINDOW) {
+      requestTimestamps.push(now)
+      return
+    }
+    // Wait with exponential backoff: 1s, 2s, 4s, 8s... capped at 30s
+    const delay = Math.min(1000 * 2 ** backoffAttempt, 30_000)
+    backoffAttempt++
+    await new Promise(r => setTimeout(r, delay))
+  }
+}
+
 export async function fetchHtml(url: string): Promise<string> {
   return fetchTab(url, '/laptimes')
 }
@@ -27,14 +55,31 @@ export async function fetchGridHtml(url: string): Promise<string> {
   return fetchTab(url, '/grid')
 }
 
-async function fetchTab(url: string, tab: string): Promise<string> {
+async function fetchTab(
+  url: string,
+  tab: string,
+  retries = 3,
+  timeoutMs = 30_000,
+): Promise<string> {
   const resolved = normaliseUrl(url, tab)
-  const res = await fetch(resolved, {
-    headers: { 'User-Agent': USER_AGENT },
-    signal: AbortSignal.timeout(10_000),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${resolved}`)
-  return res.text()
+  let lastError: unknown
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      await waitForRateLimit()
+      const res = await fetch(resolved, {
+        headers: { 'User-Agent': USER_AGENT },
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${resolved}`)
+      return res.text()
+    } catch (err) {
+      lastError = err
+      if (attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, 1000 * 2 ** attempt))
+      }
+    }
+  }
+  throw lastError
 }
 
 export function parseDrivers(html: string): DriverRow[] {

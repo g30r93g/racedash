@@ -7,6 +7,7 @@ interface Props {
   timestamps: LapTimestamp[]
   currentIdx: number
   currentTime: number
+  isEnd?: boolean
   textColor?: string
   yOffset?: number
   placeholderText?: string

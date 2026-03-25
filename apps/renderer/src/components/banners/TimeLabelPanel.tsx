@@ -9,6 +9,7 @@ interface Props {
   currentIdx: number
   currentTime: number
   variant: 'last' | 'best'
+  isEnd?: boolean
   textColor?: string
   yOffset?: number
   placeholderText?: string
@@ -26,7 +27,7 @@ function formatBannerTime(seconds: number): string {
 }
 
 export const TimeLabelPanel: React.FC<Props> = ({
-  timestamps, currentIdx, currentTime, variant, textColor = 'white', yOffset = 0, placeholderText,
+  timestamps, currentIdx, currentTime, variant, isEnd = false, textColor = 'white', yOffset = 0, placeholderText,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -34,8 +35,8 @@ export const TimeLabelPanel: React.FC<Props> = ({
   const raceStart = timestamps[0].ytSeconds
 
   const completedLaps = useMemo(
-    () => currentIdx >= 1 ? getCompletedLaps(timestamps, currentIdx) : [],
-    [timestamps, currentIdx],
+    () => currentIdx >= 1 || isEnd ? getCompletedLaps(timestamps, currentIdx, isEnd) : [],
+    [timestamps, currentIdx, isEnd],
   )
   const displayTime = useMemo(
     () => variant === 'last'

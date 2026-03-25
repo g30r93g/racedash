@@ -5,6 +5,7 @@
   "scripts": {
     "prebuild": "pnpm --filter @racedash/core build",
     "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "pretest": "pnpm --filter @racedash/core build",
     "test": "vitest run",
     "remotion": "remotion",

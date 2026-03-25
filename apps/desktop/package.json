@@ -9,6 +9,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
     "pack": "electron-builder --config electron-builder.config.ts",
     "dist": "electron-vite build && electron-builder --config electron-builder.config.ts",
     "dist:test": "pnpm install --frozen-lockfile && pnpm turbo build --filter=@racedash/desktop... && pnpm --filter @racedash/desktop run dist -- --publish never",
