@@ -33,6 +33,15 @@ vi.mock('node:fs', () => ({
   },
 }))
 
+vi.mock('@racedash/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@racedash/engine')>()
+  return {
+    ...actual,
+    loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{}] }),
+    resolveTimingSegments: vi.fn().mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
+  }
+})
+
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
   app: { getPath: vi.fn().mockReturnValue('/Users/testuser') },
