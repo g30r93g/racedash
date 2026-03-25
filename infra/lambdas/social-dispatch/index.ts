@@ -21,7 +21,6 @@ export const handler = async (event: SQSEvent): Promise<void> => {
     const payload: SocialUploadPayload = JSON.parse(record.body)
 
     if (payload.platform !== 'youtube') {
-      console.error(`Unsupported platform: ${payload.platform}`)
       throw new Error(`Unsupported platform: ${payload.platform}`)
     }
 
