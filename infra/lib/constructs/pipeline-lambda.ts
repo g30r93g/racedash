@@ -30,7 +30,9 @@ export class PipelineLambda extends Construct {
       memorySize: props.memorySize,
       timeout: props.timeout,
       environment: props.environment,
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      logGroup: new logs.LogGroup(this, 'LogGroup', {
+        retention: logs.RetentionDays.ONE_MONTH,
+      }),
       bundling: {
         minify: true,
         sourceMap: true,

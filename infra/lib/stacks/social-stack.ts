@@ -105,7 +105,9 @@ export class SocialStack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      logGroup: new logs.LogGroup(this, 'DispatchLogGroup', {
+        retention: logs.RetentionDays.ONE_MONTH,
+      }),
       environment: {
         DATABASE_URL: databaseUrlDirect,
         YOUTUBE_TASK_DEFINITION_ARN: taskDef.taskDefinitionArn,

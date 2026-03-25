@@ -252,6 +252,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-finalise-job-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "FinaliseJobFunctionLogGroup580C79B7",
+          },
+        },
         "MemorySize": 256,
         "Role": {
           "Fn::GetAtt": [
@@ -263,29 +268,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "FinaliseJobFunctionHandlerLogRetentionF00EBAC4": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "FinaliseJobFunctionHandlerAEE321A8",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "FinaliseJobFunctionHandlerServiceRole6C694C1F": {
       "Properties": {
@@ -357,6 +339,14 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
+    "FinaliseJobFunctionLogGroup580C79B7": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "GrantSlotFunctionHandler95F97D39": {
       "DependsOn": [
         "GrantSlotFunctionHandlerServiceRole281B766D",
@@ -382,6 +372,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-grant-slot-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "GrantSlotFunctionLogGroup112A1F49",
+          },
+        },
         "MemorySize": 128,
         "Role": {
           "Fn::GetAtt": [
@@ -393,29 +388,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 30,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "GrantSlotFunctionHandlerLogRetention52C1B184": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "GrantSlotFunctionHandler95F97D39",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "GrantSlotFunctionHandlerServiceRole281B766D": {
       "Properties": {
@@ -448,82 +420,13 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       },
       "Type": "AWS::IAM::Role",
     },
-    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
-      "DependsOn": [
-        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
-        "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
-      ],
+    "GrantSlotFunctionLogGroup112A1F49": {
+      "DeletionPolicy": "Retain",
       "Properties": {
-        "Code": {
-          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "ASSET_HASH.zip",
-        },
-        "Handler": "index.handler",
-        "Role": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs22.x",
-        "Timeout": 900,
+        "RetentionInDays": 30,
       },
-      "Type": "AWS::Lambda::Function",
-    },
-    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "logs:PutRetentionPolicy",
-                "logs:DeleteRetentionPolicy",
-              ],
-              "Effect": "Allow",
-              "Resource": "*",
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRoleDefaultPolicyADDA7DEB",
-        "Roles": [
-          {
-            "Ref": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
     },
     "MediaConvertRole031A64A9": {
       "Properties": {
@@ -629,6 +532,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-notify-user-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "NotifyUserFunctionLogGroupADB549BD",
+          },
+        },
         "MemorySize": 128,
         "Role": {
           "Fn::GetAtt": [
@@ -640,29 +548,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 30,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "NotifyUserFunctionHandlerLogRetention59D4E8C3": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "NotifyUserFunctionHandlerE613B541",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "NotifyUserFunctionHandlerServiceRoleAFFA55E1": {
       "Properties": {
@@ -716,6 +601,14 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
+    "NotifyUserFunctionLogGroupADB549BD": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "PrepareCompositeFunctionHandler4C1530F8": {
       "DependsOn": [
         "PrepareCompositeFunctionHandlerServiceRole00D9AABF",
@@ -747,6 +640,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-prepare-composite-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "PrepareCompositeFunctionLogGroup125C1E53",
+          },
+        },
         "MemorySize": 256,
         "Role": {
           "Fn::GetAtt": [
@@ -758,29 +656,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 30,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "PrepareCompositeFunctionHandlerLogRetentionCD09C222": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "PrepareCompositeFunctionHandler4C1530F8",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "PrepareCompositeFunctionHandlerServiceRole00D9AABF": {
       "Properties": {
@@ -813,6 +688,22 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       },
       "Type": "AWS::IAM::Role",
     },
+    "PrepareCompositeFunctionLogGroup125C1E53": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "RelayLogGroup3D87BE87": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "ReleaseCreditsAndFailFunctionHandler7B6EF428": {
       "DependsOn": [
         "ReleaseCreditsAndFailFunctionHandlerServiceRoleDefaultPolicy0BA21488",
@@ -840,6 +731,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-release-credits-and-fail-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "ReleaseCreditsAndFailFunctionLogGroupEA059235",
+          },
+        },
         "MemorySize": 256,
         "Role": {
           "Fn::GetAtt": [
@@ -851,29 +747,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "ReleaseCreditsAndFailFunctionHandlerLogRetentionF611A728": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "ReleaseCreditsAndFailFunctionHandler7B6EF428",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "ReleaseCreditsAndFailFunctionHandlerServiceRole988A84A0": {
       "Properties": {
@@ -935,6 +808,14 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
+    "ReleaseCreditsAndFailFunctionLogGroupEA059235": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "RemotionFunction2D473C37": {
       "DependsOn": [
         "RemotionFunctionServiceRoleDefaultPolicy29BDDA10",
@@ -949,6 +830,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-remotion-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "RemotionLogGroup444F313F",
+          },
+        },
         "MemorySize": 1024,
         "Role": {
           "Fn::GetAtt": [
@@ -960,29 +846,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 120,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "RemotionFunctionLogRetention982CF701": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "RemotionFunction2D473C37",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "RemotionFunctionServiceRoleDefaultPolicy29BDDA10": {
       "Properties": {
@@ -1086,6 +949,14 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
       },
       "Type": "AWS::IAM::Role",
+    },
+    "RemotionLogGroup444F313F": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
     },
     "RemotionSiteBucket5F4156DB": {
       "DeletionPolicy": "Delete",
@@ -1577,6 +1448,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-start-render-overlay-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "StartRenderOverlayFunctionLogGroup0B932744",
+          },
+        },
         "MemorySize": 256,
         "Role": {
           "Fn::GetAtt": [
@@ -1588,29 +1464,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "StartRenderOverlayFunctionHandlerLogRetention7B77DFCF": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "StartRenderOverlayFunctionHandlerD15A8D25",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "StartRenderOverlayFunctionHandlerServiceRoleBEA8BBF5": {
       "Properties": {
@@ -1669,6 +1522,14 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
+    "StartRenderOverlayFunctionLogGroup0B932744": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
     "StepFunctionsRelayFunctionE167FF3E": {
       "DependsOn": [
         "StepFunctionsRelayFunctionServiceRoleC99FA4DC",
@@ -1689,6 +1550,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-sfn-relay-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "RelayLogGroup3D87BE87",
+          },
+        },
         "MemorySize": 128,
         "Role": {
           "Fn::GetAtt": [
@@ -1700,29 +1566,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 30,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "StepFunctionsRelayFunctionLogRetention9364A079": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "StepFunctionsRelayFunctionE167FF3E",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "StepFunctionsRelayFunctionServiceRoleC99FA4DC": {
       "Properties": {
@@ -1838,6 +1681,11 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         },
         "FunctionName": "racedash-wait-for-slot-test",
         "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "WaitForSlotFunctionLogGroupF69FB06C",
+          },
+        },
         "MemorySize": 128,
         "Role": {
           "Fn::GetAtt": [
@@ -1849,29 +1697,6 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         "Timeout": 30,
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "WaitForSlotFunctionHandlerLogRetention9DA0B860": {
-      "Properties": {
-        "LogGroupName": {
-          "Fn::Join": [
-            "",
-            [
-              "/aws/lambda/",
-              {
-                "Ref": "WaitForSlotFunctionHandler3E1BF086",
-              },
-            ],
-          ],
-        },
-        "RetentionInDays": 30,
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::LogRetention",
     },
     "WaitForSlotFunctionHandlerServiceRole06BC51EA": {
       "Properties": {
@@ -1924,6 +1749,14 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "WaitForSlotFunctionLogGroupF69FB06C": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
     },
   },
   "Rules": {

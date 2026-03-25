@@ -64,7 +64,9 @@ export class PipelineStack extends cdk.Stack {
       code: lambda.Code.fromInline('exports.handler = async () => {}'),
       memorySize: 1024,
       timeout: cdk.Duration.seconds(120),
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      logGroup: new logs.LogGroup(this, 'RemotionLogGroup', {
+        retention: logs.RetentionDays.ONE_MONTH,
+      }),
     })
 
     // Remotion Lambda IAM
@@ -284,7 +286,9 @@ export class PipelineStack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       memorySize: 128,
       timeout: cdk.Duration.seconds(30),
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      logGroup: new logs.LogGroup(this, 'RelayLogGroup', {
+        retention: logs.RetentionDays.ONE_MONTH,
+      }),
       environment: {
         WEBHOOK_TARGET_URL: webhookTargetUrl,
         WEBHOOK_SECRET: webhookSecret,
