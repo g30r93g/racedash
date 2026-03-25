@@ -9,9 +9,7 @@ const { mockWebhookVerify } = vi.hoisted(() => {
 })
 
 vi.mock('svix', () => ({
-  Webhook: vi.fn().mockImplementation(() => ({
-    verify: mockWebhookVerify,
-  })),
+  Webhook: vi.fn().mockImplementation(function () { this.verify = mockWebhookVerify }),
 }))
 
 vi.mock('@racedash/db', () => ({

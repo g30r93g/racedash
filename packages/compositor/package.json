@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --pool forks"
+    "test": "vitest run --pool forks",
+    "test:coverage": "vitest run --pool forks --coverage"
   },
   "dependencies": {
     "@racedash/core": "workspace:*",

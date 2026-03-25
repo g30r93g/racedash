@@ -50,9 +50,9 @@ vi.mock('../../src/lib/aws', () => ({
 
 vi.mock('@aws-sdk/client-s3', () => ({
   S3Client: vi.fn(),
-  CreateMultipartUploadCommand: vi.fn().mockImplementation((input) => ({ ...input, _command: 'CreateMultipartUpload' })),
-  UploadPartCommand: vi.fn().mockImplementation((input) => ({ ...input, _command: 'UploadPart' })),
-  CompleteMultipartUploadCommand: vi.fn().mockImplementation((input) => ({ ...input, _command: 'CompleteMultipartUpload' })),
+  CreateMultipartUploadCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'CreateMultipartUpload' }),
+  UploadPartCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'UploadPart' }),
+  CompleteMultipartUploadCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'CompleteMultipartUpload' }),
 }))
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
@@ -61,7 +61,7 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
 
 vi.mock('@aws-sdk/client-sfn', () => ({
   SFNClient: vi.fn(),
-  StartExecutionCommand: vi.fn().mockImplementation((input) => ({ ...input, _command: 'StartExecution' })),
+  StartExecutionCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'StartExecution' }),
 }))
 
 vi.mock('@aws-sdk/cloudfront-signer', () => ({

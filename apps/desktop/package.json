@@ -15,7 +15,8 @@
     "dist:test": "pnpm install --frozen-lockfile && pnpm turbo build --filter=@racedash/desktop... && pnpm --filter @racedash/desktop run dist -- --publish never",
     "prebuild": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
     "pretest": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
-    "test": "vitest run --pool forks --passWithNoTests"
+    "test": "vitest run --pool forks --passWithNoTests",
+    "test:coverage": "vitest run --pool forks --passWithNoTests --coverage"
   },
   "dependencies": {
     "@racedash/core": "workspace:*",

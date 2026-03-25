@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "pretest": "pnpm --filter @racedash/core build",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "remotion": "remotion",
     "preview": "remotion preview src/index.ts"
   },

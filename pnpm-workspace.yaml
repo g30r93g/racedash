@@ -8,5 +8,6 @@ onlyBuiltDependencies:
   - electron
   - esbuild
   - ffmpeg-static
+  - msw
   - sharp
   - unicode-animations

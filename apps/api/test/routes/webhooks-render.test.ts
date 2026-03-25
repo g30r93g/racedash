@@ -15,7 +15,7 @@ vi.mock('../../src/lib/aws', () => ({
 
 vi.mock('@aws-sdk/client-sfn', () => ({
   SFNClient: vi.fn(),
-  SendTaskSuccessCommand: vi.fn().mockImplementation((input) => ({ ...input, _command: 'SendTaskSuccess' })),
+  SendTaskSuccessCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'SendTaskSuccess' }),
 }))
 
 vi.mock('@racedash/db', () => ({

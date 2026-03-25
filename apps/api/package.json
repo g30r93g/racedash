@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1013.0",
@@ -29,8 +30,8 @@
   },
   "devDependencies": {
     "@remotion/lambda": "^4.0.438",
-    "@types/pg": "*",
     "@types/node": "^24.5.0",
+    "@types/pg": "*",
     "fast-check": "^4.6.0",
     "tsx": "*",
     "typescript": "*",

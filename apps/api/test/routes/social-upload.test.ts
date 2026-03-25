@@ -4,8 +4,8 @@ import type { FastifyInstance } from 'fastify'
 process.env.SQS_SOCIAL_UPLOAD_QUEUE_URL = 'https://sqs.test.amazonaws.com/123456789/test-queue'
 
 vi.mock('@aws-sdk/client-sqs', () => ({
-  SQSClient: vi.fn().mockImplementation(() => ({ send: vi.fn().mockResolvedValue({}) })),
-  SendMessageCommand: vi.fn(),
+  SQSClient: vi.fn().mockImplementation(function () { this.send = vi.fn().mockResolvedValue({}) }),
+  SendMessageCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input) }),
 }))
 
 // vi.hoisted ensures these are available in the vi.mock factory

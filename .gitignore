@@ -14,5 +14,6 @@ docs/pricing-idea.md
 # Node / TypeScript
 node_modules/
 dist/
+coverage/
 .turbo/
 .worktrees/

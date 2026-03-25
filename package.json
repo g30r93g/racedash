@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "test": "turbo test",
+    "test:coverage": "turbo test:coverage",
     "typecheck": "turbo typecheck",
     "lint": "eslint .",
     "cli": "tsx apps/cli/src/index.ts",
@@ -20,6 +21,12 @@
     "turbo": "^2.3.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.57.0",
-    "vitest": "^1.6.0"
+    "@vitest/coverage-v8": "^4.1.1",
+    "vitest": "^4.1.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "vitest": "^4.1.1"
+    }
   }
 }
