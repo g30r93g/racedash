@@ -133,53 +133,107 @@ pnpm lint              # Lint
 
 ### Cloud services (local)
 
-To run the API and its dependencies locally:
+The API runs on your host (not in Docker) with hot-reload. Docker provides the infrastructure it depends on: PostgreSQL and LocalStack (emulated AWS services).
 
-**1. Start the database**
+| Service | Port |
+|---------|------|
+| API | 3000 |
+| Admin dashboard | 3001 |
+| PostgreSQL | 5433 |
+| LocalStack | 4566 |
+
+**1. Start infrastructure**
 
 ```bash
-docker compose -f packages/db/docker-compose.local.yml up -d
+pnpm local:up       # Start Postgres + LocalStack (waits for readiness)
 ```
 
-**2. Push the schema**
+This creates S3 buckets, SQS queues, SES identity, and the Step Functions state machine automatically.
+
+**2. Configure environment**
+
+```bash
+pnpm setup:env
+```
+
+An interactive script that generates `apps/api/.env.local`. LocalStack vars are auto-populated from `infra/localstack-init/env.localstack`. You'll be prompted for:
+
+- **DATABASE_URL** — Press Enter to accept the default (`postgresql://racedash:racedash_local@localhost:5433/racedash_local`)
+- **CLERK_SECRET_KEY** — From [dashboard.clerk.com](https://dashboard.clerk.com) → API Keys (starts with `sk_test_`)
+- **CLERK_WEBHOOK_SECRET** — Optional. Needed for user sync. Requires ngrok (see Webhooks below)
+- **STRIPE_SECRET_KEY** — From Stripe dashboard → Developers → API Keys (starts with `sk_test_`)
+- **STRIPE_WEBHOOK_SECRET** — Optional. Use `stripe listen` CLI (see Webhooks below)
+- **STRIPE_PRICE_\*** — From Stripe dashboard → Products → price IDs (starts with `price_`)
+- **ADMIN_APP_ORIGIN** — URL of the admin app for CORS. Default `http://localhost:3001`
+
+**3. Push the database schema**
 
 ```bash
 DATABASE_URL="postgresql://racedash:racedash_local@localhost:5433/racedash_local" \
   pnpm drizzle-kit push --force
 ```
 
-**3. Configure environment**
+**4. Start the API**
 
 ```bash
-cp apps/api/.env.example apps/api/.env
-# Fill in: CLERK_SECRET_KEY, CLERK_WEBHOOK_SECRET, DATABASE_URL, STRIPE_SECRET_KEY
-```
-
-**4. Start the API** (runs on `localhost:3001`)
-
-```bash
-pnpm --filter @racedash/api dev
+cd apps/api && pnpm dev    # Runs on localhost:3000 with hot-reload
 ```
 
 **5. Point the desktop app at the local API**
 
 ```bash
 cp apps/desktop/.env.example apps/desktop/.env
-# Set VITE_API_URL=http://localhost:3001
+# Set VITE_API_URL=http://localhost:3000
 # Set VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 ```
 
-### LocalStack (AWS emulation)
+### Webhooks (local)
 
-Run integration tests against emulated AWS services (S3, SQS, SES, Step Functions, EventBridge) without real AWS credentials:
+The API receives webhooks from Clerk (user sync) and Stripe (payments). For local development, you need tunnels to forward these to your host.
+
+**Clerk webhooks (ngrok):**
+
+```bash
+ngrok http 3000
+```
+
+Copy the `https://xxx.ngrok-free.app` URL, then in [dashboard.clerk.com](https://dashboard.clerk.com) → Webhooks → Add Endpoint:
+- URL: `https://xxx.ngrok-free.app/api/webhooks/clerk`
+- Events: `user.created`
+- Copy the signing secret → set as `CLERK_WEBHOOK_SECRET` in `.env.local`
+
+**Stripe webhooks (Stripe CLI):**
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+The CLI prints the webhook signing secret directly — set it as `STRIPE_WEBHOOK_SECRET` in `.env.local`.
+
+### Infrastructure commands
+
+```bash
+pnpm local:up              # Start Postgres + LocalStack
+pnpm local:down            # Stop everything
+pnpm local:fresh           # Wipe volumes and restart clean
+pnpm local:logs            # Tail all container logs
+pnpm local:logs:localstack # Tail LocalStack logs only
+pnpm local:logs:postgres   # Tail Postgres logs only
+pnpm local:version-check   # Warn if pinned LocalStack is outdated
+pnpm local:ses             # Inspect sent emails in LocalStack
+pnpm local:sfn:list        # List Step Functions executions
+pnpm local:sfn:execute     # Start/check SFN executions
+pnpm setup:env             # Interactive .env.local generator
+```
+
+### LocalStack integration tests
 
 ```bash
 cd infra
-pnpm localstack:up         # Start LocalStack container
+pnpm localstack:up         # Start standalone LocalStack
 pnpm test:local            # Run integration tests
 pnpm test:local:watch      # Watch mode
 pnpm localstack:down       # Stop container
-pnpm localstack:reset      # Restart fresh
 ```
 
 ---
