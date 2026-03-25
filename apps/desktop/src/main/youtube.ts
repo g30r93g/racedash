@@ -5,6 +5,10 @@ import type { YouTubeConnectionStatus, YouTubeUploadMetadata, YouTubeUploadResul
 const API_URL = process.env.VITE_API_URL ?? ''
 
 function fetchWithSession(url: string, opts?: { method?: string; body?: string }): Promise<Response> {
+  if (!API_URL) {
+    throw new Error('API server is not configured. Set VITE_API_URL to enable cloud features.')
+  }
+
   const token = loadSessionToken()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) {
@@ -80,6 +84,7 @@ export function registerYouTubeHandlers(mainWindow: BrowserWindow): void {
   })
 
   ipcMain.handle('racedash:youtube:getStatus', async (): Promise<YouTubeConnectionStatus> => {
+    if (!API_URL) return { connected: false, account: null }
     const response = await fetchWithSession(`${API_URL}/api/auth/youtube/status`)
     if (!response.ok) return { connected: false, account: null }
     return response.json() as Promise<YouTubeConnectionStatus>
@@ -110,6 +115,7 @@ export function registerYouTubeHandlers(mainWindow: BrowserWindow): void {
   })
 
   ipcMain.handle('racedash:youtube:getUploads', async (_event, jobId: string): Promise<SocialUploadStatus[]> => {
+    if (!API_URL) return []
     const response = await fetchWithSession(`${API_URL}/api/jobs/${jobId}/social-uploads`)
     if (!response.ok) return []
     const data = await response.json() as { uploads: SocialUploadStatus[] }
