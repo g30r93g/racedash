@@ -83,8 +83,8 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
           line_items: [{ price: priceId, quantity: 1 }],
           automatic_tax: { enabled: true },
           customer_update: { address: 'auto' },
-          success_url: 'https://racedash.com/checkout/success?session_id={CHECKOUT_SESSION_ID}',
-          cancel_url: 'https://racedash.com/checkout/cancel',
+          success_url: 'https://racedash.io/checkout/success?session_id={CHECKOUT_SESSION_ID}',
+          cancel_url: 'https://racedash.io/checkout/cancel',
           metadata: { user_id: user.id, tier },
         })
 
@@ -129,7 +129,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const stripe = getStripe()
-      const returnUrl = process.env.APP_RETURN_URL ?? 'https://racedash.com'
+      const returnUrl = process.env.APP_RETURN_URL ?? 'https://racedash.io'
 
       try {
         const session = await stripe.billingPortal.sessions.create({

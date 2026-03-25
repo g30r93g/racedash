@@ -235,7 +235,7 @@ Clerk webhook receiver. Verifies the Svix signature, then processes the event.
    - parent: main app window (modal)
    - title: 'Sign in to RaceDash Cloud'
 5. BrowserWindow navigates to Clerk hosted sign-in URL:
-   https://accounts.racedash.com/sign-in?redirect_url=racedash://auth/callback
+   https://accounts.racedash.io/sign-in?redirect_url=racedash://auth/callback
 6. User completes sign-in on Clerk's hosted page
 7. Clerk redirects to racedash://auth/callback#session_token=<jwt>
 8. Main process intercepts the redirect via protocol handler or will-navigate

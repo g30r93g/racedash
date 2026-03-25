@@ -72,7 +72,7 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
       })
 
       // Build the Clerk sign-in URL
-      const signInUrl = `https://accounts.racedash.com/sign-in?redirect_url=racedash://auth/callback`
+      const signInUrl = `https://accounts.racedash.io/sign-in?redirect_url=racedash://auth/callback`
       authWindow.loadURL(signInUrl)
 
       // Listen for the redirect back to racedash://
@@ -114,7 +114,7 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
     })
 
     try {
-      await signOutWindow.loadURL('https://accounts.racedash.com/sign-out')
+      await signOutWindow.loadURL('https://accounts.racedash.io/sign-out')
       // Wait briefly for sign-out to process
       await new Promise((resolve) => setTimeout(resolve, 1000))
     } catch {

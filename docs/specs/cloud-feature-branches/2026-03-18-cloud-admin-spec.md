@@ -977,7 +977,7 @@ The following Paper mockups should be created before implementation begins. All 
 3. **Audit trail:** All admin write operations are logged to `admin_audit_log` within the same DB transaction as the primary mutation. The audit log captures the admin's Clerk ID, the action type, the affected resource, and the full request payload. Audit log rows are append-only — no UPDATE or DELETE operations are permitted on this table.
 4. **Input validation:** All admin API endpoints validate request bodies using Zod schemas. Invalid inputs return `400` with descriptive error messages. Numeric fields (`rcAmount`, `limit`) have explicit min/max bounds to prevent abuse.
 5. **Rate limiting:** Admin endpoints should be rate-limited to 100 requests per minute per admin user. This is implemented at the Fastify plugin level, not at the infrastructure level.
-6. **CORS:** The admin app is hosted on Vercel on a separate origin from the API. The API must include the admin app's origin in its CORS allowlist. The CORS origin is configured via `ADMIN_APP_ORIGIN` environment variable (e.g., `https://admin.racedash.com`).
+6. **CORS:** The admin app is hosted on Vercel on a separate origin from the API. The API must include the admin app's origin in its CORS allowlist. The CORS origin is configured via `ADMIN_APP_ORIGIN` environment variable (e.g., `https://admin.racedash.io`).
 7. **No direct DB access:** The admin app never connects to the database directly. All data flows through the authenticated API endpoints. This ensures the audit trail cannot be bypassed.
 8. **Sensitive field handling:** Task tokens (`slot_task_token`, `render_task_token`) are included in the job detail API response for debugging purposes. These tokens are single-use and expire after the state machine completes, so exposure to an authenticated admin is acceptable.
 9. **Credit correction bounds:** Negative credit adjustments are bounded by the user's current RC balance. The API rejects corrections that would result in negative remaining credits.
@@ -994,7 +994,7 @@ The admin app is deployed on **Vercel**. The Vercel project is configured with:
 - **Build command:** `pnpm build` (Vercel auto-detects Next.js)
 - **Environment variables:** `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_API_URL`
 
-The admin app is hosted at a separate subdomain (e.g., `admin.racedash.com`) and is completely independent of the AWS infrastructure used by `apps/api`. Clerk middleware enforces authentication server-side — unauthenticated requests never reach the page components.
+The admin app is hosted at a separate subdomain (e.g., `admin.racedash.io`) and is completely independent of the AWS infrastructure used by `apps/api`. Clerk middleware enforces authentication server-side — unauthenticated requests never reach the page components.
 
 ### Environment Variables
 
@@ -1003,7 +1003,7 @@ The admin app is hosted at a separate subdomain (e.g., `admin.racedash.com`) and
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `apps/admin` (Vercel) | Clerk publishable key (same instance as main platform) |
 | `CLERK_SECRET_KEY` | `apps/admin` (Vercel, server-side) | Clerk secret key for server-side auth in middleware and layouts |
 | `NEXT_PUBLIC_API_URL` | `apps/admin` (Vercel) | `apps/api` Lambda Function URL base |
-| `ADMIN_APP_ORIGIN` | `apps/api` (runtime) | Admin app Vercel origin for CORS (e.g., `https://admin.racedash.com`) |
+| `ADMIN_APP_ORIGIN` | `apps/api` (runtime) | Admin app Vercel origin for CORS (e.g., `https://admin.racedash.io`) |
 
 ### DB Schema Addition
 

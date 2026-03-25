@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify'
 
 process.env.S3_UPLOAD_BUCKET = 'test-upload-bucket'
 process.env.STEP_FUNCTIONS_STATE_MACHINE_ARN = 'arn:aws:states:eu-west-2:123456789:stateMachine:test'
-process.env.CLOUDFRONT_DOMAIN = 'cdn.test.racedash.com'
+process.env.CLOUDFRONT_DOMAIN = 'cdn.test.racedash.io'
 process.env.CLOUDFRONT_KEY_PAIR_ID = 'KTEST123'
 process.env.CLOUDFRONT_PRIVATE_KEY_PEM = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----'
 
@@ -27,7 +27,7 @@ const { mockS3Send, mockSfnSend, mockGetSignedUrl, mockGetCloudFrontSignedUrl } 
   mockS3Send: vi.fn().mockResolvedValue({ UploadId: 'test-upload-id' }),
   mockSfnSend: vi.fn().mockResolvedValue({ executionArn: 'arn:aws:states:eu-west-2:123456789:execution:test:exec-1' }),
   mockGetSignedUrl: vi.fn().mockResolvedValue('https://s3.test.amazonaws.com/presigned'),
-  mockGetCloudFrontSignedUrl: vi.fn().mockReturnValue('https://cdn.test.racedash.com/signed'),
+  mockGetCloudFrontSignedUrl: vi.fn().mockReturnValue('https://cdn.test.racedash.io/signed'),
 }))
 
 vi.mock('@racedash/db', () => ({
@@ -713,7 +713,7 @@ describe('GET /api/jobs/:id/download', () => {
     mockedGetDb.mockReturnValue(mockDb as any)
     vi.clearAllMocks()
     mockedGetDb.mockReturnValue(mockDb as any)
-    mockGetCloudFrontSignedUrl.mockReturnValue('https://cdn.test.racedash.com/signed')
+    mockGetCloudFrontSignedUrl.mockReturnValue('https://cdn.test.racedash.io/signed')
   })
 
   it('returns signed download URL for complete job', async () => {
@@ -806,11 +806,11 @@ describe('GET /api/jobs/:id/download', () => {
 
     expect(mockGetCloudFrontSignedUrl).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: expect.stringContaining('cdn.test.racedash.com'),
+        url: expect.stringContaining('cdn.test.racedash.io'),
         keyPairId: 'KTEST123',
       }),
     )
-    expect(response.json().downloadUrl).toBe('https://cdn.test.racedash.com/signed')
+    expect(response.json().downloadUrl).toBe('https://cdn.test.racedash.io/signed')
   })
 })
 

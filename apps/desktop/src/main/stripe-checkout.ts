@@ -3,7 +3,7 @@ import type { StripeCheckoutResult, LicenseInfo, CreditBalance } from '../types/
 import { cacheLicense } from './license-cache'
 import { fetchWithAuth } from './api-client'
 
-const SUCCESS_HOST = 'racedash.com'
+const SUCCESS_HOST = 'racedash.io'
 const CHECKOUT_SUCCESS_PATH = '/checkout/success'
 const CHECKOUT_CANCEL_PATH = '/checkout/cancel'
 

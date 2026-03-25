@@ -436,8 +436,8 @@ Stripe webhook handler. Verifies signature, then processes the event.
    - customer: user's stripe_customer_id (created if needed)
    - line_items: [{ price: PRICE_ID_FOR_TIER, quantity: 1 }]
    - automatic_tax: { enabled: true }
-   - success_url: 'https://racedash.com/checkout/success?session_id={CHECKOUT_SESSION_ID}'
-   - cancel_url: 'https://racedash.com/checkout/cancel'
+   - success_url: 'https://racedash.io/checkout/success?session_id={CHECKOUT_SESSION_ID}'
+   - cancel_url: 'https://racedash.io/checkout/cancel'
    - metadata: { user_id, tier }
 5. API returns { checkoutUrl, sessionId }
 6. Main process creates a new BrowserWindow:
@@ -468,8 +468,8 @@ Stripe webhook handler. Verifies signature, then processes the event.
    - customer: user's stripe_customer_id
    - line_items: [{ price: CREDIT_PACK_PRICE_ID, quantity: 1 }]
    - automatic_tax: { enabled: true }
-   - success_url: 'https://racedash.com/checkout/success?session_id={CHECKOUT_SESSION_ID}'
-   - cancel_url: 'https://racedash.com/checkout/cancel'
+   - success_url: 'https://racedash.io/checkout/success?session_id={CHECKOUT_SESSION_ID}'
+   - cancel_url: 'https://racedash.io/checkout/cancel'
    - metadata: { user_id, pack_size: '100', type: 'credit_pack' }
 5. API returns { checkoutUrl, sessionId }
 6. Main process creates a BrowserWindow (same config as subscription)

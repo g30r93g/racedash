@@ -75,8 +75,8 @@ const stripeCreditRoutes: FastifyPluginAsync = async (fastify) => {
           customer: stripeCustomerId,
           line_items: [{ price: priceId, quantity: 1 }],
           automatic_tax: { enabled: true },
-          success_url: 'https://racedash.com/checkout/success?session_id={CHECKOUT_SESSION_ID}',
-          cancel_url: 'https://racedash.com/checkout/cancel',
+          success_url: 'https://racedash.io/checkout/success?session_id={CHECKOUT_SESSION_ID}',
+          cancel_url: 'https://racedash.io/checkout/cancel',
           metadata: {
             user_id: user.id,
             pack_size: String(packSize),
