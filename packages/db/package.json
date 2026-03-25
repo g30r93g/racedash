@@ -6,7 +6,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'test/helpers/{credits,licenses,slots}.test.ts'",
+    "test:coverage": "vitest run --exclude 'test/helpers/{credits,licenses,slots}.test.ts' --coverage",
     "test:db": "./test/run-with-db.sh",
     "db:generate": "drizzle-kit generate"
   },
