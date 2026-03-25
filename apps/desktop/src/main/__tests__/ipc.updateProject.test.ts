@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('@racedash/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@racedash/engine')>()
+  return {
+    ...actual,
+    loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{}] }),
+    resolveTimingSegments: vi.fn().mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
+  }
+})
+
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
   app: { getPath: vi.fn().mockReturnValue('/Users/testuser') },
@@ -155,8 +164,13 @@ describe('updateProjectHandler', () => {
     expect(writtenConfig.overlayType).toBe('banner')
     expect(writtenConfig.styling).toEqual({ color: 'red' })
     expect(writtenConfig.driver).toBe('A. Smith')
+    // Remote segments get cached (resolved to 'cached' source with inline data)
     expect(writtenConfig.segments).toEqual([
-      { source: 'alphaTiming', mode: 'qualifying', offset: '50 F', label: 'Qualifying', url: 'https://example.com/q' },
+      {
+        source: 'cached', mode: 'qualifying', offset: '50 F', label: 'Qualifying',
+        originalSource: 'alphaTiming',
+        drivers: [], capabilities: {}, startingGrid: [], replayData: [],
+      },
     ])
 
     // project.json: updated segments + driver

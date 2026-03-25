@@ -33,6 +33,15 @@ vi.mock('node:fs', () => ({
   },
 }))
 
+vi.mock('@racedash/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@racedash/engine')>()
+  return {
+    ...actual,
+    loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{}] }),
+    resolveTimingSegments: vi.fn().mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
+  }
+})
+
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
   app: { getPath: vi.fn().mockReturnValue('/Users/testuser') },
@@ -124,7 +133,8 @@ describe('handleCreateProject', () => {
   it('writes project.json with videoPaths pointing to the copied video', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
+    // writeFileSync calls: [0] temp cache file, [1] config.json, [2] project.json
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[2][1] as string
     const written = JSON.parse(writtenJson)
     expect(written.videoPaths).toEqual([path.join(expectedDir, 'video.mp4')])
   })
@@ -132,7 +142,8 @@ describe('handleCreateProject', () => {
   it('writes project.json with correct fields', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
+    // writeFileSync calls: [0] temp cache file, [1] config.json, [2] project.json
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[2][1] as string
     const written = JSON.parse(writtenJson)
     expect(written).toMatchObject({
       name: 'My Race',
@@ -165,7 +176,8 @@ describe('handleCreateProject', () => {
       segments: [{ label: 'Race', source: 'mylapsSpeedhive' as const, eventId: '12345', session: 'race' as const, videoOffsetFrame: 150 }],
     }
     await handleCreateProject(opts)
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[1][1] as string
+    // writeFileSync calls: [0] temp cache file, [1] config.json, [2] project.json
+    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[2][1] as string
     const written = JSON.parse(writtenJson)
     expect(written.segments[0].videoOffsetFrame).toBe(150)
     expect(written.segments[0].eventId).toBe('12345')
