@@ -188,7 +188,14 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       position: parsePositionString(position),
     }))
     window.racedash.updateProjectConfigOverrides(projectState.configPath, payload)
-      .then(() => { setConfigRevision((r) => r + 1) })
+      .then(() => {
+        // Only bump timingRevision so the engine re-generates with updated
+        // overrides.  Do NOT bump configRevision here – that would trigger
+        // the overrides-load effect, which produces new objects (new UUIDs),
+        // which re-triggers this save effect, creating an infinite loop that
+        // causes the timing table to flicker.
+        setTimingRevision((r) => r + 1)
+      })
       .catch((err: unknown) => {
         console.warn('[Editor] failed to save position overrides:', err)
       })
@@ -198,6 +205,27 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
+  const togglePlayPause = useCallback(() => {
+    if (playing) {
+      videoPaneRef.current?.pause()
+    } else {
+      videoPaneRef.current?.play()
+    }
+  }, [playing])
+
+  // Space bar to toggle play/pause
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== ' ') return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      e.preventDefault()
+      togglePlayPause()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [togglePlayPause])
+
   const handleSave = useCallback(() => {
     videoPaneRef.current?.pause()
     onClose()

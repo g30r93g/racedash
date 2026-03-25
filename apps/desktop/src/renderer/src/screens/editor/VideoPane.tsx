@@ -7,6 +7,7 @@ import { VideoPlaybackControls } from '@/components/app/VideoPlaybackControls'
 
 export interface VideoPaneHandle {
   seek: (time: number) => void
+  play: () => void
   pause: () => void
 }
 
@@ -64,7 +65,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(
       }
     }, [onTimeUpdate, overlayProps?.fps])
 
-    useImperativeHandle(ref, () => ({ seek: handleSeek, pause: handlePause }), [handleSeek, handlePause])
+    useImperativeHandle(ref, () => ({ seek: handleSeek, play: handlePlay, pause: handlePause }), [handleSeek, handlePlay, handlePause])
 
     return (
       <div className="flex h-full flex-col overflow-hidden">
