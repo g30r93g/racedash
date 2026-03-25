@@ -9,7 +9,17 @@
     "typecheck": "turbo typecheck",
     "lint": "eslint .",
     "cli": "tsx apps/cli/src/index.ts",
-    "desktop:dev": "pnpm --filter @racedash/desktop dev"
+    "desktop:dev": "pnpm --filter @racedash/desktop dev",
+    "local:up": "docker compose -f docker-compose.local.yml up -d && ./scripts/wait-for-localstack.sh",
+    "local:down": "docker compose -f docker-compose.local.yml down",
+    "local:fresh": "docker compose -f docker-compose.local.yml down -v && docker compose -f docker-compose.local.yml up -d && ./scripts/wait-for-localstack.sh",
+    "local:logs": "docker compose -f docker-compose.local.yml logs -f",
+    "local:logs:localstack": "docker compose -f docker-compose.local.yml logs -f localstack",
+    "local:logs:postgres": "docker compose -f docker-compose.local.yml logs -f postgres",
+    "local:version-check": "./scripts/check-localstack-version.sh",
+    "local:ses": "./scripts/ses-inbox.sh",
+    "local:sfn:execute": "./scripts/sfn-execute.sh",
+    "setup:env": "tsx scripts/setup-env.ts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

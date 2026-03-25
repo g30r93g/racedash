@@ -7,15 +7,17 @@
     "watch": "tsc -w",
     "test": "jest --config jest.config.ts",
     "localstack:env": "cat localstack-init/env.localstack > .env.localstack",
-    "test:local": "pnpm localstack:up && sleep 5 && pnpm localstack:env && dotenv -e .env.localstack -- jest --config jest.localstack.config.ts && pnpm localstack:down",
+    "localstack:up": "docker compose -f docker-compose.localstack.yml up -d && ../scripts/wait-for-localstack.sh",
+    "localstack:down": "docker compose -f docker-compose.localstack.yml down",
+    "localstack:fresh": "docker compose -f docker-compose.localstack.yml down -v && docker compose -f docker-compose.localstack.yml up -d && ../scripts/wait-for-localstack.sh",
+    "localstack:reset": "pnpm localstack:down && pnpm localstack:up",
+    "localstack:logs": "docker compose -f docker-compose.localstack.yml logs -f",
+    "test:local": "pnpm localstack:up && pnpm localstack:env && dotenv -e .env.localstack -- jest --config jest.localstack.config.ts && pnpm localstack:down",
     "test:local:watch": "dotenv -e .env.localstack -- jest --config jest.localstack.config.ts --watch",
     "cdk": "cdk",
     "synth": "cdk synth",
     "deploy": "cdk deploy",
-    "diff": "cdk diff",
-    "localstack:up": "docker compose -f docker-compose.localstack.yml up -d",
-    "localstack:down": "docker compose -f docker-compose.localstack.yml down",
-    "localstack:reset": "pnpm localstack:down && pnpm localstack:up"
+    "diff": "cdk diff"
   },
   "dependencies": {
     "@aws-sdk/client-ecs": "^3.1013.0",
