@@ -1,13 +1,12 @@
 services:
   localstack:
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.14.0
     ports:
       - "4566:4566"
       - "4510-4559:4510-4559"
     environment:
       - SERVICES=s3,sqs,stepfunctions,lambda,ses,events,iam
       - DEBUG=0
-      - LAMBDA_EXECUTOR=docker-reuse
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
