@@ -16,7 +16,7 @@ export const lambdaHandler = async (event: unknown, context: unknown) => {
 if (process.env.NODE_ENV !== 'production' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
   const start = async () => {
     const app = await createApp()
-    const port = parseInt(process.env.PORT ?? '3001', 10)
+    const port = parseInt(process.env.PORT ?? '3000', 10)
     await app.listen({ port, host: '0.0.0.0' })
     console.log(`API server running on http://localhost:${port}`)
   }
