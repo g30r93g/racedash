@@ -6,6 +6,7 @@ import type { AuthSession } from '../types/ipc'
 const SESSION_FILE = 'cloud-session.enc'
 const API_URL = process.env.VITE_API_URL ?? ''
 const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''
+const CLERK_ACCOUNTS_URL = process.env.VITE_CLERK_ACCOUNTS_URL ?? 'https://accounts.racedash.io'
 
 function getSessionPath(): string {
   return path.join(app.getPath('userData'), SESSION_FILE)
@@ -72,7 +73,7 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
       })
 
       // Build the Clerk sign-in URL
-      const signInUrl = `https://accounts.racedash.io/sign-in?redirect_url=racedash://auth/callback`
+      const signInUrl = `${CLERK_ACCOUNTS_URL}/sign-in?redirect_url=racedash://auth/callback`
       authWindow.loadURL(signInUrl)
 
       // Listen for the redirect back to racedash://
@@ -114,7 +115,7 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
     })
 
     try {
-      await signOutWindow.loadURL('https://accounts.racedash.io/sign-out')
+      await signOutWindow.loadURL(`${CLERK_ACCOUNTS_URL}/sign-out`)
       // Wait briefly for sign-out to process
       await new Promise((resolve) => setTimeout(resolve, 1000))
     } catch {
