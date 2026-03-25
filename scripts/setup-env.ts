@@ -56,10 +56,10 @@ const STRIPE_VARS: EnvVar[] = [
   { key: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook secret', required: false, hint: 'starts with whsec_' },
   { key: 'STRIPE_PRICE_PLUS', description: 'Stripe Plus plan price ID', required: false, hint: 'starts with price_' },
   { key: 'STRIPE_PRICE_PRO', description: 'Stripe Pro plan price ID', required: false, hint: 'starts with price_' },
-  { key: 'STRIPE_PRICE_CREDITS_50', description: 'Stripe 50-credit price ID', required: false, hint: 'starts with price_' },
-  { key: 'STRIPE_PRICE_CREDITS_100', description: 'Stripe 100-credit price ID', required: false, hint: 'starts with price_' },
-  { key: 'STRIPE_PRICE_CREDITS_250', description: 'Stripe 250-credit price ID', required: false, hint: 'starts with price_' },
-  { key: 'STRIPE_PRICE_CREDITS_500', description: 'Stripe 500-credit price ID', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_50', description: '50 RC — £7', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_100', description: '100 RC (Starter) — £10', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_250', description: '250 RC (Standard) — £20', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_500', description: '500 RC (Club) — £35', required: false, hint: 'starts with price_' },
 ]
 
 const APP_VARS: EnvVar[] = [
