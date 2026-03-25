@@ -7,8 +7,8 @@ REGION="us-east-1"
 echo "=== RaceDash LocalStack Bootstrap ==="
 
 # S3 Buckets
-awslocal s3 mb s3://racedash-uploads-local --region "$REGION"
-awslocal s3 mb s3://racedash-renders-local --region "$REGION"
+awslocal s3 mb s3://racedash-uploads-local --region "$REGION" 2>/dev/null || true
+awslocal s3 mb s3://racedash-renders-local --region "$REGION" 2>/dev/null || true
 
 # S3 lifecycle rules
 awslocal s3api put-bucket-lifecycle-configuration \
@@ -45,7 +45,7 @@ awslocal s3api put-bucket-lifecycle-configuration \
 # SQS DLQ
 awslocal sqs create-queue \
   --queue-name racedash-social-upload-dlq-local \
-  --region "$REGION"
+  --region "$REGION" 2>/dev/null || true
 
 DLQ_ARN=$(awslocal sqs get-queue-attributes \
   --queue-url "http://sqs.$REGION.localhost.localstack.cloud:4566/000000000000/racedash-social-upload-dlq-local" \
@@ -61,7 +61,7 @@ awslocal sqs create-queue \
     "VisibilityTimeout": "2700",
     "MessageRetentionPeriod": "345600",
     "RedrivePolicy": "{\"maxReceiveCount\":3,\"deadLetterTargetArn\":\"'"$DLQ_ARN"'\"}"
-  }'
+  }' 2>/dev/null || true
 
 # SES Email Identity
 awslocal ses verify-email-identity \
