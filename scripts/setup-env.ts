@@ -103,6 +103,14 @@ async function main() {
 
   console.log('\n=== RaceDash Local Environment Setup ===\n')
 
+  if (LOCALSTACK_VARS.length > 0) {
+    console.log(`Auto-populated ${LOCALSTACK_VARS.length} LocalStack vars from infra/localstack-init/env.localstack:`)
+    for (const v of LOCALSTACK_VARS) {
+      console.log(`  ${v.key}=${v.default}`)
+    }
+    console.log('')
+  }
+
   if (Object.keys(existing).length > 0) {
     console.log(`Found existing ${path.relative(ROOT, envPath)} — current values shown as defaults.\n`)
   }
