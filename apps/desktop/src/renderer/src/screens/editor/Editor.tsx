@@ -57,6 +57,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const { user, license: authLicense, isSignedIn, signIn } = useAuth()
   const [projectState, setProjectState] = useState(project)
   const [configRevision, setConfigRevision] = useState(0)
+  const [timingRevision, setTimingRevision] = useState(0)
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
@@ -87,7 +88,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
       .finally(() => { if (!cancelled) setTimingLoading(false) })
     return () => { cancelled = true }
-  }, [projectState.configPath, videoInfo, configRevision])
+  }, [projectState.configPath, videoInfo, timingRevision])
 
   // ── Style state + undo/redo history ─────────────────────────────────────────
   const [styleHistoryState, dispatchStyle] = useReducer(styleHistoryReducer, {
@@ -205,6 +206,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const handleProjectUpdate = useCallback((updated: ProjectData) => {
     setProjectState(updated)
     setConfigRevision((r) => r + 1)
+    setTimingRevision((r) => r + 1)
     setOverrides([])
     overridesSavedRef.current = false
   }, [])
