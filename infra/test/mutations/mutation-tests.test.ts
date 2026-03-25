@@ -173,7 +173,7 @@ describe('Mutation Tests', () => {
     let defStr: string
     if (typeof def === 'object' && def['Fn::Join']) {
       defStr = def['Fn::Join'][1]
-        .map((part: any) => (typeof part === 'string' ? part : JSON.stringify(part)))
+        .map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__'))
         .join('')
     } else {
       defStr = typeof def === 'string' ? def : JSON.stringify(def)
@@ -216,7 +216,7 @@ describe('Mutation Tests', () => {
     let defStr: string
     if (typeof def === 'object' && def['Fn::Join']) {
       defStr = def['Fn::Join'][1]
-        .map((part: any) => (typeof part === 'string' ? part : JSON.stringify(part)))
+        .map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__'))
         .join('')
     } else {
       defStr = typeof def === 'string' ? def : JSON.stringify(def)
@@ -275,7 +275,7 @@ describe('Mutation Tests', () => {
     let defStr: string
     if (typeof def === 'object' && def['Fn::Join']) {
       defStr = def['Fn::Join'][1]
-        .map((part: any) => (typeof part === 'string' ? part : JSON.stringify(part)))
+        .map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__'))
         .join('')
     } else {
       defStr = typeof def === 'string' ? def : JSON.stringify(def)

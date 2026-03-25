@@ -244,8 +244,9 @@ async function main(): Promise<void> {
       throw new Error(`YouTube upload init failed: ${initResponse.status} ${errBody}`)
     }
 
-    const uploadUrl = initResponse.headers.get('Location')
+    const uploadUrl: string | null = initResponse.headers.get('Location')
     if (!uploadUrl) throw new Error('No upload URL returned from YouTube')
+    const uploadEndpoint: string = uploadUrl
 
     // Stream S3 object to YouTube in 8 MB chunks
     const CHUNK_SIZE = 8 * 1024 * 1024
@@ -267,7 +268,7 @@ async function main(): Promise<void> {
       }
 
       const end = bytesUploaded + chunk.length - 1
-      const response = await fetch(uploadUrl, {
+      const response = await fetch(uploadEndpoint, {
         method: 'PUT',
         headers: {
           'Content-Length': String(chunk.length),

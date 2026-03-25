@@ -21,6 +21,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "jsdom": "^29.0.1",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"

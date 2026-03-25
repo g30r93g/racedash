@@ -12,6 +12,7 @@ export interface PipelineLambdaProps {
   timeout: cdk.Duration
   environment: Record<string, string>
   additionalPolicies?: iam.PolicyStatement[]
+  externalModules?: string[]
 }
 
 export class PipelineLambda extends Construct {
@@ -33,6 +34,7 @@ export class PipelineLambda extends Construct {
       bundling: {
         minify: true,
         sourceMap: true,
+        externalModules: props.externalModules,
       },
     })
 

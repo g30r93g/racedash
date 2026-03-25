@@ -134,6 +134,7 @@ export class PipelineStack extends cdk.Stack {
         REMOTION_WEBHOOK_SECRET: remotionWebhookSecret,
         REMOTION_WEBHOOK_URL: remotionWebhookUrl,
       },
+      externalModules: ['@remotion/lambda'],
       additionalPolicies: [
         new iam.PolicyStatement({
           actions: ['lambda:InvokeFunction'],

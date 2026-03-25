@@ -15,7 +15,12 @@ function getStateMachineDefinitionString(): string {
   // Handle Fn::Join (CDK serializes definitions this way)
   if (typeof def === 'object' && def['Fn::Join']) {
     return def['Fn::Join'][1]
-      .map((part: any) => (typeof part === 'string' ? part : JSON.stringify(part)))
+      .map((part: any) => {
+        if (typeof part === 'string') return part
+        // CDK tokens (Ref, Fn::GetAtt, etc.) — replace with a placeholder.
+        // The surrounding JSON quotes are in the adjacent string parts.
+        return `__CDK_TOKEN__`
+      })
       .join('')
   }
   return typeof def === 'string' ? def : JSON.stringify(def)
