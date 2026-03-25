@@ -28,6 +28,7 @@
     "svix": "^1.45.0"
   },
   "devDependencies": {
+    "@remotion/lambda": "^4.0.438",
     "@types/pg": "*",
     "fast-check": "^4.6.0",
     "tsx": "*",

@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NotificationsStack Snapshot NotificationsStack snapshot 1`] = `
+{
+  "Outputs": {
+    "SesFromAddress": {
+      "Export": {
+        "Name": "test-SesFromAddress",
+      },
+      "Value": "noreply@racedash.test",
+    },
+    "SesIdentityArn": {
+      "Export": {
+        "Name": "test-SesIdentityArn",
+      },
+      "Value": "arn:aws:ses:us-east-1:123456789012:identity/noreply@racedash.test",
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "RaceDashEmailIdentity5B8CFDF2": {
+      "Properties": {
+        "EmailIdentity": "noreply@racedash.test",
+      },
+      "Type": "AWS::SES::EmailIdentity",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

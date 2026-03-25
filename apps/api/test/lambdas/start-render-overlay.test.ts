@@ -32,6 +32,13 @@ vi.mock('@remotion/lambda/client', () => ({
   renderMediaOnLambda: (...args: any[]) => mockRenderMediaOnLambda(...args),
 }))
 
+// @remotion/lambda/client re-exports from @remotion/lambda-client — mock both
+vi.mock('@remotion/lambda-client', () => ({
+  renderMediaOnLambda: (...args: any[]) => mockRenderMediaOnLambda(...args),
+}))
+
+
+
 import { handler } from '../../../../infra/lambdas/start-render-overlay/index'
 
 const JOB_CONFIG = {

@@ -16,6 +16,3 @@ node_modules/
 dist/
 .turbo/
 .worktrees/
-
-# Jest snapshots (regenerated on test runs)
-**/__snapshots__/
