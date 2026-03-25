@@ -14,7 +14,7 @@ function verifyWebhookSecret(provided: string, expected: string): boolean {
 }
 
 const webhooksRenderRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{ Reply: ApiError }>('/api/webhooks/render', async (request, reply) => {
+  fastify.post<{ Reply: ApiError | string }>('/api/webhooks/render', async (request, reply) => {
     const secret = process.env.WEBHOOK_SECRET
     if (!secret) throw new Error('WEBHOOK_SECRET is required')
 
@@ -50,7 +50,7 @@ const webhooksRenderRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    reply.status(200).send()
+    reply.status(200).send('')
   })
 }
 

@@ -1,8 +1,8 @@
+import { creditPacks, users } from '@racedash/db'
+import { and, asc, desc, eq, gt, lt, or } from 'drizzle-orm'
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, gt, asc, desc, lt, or, sql } from 'drizzle-orm'
-import { users, creditPacks } from '@racedash/db'
 import { getDb } from '../lib/db'
-import type { CreditBalanceResponse, CreditHistoryResponse, ApiError } from '../types'
+import type { ApiError, CreditBalanceResponse, CreditHistoryResponse } from '../types'
 
 const creditRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/credits/balance

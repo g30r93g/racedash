@@ -1,10 +1,10 @@
+import { connectedAccounts, licenses, users } from '@racedash/db'
+import { and, desc, eq, gt } from 'drizzle-orm'
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, gt, desc } from 'drizzle-orm'
-import { users, licenses, connectedAccounts } from '@racedash/db'
-import { getDb } from '../lib/db'
-import { encryptToken, decryptToken } from '../lib/token-crypto'
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import type { YouTubeStatusResponse, YouTubeDisconnectResponse, ApiError } from '../types'
+import { getDb } from '../lib/db'
+import { encryptToken } from '../lib/token-crypto'
+import type { ApiError, YouTubeDisconnectResponse, YouTubeStatusResponse } from '../types'
 
 function signJwt(payload: Record<string, unknown>, secret: string): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')

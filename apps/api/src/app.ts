@@ -30,7 +30,7 @@ export async function createApp(): Promise<FastifyInstance> {
     (req, body, done) => {
       try {
         const parsed = JSON.parse(body as string)
-        req.rawBody = body
+        req.rawBody = body as string
         done(null, parsed)
       } catch (err) {
         done(err as Error, undefined)

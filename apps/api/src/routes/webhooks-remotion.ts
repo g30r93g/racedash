@@ -10,7 +10,7 @@ function verifyRemotionSignature(rawBody: string, signature: string, secret: str
 }
 
 const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{ Reply: ApiError }>('/api/webhooks/remotion', async (request, reply) => {
+  fastify.post<{ Reply: ApiError | string }>('/api/webhooks/remotion', async (request, reply) => {
     const secret = process.env.REMOTION_WEBHOOK_SECRET
     if (!secret) throw new Error('REMOTION_WEBHOOK_SECRET is required')
 
@@ -55,7 +55,7 @@ const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
       }))
     }
 
-    reply.status(200).send()
+    reply.status(200).send('')
   })
 }
 

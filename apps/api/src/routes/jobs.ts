@@ -124,7 +124,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
           reply.status(402).send({
             error: {
               code: 'INSUFFICIENT_CREDITS',
-              message: `Insufficient credits: ${err.available} available, ${err.required} required`,
+              message: `Insufficient credits: ${err.available} available, ${err.requested} required`,
             },
           })
           return
@@ -421,7 +421,7 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
     const limitParam = Math.min(Math.max(parseInt(request.query.limit ?? '20', 10) || 20, 1), 100)
     const cursor = request.query.cursor
 
-    let rows
+    let rows: (typeof jobs.$inferSelect)[] = []
     if (cursor) {
       const [cursorJob] = await db
         .select({ createdAt: jobs.createdAt, id: jobs.id })
