@@ -18,6 +18,7 @@
     "local:logs:postgres": "docker compose -f docker-compose.local.yml logs -f postgres",
     "local:version-check": "./scripts/check-localstack-version.sh",
     "local:ses": "./scripts/ses-inbox.sh",
+    "local:sfn:list": "./scripts/sfn-execute.sh --list",
     "local:sfn:execute": "./scripts/sfn-execute.sh",
     "setup:env": "tsx scripts/setup-env.ts"
   },
