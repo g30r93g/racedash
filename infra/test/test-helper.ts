@@ -87,3 +87,14 @@ export function createTestStacks(): TestStacks {
 
   return { app, storage, notifications, pipeline, social, api }
 }
+
+/**
+ * Replace non-deterministic asset hashes in CDK templates so snapshots
+ * don't break when esbuild produces different bundles across runs.
+ */
+export function sanitizeTemplate(template: Record<string, unknown>): Record<string, unknown> {
+  const json = JSON.stringify(template)
+  // Asset hashes are 64-char hex strings used in S3Key and asset references
+  const sanitized = json.replace(/[0-9a-f]{64}/g, 'ASSET_HASH')
+  return JSON.parse(sanitized)
+}

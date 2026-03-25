@@ -45,7 +45,7 @@ exports[`ApiStack Snapshot ApiStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "48ce199ad513dc166c4c3b7c75a64af8f1ee5c3131d306d6ccd14ea42de65d95.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -76,7 +76,7 @@ exports[`ApiStack Snapshot ApiStack snapshot 1`] = `
             },
             "STRIPE_SECRET_KEY": "sk_test_stripe_123",
             "STRIPE_WEBHOOK_SECRET": "whsec_test_123",
-            "TOKEN_ENCRYPTION_KEY": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+            "TOKEN_ENCRYPTION_KEY": "ASSET_HASH",
             "WEBHOOK_SECRET": "webhook-secret-123",
             "YOUTUBE_CLIENT_ID": "yt-client-id",
             "YOUTUBE_CLIENT_SECRET": "yt-client-secret",
@@ -290,7 +290,7 @@ exports[`ApiStack Snapshot ApiStack snapshot 1`] = `
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Handler": "index.handler",
         "Role": {

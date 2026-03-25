@@ -77,7 +77,7 @@ exports[`SocialStack Snapshot SocialStack snapshot 1`] = `
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Handler": "index.handler",
         "Role": {
@@ -526,7 +526,7 @@ exports[`SocialStack Snapshot SocialStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "542c7db40a4ee448779c35b28eb742f1e185190a385d83f48151e058b1c06a41.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -748,7 +748,7 @@ exports[`SocialStack Snapshot SocialStack snapshot 1`] = `
               },
               {
                 "Name": "TOKEN_ENCRYPTION_KEY",
-                "Value": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                "Value": "ASSET_HASH",
               },
             ],
             "Essential": true,

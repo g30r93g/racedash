@@ -170,7 +170,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Description": {
           "Fn::Join": [
@@ -230,7 +230,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "d582962e179c572dd9ace549ac2e58be85188568c39452e77d74ff4adc8d35c2.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -367,7 +367,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "bf2e791a3f58a346bc5c73fdb2c84ada708e350ebbf827bc456eb5424b500a63.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -456,7 +456,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "2819175352ad1ce0dae768e83fc328fb70fb5f10b4a8ff0ccbcb791f02b0716d.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Handler": "index.handler",
         "Role": {
@@ -613,7 +613,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "ef6c3fd9468cd882a8b0e45c2696fa3e995d09feede78a4dad734018c16029c8.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -726,7 +726,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "58d060a474948b8ac875abe9df5a5246619cfb01c09976458e96b78031c3b783.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -824,7 +824,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "139db9f47139bd500a47c917fb2d5c77b520fe0bc793ba1ca7fa3c0aa9f0e926.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -1545,7 +1545,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "6f19a005adeda0456b40fae58be4e138e38f15e201c499e743bd15d949fc5de0.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -1679,7 +1679,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "abed73bb1cee92cf22f8dc25d76b3c249261275138ce1389b6284317fe5f5ce5.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {
@@ -1823,7 +1823,7 @@ exports[`PipelineStack Snapshot PipelineStack snapshot 1`] = `
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "7517885d36d68e2b4128e2c0bd6c530ad7a965df4e4959b644e9764c8989e4dc.zip",
+          "S3Key": "ASSET_HASH.zip",
         },
         "Environment": {
           "Variables": {

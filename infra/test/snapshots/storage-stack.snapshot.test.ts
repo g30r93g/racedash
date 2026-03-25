@@ -1,11 +1,11 @@
 import { Template } from 'aws-cdk-lib/assertions'
-import { createTestStacks } from '../test-helper'
+import { createTestStacks, sanitizeTemplate } from '../test-helper'
 
 describe('StorageStack Snapshot', () => {
   const stacks = createTestStacks()
 
   test('StorageStack snapshot', () => {
     const template = Template.fromStack(stacks.storage)
-    expect(template.toJSON()).toMatchSnapshot()
+    expect(sanitizeTemplate(template.toJSON())).toMatchSnapshot()
   })
 })

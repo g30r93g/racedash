@@ -30,6 +30,7 @@
   "devDependencies": {
     "@remotion/lambda": "^4.0.438",
     "@types/pg": "*",
+    "@types/node": "^24.5.0",
     "fast-check": "^4.6.0",
     "tsx": "*",
     "typescript": "*",
