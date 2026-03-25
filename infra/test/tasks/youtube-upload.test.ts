@@ -136,10 +136,10 @@ beforeEach(() => {
     return Promise.resolve({})
   })
 
-  // Mock process.exit to record calls but throw to stop execution
+  // Mock process.exit to record calls without throwing — the main function
+  // has a .catch() handler that calls process.exit again, creating a loop if we throw.
   mockProcessExit = jest.spyOn(process, 'exit').mockImplementation(((code?: number) => {
     processExitCalls.push(code ?? 0)
-    throw new Error(`process.exit(${code})`)
   }) as any)
 
   // Mock global fetch
@@ -148,30 +148,26 @@ beforeEach(() => {
 
 afterEach(() => {
   mockProcessExit.mockRestore()
+  jest.useRealTimers()
   delete process.env.UPLOAD_PAYLOAD
 })
 
 // ── Helper to run the main function ────────────────────────────────────────
 
 async function runMain(): Promise<void> {
-  // jest.isolateModules runs synchronously; main() starts async and the
-  // top-level .catch() swallows the process.exit error. We capture it
-  // by wrapping in a promise that settles when process.exit is called.
-  return new Promise<void>((resolve) => {
-    jest.isolateModules(() => {
-      require('../../tasks/youtube-upload/index')
-    })
-    // The main().catch() chain is async; give it time to settle.
-    // Use a polling approach to detect when process.exit was called.
-    const check = () => {
-      if (processExitCalls.length > 0) {
-        resolve()
-      } else {
-        setTimeout(check, 10)
-      }
-    }
-    setTimeout(check, 10)
+  jest.useFakeTimers()
+
+  jest.isolateModules(() => {
+    require('../../tasks/youtube-upload/index')
   })
+
+  // Advance fake timers in increments until process.exit is called.
+  // The youtube-upload task has a 10-second polling delay, so we need
+  // fake timers to fast-forward through it.
+  for (let i = 0; i < 200; i++) {
+    if (processExitCalls.length > 0) break
+    await jest.advanceTimersByTimeAsync(500)
+  }
 }
 
 // Setup default select chain that handles both user and account lookups
