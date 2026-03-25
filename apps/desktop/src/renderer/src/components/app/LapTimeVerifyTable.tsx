@@ -37,7 +37,7 @@ export function LapTimeVerifyTable({ segment, selectedDriver }: LapTimeVerifyTab
     setError('')
 
     window.racedash
-      .previewTimestamps([segment], selectedDriver)
+      .previewTimestamps([segment], { [segment.label]: selectedDriver })
       .then((result) => {
         const match = result.find((s) => s.label === segment.label) ?? result[0]
         setLaps(match?.laps ?? [])

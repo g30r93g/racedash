@@ -9,7 +9,7 @@ import { Step4Verify } from './steps/Step4Verify'
 
 interface EditWizardState {
   segments: SegmentConfig[]
-  selectedDriver: string
+  selectedDrivers: Record<string, string>
 }
 
 interface ProjectEditWizardProps {
@@ -27,7 +27,7 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
   const [saveError, setSaveError] = useState<string | null>(null)
   const [state, setState] = useState<EditWizardState>({
     segments: project.segments,
-    selectedDriver: project.selectedDriver,
+    selectedDrivers: project.selectedDrivers,
   })
 
   function updateState(patch: Partial<EditWizardState>) {
@@ -49,7 +49,7 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
       const updated = await window.racedash.updateProject(
         project.projectPath,
         state.segments,
-        state.selectedDriver,
+        state.selectedDrivers,
       )
       onSave(updated)
     } catch (err) {
@@ -60,7 +60,7 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
 
   const canContinue =
     (step === 1 && state.segments.length >= 1) ||
-    (step === 2 && state.selectedDriver !== '') ||
+    (step === 2 && state.segments.every((seg) => !!state.selectedDrivers[seg.label])) ||
     step >= 3
 
   return (
@@ -87,13 +87,13 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
           {step === 2 && (
             <Step3Driver
               segments={state.segments}
-              selectedDriver={state.selectedDriver}
-              onChange={(driver) => updateState({ selectedDriver: driver })}
+              selectedDrivers={state.selectedDrivers}
+              onChange={(drivers) => updateState({ selectedDrivers: drivers })}
             />
           )}
           {step === 3 && (
             <>
-              <Step4Verify segments={state.segments} selectedDriver={state.selectedDriver} />
+              <Step4Verify segments={state.segments} selectedDrivers={state.selectedDrivers} />
               {saveError && (
                 <p className="mt-4 text-sm text-destructive">{saveError}</p>
               )}

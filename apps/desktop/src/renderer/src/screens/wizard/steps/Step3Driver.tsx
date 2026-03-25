@@ -8,8 +8,8 @@ import { Spinner } from '@/components/loaders/Spinner'
 
 interface Step3DriverProps {
   segments: SegmentConfig[]
-  selectedDriver: string
-  onChange: (driver: string) => void
+  selectedDrivers: Record<string, string>
+  onChange: (drivers: Record<string, string>) => void
 }
 
 interface DriverEntry {
@@ -25,7 +25,7 @@ const PLACEHOLDER_DRIVERS: DriverEntry[] = [
   { kart: '5', name: 'D. Brown' },
 ]
 
-export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverProps) {
+export function Step3Driver({ segments, selectedDrivers, onChange }: Step3DriverProps) {
   const [driversBySegment, setDriversBySegment] = useState<Record<string, DriverEntry[]>>({})
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -65,8 +65,8 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
       <div>
         <h2 className="text-base font-semibold text-foreground">Select driver</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose which driver's perspective to render. The overlay will highlight this driver
-          in the leaderboard and track their position.
+          Choose which driver's perspective to render for each session. The overlay will highlight
+          this driver in the leaderboard and track their position.
         </p>
       </div>
 
@@ -79,6 +79,11 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
               className="-mb-px rounded-none border-b-2 border-transparent px-4 py-2 text-sm capitalize text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               {seg.label}
+              {selectedDrivers[seg.label] && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="ml-1.5 h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -91,6 +96,7 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
                 d.kart.toLowerCase().includes(search.toLowerCase())
               )
             : drivers
+          const selectedForSegment = selectedDrivers[seg.label] ?? ''
 
           return (
             <TabsContent key={seg.label} value={seg.label} className="mt-4">
@@ -113,7 +119,7 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
                   <p className="py-4 text-center text-sm text-muted-foreground">No drivers found.</p>
                 )}
                 {filtered.map((driver) => {
-                  const isSelected = selectedDriver === driver.name
+                  const isSelected = selectedForSegment === driver.name
                   return (
                     <Button
                       key={driver.kart}
@@ -124,7 +130,7 @@ export function Step3Driver({ segments, selectedDriver, onChange }: Step3DriverP
                           ? 'border-primary bg-primary/10 text-foreground'
                           : 'border-border bg-background text-foreground hover:bg-accent'
                       )}
-                      onClick={() => onChange(driver.name)}
+                      onClick={() => onChange({ ...selectedDrivers, [seg.label]: driver.name })}
                     >
                       <span className="w-6 shrink-0 text-center font-mono text-sm text-muted-foreground">
                         {driver.kart}

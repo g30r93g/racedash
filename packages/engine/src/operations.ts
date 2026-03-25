@@ -50,9 +50,11 @@ export async function joinVideos(files: string[], outputPath: string): Promise<v
 }
 
 export async function listDrivers(opts: DriversOptions): Promise<DriversResult> {
-  const { segments: segmentConfigs, driverQuery } = await loadTimingConfig(opts.configPath, false)
-  const highlightQuery = opts.driverQuery ?? driverQuery
-  const segments = await resolveDriversCommandSegments(segmentConfigs, highlightQuery)
+  const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, false)
+  const withOverride = opts.driverQuery
+    ? segmentConfigs.map(seg => ({ ...seg, driver: opts.driverQuery }))
+    : segmentConfigs
+  const segments = await resolveDriversCommandSegments(withOverride)
   return {
     segments,
     driverListsIdentical: driverListsAreIdentical(segments),
@@ -60,8 +62,8 @@ export async function listDrivers(opts: DriversOptions): Promise<DriversResult> 
 }
 
 export async function generateTimestamps(opts: TimestampsOptions): Promise<TimestampsResult> {
-  const { segments: segmentConfigs, driverQuery } = await loadTimingConfig(opts.configPath, true)
-  const resolvedSegments = await resolveTimingSegments(segmentConfigs, driverQuery)
+  const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
+  const resolvedSegments = await resolveTimingSegments(segmentConfigs)
   const offsets = segmentConfigs.map(segment => parseOffset(segment.offset, opts.fps))
   const { segments } = buildSessionSegments(resolvedSegments, offsets)
   return {
@@ -102,7 +104,6 @@ export async function renderSession(
 
     const {
       segments: segmentConfigs,
-      driverQuery,
       configBoxPosition,
       configTablePosition,
       overlayComponents,
@@ -134,7 +135,7 @@ export async function renderSession(
       roundMillis(Math.round(raw / frameDuration) * frameDuration),
     )
 
-    const resolvedSegments = await resolveTimingSegments(segmentConfigs, driverQuery)
+    const resolvedSegments = await resolveTimingSegments(segmentConfigs)
     const { segments, startingGridPosition } = buildSessionSegments(resolvedSegments, snappedOffsets)
     segments.forEach((segment, index) => {
       segment.positionOverrides = resolvedPositionOverrides[index]

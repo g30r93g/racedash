@@ -4,10 +4,10 @@ import { LapTimeVerifyTable } from '@/components/app/LapTimeVerifyTable'
 
 interface Step4VerifyProps {
   segments: SegmentConfig[]
-  selectedDriver: string
+  selectedDrivers: Record<string, string>
 }
 
-export function Step4Verify({ segments, selectedDriver }: Step4VerifyProps) {
+export function Step4Verify({ segments, selectedDrivers }: Step4VerifyProps) {
   if (segments.length === 0) {
     return (
       <div className="flex flex-col gap-5">
@@ -41,7 +41,7 @@ export function Step4Verify({ segments, selectedDriver }: Step4VerifyProps) {
 
         {segments.map((seg) => (
           <TabsContent key={seg.label} value={seg.label} className="mt-4">
-            <LapTimeVerifyTable segment={seg} selectedDriver={selectedDriver} />
+            <LapTimeVerifyTable segment={seg} selectedDriver={selectedDrivers[seg.label] ?? ''} />
           </TabsContent>
         ))}
       </Tabs>

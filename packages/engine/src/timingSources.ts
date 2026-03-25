@@ -48,6 +48,7 @@ export interface BaseSegmentConfig {
   mode: SessionMode
   offset: string
   label?: string
+  driver?: string
   positionOverrides?: PositionOverrideConfig[]
 }
 
@@ -95,7 +96,6 @@ export type SegmentConfig =
 
 export interface TimingConfig {
   segments: JsonObject[]
-  driver?: string
   boxPosition?: string
   qualifyingTablePosition?: string
   overlayComponents?: OverlayComponentsConfig
@@ -104,7 +104,6 @@ export interface TimingConfig {
 
 export interface LoadedTimingConfig {
   segments: SegmentConfig[]
-  driverQuery?: string
   configBoxPosition?: string
   configTablePosition?: string
   overlayComponents?: OverlayComponentsConfig
@@ -338,15 +337,17 @@ export async function loadTimingConfig(configPath: string, requireDriver: boolea
 
   const configDir = path.dirname(absoluteConfigPath)
   const segments = raw.segments.map((segment, i) => validateSegmentConfig(segment, i, configDir))
-  const driverQuery = typeof raw.driver === 'string' && raw.driver.trim() ? raw.driver.trim() : undefined
 
-  if (requireDriver && !driverQuery) {
-    throw new Error('config.driver is required')
+  if (requireDriver) {
+    segments.forEach((seg, i) => {
+      if (!seg.driver) {
+        throw new Error(`segments[${i}].driver is required`)
+      }
+    })
   }
 
   return {
     segments,
-    driverQuery,
     configBoxPosition: raw.boxPosition,
     configTablePosition: raw.qualifyingTablePosition,
     overlayComponents: raw.overlayComponents,
@@ -356,16 +357,14 @@ export async function loadTimingConfig(configPath: string, requireDriver: boolea
 
 export async function resolveTimingSegments(
   segments: SegmentConfig[],
-  driverQuery?: string,
 ): Promise<ResolvedTimingSegment[]> {
-  return Promise.all(segments.map(segment => resolveTimingSegment(segment, driverQuery)))
+  return Promise.all(segments.map(segment => resolveTimingSegment(segment, segment.driver)))
 }
 
 export async function resolveDriversCommandSegments(
   segments: SegmentConfig[],
-  driverQuery?: string,
 ): Promise<DriversCommandSegment[]> {
-  const resolved = await resolveTimingSegments(segments, driverQuery)
+  const resolved = await resolveTimingSegments(segments)
   return resolved.map(segment => ({
     config: segment.config,
     capabilities: segment.capabilities,
@@ -677,6 +676,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
   const modeValue = value.mode
   const offset = value.offset
   const label = value.label
+  const driver = typeof value.driver === 'string' && value.driver.trim() ? value.driver.trim() : undefined
 
   if (typeof source !== 'string' || !['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual', 'cached'].includes(source)) {
     throw new Error(`segments[${segmentIndex}] is missing a valid "source"`)
@@ -711,7 +711,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
       if ('timingData' in value) {
         throw new Error(`segments[${segmentIndex}].timingData is only valid for source "manual"`)
       }
-      return { source: timingSource, mode, offset, label, positionOverrides, url }
+      return { source: timingSource, mode, offset, label, driver, positionOverrides, url }
     }
     case 'teamsportEmail': {
       const emailPath = value.emailPath
@@ -729,6 +729,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         mode,
         offset,
         label,
+        driver,
         positionOverrides,
         emailPath: path.resolve(configDir, emailPath),
       }
@@ -749,6 +750,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         mode,
         offset,
         label,
+        driver,
         positionOverrides,
         emailPath: path.resolve(configDir, emailPath),
       }
@@ -765,7 +767,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
       if ('timingData' in value) {
         throw new Error(`segments[${segmentIndex}].timingData is only valid for source "manual"`)
       }
-      return { source: timingSource, mode, offset, label, positionOverrides, url }
+      return { source: timingSource, mode, offset, label, driver, positionOverrides, url }
     }
     case 'manual': {
       if ('url' in value) {
@@ -779,6 +781,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         mode,
         offset,
         label,
+        driver,
         positionOverrides,
         timingData: validateManualTimingData(value.timingData, segmentIndex),
       }
@@ -802,6 +805,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         mode,
         offset,
         label,
+        driver,
         positionOverrides,
         originalSource: originalSource as Exclude<TimingSource, 'cached'>,
         drivers: value.drivers as unknown as DriverRow[],

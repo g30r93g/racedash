@@ -86,7 +86,7 @@ describe('handleCreateProject', () => {
         session: 'race' as const,
       },
     ],
-    selectedDriver: 'G. Gorzynski',
+    selectedDrivers: { Race: 'G. Gorzynski' },
   }
 
   it('creates the project directory under ~/Videos/racedash/<slug>', async () => {
@@ -148,7 +148,7 @@ describe('handleCreateProject', () => {
     expect(written).toMatchObject({
       name: 'My Race',
       projectPath: path.join(expectedDir, 'project.json'),
-      selectedDriver: 'G. Gorzynski',
+      selectedDrivers: { Race: 'G. Gorzynski' },
     })
     expect((written as any).segments).toHaveLength(1)
     expect((written as any).segments[0].label).toBe('Race')
@@ -159,7 +159,7 @@ describe('handleCreateProject', () => {
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(result.projectPath).toBe(path.join(expectedDir, 'project.json'))
     expect(result.name).toBe('My Race')
-    expect(result.selectedDriver).toBe('G. Gorzynski')
+    expect(result.selectedDrivers).toEqual({ Race: 'G. Gorzynski' })
   })
 
   it('slugifies project names with spaces and special characters', async () => {

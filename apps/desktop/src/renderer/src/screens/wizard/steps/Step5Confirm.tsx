@@ -56,7 +56,7 @@ export function Step5Confirm({ state, onNameChange, onSaveDirChange, onComplete 
         name: state.projectName.trim(),
         joinedVideoPath: state.joinedVideoPath,
         segments: state.segments,
-        selectedDriver: state.selectedDriver,
+        selectedDrivers: state.selectedDrivers,
         saveDir: state.saveDir,
       })
       onComplete(project)
@@ -132,7 +132,7 @@ export function Step5Confirm({ state, onNameChange, onSaveDirChange, onComplete 
             {state.segments.map((seg) => (
               <TabsContent key={seg.label} value={seg.label} className="mt-3 space-y-1.5">
                 <InfoRow label="Source" value={seg.source} />
-                <InfoRow label="Driver" value={state.selectedDriver || '—'} />
+                <InfoRow label="Driver" value={state.selectedDrivers[seg.label] || '—'} />
                 {seg.url && <InfoRow label="URL" value={seg.url} />}
                 {seg.emailPath && (
                   <InfoRow label="File" value={seg.emailPath.split('/').pop() ?? seg.emailPath} />

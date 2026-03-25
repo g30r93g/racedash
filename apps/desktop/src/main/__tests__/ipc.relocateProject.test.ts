@@ -57,7 +57,7 @@ const SAMPLE_PROJECT = {
   configPath: '/new/config.json',
   videoPaths: ['/new/video.mp4'],
   segments: [],
-  selectedDriver: 'G. Gorzynski',
+  selectedDrivers: {},
 }
 
 beforeEach(() => {

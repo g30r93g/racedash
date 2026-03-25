@@ -13,7 +13,7 @@ export interface WizardState {
   videoPaths: string[]
   joinedVideoPath?: string
   segments: SegmentConfig[]
-  selectedDriver: string
+  selectedDrivers: Record<string, string>
   projectName: string
   saveDir?: string
 }
@@ -33,7 +33,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   const [state, setState] = useState<WizardState>({
     videoPaths: [],
     segments: [],
-    selectedDriver: '',
+    selectedDrivers: {},
     projectName: '',
   })
 
@@ -75,7 +75,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   const canContinue =
     (step === 1 && state.videoPaths.length >= 1) ||
     (step === 2 && state.segments.length >= 1) ||
-    (step === 3 && state.selectedDriver !== '') ||
+    (step === 3 && state.segments.every((seg) => !!state.selectedDrivers[seg.label])) ||
     step >= 4
 
   return (
@@ -110,11 +110,11 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
           {step === 3 && (
             <Step3Driver
               segments={state.segments}
-              selectedDriver={state.selectedDriver}
-              onChange={(driver) => updateState({ selectedDriver: driver })}
+              selectedDrivers={state.selectedDrivers}
+              onChange={(drivers) => updateState({ selectedDrivers: drivers })}
             />
           )}
-          {step === 4 && <Step4Verify segments={state.segments} selectedDriver={state.selectedDriver} />}
+          {step === 4 && <Step4Verify segments={state.segments} selectedDrivers={state.selectedDrivers} />}
           {step === 5 && (
             <Step5Confirm
               state={state}

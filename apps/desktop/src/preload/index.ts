@@ -34,8 +34,8 @@ const api: RacedashAPI = {
     ipcRenderer.invoke('racedash:renameProject', projectPath, name),
   relocateProject: (oldProjectPath: string) =>
     ipcRenderer.invoke('racedash:relocateProject', oldProjectPath),
-  updateProject: (projectPath: string, segments: SegmentConfig[], selectedDriver: string) =>
-    ipcRenderer.invoke('racedash:updateProject', projectPath, segments, selectedDriver),
+  updateProject: (projectPath: string, segments: SegmentConfig[], selectedDrivers: Record<string, string>) =>
+    ipcRenderer.invoke('racedash:updateProject', projectPath, segments, selectedDrivers),
   readProjectConfig: (configPath: string) =>
     ipcRenderer.invoke('racedash:readProjectConfig', configPath),
   updateProjectConfigOverrides: (configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>) =>
@@ -54,8 +54,8 @@ const api: RacedashAPI = {
 
   previewDrivers: (segments) =>
     ipcRenderer.invoke('racedash:previewDrivers', segments),
-  previewTimestamps: (segments, selectedDriver) =>
-    ipcRenderer.invoke('racedash:previewTimestamps', segments, selectedDriver),
+  previewTimestamps: (segments, selectedDrivers) =>
+    ipcRenderer.invoke('racedash:previewTimestamps', segments, selectedDrivers),
   listDrivers: (opts) =>
     ipcRenderer.invoke('racedash:listDrivers', opts),
   generateTimestamps: (opts) =>

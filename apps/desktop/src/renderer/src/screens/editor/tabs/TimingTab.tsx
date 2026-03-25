@@ -34,7 +34,7 @@ export interface Override {
 
 export function TimingTab({ project, videoInfo, currentTime = 0, playing = false, overrides, onOverridesChange, timestampsResult = null, timingLoading = false, timingError = null, onProjectUpdate }: TimingTabProps): React.ReactElement {
   // ── Driver ──────────────────────────────────────────────────────────────────
-  const [selectedDriver, setSelectedDriver] = useState(project.selectedDriver)
+  const [selectedDrivers, setSelectedDrivers] = useState(project.selectedDrivers)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
 
   // ── Edit wizard ─────────────────────────────────────────────────────────────
@@ -75,10 +75,10 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
     if (seg !== null) setActiveSegment(seg)
   }, [playing, getPlayheadSegment])
 
-  // Sync selectedDriver when project updates (e.g. after edit wizard save)
+  // Sync selectedDrivers when project updates (e.g. after edit wizard save)
   useEffect(() => {
-    setSelectedDriver(project.selectedDriver)
-  }, [project.selectedDriver])
+    setSelectedDrivers(project.selectedDrivers)
+  }, [project.selectedDrivers])
 
   const lapRows = React.useMemo<LapRow[]>(() => {
     if (!timestampsResult) return []
@@ -190,7 +190,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
         open={showDriverPicker}
         onOpenChange={setShowDriverPicker}
         configPath={project.configPath}
-        onSelect={(name) => setSelectedDriver(name)}
+        onSelect={(name) => setSelectedDrivers((prev) => ({ ...prev, [segmentLabels[activeSegment]]: name }))}
       />
 
       {/* EDIT WIZARD */}
@@ -209,7 +209,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       <section>
         <SectionLabel>Driver</SectionLabel>
         <div className="flex items-center justify-between rounded-md border border-border bg-accent px-3 py-2">
-          <span className="text-sm text-foreground">{selectedDriver}</span>
+          <span className="text-sm text-foreground">{selectedDrivers[segmentLabels[activeSegment]] ?? '—'}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowDriverPicker(true)}>Change</Button>
         </div>
       </section>
@@ -231,15 +231,17 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
           </div>
         )}
 
-        {timingLoading && <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />}
+        {timingLoading && lapRows.length === 0 && <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />}
         {timingError && <p className="text-xs text-destructive">{timingError}</p>}
-        {!timingLoading && !timingError && lapRows.length > 0 && (
-          <TimingTable
-            rows={lapRows}
-            bestLapTimeMs={bestLapTime ?? undefined}
-            activeLapNumber={activeLapNumber ?? undefined}
-            mode={(timestampsResult?.segments[activeSegment]?.config.mode as 'practice' | 'qualifying' | 'race') ?? undefined}
-          />
+        {!timingError && lapRows.length > 0 && (
+          <div className={timingLoading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
+            <TimingTable
+              rows={lapRows}
+              bestLapTimeMs={bestLapTime ?? undefined}
+              activeLapNumber={activeLapNumber ?? undefined}
+              mode={(timestampsResult?.segments[activeSegment]?.config.mode as 'practice' | 'qualifying' | 'race') ?? undefined}
+            />
+          </div>
         )}
         {!timingLoading && !timingError && lapRows.length === 0 && (
           <p className="text-xs text-muted-foreground">No timing data available.</p>

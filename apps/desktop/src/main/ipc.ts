@@ -21,13 +21,14 @@ import { registerCloudRenderHandlers } from './cloud-render-handlers'
  * Converts wizard SegmentConfig[] into the engine's config format.
  * Used by both handleCreateProject and updateProjectHandler.
  */
-export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<string, unknown>[] {
+export function buildEngineSegments(segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>): Record<string, unknown>[] {
   return segments.map((seg) => {
     const base = {
       source: seg.source,
       mode: seg.session ?? 'race',
       offset: `${seg.videoOffsetFrame ?? 0} F`,
       label: seg.label,
+      driver: selectedDrivers[seg.label],
     }
     if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
     if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
@@ -49,18 +50,17 @@ export function buildEngineSegments(segments: WizardSegmentConfig[]): Record<str
  */
 async function cacheRemoteTimingData(
   engineSegments: Record<string, unknown>[],
-  selectedDriver: string | undefined,
 ): Promise<Record<string, unknown>[]> {
   const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
   try {
     fs.writeFileSync(
       tempPath,
-      JSON.stringify({ segments: engineSegments, driver: selectedDriver }, null, 2),
+      JSON.stringify({ segments: engineSegments }, null, 2),
       'utf-8',
     )
 
     const { segments: segmentConfigs } = await loadTimingConfig(tempPath, true)
-    const resolved = await resolveTimingSegments(segmentConfigs, selectedDriver)
+    const resolved = await resolveTimingSegments(segmentConfigs)
 
     return engineSegments.map((original, i) => {
       const source = original.source as string
@@ -73,6 +73,7 @@ async function cacheRemoteTimingData(
         mode: original.mode,
         offset: original.offset,
         label: original.label,
+        driver: original.driver,
         positionOverrides: original.positionOverrides,
         originalSource: source,
         drivers: seg.drivers,
@@ -142,7 +143,7 @@ export async function listProjectsHandler(): Promise<ProjectData[]> {
             configPath: '',
             videoPaths: [],
             segments: [],
-            selectedDriver: '',
+            selectedDrivers: {},
             missing: true,
           }
         }
@@ -257,7 +258,7 @@ export async function renameProjectHandler(projectPath: string, name: string): P
 export async function updateProjectHandler(
   projectPath: string,
   segments: WizardSegmentConfig[],
-  selectedDriver: string,
+  selectedDrivers: Record<string, string>,
 ): Promise<ProjectData> {
   if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
     throw new Error('updateProject: projectPath must be a non-empty string')
@@ -268,8 +269,8 @@ export async function updateProjectHandler(
   if (!Array.isArray(segments) || segments.length === 0) {
     throw new Error('updateProject: segments must be a non-empty array')
   }
-  if (typeof selectedDriver !== 'string' || selectedDriver.trim().length === 0) {
-    throw new Error('updateProject: selectedDriver must be a non-empty string')
+  if (selectedDrivers == null || typeof selectedDrivers !== 'object') {
+    throw new Error('updateProject: selectedDrivers must be an object')
   }
 
   // Read existing project
@@ -283,24 +284,21 @@ export async function updateProjectHandler(
     existingConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8') as string) as Record<string, unknown>
   } catch { /* config may not exist yet */ }
 
-  // Rebuild config with new segments + driver, preserving other keys
-  const engineSegments = buildEngineSegments(segments)
-  const cachedSegments = await cacheRemoteTimingData(
-    engineSegments,
-    selectedDriver || undefined,
-  )
+  // Rebuild config with new segments + per-segment drivers, preserving other keys
+  const engineSegments = buildEngineSegments(segments, selectedDrivers)
+  const cachedSegments = await cacheRemoteTimingData(engineSegments)
   const updatedConfig = {
     ...existingConfig,
     segments: cachedSegments,
-    driver: selectedDriver,
   }
+  delete updatedConfig.driver
   fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2), 'utf-8')
 
   // Update project.json
   const updatedProject: ProjectData = {
     ...project,
     segments,
-    selectedDriver,
+    selectedDrivers,
     configPath,
   }
   fs.writeFileSync(projectPath, JSON.stringify(updatedProject, null, 2), 'utf-8')
@@ -418,16 +416,12 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   // Write engine timing config (config.json) — segments in engine format.
   // For remote sources (alphaTiming, mylapsSpeedhive, etc.), resolve the timing data
   // now and save it as manual source to avoid re-fetching on every project open.
-  const engineSegments = buildEngineSegments(opts.segments)
-  const cachedSegments = await cacheRemoteTimingData(
-    engineSegments,
-    opts.selectedDriver || undefined,
-  )
+  const engineSegments = buildEngineSegments(opts.segments, opts.selectedDrivers)
+  const cachedSegments = await cacheRemoteTimingData(engineSegments)
 
   const configPath = path.join(saveDir, 'config.json')
   fs.writeFileSync(configPath, JSON.stringify({
     segments: cachedSegments,
-    driver: opts.selectedDriver || undefined,
   }, null, 2), 'utf-8')
 
   // Write app metadata (project.json) — wizard-format segments for UI display.
@@ -438,7 +432,7 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     configPath,
     videoPaths: [videoPath],
     segments: opts.segments,
-    selectedDriver: opts.selectedDriver,
+    selectedDrivers: opts.selectedDrivers,
   }
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
 
@@ -602,7 +596,7 @@ export interface PreviewTimestampsSegment {
  */
 export async function previewTimestampsImpl(
   segments: WizardSegmentConfig[],
-  selectedDriver: string,
+  selectedDrivers: Record<string, string>,
 ): Promise<PreviewTimestampsSegment[]> {
   const engineSegments = segments.map((seg) => {
     const base = {
@@ -610,6 +604,7 @@ export async function previewTimestampsImpl(
       mode: seg.session ?? 'race',
       offset: '00:00:00',
       label: seg.label,
+      driver: selectedDrivers[seg.label],
     }
     if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
     if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
@@ -623,7 +618,7 @@ export async function previewTimestampsImpl(
   try {
     fs.writeFileSync(
       tempPath,
-      JSON.stringify({ segments: engineSegments, driver: selectedDriver || undefined }, null, 2),
+      JSON.stringify({ segments: engineSegments }, null, 2),
       'utf-8',
     )
     const result = await generateTimestamps({ configPath: tempPath })
@@ -754,7 +749,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
   ipcMain.handle('racedash:relocateProject', (_event, oldProjectPath: string) => relocateProjectHandler(oldProjectPath))
   ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
-  ipcMain.handle('racedash:updateProject', (_event, projectPath: string, segments: WizardSegmentConfig[], selectedDriver: string) => updateProjectHandler(projectPath, segments, selectedDriver))
+  ipcMain.handle('racedash:updateProject', (_event, projectPath: string, segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>) => updateProjectHandler(projectPath, segments, selectedDrivers))
   ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
   ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
   ipcMain.handle(
@@ -777,8 +772,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>
     previewDriversImpl(segments)
   )
-  ipcMain.handle('racedash:previewTimestamps', (_event, segments: WizardSegmentConfig[], selectedDriver: string) =>
-    previewTimestampsImpl(segments, selectedDriver)
+  ipcMain.handle('racedash:previewTimestamps', (_event, segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>) =>
+    previewTimestampsImpl(segments, selectedDrivers)
   )
   ipcMain.handle('racedash:listDrivers', (_event, opts: { configPath: string; driverQuery?: string }) =>
     listDrivers(opts)

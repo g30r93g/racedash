@@ -42,8 +42,7 @@ afterEach(() => {
 describe('loadTimingConfig', () => {
   it('rejects configs without an explicit source', async () => {
     const configPath = await writeTempConfig({
-      driver: 'Alice',
-      segments: [{ mode: 'practice', offset: '1:00.000', url: 'https://example.com' }],
+      segments: [{ driver: 'Alice', mode: 'practice', offset: '1:00.000', url: 'https://example.com' }],
     })
 
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('valid "source"')
@@ -51,8 +50,8 @@ describe('loadTimingConfig', () => {
 
   it('rejects timingData on non-manual sources', async () => {
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [{
+        driver: 'Alice',
         source: 'alphaTiming',
         mode: 'practice',
         offset: '1:00.000',
@@ -66,8 +65,8 @@ describe('loadTimingConfig', () => {
 
   it('requires emailPath for daytonaEmail segments', async () => {
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [{
+        driver: 'Alice',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '1:00.000',
@@ -79,9 +78,9 @@ describe('loadTimingConfig', () => {
 
   it('loads overlay component config from config.json', async () => {
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       overlayComponents: { leaderboard: false },
       segments: [{
+        driver: 'Alice',
         source: 'manual',
         mode: 'practice',
         offset: '1:00.000',
@@ -96,6 +95,7 @@ describe('loadTimingConfig', () => {
 
 describe('cached source validation', () => {
   const baseCachedSegment = {
+    driver: 'Alice',
     source: 'cached',
     mode: 'race',
     offset: '1:00.000',
@@ -123,7 +123,6 @@ describe('cached source validation', () => {
 
   it('accepts a valid cached segment', async () => {
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [baseCachedSegment],
     })
     const result = await loadTimingConfig(configPath, true)
@@ -133,7 +132,6 @@ describe('cached source validation', () => {
   it('rejects cached segment missing drivers', async () => {
     const { drivers: _, ...noDrivers } = baseCachedSegment
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [noDrivers],
     })
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('drivers must be an array')
@@ -142,7 +140,6 @@ describe('cached source validation', () => {
   it('rejects cached segment missing capabilities', async () => {
     const { capabilities: _, ...noCaps } = baseCachedSegment
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [noCaps],
     })
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('capabilities is required')
@@ -151,7 +148,6 @@ describe('cached source validation', () => {
   it('rejects cached segment missing originalSource', async () => {
     const { originalSource: _, ...noOriginal } = baseCachedSegment
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [noOriginal],
     })
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('originalSource must be one of')
@@ -159,7 +155,6 @@ describe('cached source validation', () => {
 
   it('rejects cached segment with invalid originalSource', async () => {
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [{ ...baseCachedSegment, originalSource: 'invalidSource' }],
     })
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('originalSource must be one of')
@@ -192,8 +187,8 @@ describe('resolveCachedSegment', () => {
     ]]
 
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [{
+        driver: 'Alice',
         source: 'cached',
         mode: 'race',
         offset: '1:00.000',
@@ -234,8 +229,8 @@ describe('resolveCachedSegment', () => {
     }
 
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [{
+        driver: 'Alice',
         source: 'cached',
         mode: 'practice',
         offset: '0:30.000',
@@ -245,7 +240,7 @@ describe('resolveCachedSegment', () => {
       }],
     })
     const loaded = await loadTimingConfig(configPath, true)
-    const resolved = await resolveTimingSegments(loaded.segments, loaded.driverQuery)
+    const resolved = await resolveTimingSegments(loaded.segments)
 
     expect(resolved[0].selectedDriver).toMatchObject({ name: 'Alice Example', kart: '42' })
   })
@@ -257,6 +252,7 @@ describe('resolveCachedSegment', () => {
     ]]
 
     const segment = {
+      driver: 'Alice',
       source: 'cached',
       mode: 'race',
       offset: '1:00.000',
@@ -282,12 +278,11 @@ describe('resolveCachedSegment', () => {
     }
 
     const configPath = await writeTempConfig({
-      driver: 'Alice',
       segments: [segment],
     })
 
     const loaded = await loadTimingConfig(configPath, true)
-    const resolved = await resolveTimingSegments(loaded.segments, loaded.driverQuery)
+    const resolved = await resolveTimingSegments(loaded.segments)
 
     expect(resolved[0].replayData).toBeDefined()
     expect((resolved[0].replayData as unknown[][])[0][0]).toMatchObject({ totalSeconds: 60.123 })
@@ -327,6 +322,7 @@ describe('manual source', () => {
   it('treats lap 0 as a formation lap before the configured offset', async () => {
     const resolved = await resolveTimingSegments([
       {
+        driver: 'Formation Driver',
         source: 'manual',
         mode: 'race',
         offset: '1:30.000',
@@ -336,7 +332,7 @@ describe('manual source', () => {
           { lap: 2, time: '58.500' },
         ],
       },
-    ], 'Formation Driver')
+    ])
 
     const { segments } = buildSessionSegments(resolved, [90])
     expect(segments[0].session.timestamps.map(ts => ({ lap: ts.lap.number, ytSeconds: ts.ytSeconds }))).toEqual([
@@ -351,12 +347,13 @@ describe('teamsportEmail source', () => {
   it('parses drivers and lap times from a saved .eml', async () => {
     const resolved = await resolveTimingSegments([
       {
+        driver: 'Bob Example',
         source: 'teamsportEmail',
         mode: 'practice',
         offset: '0:30.000',
         emailPath: teamsportFixture,
       },
-    ], 'Bob Example')
+    ])
 
     expect(resolved[0].drivers).toHaveLength(3)
     expect(resolved[0].selectedDriver?.name).toBe('Bob Example')
@@ -386,12 +383,13 @@ describe('mylapsSpeedhive source', () => {
 
     const resolved = await resolveTimingSegments([
       {
+        driver: 'Callum',
         source: 'mylapsSpeedhive',
         mode: 'qualifying',
         offset: '0:45.000',
         url: 'https://speedhive.mylaps.com/sessions/11791523',
       },
-    ], 'Callum')
+    ])
 
     expect(fetchMock).toHaveBeenCalled()
     expect(resolved[0].drivers).toHaveLength(2)
@@ -404,12 +402,13 @@ describe('daytonaEmail source', () => {
   it('parses the newer 2025 Daytona email format', async () => {
     const resolved = await resolveTimingSegments([
       {
+        driver: 'George Nick Gorzynski',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
         emailPath: daytona2025Fixture,
       },
-    ], 'George Nick Gorzynski')
+    ])
 
     expect(resolved[0].drivers.length).toBeGreaterThan(1)
     expect(resolved[0].selectedDriver).toMatchObject({
@@ -425,12 +424,13 @@ describe('daytonaEmail source', () => {
   it('parses the newer 2026 Daytona email format', async () => {
     const resolved = await resolveTimingSegments([
       {
+        driver: 'George Nick Gorzynski',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
         emailPath: daytona2026Fixture,
       },
-    ], 'George Nick Gorzynski')
+    ])
 
     expect(resolved[0].drivers.length).toBeGreaterThan(1)
     expect(resolved[0].selectedDriver).toMatchObject({
@@ -445,12 +445,13 @@ describe('daytonaEmail source', () => {
   it('falls back to selected-driver-only session lap data for rendering', async () => {
     const resolved = await resolveTimingSegments([
       {
+        driver: 'George Nick Gorzynski',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
         emailPath: daytona2025Fixture,
       },
-    ], 'George Nick Gorzynski')
+    ])
 
     const { segments } = buildSessionSegments(resolved, [45])
     expect(segments[0].sessionAllLaps).toHaveLength(1)
@@ -501,7 +502,7 @@ function driver(kart: string, name: string): DriverRow {
   return { kart, name, laps: [] }
 }
 
-async function writeTempConfig(config: TimingConfig | { driver?: string; segments: Array<Record<string, string | number | object>> }): Promise<string> {
+async function writeTempConfig(config: TimingConfig | { segments: Array<Record<string, string | number | object>> }): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'racedash-config-'))
   const filePath = join(dir, 'config.json')
   await writeFile(filePath, JSON.stringify(config, null, 2))
@@ -844,15 +845,15 @@ describe('cached source property and characterisation tests', () => {
 
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Alice',
           source: 'cached', mode: 'race', offset: '0:00.000',
           originalSource: 'alphaTiming',
           drivers, capabilities, startingGrid, replayData,
         }],
-        driver: 'Alice',
       })
 
       const loaded = await loadTimingConfig(configPath, true)
-      const resolved = await resolveTimingSegments(loaded.segments, 'Alice')
+      const resolved = await resolveTimingSegments(loaded.segments)
       const seg = resolved[0]
 
       // Every field must survive the round-trip
@@ -885,6 +886,7 @@ describe('cached source property and characterisation tests', () => {
 
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Precision Test',
           source: 'cached', mode: 'practice', offset: '0:00.000',
           originalSource: 'alphaTiming',
           drivers: [{ kart: '1', name: 'Precision Test', laps: edgeCaseLaps }],
@@ -895,11 +897,10 @@ describe('cached source property and characterisation tests', () => {
             startingGrid: false, raceSnapshots: false,
           },
         }],
-        driver: 'Precision Test',
       })
 
       const loaded = await loadTimingConfig(configPath, true)
-      const resolved = await resolveTimingSegments(loaded.segments, 'Precision Test')
+      const resolved = await resolveTimingSegments(loaded.segments)
       const laps = resolved[0].selectedDriver!.laps
 
       for (let i = 0; i < edgeCaseLaps.length; i++) {
@@ -919,6 +920,7 @@ describe('cached source property and characterisation tests', () => {
 
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Alice',
           source: 'cached', mode: 'race', offset: '0:00.000',
           originalSource: 'alphaTiming',
           drivers,
@@ -929,21 +931,20 @@ describe('cached source property and characterisation tests', () => {
             startingGrid: false, raceSnapshots: false,
           },
         }],
-        driver: 'Alice',
       })
 
       const loaded = await loadTimingConfig(configPath, true)
 
       // Unique match
-      const resolved1 = await resolveTimingSegments(loaded.segments, 'Alice')
+      const resolved1 = await resolveTimingSegments(loaded.segments)
       expect(resolved1[0].selectedDriver?.name).toBe('Alice Smith')
       expect(resolved1[0].selectedDriver?.kart).toBe('13')
 
       // Ambiguous match should throw (same behavior as all other sources)
-      await expect(resolveTimingSegments(loaded.segments, 'Georg')).rejects.toThrow(/ambiguous/i)
+      await expect(resolveTimingSegments(loaded.segments.map(s => ({ ...s, driver: 'Georg' })))).rejects.toThrow(/ambiguous/i)
 
       // No match should throw
-      await expect(resolveTimingSegments(loaded.segments, 'Nonexistent')).rejects.toThrow(/no driver/i)
+      await expect(resolveTimingSegments(loaded.segments.map(s => ({ ...s, driver: 'Nonexistent' })))).rejects.toThrow(/no driver/i)
     })
   })
 
@@ -951,6 +952,7 @@ describe('cached source property and characterisation tests', () => {
     it('cached segments resolve with source still set to cached', async () => {
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Test',
           source: 'cached', mode: 'race', offset: '0:00.000',
           originalSource: 'alphaTiming',
           drivers: [{ kart: '1', name: 'Test', laps: [{ number: 1, lapTime: 60, cumulative: 60 }] }],
@@ -961,11 +963,10 @@ describe('cached source property and characterisation tests', () => {
             startingGrid: false, raceSnapshots: false,
           },
         }],
-        driver: 'Test',
       })
 
       const loaded = await loadTimingConfig(configPath, true)
-      const resolved = await resolveTimingSegments(loaded.segments, 'Test')
+      const resolved = await resolveTimingSegments(loaded.segments)
 
       // The resolved config should still be 'cached', not double-wrapped
       expect(resolved[0].config.source).toBe('cached')
@@ -976,6 +977,7 @@ describe('cached source property and characterisation tests', () => {
     it('rejects originalSource set to cached at validation level', async () => {
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Test',
           source: 'cached', mode: 'race', offset: '0:00.000',
           originalSource: 'cached',  // THIS SHOULD BE REJECTED
           drivers: [],
@@ -1034,15 +1036,15 @@ describe('cached source property and characterisation tests', () => {
 
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Alice',
           source: 'cached', mode: 'race', offset: '10:00.000',
           originalSource: 'alphaTiming',
           drivers, capabilities, startingGrid, replayData,
         }],
-        driver: 'Alice',
       })
 
       const loaded = await loadTimingConfig(configPath, true)
-      const resolved = await resolveTimingSegments(loaded.segments, 'Alice')
+      const resolved = await resolveTimingSegments(loaded.segments)
       const offset = 600 // 10:00.000 in seconds
       const { segments, startingGridPosition } = buildSessionSegments(resolved, [offset])
 
@@ -1102,6 +1104,7 @@ describe('cached source property and characterisation tests', () => {
 
       const configPath = await writeTempConfig({
         segments: [{
+          driver: 'Alice',
           source: 'cached', mode: 'practice', offset: '0:00.000',
           originalSource: 'alphaTiming',
           drivers,
@@ -1113,11 +1116,10 @@ describe('cached source property and characterisation tests', () => {
           },
           // No startingGrid, no replayData
         }],
-        driver: 'Alice',
       })
 
       const loaded = await loadTimingConfig(configPath, true)
-      const resolved = await resolveTimingSegments(loaded.segments, 'Alice')
+      const resolved = await resolveTimingSegments(loaded.segments)
       const { segments, startingGridPosition } = buildSessionSegments(resolved, [0])
 
       const seg = segments[0]
