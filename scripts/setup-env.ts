@@ -15,6 +15,8 @@ interface EnvVar {
   required: boolean
   /** If true, the value is derived and never prompted */
   computed?: boolean
+  /** Hint shown below the prompt, e.g. "starts with sk_test_" */
+  hint?: string
 }
 
 /** Read LocalStack vars from the canonical env.localstack file (single source of truth) */
@@ -41,27 +43,27 @@ function loadLocalstackVars(): EnvVar[] {
 const LOCALSTACK_VARS: EnvVar[] = loadLocalstackVars()
 
 const DB_VARS: EnvVar[] = [
-  { key: 'DATABASE_URL', description: 'PostgreSQL connection string', default: 'postgresql://racedash:racedash_local@localhost:5433/racedash_local', required: true },
+  { key: 'DATABASE_URL', description: 'PostgreSQL connection string', default: 'postgresql://racedash:racedash_local@localhost:5433/racedash_local', required: true, hint: 'starts with postgresql://' },
 ]
 
 const CLERK_VARS: EnvVar[] = [
-  { key: 'CLERK_SECRET_KEY', description: 'Clerk secret key (from dashboard.clerk.com)', required: true },
-  { key: 'CLERK_WEBHOOK_SECRET', description: 'Clerk webhook secret', required: false },
+  { key: 'CLERK_SECRET_KEY', description: 'Clerk secret key (from dashboard.clerk.com → API Keys)', required: true, hint: 'starts with sk_test_' },
+  { key: 'CLERK_WEBHOOK_SECRET', description: 'Clerk webhook secret (Webhooks → your endpoint)', required: false, hint: 'starts with whsec_' },
 ]
 
 const STRIPE_VARS: EnvVar[] = [
-  { key: 'STRIPE_SECRET_KEY', description: 'Stripe secret key (test mode)', required: false },
-  { key: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook secret', required: false },
-  { key: 'STRIPE_PRICE_PLUS', description: 'Stripe Plus plan price ID', required: false },
-  { key: 'STRIPE_PRICE_PRO', description: 'Stripe Pro plan price ID', required: false },
-  { key: 'STRIPE_PRICE_CREDITS_50', description: 'Stripe 50-credit price ID', required: false },
-  { key: 'STRIPE_PRICE_CREDITS_100', description: 'Stripe 100-credit price ID', required: false },
-  { key: 'STRIPE_PRICE_CREDITS_250', description: 'Stripe 250-credit price ID', required: false },
-  { key: 'STRIPE_PRICE_CREDITS_500', description: 'Stripe 500-credit price ID', required: false },
+  { key: 'STRIPE_SECRET_KEY', description: 'Stripe secret key (test mode)', required: false, hint: 'starts with sk_test_' },
+  { key: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook secret', required: false, hint: 'starts with whsec_' },
+  { key: 'STRIPE_PRICE_PLUS', description: 'Stripe Plus plan price ID', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_PRO', description: 'Stripe Pro plan price ID', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_50', description: 'Stripe 50-credit price ID', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_100', description: 'Stripe 100-credit price ID', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_250', description: 'Stripe 250-credit price ID', required: false, hint: 'starts with price_' },
+  { key: 'STRIPE_PRICE_CREDITS_500', description: 'Stripe 500-credit price ID', required: false, hint: 'starts with price_' },
 ]
 
 const APP_VARS: EnvVar[] = [
-  { key: 'ADMIN_APP_ORIGIN', description: 'Admin app URL', default: 'http://localhost:3001', required: true },
+  { key: 'ADMIN_APP_ORIGIN', description: 'Admin app URL', default: 'http://localhost:3001', required: true, hint: 'starts with http://' },
 ]
 
 const SECTIONS = [
@@ -130,6 +132,9 @@ async function main() {
       const reqTag = v.required ? ' (required)' : ' (optional, Enter to skip)'
       const defaultHint = defaultVal ? ` [${defaultVal}]` : ''
 
+      if (v.hint) {
+        console.log(`    ${v.description} — ${v.hint}`)
+      }
       const answer = await ask(rl, `  ${v.key}${reqTag}${defaultHint}: `)
       const value = answer.trim() || defaultVal || ''
 
