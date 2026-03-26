@@ -1,17 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type {
   JobConfig,
-  JobStatus,
   JobStatusEvent,
-  CreateJobRequest,
-  CreateJobResponse,
-  StartUploadRequest,
-  StartUploadResponse,
-  CompleteUploadRequest,
-  CompleteUploadResponse,
-  DownloadResponse,
   ListJobsItem,
-  ListJobsResponse,
 } from '../../src/types'
 
 // Snapshot the shape of the CloudRenderJob-related interfaces

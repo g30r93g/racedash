@@ -374,9 +374,9 @@ describe('POST /api/webhooks/stripe', () => {
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent())
 
-    const beforeNow = new Date()
+    const _beforeNow = new Date()
     await injectWebhook(app)
-    const afterNow = new Date()
+    const _afterNow = new Date()
 
     const callArgs = insertValues.mock.calls[0][0]
     const expiresAt: Date = callArgs.expiresAt

@@ -3,7 +3,7 @@ import type { LicenseInfo, CreditBalance, CreditHistory } from '../types/ipc'
 import { cacheLicense, loadCachedLicense } from './license-cache'
 import { fetchWithAuth } from './api-client'
 
-export function registerLicenseHandlers(mainWindow: BrowserWindow): void {
+export function registerLicenseHandlers(_mainWindow: BrowserWindow): void {
   ipcMain.handle('racedash:license:get', async () => {
     const { license } = await fetchWithAuth<{ license: LicenseInfo | null }>('/api/license')
     cacheLicense(license)

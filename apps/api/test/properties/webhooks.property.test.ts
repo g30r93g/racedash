@@ -6,7 +6,7 @@ import webhooksStripeRoutes from '../../src/routes/webhooks-stripe'
 import { getStripe } from '../../src/lib/stripe'
 import { getDb } from '../../src/lib/db'
 import { tierFromPriceId } from '../../src/lib/stripe-prices'
-import { licenseExistsForSubscription, creditPackExistsForPaymentIntent } from '../../src/lib/webhook-idempotency'
+import { licenseExistsForSubscription } from '../../src/lib/webhook-idempotency'
 
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId', email: 'email', stripeCustomerId: 'stripeCustomerId' },

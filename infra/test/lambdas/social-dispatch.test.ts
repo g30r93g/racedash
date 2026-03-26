@@ -92,10 +92,11 @@ beforeEach(() => {
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe('social-dispatch Lambda', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { handler } = require('../../lambdas/social-dispatch/index')
 
   test('launches Fargate task for platform=youtube with correct task definition ARN', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { RunTaskCommand } = require('@aws-sdk/client-ecs')
 
     await handler(makeSqsEvent(VALID_PAYLOAD))
@@ -107,6 +108,7 @@ describe('social-dispatch Lambda', () => {
   })
 
   test('passes full payload as UPLOAD_PAYLOAD container override env var', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { RunTaskCommand } = require('@aws-sdk/client-ecs')
 
     await handler(makeSqsEvent(VALID_PAYLOAD))
@@ -141,6 +143,7 @@ describe('social-dispatch Lambda', () => {
   })
 
   test('parses SQS event record body as JSON', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { RunTaskCommand } = require('@aws-sdk/client-ecs')
 
     const event = makeSqsEvent(VALID_PAYLOAD)

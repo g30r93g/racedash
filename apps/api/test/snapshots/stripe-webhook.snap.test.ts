@@ -63,7 +63,7 @@ const mockGetStripe = vi.mocked(getStripe)
 const mockLicenseExists = vi.mocked(licenseExistsForSubscription)
 const mockCreditPackExists = vi.mocked(creditPackExistsForPaymentIntent)
 
-function createChainableQuery(rows: unknown[] = []) {
+function _createChainableQuery(rows: unknown[] = []) {
   const chain: Record<string, any> = {}
   chain.select = vi.fn().mockReturnValue(chain)
   chain.from = vi.fn().mockReturnValue(chain)

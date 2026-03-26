@@ -1,5 +1,4 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge'
-import { LambdaClient, GetFunctionCommand, ListEventSourceMappingsCommand } from '@aws-sdk/client-lambda'
 import { CloudWatchLogsClient, FilterLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs'
 
 const eventBridge = new EventBridgeClient({

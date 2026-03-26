@@ -452,11 +452,11 @@ describe('compositeVideo', () => {
   })
 
   it('throws on ffmpeg killed by signal', async () => {
-    const proc = makeSpawnResult(0)
+    const _proc = makeSpawnResult(0)
     const closeListeners: Array<(code: number | null, signal: string | null) => void> = []
     const errorListeners: Array<(error: Error) => void> = []
     const mock = {
-      stderr: { on: (_: string, fn: (data: Buffer) => void) => {} },
+      stderr: { on: (_: string, _fn: (data: Buffer) => void) => {} },
       on: (event: string, fn: (...args: unknown[]) => void) => {
         if (event === 'close') closeListeners.push(fn as any)
         if (event === 'error') errorListeners.push(fn as any)
@@ -682,10 +682,9 @@ describe('probeFfmpegCapabilities', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('parses encoders, hwaccels, and ffprobe version', async () => {
-    let callCount = 0
+    let _callCount = 0
     vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
-      callCount++
-      const cmd = _cmd as string
+      _callCount++
       const args = _args as string[]
       if (args.includes('-encoders')) {
         ;(callback as any)(null, {
@@ -1000,7 +999,7 @@ describe('compositeVideo Windows decode signal handling', () => {
     const signalProc = (() => {
       const closeListeners: Array<(code: number | null, signal: string | null) => void> = []
       const mock = {
-        stderr: { on: (_: string, fn: (data: Buffer) => void) => {} },
+        stderr: { on: (_: string, _fn: (data: Buffer) => void) => {} },
         on: (event: string, fn: (...args: unknown[]) => void) => {
           if (event === 'close') closeListeners.push(fn as any)
           if (event === 'error') {

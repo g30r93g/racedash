@@ -85,7 +85,7 @@ vi.mock('@aws-sdk/cloudfront-signer', () => ({
   getSignedUrl: (...args: unknown[]) => mockGetCloudFrontSignedUrl(...args),
 }))
 
-import { createTestApp, createUnauthenticatedTestApp } from '../helpers/test-app'
+import { createTestApp } from '../helpers/test-app'
 import jobRoutes from '../../src/routes/jobs'
 import { getDb } from '../../src/lib/db'
 

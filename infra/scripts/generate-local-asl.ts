@@ -34,7 +34,7 @@ function patchForLocalStack(definition: any): any {
   // Patch RunMediaConvert → Pass state with mock output
   if (states.RunMediaConvert) {
     const nextState = states.RunMediaConvert.Next
-    const catchers = states.RunMediaConvert.Catch
+    const _catchers = states.RunMediaConvert.Catch
     states.RunMediaConvert = {
       Type: 'Pass',
       Comment: 'Mock MediaConvert — LocalStack does not support mediaconvert:createJob.sync',

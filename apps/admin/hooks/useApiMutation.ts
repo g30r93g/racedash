@@ -9,14 +9,14 @@ interface MutationOptions<T> {
   onError?: (error: string) => void
 }
 
-interface MutationReturn<T, B = unknown> {
+interface MutationReturn<B = unknown> {
   mutate: (body: B) => Promise<void>
   isLoading: boolean
   error: string | null
   reset: () => void
 }
 
-export function useApiMutation<T = unknown, B = unknown>(opts: MutationOptions<T>): MutationReturn<T, B> {
+export function useApiMutation<T = unknown, B = unknown>(opts: MutationOptions<T>): MutationReturn<B> {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

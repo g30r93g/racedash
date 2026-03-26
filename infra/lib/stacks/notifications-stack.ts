@@ -13,7 +13,7 @@ export class NotificationsStack extends cdk.Stack {
     const config = getConfig(this)
     this.sesFromAddress = getContextParam(this, 'sesFromAddress', `noreply@racedash.io`)
 
-    const emailIdentity = new ses.EmailIdentity(this, 'RaceDashEmailIdentity', {
+    const _emailIdentity = new ses.EmailIdentity(this, 'RaceDashEmailIdentity', {
       identity: ses.Identity.email(this.sesFromAddress),
     })
 

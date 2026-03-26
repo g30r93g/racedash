@@ -13,7 +13,6 @@ vi.mock('../../src/lib/clerk', () => ({
   }),
 }))
 
-import adminAuth from '../../src/plugins/admin-auth'
 
 async function createAdminAuthTestApp(withClerk = true): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })

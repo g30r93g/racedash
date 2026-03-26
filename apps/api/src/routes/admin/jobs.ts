@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, gt, lt, gte, sql, desc, or, inArray } from 'drizzle-orm'
+import { eq, and, lt, gte, desc, or, inArray } from 'drizzle-orm'
 import { jobs, users, creditReservations, creditReservationPacks, creditPacks } from '@racedash/db'
 import { getDb } from '../../lib/db'
 import type { AdminJobListResponse, AdminJobDetailResponse, JobStatus, ApiError } from '../../types'

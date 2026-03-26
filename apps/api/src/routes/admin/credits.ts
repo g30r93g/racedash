@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, asc, sql } from 'drizzle-orm'
-import { users, creditPacks, logAdminAction, type CreditPack } from '@racedash/db'
+import { users, creditPacks, logAdminAction } from '@racedash/db'
 import { ZodError } from 'zod'
 import { getDb } from '../../lib/db'
 import { creditAdjustmentSchema } from './schemas'

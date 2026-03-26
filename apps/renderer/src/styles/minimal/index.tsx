@@ -87,7 +87,7 @@ export const Minimal: React.FC<OverlayProps> = ({
       ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
       : 1
 
-  const { currentLap, effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
+  const { currentLap, effectiveTime: _effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
     useCardOverlayState({
       segment,
       isEnd,

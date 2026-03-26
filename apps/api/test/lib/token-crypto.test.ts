@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 
 // Set env before importing
 process.env.TOKEN_ENCRYPTION_KEY = 'a'.repeat(64) // 32 bytes in hex

@@ -3,7 +3,6 @@ import { eq, and, desc, sql } from 'drizzle-orm'
 import {
   users,
   jobs,
-  licenses,
   reserveCredits,
   computeCredits,
   checkLicenseExpiry,

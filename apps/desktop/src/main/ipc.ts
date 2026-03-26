@@ -1,4 +1,4 @@
-import { ipcMain, app, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import type { WebContents } from 'electron'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'

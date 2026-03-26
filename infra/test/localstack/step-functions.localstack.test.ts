@@ -2,8 +2,6 @@ import {
   SFNClient,
   StartExecutionCommand,
   DescribeExecutionCommand,
-  GetActivityTaskCommand,
-  SendTaskSuccessCommand,
 } from '@aws-sdk/client-sfn'
 
 const sfn = new SFNClient({

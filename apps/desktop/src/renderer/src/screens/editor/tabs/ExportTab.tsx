@@ -245,7 +245,7 @@ export function ExportTab({
       // Start multipart upload
       const partSize = 10_485_760 // 10 MB
       const partCount = Math.ceil(fileSizeBytes / partSize)
-      const { uploadId, presignedUrls } = await window.racedash.cloudRender.startUpload(jobId, {
+      const { uploadId: _uploadId, presignedUrls } = await window.racedash.cloudRender.startUpload(jobId, {
         partCount,
         partSize,
         contentType: 'video/mp4',

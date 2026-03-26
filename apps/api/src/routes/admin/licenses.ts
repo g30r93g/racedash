@@ -96,12 +96,12 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
     Body: { expiresAt?: string; status?: string }
   }>('/api/admin/users/:id/licenses/:licenseId', async (request, reply) => {
     let expiresAt: string | undefined
-    let status: 'cancelled' | undefined
+    let _status: 'cancelled' | undefined
 
     try {
       const parsed = updateLicenseSchema.parse(request.body)
       expiresAt = parsed.expiresAt
-      status = parsed.status
+      _status = parsed.status
     } catch (err) {
       if (err instanceof ZodError) {
         return reply.status(400).send({

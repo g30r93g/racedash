@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 let willNavigateCallback: ((event: any, url: string) => void) | undefined
-let didNavigateCallback: ((event: any, url: string) => void) | undefined
+let __didNavigateCallback: ((event: any, url: string) => void) | undefined
 let closedCallback: (() => void) | undefined
 
 vi.mock('electron', async () => {
@@ -18,7 +18,7 @@ vi.mock('electron', async () => {
         webContents: {
           on: vi.fn().mockImplementation((event: string, cb: any) => {
             if (event === 'will-navigate') willNavigateCallback = cb
-            if (event === 'did-navigate') didNavigateCallback = cb
+            if (event === 'did-navigate') _didNavigateCallback = cb
           }),
           send: vi.fn(),
           session: { cookies: { get: vi.fn().mockResolvedValue([]), remove: vi.fn() } },
@@ -53,7 +53,7 @@ describe('registerStripeHandlers', () => {
     vi.clearAllMocks()
     handlers.clear()
     willNavigateCallback = undefined
-    didNavigateCallback = undefined
+    _didNavigateCallback = undefined
     closedCallback = undefined
     vi.mocked(ipcMain.handle).mockImplementation((channel: string, handler: any) => {
       handlers.set(channel, handler)

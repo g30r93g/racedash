@@ -1,6 +1,7 @@
 import type { Configuration } from 'electron-builder'
 import ffmpegStatic from 'ffmpeg-static'
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const ffprobeStatic = require('ffprobe-static') as { path: string | null }
 
 function requireBinaryPath(tool: string, resolvedPath: string | null): string {

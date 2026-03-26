@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol } from 'electron'
+import { app, BrowserWindow, protocol, session as electronSession } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -85,7 +85,6 @@ export async function cleanupEmptyRacedashTempDirs(
 app.whenReady().then(async () => {
   // Clerk dev instances require third-party cookies (.clerk.accounts.dev
   // from localhost origin). Explicitly allow them in the default session.
-  const { session: electronSession } = require('electron')
   const ses = electronSession.defaultSession
   await ses.cookies.flushStore()
   // Remove stale Clerk dev browser cookies that block re-authentication

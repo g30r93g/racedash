@@ -23,7 +23,7 @@ describe('IAM Policy Properties', () => {
     const allowedWildcardActions = ['mediaconvert:CreateJob', 'ecr:GetAuthorizationToken']
     const dangerousPrefixes = ['s3:', 'ses:', 'states:', 'sqs:', 'ecs:', 'lambda:']
 
-    for (const [stackName, template] of Object.entries(templates)) {
+    for (const [_stackName, template] of Object.entries(templates)) {
       const statements = getAllStatements(template)
 
       for (const statement of statements) {
@@ -52,7 +52,7 @@ describe('IAM Policy Properties', () => {
   test('all Lambda functions have log permissions', () => {
     const requiredLogActions = ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents']
 
-    for (const [stackName, template] of Object.entries(templates)) {
+    for (const [_stackName, template] of Object.entries(templates)) {
       const lambdaFunctions = template.findResources('AWS::Lambda::Function')
       if (Object.keys(lambdaFunctions).length === 0) continue
 

@@ -53,6 +53,7 @@ import { Readable } from 'node:stream'
 const TEST_ENCRYPTION_KEY = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
 
 function encryptForTest(plaintext: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createCipheriv, randomBytes } = require('node:crypto')
   const key = Buffer.from(TEST_ENCRYPTION_KEY, 'hex')
   const iv = randomBytes(12)
@@ -158,6 +159,7 @@ async function runMain(): Promise<void> {
   jest.useFakeTimers()
 
   jest.isolateModules(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('../../tasks/youtube-upload/index')
   })
 

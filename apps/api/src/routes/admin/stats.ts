@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, sql, and, gte, lte } from 'drizzle-orm'
+import { eq, sql, and, gte } from 'drizzle-orm'
 import { jobs, users } from '@racedash/db'
 import { getDb } from '../../lib/db'
 import type { AdminOverviewResponse } from '../../types'

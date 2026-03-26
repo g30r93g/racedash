@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { users, jobs, socialUploads } from '@racedash/db'
 import { getDb } from '../lib/db'
 import type { SocialUploadsListResponse, YouTubeUploadMetadata, ApiError } from '../types'
