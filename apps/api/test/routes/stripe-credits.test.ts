@@ -264,4 +264,65 @@ describe('POST /api/stripe/credits/checkout', () => {
       await unauthApp.close()
     }
   })
+
+  it('Returns 404 when user not found in DB', async () => {
+    const mockDb = createMockDb()
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedPriceIdForPack.mockReturnValue('price_test_credits_100')
+    mockDb.limit.mockResolvedValueOnce([]) // no user
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/credits/checkout',
+      payload: { packSize: 100 },
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.json().error.code).toBe('USER_NOT_FOUND')
+  })
+
+  it('Creates Stripe Customer when user has no stripeCustomerId', async () => {
+    const mockDb = createMockDb()
+    const mockStripe = createMockStripe()
+
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedGetStripe.mockReturnValue(mockStripe)
+    mockedPriceIdForPack.mockReturnValue('price_test_credits_100')
+
+    const userNoStripe = { ...TEST_USER, stripeCustomerId: null }
+    mockDb.limit.mockResolvedValueOnce([userNoStripe])
+    mockDb.limit.mockResolvedValueOnce([{ id: 'license-1' }])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/credits/checkout',
+      payload: { packSize: 100 },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(mockStripe.customers.create).toHaveBeenCalledWith({ email: 'test@test.com' })
+    expect(mockDb.update).toHaveBeenCalled()
+  })
+
+  it('Returns 502 when Stripe checkout session creation fails', async () => {
+    const mockDb = createMockDb()
+    const mockStripe = createMockStripe()
+
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedGetStripe.mockReturnValue(mockStripe)
+    mockedPriceIdForPack.mockReturnValue('price_test_credits_100')
+
+    mockDb.limit.mockResolvedValueOnce([TEST_USER])
+    mockDb.limit.mockResolvedValueOnce([{ id: 'license-1' }])
+    mockStripe.checkout.sessions.create.mockRejectedValueOnce(new Error('Stripe error'))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/credits/checkout',
+      payload: { packSize: 100 },
+    })
+
+    expect(response.statusCode).toBe(502)
+    expect(response.json().error.code).toBe('STRIPE_ERROR')
+  })
 })

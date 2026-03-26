@@ -83,6 +83,18 @@ describe('YouTube Auth Routes', () => {
       expect(body.authUrl).toContain(`client_id=${process.env.YOUTUBE_CLIENT_ID}`)
     })
 
+    it('returns 404 when user not found', async () => {
+      mockDb.limit.mockResolvedValueOnce([])  // no user
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/auth/youtube/connect',
+      })
+
+      expect(response.statusCode).toBe(404)
+      expect(response.json().error.code).toBe('USER_NOT_FOUND')
+    })
+
     it('returns 403 when user has no active license', async () => {
       mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])  // user found
       mockDb.limit.mockResolvedValueOnce([])                    // no license
@@ -146,6 +158,138 @@ describe('YouTube Auth Routes', () => {
         await unauthApp.close()
       }
     })
+
+    it('returns 400 when code is missing but state is present', async () => {
+      // Create a valid JWT state
+      const { createHmac } = await import('node:crypto')
+      const key = process.env.TOKEN_ENCRYPTION_KEY!
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
+      const validState = `${header}.${body}.${signature}`
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/auth/youtube/callback?state=${validState}`,
+      })
+
+      expect(response.statusCode).toBe(400)
+      expect(response.json().error.code).toBe('INVALID_OAUTH_STATE')
+    })
+
+    it('exchanges code for tokens, fetches channel info, and stores account', async () => {
+      const { createHmac } = await import('node:crypto')
+      const key = process.env.TOKEN_ENCRYPTION_KEY!
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
+      const validState = `${header}.${body}.${signature}`
+
+      // Mock token exchange
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ access_token: 'ya29.test', refresh_token: 'rt_test' }),
+        })
+        // Mock channel info fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [{ id: 'UC123', snippet: { title: 'Test Channel' } }],
+          }),
+        })
+
+      // No existing connected account
+      mockDb.limit.mockResolvedValueOnce([])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/auth/youtube/callback?code=auth_code_123&state=${validState}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(response.headers.location).toBe('/auth/youtube/success')
+      expect(mockDb.insert).toHaveBeenCalled()
+      expect(encryptToken).toHaveBeenCalledWith('ya29.test')
+      expect(encryptToken).toHaveBeenCalledWith('rt_test')
+    })
+
+    it('updates existing connected account on re-connect', async () => {
+      const { createHmac } = await import('node:crypto')
+      const key = process.env.TOKEN_ENCRYPTION_KEY!
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
+      const validState = `${header}.${body}.${signature}`
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ access_token: 'ya29.new', refresh_token: 'rt_new' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [{ id: 'UC456', snippet: { title: 'Updated Channel' } }],
+          }),
+        })
+
+      // Existing connected account found
+      mockDb.limit.mockResolvedValueOnce([{ id: 'ca-existing' }])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/auth/youtube/callback?code=auth_code_456&state=${validState}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(mockDb.update).toHaveBeenCalled()
+    })
+
+    it('returns 400 when Google token exchange fails', async () => {
+      const { createHmac } = await import('node:crypto')
+      const key = process.env.TOKEN_ENCRYPTION_KEY!
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
+      const validState = `${header}.${body}.${signature}`
+
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 400 })
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/auth/youtube/callback?code=bad_code&state=${validState}`,
+      })
+
+      expect(response.statusCode).toBe(400)
+      expect(response.json().error.code).toBe('OAUTH_TOKEN_EXCHANGE_FAILED')
+    })
+
+    it('handles channel fetch failure gracefully with default name', async () => {
+      const { createHmac } = await import('node:crypto')
+      const key = process.env.TOKEN_ENCRYPTION_KEY!
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
+      const validState = `${header}.${body}.${signature}`
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ access_token: 'ya29.test' }),
+        })
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+
+      mockDb.limit.mockResolvedValueOnce([])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/auth/youtube/callback?code=auth_code&state=${validState}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(mockDb.insert).toHaveBeenCalled()
+    })
   })
 
   describe('GET /api/auth/youtube/status', () => {
@@ -174,6 +318,18 @@ describe('YouTube Auth Routes', () => {
     it('returns connected=false when no YouTube account is connected', async () => {
       mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
       mockDb.limit.mockResolvedValueOnce([])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/auth/youtube/status',
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({ connected: false, account: null })
+    })
+
+    it('returns connected=false when user not found', async () => {
+      mockDb.limit.mockResolvedValueOnce([])  // no user
 
       const response = await app.inject({
         method: 'GET',
@@ -232,6 +388,31 @@ describe('YouTube Auth Routes', () => {
 
       expect(response.statusCode).toBe(404)
       expect(response.json().error.code).toBe('YOUTUBE_NOT_CONNECTED')
+    })
+
+    it('returns 404 when user not found', async () => {
+      mockDb.limit.mockResolvedValueOnce([])  // no user
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/auth/youtube/disconnect',
+      })
+
+      expect(response.statusCode).toBe(404)
+      expect(response.json().error.code).toBe('USER_NOT_FOUND')
+    })
+  })
+
+  describe('GET /auth/youtube/success', () => {
+    it('returns HTML success page', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/auth/youtube/success',
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.headers['content-type']).toContain('text/html')
+      expect(response.body).toContain('YouTube connected successfully')
     })
   })
 })

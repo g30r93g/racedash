@@ -473,6 +473,217 @@ describe('POST /api/webhooks/stripe', () => {
     expect(insertValues).not.toHaveBeenCalled()
   })
 
+  // ── Edge cases: subscription.created ────────────────────────────────
+
+  it('Skips when no user found for subscription.created', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ selectResult: [], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ received: true })
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Skips when unknown price ID in subscription.created', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue(null as any)
+    mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Handles UNIQUE constraint violation on subscription.created gracefully', async () => {
+    const uniqueError = Object.assign(new Error('unique violation'), { code: '23505' })
+    const insertValues = vi.fn().mockRejectedValue(uniqueError)
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ received: true })
+  })
+
+  it('Rethrows non-UNIQUE errors on subscription.created', async () => {
+    const otherError = new Error('connection refused')
+    const insertValues = vi.fn().mockRejectedValue(otherError)
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(500)
+  })
+
+  it('Handles customer as object (not string) in subscription.created', async () => {
+    const insertValues = vi.fn().mockResolvedValue(undefined)
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(
+      makeSubscriptionEvent('customer.subscription.created', { customer: { id: 'cus_obj_123' } }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ stripeCustomerId: 'cus_obj_123' }),
+    )
+  })
+
+  // ── Edge cases: subscription.updated ───────────────────────────────
+
+  it('Skips when no license found for subscription.updated', async () => {
+    const updateFn = vi.fn()
+    const mockDb = createMockDb({ selectResult: [], updateFn })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.updated'))
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  // ── Edge cases: subscription.deleted ───────────────────────────────
+
+  it('Skips when no license found for subscription.deleted', async () => {
+    const updateFn = vi.fn()
+    const mockDb = createMockDb({ selectResult: [], updateFn })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.deleted'))
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  // ── Edge cases: checkout.session.completed ─────────────────────────
+
+  it('Skips checkout.session.completed when payment_status is not paid', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(
+      makeCheckoutSessionEvent({ payment_status: 'unpaid' }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Skips checkout.session.completed when no customer', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(
+      makeCheckoutSessionEvent({ customer: null }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Skips checkout.session.completed when no user found for customer', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ selectResult: [], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent())
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Skips checkout.session.completed when pack_size is invalid', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(
+      makeCheckoutSessionEvent({ metadata: { type: 'credit_pack', pack_size: '0' } }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Skips checkout.session.completed when no payment_intent', async () => {
+    const insertValues = vi.fn()
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(
+      makeCheckoutSessionEvent({ payment_intent: null }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).not.toHaveBeenCalled()
+  })
+
+  it('Handles customer as object in checkout.session.completed', async () => {
+    const insertValues = vi.fn().mockResolvedValue(undefined)
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(
+      makeCheckoutSessionEvent({ customer: { id: 'cus_obj_456' } }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).toHaveBeenCalled()
+  })
+
+  it('Handles UNIQUE constraint violation on credit pack insert gracefully', async () => {
+    const uniqueError = Object.assign(new Error('unique violation'), { code: '23505' })
+    const insertValues = vi.fn().mockRejectedValue(uniqueError)
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent())
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ received: true })
+  })
+
+  // ── Unhandled event types ──────────────────────────────────────────
+
+  it('Returns { received: true } for unknown event types', async () => {
+    const mockDb = createMockDb()
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    mockConstructEvent.mockReturnValueOnce({ type: 'invoice.paid', data: { object: {} } })
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ received: true })
+  })
+
   // ── Success response ───────────────────────────────────────────────────
 
   it('Returns { received: true } for all successfully processed events', async () => {

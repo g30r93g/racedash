@@ -9,7 +9,11 @@ import {
   driverListsAreIdentical,
   extractSpeedhiveSessionId,
   filterDriverHighlights,
+  flattenTimestamps,
+  formatDriverDisplay,
+  getDriversForDisplay,
   loadTimingConfig,
+  resolveDriversCommandSegments,
   resolvePositionOverrides,
   resolveTimingSegments,
   validateManualTimingData,
@@ -1131,5 +1135,416 @@ describe('cached source property and characterisation tests', () => {
       expect(seg.leaderboardDrivers).toBeDefined()
       expect(seg.leaderboardDrivers).toHaveLength(2)
     })
+  })
+})
+
+describe('flattenTimestamps', () => {
+  it('flattens and sorts timestamps from multiple segments', () => {
+    const segments = [
+      { session: { timestamps: [{ ytSeconds: 30, label: 'L1' }, { ytSeconds: 90, label: 'L2' }] } },
+      { session: { timestamps: [{ ytSeconds: 10, label: 'L0' }, { ytSeconds: 60, label: 'L1' }] } },
+    ] as any
+    const result = flattenTimestamps(segments)
+    expect(result.map((t: any) => t.ytSeconds)).toEqual([10, 30, 60, 90])
+  })
+})
+
+describe('getDriversForDisplay', () => {
+  it('returns full driver list when driverDiscovery is true', () => {
+    const drivers = [{ kart: '1', name: 'Alice', laps: [] }]
+    const result = getDriversForDisplay({
+      drivers,
+      selectedDriver: drivers[0],
+      capabilities: { driverDiscovery: true } as any,
+    })
+    expect(result).toEqual(drivers)
+  })
+
+  it('returns selectedDriver only when no driverDiscovery', () => {
+    const driver = { kart: '1', name: 'Alice', laps: [] }
+    const result = getDriversForDisplay({
+      drivers: [],
+      selectedDriver: driver,
+      capabilities: { driverDiscovery: false } as any,
+    })
+    expect(result).toEqual([driver])
+  })
+
+  it('returns empty array when no driverDiscovery and no selectedDriver', () => {
+    const result = getDriversForDisplay({
+      drivers: [],
+      selectedDriver: undefined,
+      capabilities: { driverDiscovery: false } as any,
+    })
+    expect(result).toEqual([])
+  })
+})
+
+describe('formatDriverDisplay', () => {
+  it('formats driver with kart number', () => {
+    expect(formatDriverDisplay({ kart: '7', name: 'Alice', laps: [] })).toBe('[  7] Alice')
+  })
+
+  it('formats driver without kart number', () => {
+    expect(formatDriverDisplay({ kart: '', name: 'Alice', laps: [] })).toBe('Alice')
+  })
+})
+
+describe('driverListsAreIdentical (extended)', () => {
+  it('returns true for single segment', () => {
+    expect(driverListsAreIdentical([{ drivers: [{ kart: '1', name: 'A', laps: [] }] } as any])).toBe(true)
+  })
+
+  it('returns false when driver lists differ', () => {
+    const seg1 = { drivers: [{ kart: '1', name: 'A', laps: [] }, { kart: '2', name: 'B', laps: [] }] } as any
+    const seg2 = { drivers: [{ kart: '1', name: 'A', laps: [] }, { kart: '3', name: 'C', laps: [] }] } as any
+    expect(driverListsAreIdentical([seg1, seg2])).toBe(false)
+  })
+
+  it('returns true when driver lists are identical', () => {
+    const drivers = [{ kart: '1', name: 'A', laps: [] }, { kart: '2', name: 'B', laps: [] }]
+    const seg1 = { drivers } as any
+    const seg2 = { drivers } as any
+    expect(driverListsAreIdentical([seg1, seg2])).toBe(true)
+  })
+})
+
+describe('loadTimingConfig edge cases', () => {
+  it('rejects empty segments array', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({ segments: [] }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('non-empty "segments"')
+  })
+
+  it('rejects config without segments key', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({}))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('non-empty "segments"')
+  })
+
+  it('requires driver when requireDriver is true', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{ source: 'alphaTiming', mode: 'race', offset: '0:00', url: 'https://example.com' }],
+    }))
+    await expect(loadTimingConfig(configPath, true)).rejects.toThrow('driver is required')
+  })
+
+  it('rejects url on teamsportEmail source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'teamsportEmail', mode: 'practice', offset: '0:00',
+        emailPath: 'test.eml', url: 'https://bad.com',
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('url is not valid for source "teamsportEmail"')
+  })
+
+  it('rejects timingData on teamsportEmail source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'teamsportEmail', mode: 'practice', offset: '0:00',
+        emailPath: 'test.eml', timingData: [{ lap: 1, time: '1:00' }],
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('timingData is only valid for source "manual"')
+  })
+
+  it('rejects emailPath on alphaTiming source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'alphaTiming', mode: 'race', offset: '0:00',
+        url: 'https://example.com', emailPath: 'test.eml',
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('emailPath is not valid for source "alphaTiming"')
+  })
+
+  it('parses daytonaEmail segment config', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'daytonaEmail', mode: 'practice', offset: '0:00',
+        driver: 'Test', emailPath: 'test.eml',
+      }],
+    }))
+    const config = await loadTimingConfig(configPath, true)
+    expect(config.segments[0].source).toBe('daytonaEmail')
+  })
+
+  it('rejects url on daytonaEmail source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'daytonaEmail', mode: 'practice', offset: '0:00',
+        emailPath: 'test.eml', url: 'https://bad.com',
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('url is not valid for source "daytonaEmail"')
+  })
+
+  it('parses mylapsSpeedhive segment config', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'mylapsSpeedhive', mode: 'practice', offset: '0:00',
+        driver: 'Test', url: 'https://speedhive.mylaps.com/sessions/12345',
+      }],
+    }))
+    const config = await loadTimingConfig(configPath, true)
+    expect(config.segments[0].source).toBe('mylapsSpeedhive')
+  })
+
+  it('rejects emailPath on mylapsSpeedhive source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'mylapsSpeedhive', mode: 'practice', offset: '0:00',
+        url: 'https://speedhive.mylaps.com/sessions/12345',
+        emailPath: 'test.eml',
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('emailPath is not valid for source "mylapsSpeedhive"')
+  })
+
+  it('rejects timingData on mylapsSpeedhive source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'mylapsSpeedhive', mode: 'practice', offset: '0:00',
+        url: 'https://speedhive.mylaps.com/sessions/12345',
+        timingData: [{ lap: 1, time: '1:00.000' }],
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('timingData is only valid for source "manual"')
+  })
+
+  it('rejects url on manual source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'manual', mode: 'practice', offset: '0:00',
+        driver: 'Test', url: 'https://bad.com',
+        timingData: [{ lap: 1, time: '1:00.000' }],
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('url is not valid for source "manual"')
+  })
+
+  it('rejects emailPath on manual source', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'manual', mode: 'practice', offset: '0:00',
+        driver: 'Test', emailPath: 'test.eml',
+        timingData: [{ lap: 1, time: '1:00.000' }],
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('emailPath is not valid for source "manual"')
+  })
+
+  it('rejects non-object positionOverrides entries', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'alphaTiming', mode: 'race', offset: '0:00',
+        url: 'https://example.com',
+        positionOverrides: ['bad'],
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('must be an object')
+  })
+
+  it('rejects positionOverrides with missing timestamp', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'alphaTiming', mode: 'race', offset: '0:00',
+        url: 'https://example.com',
+        positionOverrides: [{ position: 1 }],
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('missing "timestamp"')
+  })
+
+  it('rejects non-array positionOverrides', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'alphaTiming', mode: 'race', offset: '0:00',
+        url: 'https://example.com',
+        positionOverrides: 'bad',
+      }],
+    }))
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('must be an array')
+  })
+})
+
+describe('resolveDriversCommandSegments', () => {
+  it('returns driver display info for cached segments', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'cached',
+        mode: 'practice',
+        offset: '0:00',
+        driver: 'Alice',
+        originalSource: 'alphaTiming',
+        drivers: [
+          { kart: '5', name: 'Alice', laps: [{ number: 1, lapTime: 62.5, cumulative: 62.5 }] },
+          { kart: '7', name: 'Bob', laps: [{ number: 1, lapTime: 63.0, cumulative: 63.0 }] },
+        ],
+        capabilities: {
+          driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
+          position: false, classificationPosition: false, leaderboard: true,
+          gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
+          startingGrid: false, raceSnapshots: false,
+        },
+      }],
+    }))
+
+    const loaded = await loadTimingConfig(configPath, true)
+    const result = await resolveDriversCommandSegments(loaded.segments)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].drivers).toHaveLength(2)
+    expect(result[0].selectedDriver?.name).toBe('Alice')
+  })
+})
+
+describe('resolveTimingSegments with alphaTiming source', () => {
+  it('resolves alphaTiming practice segment via scraper', async () => {
+    const scraper = await import('@racedash/scraper')
+    vi.spyOn(scraper, 'fetchHtml').mockResolvedValueOnce('<html>mock</html>')
+    vi.spyOn(scraper, 'parseDrivers').mockReturnValueOnce([
+      { kart: '5', name: 'Alice', laps: [{ number: 1, lapTime: 62.5, cumulative: 62.5 }] },
+      { kart: '7', name: 'Bob', laps: [{ number: 1, lapTime: 63.0, cumulative: 63.0 }] },
+    ])
+
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'alphaTiming',
+        mode: 'practice',
+        offset: '0:00',
+        driver: 'Alice',
+        url: 'https://alphatiming.example.com/session/1',
+      }],
+    }))
+
+    const loaded = await loadTimingConfig(configPath, true)
+    const resolved = await resolveTimingSegments(loaded.segments)
+
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0].drivers).toHaveLength(2)
+    expect(resolved[0].selectedDriver?.name).toBe('Alice')
+    expect(resolved[0].capabilities.driverDiscovery).toBe(true)
+    expect(resolved[0].capabilities.lapTimes).toBe(true)
+  })
+
+  it('resolves alphaTiming race segment with grid and replay', async () => {
+    const scraper = await import('@racedash/scraper')
+    vi.spyOn(scraper, 'fetchHtml').mockResolvedValueOnce('<html>mock</html>')
+    vi.spyOn(scraper, 'fetchGridHtml').mockResolvedValueOnce('<html>grid</html>')
+    vi.spyOn(scraper, 'fetchReplayHtml').mockResolvedValueOnce('<html>replay</html>')
+    vi.spyOn(scraper, 'parseDrivers').mockReturnValueOnce([
+      { kart: '5', name: 'Alice', laps: [{ number: 1, lapTime: 62.5, cumulative: 62.5 }] },
+    ])
+    vi.spyOn(scraper, 'parseGrid').mockReturnValueOnce([{ position: 1, kart: '5', name: 'Alice' }])
+    vi.spyOn(scraper, 'parseReplayLapData').mockReturnValueOnce({
+      snapshots: [[{ driverId: 1, position: 1, kart: '5', name: 'Alice', lapsCompleted: 1, totalSeconds: 62.5, gapToLeader: '0.000', intervalToAhead: '' }]],
+    })
+
+    const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
+    const configPath = join(dir, 'config.json')
+    await writeFile(configPath, JSON.stringify({
+      segments: [{
+        source: 'alphaTiming',
+        mode: 'race',
+        offset: '0:00',
+        driver: 'Alice',
+        url: 'https://alphatiming.example.com/session/1',
+      }],
+    }))
+
+    const loaded = await loadTimingConfig(configPath, true)
+    const resolved = await resolveTimingSegments(loaded.segments)
+
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0].startingGrid).toHaveLength(1)
+    expect(resolved[0].replayData).toBeDefined()
+    expect(resolved[0].capabilities.gapToLeader).toBe(true)
+    expect(resolved[0].capabilities.startingGrid).toBe(true)
+  })
+})
+
+describe('buildSessionSegments edge case: no selectedDriver', () => {
+  it('throws when no selected driver resolved', () => {
+    const resolved = [{
+      config: { mode: 'practice', label: undefined },
+      drivers: [],
+      selectedDriver: undefined,
+      capabilities: { leaderboard: false },
+    }] as any
+
+    expect(() => buildSessionSegments(resolved, [0])).toThrow('No selected driver')
+  })
+})
+
+describe('extractSpeedhiveSessionId edge cases', () => {
+  it('rejects invalid URL', () => {
+    expect(() => extractSpeedhiveSessionId('not-a-url')).toThrow('Invalid Daytona Speedhive URL')
+  })
+
+  it('rejects wrong hostname', () => {
+    expect(() => extractSpeedhiveSessionId('https://example.com/sessions/123')).toThrow('must use speedhive.mylaps.com')
+  })
+
+  it('rejects URL without sessions path', () => {
+    expect(() => extractSpeedhiveSessionId('https://speedhive.mylaps.com/events/123')).toThrow('numeric /sessions/{id}')
+  })
+})
+
+describe('validateManualTimingData edge cases', () => {
+  it('rejects non-object entries', () => {
+    expect(() => validateManualTimingData(['bad'], 0)).toThrow('must be an object')
+  })
+
+  it('rejects invalid lap numbers', () => {
+    expect(() => validateManualTimingData([{ lap: -1, time: '1:00.000' }], 0)).toThrow('integer >= 0')
+  })
+
+  it('rejects starting at lap 2', () => {
+    expect(() => validateManualTimingData([{ lap: 2, time: '1:00.000' }], 0)).toThrow('start at lap 0 or lap 1')
+  })
+
+  it('rejects non-array or empty timingData', () => {
+    expect(() => validateManualTimingData(undefined, 0)).toThrow('non-empty array')
+    expect(() => validateManualTimingData([], 0)).toThrow('non-empty array')
+  })
+
+  it('rejects invalid time string', () => {
+    expect(() => validateManualTimingData([{ lap: 1, time: 'not-a-time' }], 0)).toThrow('lap time string')
   })
 })

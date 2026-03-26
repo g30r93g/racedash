@@ -321,4 +321,159 @@ describe('POST /api/stripe/checkout', () => {
     expect(body.error.code).toBe('SUBSCRIPTION_EXISTS')
     expect(body.error.message).toContain('active subscription')
   })
+
+  it('Returns 404 when user not found in DB', async () => {
+    const mockDb = createMockDb()
+    mockedGetDb.mockReturnValue(mockDb)
+    mockDb.limit.mockResolvedValueOnce([]) // no user
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/checkout',
+      payload: { tier: 'plus' },
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.json().error.code).toBe('USER_NOT_FOUND')
+  })
+
+  it('Returns 400 when priceIdForTier returns null', async () => {
+    const mockDb = createMockDb()
+    const mockStripe = createMockStripe()
+
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedGetStripe.mockReturnValue(mockStripe)
+    mockedPriceIdForTier.mockReturnValue(null as any)
+
+    mockDb.limit.mockResolvedValueOnce([TEST_USER_WITH_STRIPE])
+    mockDb.limit.mockResolvedValueOnce([]) // no active sub
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/checkout',
+      payload: { tier: 'plus' },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json().error.code).toBe('INVALID_TIER')
+  })
+
+  it('Returns 502 when Stripe checkout session creation fails', async () => {
+    const mockDb = createMockDb()
+    const mockStripe = createMockStripe()
+
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedGetStripe.mockReturnValue(mockStripe)
+    mockedPriceIdForTier.mockReturnValue('price_test_plus')
+
+    mockDb.limit.mockResolvedValueOnce([TEST_USER_WITH_STRIPE])
+    mockDb.limit.mockResolvedValueOnce([])
+    mockStripe.checkout.sessions.create.mockRejectedValueOnce(new Error('Stripe API error'))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/checkout',
+      payload: { tier: 'plus' },
+    })
+
+    expect(response.statusCode).toBe(502)
+    expect(response.json().error.code).toBe('STRIPE_ERROR')
+  })
+})
+
+describe('POST /api/stripe/portal', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    app = await createTestApp(stripeRoutes)
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('Returns portal URL for user with Stripe customer ID', async () => {
+    const mockDb = createMockDb()
+    const mockStripe = {
+      ...createMockStripe(),
+      billingPortal: {
+        sessions: {
+          create: vi.fn().mockResolvedValue({ url: 'https://billing.stripe.com/session/test' }),
+        },
+      },
+    } as any
+
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedGetStripe.mockReturnValue(mockStripe)
+
+    mockDb.limit.mockResolvedValueOnce([TEST_USER_WITH_STRIPE])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/portal',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().portalUrl).toBe('https://billing.stripe.com/session/test')
+    expect(mockStripe.billingPortal.sessions.create).toHaveBeenCalledWith(
+      expect.objectContaining({ customer: 'cus_existing_456' }),
+    )
+  })
+
+  it('Returns 404 when user not found', async () => {
+    const mockDb = createMockDb()
+    mockedGetDb.mockReturnValue(mockDb)
+    mockDb.limit.mockResolvedValueOnce([])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/portal',
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.json().error.code).toBe('USER_NOT_FOUND')
+  })
+
+  it('Returns 404 when user has no Stripe customer ID', async () => {
+    const mockDb = createMockDb()
+    mockedGetDb.mockReturnValue(mockDb)
+    mockDb.limit.mockResolvedValueOnce([TEST_USER]) // stripeCustomerId is null
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/portal',
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.json().error.code).toBe('NO_STRIPE_CUSTOMER')
+  })
+
+  it('Returns 502 when Stripe portal session creation fails', async () => {
+    const mockDb = createMockDb()
+    const mockStripe = {
+      ...createMockStripe(),
+      billingPortal: {
+        sessions: {
+          create: vi.fn().mockRejectedValue(new Error('Stripe API error')),
+        },
+      },
+    } as any
+
+    mockedGetDb.mockReturnValue(mockDb)
+    mockedGetStripe.mockReturnValue(mockStripe)
+
+    mockDb.limit.mockResolvedValueOnce([TEST_USER_WITH_STRIPE])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/stripe/portal',
+    })
+
+    expect(response.statusCode).toBe(502)
+    expect(response.json().error.code).toBe('STRIPE_ERROR')
+  })
 })
