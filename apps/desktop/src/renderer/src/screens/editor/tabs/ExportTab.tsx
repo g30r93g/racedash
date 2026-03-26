@@ -5,18 +5,17 @@ import { Input } from '@/components/ui/input'
 import { OptionGroup } from '@/components/ui/option-group'
 import { Progress } from '@/components/ui/progress'
 import { hasCloudLicense } from '@/lib/license'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type {
+  CloudUploadProgressEvent,
   OutputFrameRate,
   OutputResolution,
   RenderCompleteResult,
   RenderMode,
   VideoInfo,
-  CloudUploadProgressEvent,
 } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { OverlayType } from './OverlayPickerModal'
-import { FeatureGate } from '@/components/app/FeatureGate'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -355,6 +354,12 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
         <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} disabled={isBusy} />
       </section>
 
+      {/* RENDER MODE */}
+      <section>
+        <SectionLabel>Render Mode</SectionLabel>
+        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} disabled={isBusy} />
+      </section>
+
       {/* OUTPUT PATH (local only) */}
       {renderDestination === 'local' && (
         <section>
@@ -370,12 +375,6 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
           </div>
         </section>
       )}
-
-      {/* RENDER MODE */}
-      <section>
-        <SectionLabel>Render Mode</SectionLabel>
-        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} disabled={isBusy} />
-      </section>
 
       {/* CLOUD RENDER INFO */}
       {renderDestination === 'cloud' && (
