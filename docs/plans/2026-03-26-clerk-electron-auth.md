@@ -28,6 +28,7 @@
 | Modify | `apps/desktop/src/renderer/src/hooks/useAuth.ts` | Rewrite to use Clerk hooks + IPC token sync |
 | Modify | `apps/desktop/src/renderer/src/main.tsx` | Wrap App with ClerkProvider |
 | Modify | `apps/desktop/src/renderer/src/App.tsx` | Wrap content with AuthGuard |
+| Modify | `apps/desktop/src/renderer/src/components/app/CloudRendersList.tsx` | Replace `auth.getSession()` with Clerk `useSession` for SSE token |
 | Modify | `apps/desktop/package.json` | Add @clerk/clerk-react, @clerk/clerk-js |
 | Modify | `apps/desktop/.env.example` | Remove VITE_CLERK_ACCOUNTS_URL |
 
@@ -76,7 +77,7 @@ git commit -m "feat(desktop): add @clerk/clerk-react and @clerk/clerk-js depende
 Replace the entire contents of `apps/desktop/src/main/auth.ts` with:
 
 ```typescript
-import { safeStorage, ipcMain, app } from 'electron'
+import { BrowserWindow, safeStorage, ipcMain, app } from 'electron'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 
@@ -117,11 +118,15 @@ export function getSessionToken(): string | null {
   return sessionToken
 }
 
-export function registerTokenHandlers(): void {
-  // Renderer pushes fresh tokens after Clerk sign-in or refresh
-  ipcMain.on('racedash:auth:token:save', (_event, data: { sessionToken: string; clientToken: string }) => {
-    sessionToken = data.sessionToken
-    persistClientToken(data.clientToken)
+export function registerTokenHandlers(mainWindow: BrowserWindow): void {
+  // Renderer pushes session JWT (for API calls)
+  ipcMain.on('racedash:auth:token:save:session', (_event, token: string) => {
+    sessionToken = token
+  })
+
+  // Renderer pushes client JWT (for persistence across restarts)
+  ipcMain.on('racedash:auth:token:save:client', (_event, token: string) => {
+    persistClientToken(token)
   })
 
   // Renderer asks for cached client token on startup (to restore Clerk session)
@@ -133,6 +138,48 @@ export function registerTokenHandlers(): void {
   ipcMain.on('racedash:auth:token:clear', () => {
     sessionToken = null
     clearPersistedToken()
+  })
+
+  // Authenticated fetch — used by renderer for API calls via main process
+  const API_URL = import.meta.env.VITE_API_URL ?? ''
+
+  ipcMain.handle('racedash:auth:fetchWithAuth', async (_event, url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
+    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`
+
+    if (!fullUrl.startsWith(API_URL)) {
+      throw new Error(`URL not allowed: ${fullUrl}`)
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    }
+
+    if (sessionToken) {
+      headers['Authorization'] = `Bearer ${sessionToken}`
+    }
+
+    const response = await fetch(fullUrl, {
+      method: init?.method ?? 'GET',
+      headers,
+      body: init?.body,
+    })
+
+    // Emit sessionExpired if API returns 401
+    if (response.status === 401) {
+      mainWindow.webContents.send('racedash:auth:sessionExpired')
+    }
+
+    const responseHeaders: Record<string, string> = {}
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value
+    })
+
+    return {
+      status: response.status,
+      headers: responseHeaders,
+      body: await response.text(),
+    }
   })
 }
 ```
@@ -172,10 +219,8 @@ registerAuthHandlers(win)
 to:
 
 ```typescript
-registerTokenHandlers()
+registerTokenHandlers(win)
 ```
-
-Note: `registerTokenHandlers` does not take a `win` parameter — it only registers IPC handlers, no BrowserWindows.
 
 - [ ] **Step 4: Update env.d.ts — remove VITE_CLERK_ACCOUNTS_URL**
 
@@ -241,8 +286,10 @@ with:
 ```typescript
   // Auth — token sync between renderer (Clerk) and main (API calls)
   auth: {
-    saveToken: (sessionToken: string, clientToken: string) =>
-      ipcRenderer.send('racedash:auth:token:save', { sessionToken, clientToken }),
+    saveSessionToken: (token: string) =>
+      ipcRenderer.send('racedash:auth:token:save:session', token),
+    saveClientToken: (token: string) =>
+      ipcRenderer.send('racedash:auth:token:save:client', token),
     getClientToken: () =>
       ipcRenderer.invoke('racedash:auth:token:get') as Promise<string | null>,
     clearToken: () =>
@@ -271,7 +318,8 @@ with:
 ```typescript
   // Auth — token sync between renderer (Clerk) and main (API calls)
   auth: {
-    saveToken(sessionToken: string, clientToken: string): void
+    saveSessionToken(token: string): void
+    saveClientToken(token: string): void
     getClientToken(): Promise<string | null>
     clearToken(): void
     fetchWithAuth(url: string, init?: FetchWithAuthOptions): Promise<FetchWithAuthResponse>
@@ -312,8 +360,7 @@ const IpcTokenCache = {
     return token ?? ''
   },
   saveToken(_key: string, token: string): void {
-    // Client token is persisted; session token is synced separately
-    window.racedash.auth.saveToken('', token)
+    window.racedash.auth.saveClientToken(token)
   },
   clearToken(_key: string): void {
     window.racedash.auth.clearToken()
@@ -911,7 +958,7 @@ export function useAuth(): UseAuthReturn {
         if (token && !cancelled) {
           // The client token is synced by the Clerk interceptors in lib/clerk.ts
           // Here we sync the session JWT that main process uses for API calls
-          window.racedash.auth.saveToken(token, '')
+          window.racedash.auth.saveSessionToken(token)
         }
       } catch {
         // Token fetch failed — will retry on next render
@@ -944,7 +991,7 @@ export function useAuth(): UseAuthReturn {
         if (!token || cancelled) return
 
         // Ensure main process has the token before making the API call
-        window.racedash.auth.saveToken(token, '')
+        window.racedash.auth.saveSessionToken(token)
 
         const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth(
           '/api/auth/me',
@@ -991,10 +1038,40 @@ export function useAuth(): UseAuthReturn {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Update CloudRendersList.tsx — replace getSession() with Clerk useSession**
+
+In `apps/desktop/src/renderer/src/components/app/CloudRendersList.tsx`, the SSE connection currently calls `window.racedash.auth.getSession()` to get a token for the EventSource URL. Replace this with Clerk's `useSession` hook.
+
+Add the import at the top of the file:
+```typescript
+import { useSession } from '@clerk/clerk-react'
+```
+
+Inside the component, add:
+```typescript
+const { session } = useSession()
+```
+
+Then replace the SSE connection block (around line 85):
+
+```typescript
+        window.racedash.auth.getSession().then((session) => {
+          if (!session) return
+          const sseUrl = `${url}?token=${encodeURIComponent(session.token)}`
+```
+
+with:
+
+```typescript
+        session?.getToken().then((token) => {
+          if (!token) return
+          const sseUrl = `${url}?token=${encodeURIComponent(token)}`
+```
+
+- [ ] **Step 3: Commit**
 
 ```bash
-git add apps/desktop/src/renderer/src/hooks/useAuth.ts
+git add apps/desktop/src/renderer/src/hooks/useAuth.ts apps/desktop/src/renderer/src/components/app/CloudRendersList.tsx
 git commit -m "refactor(desktop): rewrite useAuth to use Clerk hooks with IPC token sync"
 ```
 
