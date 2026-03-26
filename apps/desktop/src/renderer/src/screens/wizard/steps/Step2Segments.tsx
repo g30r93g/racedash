@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
-import { SegmentForm } from '@/components/app/SegmentForm'
-import { SegmentRow } from '@/components/app/SegmentRow'
-import { SegmentEmptyState } from '@/components/app/SegmentEmptyState'
+import { SegmentForm } from '@/components/timing/SegmentForm'
+import { SegmentRow } from '@/components/timing/SegmentRow'
+import { SegmentEmptyState } from '@/components/timing/SegmentEmptyState'
 import { Button } from '@/components/ui/button'
 
 interface Step2SegmentsProps {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { SectionLabel } from './SectionLabel'
+import { SectionLabel } from '../shared/SectionLabel'
 import type { CreditPurchase, CreditHistory as CreditHistoryType } from '../../../../types/ipc'
 
 function formatDate(iso: string): string {

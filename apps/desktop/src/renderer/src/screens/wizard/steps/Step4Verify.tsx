@@ -1,6 +1,6 @@
 import type { SegmentConfig } from '../../../../../types/project'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { LapTimeVerifyTable } from '@/components/app/LapTimeVerifyTable'
+import { LapTimeVerifyTable } from '@/components/timing/LapTimeVerifyTable'
 
 interface Step4VerifyProps {
   segments: SegmentConfig[]

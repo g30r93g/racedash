@@ -1,7 +1,7 @@
 import { ProjectLibrary } from '@/screens/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
 import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
-import { UpdateBanner } from '@/components/UpdateBanner'
+import { UpdateBanner } from '@/components/layout/UpdateBanner'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { AuthModalContext } from '@/hooks/useAuth'
 import React, { useState, useMemo } from 'react'

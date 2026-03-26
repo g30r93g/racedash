@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { JumpToDialog } from './JumpToDialog'
+import { JumpToDialog } from '../timing/JumpToDialog'
 import { SkipBack, SkipForward, Play, Pause } from 'lucide-react'
 
 interface VideoPlaybackControlsProps {

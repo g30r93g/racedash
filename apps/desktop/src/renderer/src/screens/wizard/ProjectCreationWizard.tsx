@@ -1,4 +1,4 @@
-import { StepIndicator } from '@/components/app/StepIndicator'
+import { StepIndicator } from '@/components/layout/StepIndicator'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useState } from 'react'

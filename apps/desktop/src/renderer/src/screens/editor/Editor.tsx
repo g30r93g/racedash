@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
-import { Timeline } from '@/components/app/Timeline'
+import { Timeline } from '@/components/video/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'

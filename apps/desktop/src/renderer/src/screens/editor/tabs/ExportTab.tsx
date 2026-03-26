@@ -1,5 +1,5 @@
-import { InfoRow } from '@/components/app/InfoRow'
-import { SectionLabel } from '@/components/app/SectionLabel'
+import { InfoRow } from '@/components/shared/InfoRow'
+import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { OptionGroup } from '@/components/ui/option-group'

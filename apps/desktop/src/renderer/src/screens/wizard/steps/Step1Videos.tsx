@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { VideoFileList } from '@/components/app/VideoFileList'
+import { VideoFileList } from '@/components/video/VideoFileList'
 import { Spinner } from '@/components/loaders/Spinner'
 
 interface Step1VideosProps {

@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } 
 import { type PlayerRef } from '@remotion/player'
 import type { OverlayProps } from '@racedash/core'
 import type { OverlayType } from '@/screens/editor/tabs/OverlayPickerModal'
-import { VideoPlayer } from '@/components/app/VideoPlayer'
-import { VideoPlaybackControls } from '@/components/app/VideoPlaybackControls'
+import { VideoPlayer } from '@/components/video/VideoPlayer'
+import { VideoPlaybackControls } from '@/components/video/VideoPlaybackControls'
 
 export interface VideoPaneHandle {
   seek: (time: number) => void

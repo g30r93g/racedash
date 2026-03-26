@@ -1,4 +1,4 @@
-import { InfoRow } from '@/components/app/InfoRow'
+import { InfoRow } from '@/components/shared/InfoRow'
 import { SpinnerOverlay } from '@/components/loaders/Spinner'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'

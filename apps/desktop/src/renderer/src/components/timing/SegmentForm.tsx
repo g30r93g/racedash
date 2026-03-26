@@ -4,7 +4,7 @@ import { Step2OffsetPicker } from '@/screens/wizard/steps/Step2OffsetPicker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/form-field'
-import { FileUpload } from '@/components/app/FileUpload'
+import { FileUpload } from '@/components/shared/FileUpload'
 import { OptionGroup } from '@/components/ui/option-group'
 
 // ---------------------------------------------------------------------------

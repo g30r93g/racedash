@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Spinner } from '@/components/loaders/Spinner'
-import { InlineTimestampInput } from './InlineTimestampInput'
+import { InlineTimestampInput } from '../timing/InlineTimestampInput'
 
 interface FrameScrubberProps {
   videoPath: string

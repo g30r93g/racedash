@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
-import { SectionLabel } from './SectionLabel'
+import { SectionLabel } from '../shared/SectionLabel'
 import { YouTubeUploadDialog } from './YouTubeUploadDialog'
 import type { CloudRenderJob, CloudJobStatus, SocialUploadStatus, YouTubeUploadMetadata } from '../../../../types/ipc'
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { SectionLabel } from './SectionLabel'
+import { SectionLabel } from '../shared/SectionLabel'
 import type { CreditBalance as CreditBalanceType } from '../../../../types/ipc'
 
 const PACK_SIZES = [50, 100, 250, 500] as const

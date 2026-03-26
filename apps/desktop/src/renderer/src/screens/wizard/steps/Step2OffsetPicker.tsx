@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { FrameScrubber } from '@/components/app/FrameScrubber'
+import { FrameScrubber } from '@/components/video/FrameScrubber'
 import { useEffect, useState } from 'react'
 
 interface Step2OffsetPickerProps {

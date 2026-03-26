@@ -1,5 +1,5 @@
-import { ColourRow } from '@/components/app/ColourRow'
-import { SectionLabel } from '@/components/app/SectionLabel'
+import { ColourRow } from '@/components/style/ColourRow'
+import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { Redo, Undo } from 'lucide-react'
