@@ -1,213 +1,95 @@
 import { BrowserWindow, safeStorage, ipcMain, app } from 'electron'
-import * as http from 'node:http'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
-import type { AuthSession } from '../types/ipc'
 
-const SESSION_FILE = 'cloud-session.enc'
-const API_URL = import.meta.env.VITE_API_URL ?? ''
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''
-const CLERK_ACCOUNTS_URL = import.meta.env.VITE_CLERK_ACCOUNTS_URL ?? 'https://accounts.racedash.io'
-const AUTH_CALLBACK_PORT = 19873
+const TOKEN_FILE = 'clerk-client.enc'
 
-function getSessionPath(): string {
-  return path.join(app.getPath('userData'), SESSION_FILE)
+/** In-memory session JWT — the source of truth for API calls */
+let sessionToken: string | null = null
+
+function getTokenPath(): string {
+  return path.join(app.getPath('userData'), TOKEN_FILE)
 }
 
-function saveSession(session: AuthSession): void {
-  const json = JSON.stringify(session)
-  const encrypted = safeStorage.encryptString(json)
-  fs.writeFileSync(getSessionPath(), encrypted)
+function persistClientToken(clientJwt: string): void {
+  const encrypted = safeStorage.encryptString(clientJwt)
+  fs.writeFileSync(getTokenPath(), encrypted)
 }
 
-function loadSession(): AuthSession | null {
-  const sessionPath = getSessionPath()
-  if (!fs.existsSync(sessionPath)) return null
+function loadClientToken(): string | null {
+  const tokenPath = getTokenPath()
+  if (!fs.existsSync(tokenPath)) return null
   try {
-    const encrypted = fs.readFileSync(sessionPath)
-    const json = safeStorage.decryptString(encrypted)
-    return JSON.parse(json) as AuthSession
+    const encrypted = fs.readFileSync(tokenPath)
+    return safeStorage.decryptString(encrypted)
   } catch {
-    // Corrupted or unreadable — clear it
-    clearSession()
     return null
   }
 }
 
-function clearSession(): void {
-  const sessionPath = getSessionPath()
-  if (fs.existsSync(sessionPath)) {
-    fs.unlinkSync(sessionPath)
+function clearPersistedToken(): void {
+  const tokenPath = getTokenPath()
+  if (fs.existsSync(tokenPath)) {
+    fs.unlinkSync(tokenPath)
   }
 }
 
-async function fetchProfile(token: string): Promise<AuthSession | null> {
-  try {
-    console.log(`[auth] fetchProfile: POST ${API_URL}/api/auth/me (token: ${token.slice(0, 30)}...)`)
-    const response = await fetch(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    console.log(`[auth] fetchProfile: status=${response.status}`)
-    if (!response.ok) {
-      const body = await response.text()
-      console.log(`[auth] fetchProfile: error body=${body}`)
-      return null
-    }
-    const data = await response.json()
-    return {
-      user: data.user,
-      license: data.license,
-      token,
-    }
-  } catch (err) {
-    console.log(`[auth] fetchProfile: exception=${err}`)
-    return null
-  }
+/** Called by auth-helpers.ts to get the current session JWT for API calls */
+export function getSessionToken(): string | null {
+  return sessionToken
 }
 
-export function registerAuthHandlers(mainWindow: BrowserWindow): void {
-  ipcMain.handle('racedash:auth:signIn', async () => {
-    return new Promise<AuthSession>((resolve, reject) => {
-      let settled = false
-      let server: http.Server | null = null
-
-      const cleanup = (): void => {
-        if (server) {
-          server.close()
-          server = null
-        }
-      }
-
-      // Start a tiny HTTP server to catch the OAuth callback
-      server = http.createServer(async (req, res) => {
-        if (settled) return
-        const url = new URL(req.url ?? '/', `http://localhost:${AUTH_CALLBACK_PORT}`)
-
-        // Clerk redirects here after sign-in with a __clerk_status or session info
-        // Extract the session token from the BrowserWindow cookies
-        try {
-          const cookies = await authWindow.webContents.session.cookies.get({})
-          console.log('[auth] Cookies after sign-in:', cookies.map((c) => `${c.name}=${c.value.slice(0, 20)}... (domain: ${c.domain})`))
-
-          // Prefer __session from the Clerk accounts domain (the actual JWT)
-          const accountsDomain = new URL(CLERK_ACCOUNTS_URL).hostname
-          const sessionCookie =
-            cookies.find((c) => c.name === '__session' && c.domain?.includes(accountsDomain)) ??
-            cookies.find((c) => c.name === '__session') ??
-            cookies.find((c) => c.name === '__clerk_db_jwt')
-
-          console.log(`[auth] Selected cookie: ${sessionCookie?.name} (domain: ${sessionCookie?.domain})`)
-
-          if (sessionCookie?.value) {
-            const session = await fetchProfile(sessionCookie.value)
-            if (session) {
-              settled = true
-              saveSession(session)
-              res.writeHead(200, { 'Content-Type': 'text/html' })
-              res.end('<html><body><h2>Signed in! You can close this window.</h2><script>window.close()</script></body></html>')
-              authWindow.close()
-              cleanup()
-              resolve(session)
-              return
-            }
-          }
-
-          console.log('[auth] No session cookie found. Available cookie names:', cookies.map((c) => c.name))
-          res.writeHead(400, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h2>Sign-in failed. Please try again.</h2></body></html>')
-        } catch {
-          res.writeHead(500, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h2>An error occurred. Please try again.</h2></body></html>')
-        }
-      })
-
-      server.listen(AUTH_CALLBACK_PORT)
-
-      const callbackUrl = `http://localhost:${AUTH_CALLBACK_PORT}/callback`
-
-      const authWindow = new BrowserWindow({
-        width: 500,
-        height: 700,
-        parent: mainWindow,
-        modal: true,
-        title: 'Sign in to RaceDash Cloud',
-        webPreferences: {
-          nodeIntegration: false,
-          sandbox: true,
-          partition: 'persist:clerk-auth',
-        },
-      })
-
-      // Build the Clerk sign-in URL with localhost callback
-      const signInUrl = `${CLERK_ACCOUNTS_URL}/sign-in?redirect_url=${encodeURIComponent(callbackUrl)}`
-      authWindow.loadURL(signInUrl)
-
-      authWindow.on('closed', () => {
-        cleanup()
-        if (!settled) {
-          reject(new Error('Sign-in window was closed'))
-        }
-      })
-    })
+export function registerTokenHandlers(mainWindow: BrowserWindow): void {
+  // Renderer pushes session JWT (for API calls)
+  ipcMain.on('racedash:auth:token:save:session', (_event, token: string) => {
+    sessionToken = token
   })
 
-  ipcMain.handle('racedash:auth:signOut', async () => {
-    // Open hidden window to Clerk sign-out URL
-    const signOutWindow = new BrowserWindow({
-      show: false,
-      webPreferences: {
-        nodeIntegration: false,
-        sandbox: true,
-        partition: 'persist:clerk-auth',
-      },
-    })
-
-    try {
-      await signOutWindow.loadURL(`${CLERK_ACCOUNTS_URL}/sign-out`)
-      // Wait briefly for sign-out to process
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    } catch {
-      // Sign-out URL might fail if offline — proceed with local cleanup
-    } finally {
-      signOutWindow.close()
-    }
-
-    clearSession()
-
-    // Clear the clerk-auth session cookies
-    const session = mainWindow.webContents.session
-    const cookies = await session.cookies.get({ name: 'persist:clerk-auth' })
-    for (const cookie of cookies) {
-      const url = `https://${cookie.domain}${cookie.path}`
-      await session.cookies.remove(url, cookie.name)
-    }
+  // Renderer pushes client JWT (for persistence across restarts)
+  ipcMain.on('racedash:auth:token:save:client', (_event, token: string) => {
+    persistClientToken(token)
   })
 
-  ipcMain.handle('racedash:auth:getSession', async () => {
-    return loadSession()
+  // Renderer asks for cached client token on startup (to restore Clerk session)
+  ipcMain.handle('racedash:auth:token:get', () => {
+    return loadClientToken()
   })
+
+  // Renderer tells main to clear everything on sign-out
+  ipcMain.on('racedash:auth:token:clear', () => {
+    sessionToken = null
+    clearPersistedToken()
+  })
+
+  // Authenticated fetch — used by renderer for API calls via main process
+  const API_URL = import.meta.env.VITE_API_URL ?? ''
 
   ipcMain.handle('racedash:auth:fetchWithAuth', async (_event, url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
-    // Validate URL against allowlist
-    if (!url.startsWith(API_URL)) {
-      throw new Error(`URL not allowed: ${url}`)
+    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`
+
+    if (!fullUrl.startsWith(API_URL)) {
+      throw new Error(`URL not allowed: ${fullUrl}`)
     }
 
-    const session = loadSession()
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(init?.headers ?? {}),
     }
 
-    if (session?.token) {
-      headers['Authorization'] = `Bearer ${session.token}`
+    if (sessionToken) {
+      headers['Authorization'] = `Bearer ${sessionToken}`
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(fullUrl, {
       method: init?.method ?? 'GET',
       headers,
       body: init?.body,
     })
+
+    // Emit sessionExpired if API returns 401
+    if (response.status === 401) {
+      mainWindow.webContents.send('racedash:auth:sessionExpired')
+    }
 
     const responseHeaders: Record<string, string> = {}
     response.headers.forEach((value, key) => {

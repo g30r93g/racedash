@@ -5,7 +5,7 @@ import os from 'node:os'
 import { configureBundledFfmpegPath } from './ffmpeg'
 import { registerIpcHandlers } from './ipc'
 import { registerUpdaterHandlers } from './updater'
-import { registerAuthHandlers } from './auth'
+import { registerTokenHandlers } from './auth'
 import { registerStripeHandlers } from './stripe-checkout'
 import { registerLicenseHandlers } from './license-handlers'
 import { registerYouTubeHandlers } from './youtube'
@@ -135,7 +135,7 @@ app.whenReady().then(() => {
   void cleanupEmptyRacedashTempDirs()
   registerIpcHandlers()
   const win = createWindow()
-  registerAuthHandlers(win)
+  registerTokenHandlers(win)
   registerLicenseHandlers(win)
   registerStripeHandlers(win)
   registerUpdaterHandlers(win)
