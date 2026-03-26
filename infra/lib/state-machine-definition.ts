@@ -15,10 +15,7 @@ export interface StateMachineDefinitionProps {
   mediaConvertRoleArn: string
 }
 
-export function buildStateMachineDefinition(
-  scope: Construct,
-  props: StateMachineDefinitionProps,
-): sfn.IChainable {
+export function buildStateMachineDefinition(scope: Construct, props: StateMachineDefinitionProps): sfn.IChainable {
   // Terminal states
   const succeed = new sfn.Succeed(scope, 'Succeed', {
     comment: 'Pipeline completed successfully',
@@ -118,7 +115,7 @@ export function buildStateMachineDefinition(
     payload: sfn.TaskInput.fromObject({
       'jobId.$': '$.jobId',
       'userId.$': '$.userId',
-      'taskToken': sfn.JsonPath.taskToken,
+      taskToken: sfn.JsonPath.taskToken,
     }),
     heartbeatTimeout: sfn.Timeout.duration(cdk.Duration.seconds(900)),
     resultPath: '$.renderResult',
@@ -154,7 +151,7 @@ export function buildStateMachineDefinition(
     payload: sfn.TaskInput.fromObject({
       'jobId.$': '$.jobId',
       'userId.$': '$.userId',
-      'taskToken': sfn.JsonPath.taskToken,
+      taskToken: sfn.JsonPath.taskToken,
     }),
     heartbeatTimeout: sfn.Timeout.duration(cdk.Duration.seconds(21600)),
     resultPath: '$.slotResult',

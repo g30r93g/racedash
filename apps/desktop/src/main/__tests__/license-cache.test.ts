@@ -30,10 +30,7 @@ describe('cacheLicense', () => {
     cacheLicense(license as any)
 
     expect(safeStorage.encryptString).toHaveBeenCalledWith(JSON.stringify(license))
-    expect(fsMock.writeFileSync).toHaveBeenCalledWith(
-      expect.stringContaining('cloud-license.enc'),
-      expect.any(Buffer),
-    )
+    expect(fsMock.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('cloud-license.enc'), expect.any(Buffer))
   })
 
   it('deletes cache when license is null and file exists', () => {
@@ -70,7 +67,9 @@ describe('loadCachedLicense', () => {
 
   it('returns null and clears file on corrupted cache', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
-    vi.mocked(fsMock.readFileSync).mockImplementation(() => { throw new Error('corrupted') })
+    vi.mocked(fsMock.readFileSync).mockImplementation(() => {
+      throw new Error('corrupted')
+    })
 
     const result = loadCachedLicense()
     expect(result).toBeNull()

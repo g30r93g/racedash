@@ -65,11 +65,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     const db = getDb()
     const { id } = request.params
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1)
+    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1)
 
     if (!user) {
       reply.status(404).send({
@@ -90,12 +86,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
       .where(eq(creditPacks.userId, id))
       .orderBy(asc(creditPacks.expiresAt))
 
-    const recentJobs = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.userId, id))
-      .orderBy(desc(jobs.createdAt))
-      .limit(10)
+    const recentJobs = await db.select().from(jobs).where(eq(jobs.userId, id)).orderBy(desc(jobs.createdAt)).limit(10)
 
     return {
       user: {

@@ -68,7 +68,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   }, [])
 
   function handleLocate(oldProjectPath: string, updated: ProjectData) {
-    setProjects((prev) => prev.map((p) => p.projectPath === oldProjectPath ? updated : p))
+    setProjects((prev) => prev.map((p) => (p.projectPath === oldProjectPath ? updated : p)))
   }
 
   return (
@@ -81,100 +81,108 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
       />
 
       <div className="flex flex-1 flex-col overflow-hidden p-8">
-            {activeTab === 'projects' && (
-              <>
-                <div className="mb-6 flex shrink-0 items-center justify-between">
-                  <h1 className="text-lg font-semibold text-white">Projects</h1>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-md border border-white/10 p-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setView('tile')}
-                        className={`h-7 w-7 ${view === 'tile' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
-                        aria-label="Tile view"
-                      >
-                        <LayoutGrid size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setView('list')}
-                        className={`h-7 w-7 ${view === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
-                        aria-label="List view"
-                      >
-                        <Rows4 size={14} />
-                      </Button>
-                    </div>
-                    <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
-                      + New RaceDash Project
-                    </Button>
-                  </div>
+        {activeTab === 'projects' && (
+          <>
+            <div className="mb-6 flex shrink-0 items-center justify-between">
+              <h1 className="text-lg font-semibold text-white">Projects</h1>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center rounded-md border border-white/10 p-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setView('tile')}
+                    className={`h-7 w-7 ${view === 'tile' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                    aria-label="Tile view"
+                  >
+                    <LayoutGrid size={14} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setView('list')}
+                    className={`h-7 w-7 ${view === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                    aria-label="List view"
+                  >
+                    <Rows4 size={14} />
+                  </Button>
                 </div>
-                <ScrollArea className="flex-1">
-                  {loading ? (
-                    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 text-white/50">
-                      <SpinnerInline label="Project files are updating">
-                        <span className="text-sm">Project files are updating</span>
-                      </SpinnerInline>
-                    </div>
-                  ) : projects.length === 0 ? (
-                    <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
-                      <p className="text-sm text-white/40">No projects yet. Create your first project.</p>
-                      <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
-                        + New RaceDash Project
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className={view === 'tile' ? 'grid grid-cols-3 gap-4' : 'flex flex-col gap-2'}>
-                      {projects.map((project) => (
-                        <ProjectCard
-                          key={project.projectPath}
-                          project={project}
-                          view={view}
-                          onOpen={onOpen}
-                          onDelete={(deleted) => setProjects((prev) => prev.filter((p) => p.projectPath !== deleted.projectPath))}
-                          onRename={(updated) => setProjects((prev) => prev.map((p) => p.projectPath === updated.projectPath ? updated : p))}
-                          onLocate={handleLocate}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </>
-            )}
+                <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
+                  + New RaceDash Project
+                </Button>
+              </div>
+            </div>
+            <ScrollArea className="flex-1">
+              {loading ? (
+                <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 text-white/50">
+                  <SpinnerInline label="Project files are updating">
+                    <span className="text-sm">Project files are updating</span>
+                  </SpinnerInline>
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
+                  <p className="text-sm text-white/40">No projects yet. Create your first project.</p>
+                  <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
+                    + New RaceDash Project
+                  </Button>
+                </div>
+              ) : (
+                <div className={view === 'tile' ? 'grid grid-cols-3 gap-4' : 'flex flex-col gap-2'}>
+                  {projects.map((project) => (
+                    <ProjectCard
+                      key={project.projectPath}
+                      project={project}
+                      view={view}
+                      onOpen={onOpen}
+                      onDelete={(deleted) =>
+                        setProjects((prev) => prev.filter((p) => p.projectPath !== deleted.projectPath))
+                      }
+                      onRename={(updated) =>
+                        setProjects((prev) => prev.map((p) => (p.projectPath === updated.projectPath ? updated : p)))
+                      }
+                      onLocate={handleLocate}
+                    />
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </>
+        )}
 
-            {activeTab === 'cloud-renders' && (
-              <>
-                <div className="mb-6 flex shrink-0 items-center">
-                  <h1 className="text-lg font-semibold text-white">Cloud Renders</h1>
-                </div>
-                <CloudRendersList authUser={user ? { name: user.name } : null} youtubeConnected={youtubeStatus.connected} creditBalance={balance?.totalRc ?? 0} />
-              </>
-            )}
+        {activeTab === 'cloud-renders' && (
+          <>
+            <div className="mb-6 flex shrink-0 items-center">
+              <h1 className="text-lg font-semibold text-white">Cloud Renders</h1>
+            </div>
+            <CloudRendersList
+              authUser={user ? { name: user.name } : null}
+              youtubeConnected={youtubeStatus.connected}
+              creditBalance={balance?.totalRc ?? 0}
+            />
+          </>
+        )}
 
-            {activeTab === 'account' && (
-              <>
-                <div className="mb-6 flex shrink-0 items-center">
-                  <h1 className="text-lg font-semibold text-white">Account</h1>
-                </div>
-                <AccountDetails
-                  user={user}
-                  license={license ?? authLicense}
-                  isLoading={authLoading}
-                  creditBalance={balance}
-                  youtubeStatus={youtubeStatus}
-                  onSignIn={signIn}
-                  onSignOut={signOut}
-                  onTopUpCredits={handleTopUpCredits}
-                  onManageSubscription={handleManageSubscription}
-                  onSubscribe={handleSubscribe}
-                  onYouTubeConnect={youtubeConnect}
-                  onYouTubeDisconnect={youtubeDisconnect}
-                  fetchCreditHistory={fetchHistory}
-                />
-              </>
-            )}
+        {activeTab === 'account' && (
+          <>
+            <div className="mb-6 flex shrink-0 items-center">
+              <h1 className="text-lg font-semibold text-white">Account</h1>
+            </div>
+            <AccountDetails
+              user={user}
+              license={license ?? authLicense}
+              isLoading={authLoading}
+              creditBalance={balance}
+              youtubeStatus={youtubeStatus}
+              onSignIn={signIn}
+              onSignOut={signOut}
+              onTopUpCredits={handleTopUpCredits}
+              onManageSubscription={handleManageSubscription}
+              onSubscribe={handleSubscribe}
+              onYouTubeConnect={youtubeConnect}
+              onYouTubeDisconnect={youtubeDisconnect}
+              fetchCreditHistory={fetchHistory}
+            />
+          </>
+        )}
       </div>
     </div>
   )

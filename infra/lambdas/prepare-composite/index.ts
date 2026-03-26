@@ -49,17 +49,10 @@ export const handler = async (event: PrepareCompositeEvent): Promise<MediaConver
   const db = getDb()
 
   // Update status to compositing
-  await db
-    .update(jobs)
-    .set({ status: 'compositing', updatedAt: new Date() })
-    .where(eq(jobs.id, jobId))
+  await db.update(jobs).set({ status: 'compositing', updatedAt: new Date() }).where(eq(jobs.id, jobId))
 
   // Read job config for source video resolution
-  const [job] = await db
-    .select({ config: jobs.config })
-    .from(jobs)
-    .where(eq(jobs.id, jobId))
-    .limit(1)
+  const [job] = await db.select({ config: jobs.config }).from(jobs).where(eq(jobs.id, jobId)).limit(1)
 
   if (!job) throw new Error(`Job ${jobId} not found`)
 
@@ -81,23 +74,27 @@ export const handler = async (event: PrepareCompositeEvent): Promise<MediaConver
         { FileInput: `s3://${uploadBucket}/uploads/${jobId}/joined.mp4` },
         { FileInput: `s3://${rendersBucket}/renders/${jobId}/overlay.mov` },
       ],
-      OutputGroups: [{
-        OutputGroupSettings: {
-          Type: 'FILE_GROUP_SETTINGS',
-          FileGroupSettings: {
-            Destination: `s3://${rendersBucket}/renders/${jobId}/output`,
-          },
-        },
-        Outputs: [{
-          VideoDescription: {
-            CodecSettings: {
-              Codec: 'H_264',
-              H264Settings: { Bitrate: bitrateKbps * 1000 },
+      OutputGroups: [
+        {
+          OutputGroupSettings: {
+            Type: 'FILE_GROUP_SETTINGS',
+            FileGroupSettings: {
+              Destination: `s3://${rendersBucket}/renders/${jobId}/output`,
             },
           },
-          ContainerSettings: { Container: 'MP4' },
-        }],
-      }],
+          Outputs: [
+            {
+              VideoDescription: {
+                CodecSettings: {
+                  Codec: 'H_264',
+                  H264Settings: { Bitrate: bitrateKbps * 1000 },
+                },
+              },
+              ContainerSettings: { Container: 'MP4' },
+            },
+          ],
+        },
+      ],
     },
   }
 }

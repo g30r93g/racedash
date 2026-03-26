@@ -7,10 +7,5 @@
     "module": "CommonJS",
     "moduleResolution": "Node"
   },
-  "include": [
-    "electron.vite.config.ts",
-    "src/main/**/*",
-    "src/preload/**/*",
-    "src/types/**/*"
-  ]
+  "include": ["electron.vite.config.ts", "src/main/**/*", "src/preload/**/*", "src/types/**/*"]
 }

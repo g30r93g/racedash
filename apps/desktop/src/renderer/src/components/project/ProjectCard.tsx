@@ -9,19 +9,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EllipsisVertical, Play } from 'lucide-react'
@@ -37,7 +26,14 @@ interface ProjectCardProps {
   onLocate?: (oldProjectPath: string, updated: ProjectData) => void
 }
 
-export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename, onLocate }: ProjectCardProps): React.ReactElement {
+export function ProjectCard({
+  project,
+  view = 'tile',
+  onOpen,
+  onDelete,
+  onRename,
+  onLocate,
+}: ProjectCardProps): React.ReactElement {
   const [loading, setLoading] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
@@ -177,15 +173,17 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
     if (!trigger) return
 
     const rect = event.currentTarget.getBoundingClientRect()
-    trigger.dispatchEvent(new MouseEvent('contextmenu', {
-      bubbles: true,
-      cancelable: true,
-      button: 2,
-      buttons: 2,
-      clientX: rect.left + rect.width / 2,
-      clientY: rect.bottom - rect.height / 2,
-      view: window,
-    }))
+    trigger.dispatchEvent(
+      new MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        button: 2,
+        buttons: 2,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.bottom - rect.height / 2,
+        view: window,
+      }),
+    )
   }
 
   const dateLabel = `Opened ${new Date().toLocaleDateString('en-GB', {
@@ -312,9 +310,11 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
               </Button>
             )}
             <div
-              className={view === 'tile'
-                ? 'pointer-events-none absolute right-0 bottom-0 flex h-14 w-16 items-end justify-end rounded-br-lg bg-linear-to-l from-[#1f1f1f] via-[#1f1f1f] to-transparent pr-2 pb-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
-                : 'pointer-events-none absolute top-0 right-0 flex h-full w-16 items-center justify-end rounded-r-lg bg-linear-to-l from-[#1f1f1f] via-[#1f1f1f] to-transparent pr-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'}
+              className={
+                view === 'tile'
+                  ? 'pointer-events-none absolute right-0 bottom-0 flex h-14 w-16 items-end justify-end rounded-br-lg bg-linear-to-l from-[#1f1f1f] via-[#1f1f1f] to-transparent pr-2 pb-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
+                  : 'pointer-events-none absolute top-0 right-0 flex h-full w-16 items-center justify-end rounded-r-lg bg-linear-to-l from-[#1f1f1f] via-[#1f1f1f] to-transparent pr-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'
+              }
             >
               <Button
                 type="button"
@@ -330,9 +330,7 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="border-white/5 bg-[#1f1f1f]">
-          <ContextMenuItem onSelect={() => setRenameOpen(true)}>
-            Rename
-          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => setRenameOpen(true)}>Rename</ContextMenuItem>
           <ContextMenuItem
             className="text-destructive focus:bg-destructive/10 focus:text-destructive"
             onSelect={() => setConfirmOpen(true)}
@@ -351,11 +349,17 @@ export function ProjectCard({ project, view = 'tile', onOpen, onDelete, onRename
             ref={renameInputRef}
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmRename() }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleConfirmRename()
+            }}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirmRename} disabled={!renameValue.trim()}>Save</Button>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmRename} disabled={!renameValue.trim()}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

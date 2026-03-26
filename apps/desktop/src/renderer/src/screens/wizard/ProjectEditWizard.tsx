@@ -44,11 +44,7 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
     setSaving(true)
     setSaveError(null)
     try {
-      const updated = await window.racedash.updateProject(
-        project.projectPath,
-        state.segments,
-        state.selectedDrivers,
-      )
+      const updated = await window.racedash.updateProject(project.projectPath, state.segments, state.selectedDrivers)
       onSave(updated)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save project')
@@ -94,9 +90,7 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
       {step === 2 && (
         <>
           <VerifyStep segments={state.segments} selectedDrivers={state.selectedDrivers} />
-          {saveError && (
-            <p className="mt-4 text-sm text-destructive">{saveError}</p>
-          )}
+          {saveError && <p className="mt-4 text-sm text-destructive">{saveError}</p>}
         </>
       )}
     </WizardShell>

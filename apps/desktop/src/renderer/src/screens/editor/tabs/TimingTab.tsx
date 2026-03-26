@@ -11,7 +11,6 @@ import { OptionGroup } from '@/components/ui/option-group'
 import { Spinner } from '@/components/loaders/Spinner'
 import { ProjectEditWizard } from '@/screens/wizard/ProjectEditWizard'
 
-
 interface TimingTabProps {
   project: ProjectData
   videoInfo?: VideoInfo | null
@@ -32,7 +31,18 @@ export interface Override {
   position: string
 }
 
-export function TimingTab({ project, videoInfo, currentTime = 0, playing = false, overrides, onOverridesChange, timestampsResult = null, timingLoading = false, timingError = null, onProjectUpdate }: TimingTabProps): React.ReactElement {
+export function TimingTab({
+  project,
+  videoInfo,
+  currentTime = 0,
+  playing = false,
+  overrides,
+  onOverridesChange,
+  timestampsResult = null,
+  timingLoading = false,
+  timingError = null,
+  onProjectUpdate,
+}: TimingTabProps): React.ReactElement {
   // ── Driver ──────────────────────────────────────────────────────────────────
   const [selectedDrivers, setSelectedDrivers] = useState(project.selectedDrivers)
   const [showDriverPicker, setShowDriverPicker] = useState(false)
@@ -103,12 +113,15 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       if (mode === 'race') {
         if (hasSnapshots && seg.replayData) {
           for (const snapshot of seg.replayData) {
-            const entry = snapshot.find(e => e.kart === selectedKart && e.lapsCompleted === lap.number)
-            if (entry) { position = entry.position; break }
+            const entry = snapshot.find((e) => e.kart === selectedKart && e.lapsCompleted === lap.number)
+            if (entry) {
+              position = entry.position
+              break
+            }
           }
         } else if (canPosition && allDrivers.length > 0) {
           const ourCumulative = lap.cumulative
-          const betterCount = allDrivers.filter(d => {
+          const betterCount = allDrivers.filter((d) => {
             if (isSelected(d)) return false
             const theirLap = d.laps[lapIndex]
             return theirLap != null && theirLap.cumulative < ourCumulative
@@ -122,7 +135,7 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
             if (laps[i].lapTime < bestSoFar) bestSoFar = laps[i].lapTime
           }
           if (Number.isFinite(bestSoFar)) {
-            const betterCount = allDrivers.filter(d => {
+            const betterCount = allDrivers.filter((d) => {
               if (isSelected(d)) return false
               const driverBest = d.laps.reduce((best, l) => Math.min(best, l.lapTime), Infinity)
               return driverBest < bestSoFar
@@ -139,8 +152,11 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       let gridPosition: number | null = null
       if (hasSnapshots && seg.replayData) {
         for (const snapshot of seg.replayData) {
-          const entry = snapshot.find(e => e.kart === selectedKart && e.lapsCompleted === 0)
-          if (entry) { gridPosition = entry.position; break }
+          const entry = snapshot.find((e) => e.kart === selectedKart && e.lapsCompleted === 0)
+          if (entry) {
+            gridPosition = entry.position
+            break
+          }
         }
       }
       lapRowItems.unshift({ lap: 0, timeMs: 0, position: gridPosition, lapTimeLabel: '—' })
@@ -176,7 +192,12 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
     if (!newTimecode.trim() || !newPosition.trim()) return
     onOverridesChange([
       ...overrides,
-      { id: crypto.randomUUID(), segmentIndex: activeSegment, timecode: newTimecode.trim(), position: newPosition.trim() },
+      {
+        id: crypto.randomUUID(),
+        segmentIndex: activeSegment,
+        timecode: newTimecode.trim(),
+        position: newPosition.trim(),
+      },
     ])
     setNewTimecode('')
     setNewPosition('')
@@ -210,7 +231,9 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
         <SectionLabel>Driver</SectionLabel>
         <div className="flex items-center justify-between rounded-md border border-border bg-accent px-3 py-2">
           <span className="text-sm text-foreground">{selectedDrivers[segmentLabels[activeSegment]] ?? '—'}</span>
-          <Button variant="ghost" size="sm" onClick={() => setShowDriverPicker(true)}>Change</Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowDriverPicker(true)}>
+            Change
+          </Button>
         </div>
       </section>
 
@@ -218,7 +241,9 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       <section>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Timing Data</SectionLabel>
-          <Button variant="ghost" size="sm" onClick={() => setEditWizardOpen(true)}>Edit</Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditWizardOpen(true)}>
+            Edit
+          </Button>
         </div>
 
         {segmentLabels.length > 1 && (
@@ -231,7 +256,9 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
           </div>
         )}
 
-        {timingLoading && lapRows.length === 0 && <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />}
+        {timingLoading && lapRows.length === 0 && (
+          <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
+        )}
         {timingError && <p className="text-xs text-destructive">{timingError}</p>}
         {!timingError && lapRows.length > 0 && (
           <div className={timingLoading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
@@ -239,7 +266,10 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
               rows={lapRows}
               bestLapTimeMs={bestLapTime ?? undefined}
               activeLapNumber={activeLapNumber ?? undefined}
-              mode={(timestampsResult?.segments[activeSegment]?.config.mode as 'practice' | 'qualifying' | 'race') ?? undefined}
+              mode={
+                (timestampsResult?.segments[activeSegment]?.config.mode as 'practice' | 'qualifying' | 'race') ??
+                undefined
+              }
             />
           </div>
         )}
@@ -252,12 +282,18 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
       <section>
         <div className="mb-2 flex items-center justify-between">
           <SectionLabel>Position Overrides</SectionLabel>
-          <Button variant="ghost" size="sm" onClick={() => {
-            if (!showOverrideForm && videoInfo?.fps) {
-              setNewTimecode(`${Math.round(currentTime * videoInfo.fps)} F`)
-            }
-            setShowOverrideForm((v) => !v)
-          }}>+ Add</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (!showOverrideForm && videoInfo?.fps) {
+                setNewTimecode(`${Math.round(currentTime * videoInfo.fps)} F`)
+              }
+              setShowOverrideForm((v) => !v)
+            }}
+          >
+            + Add
+          </Button>
         </div>
 
         {showOverrideForm && (
@@ -274,8 +310,12 @@ export function TimingTab({ project, videoInfo, currentTime = 0, playing = false
               placeholder="P3"
               className="w-16"
             />
-            <Button size="sm" onClick={addOverride}>Add</Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowOverrideForm(false)}>Cancel</Button>
+            <Button size="sm" onClick={addOverride}>
+              Add
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowOverrideForm(false)}>
+              Cancel
+            </Button>
           </div>
         )}
 

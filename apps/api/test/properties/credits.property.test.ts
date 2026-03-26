@@ -8,8 +8,11 @@ import { getDb } from '../../src/lib/db'
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId' },
   creditPacks: {
-    id: 'id', userId: 'userId', rcRemaining: 'rcRemaining',
-    expiresAt: 'expiresAt', purchasedAt: 'purchasedAt',
+    id: 'id',
+    userId: 'userId',
+    rcRemaining: 'rcRemaining',
+    expiresAt: 'expiresAt',
+    purchasedAt: 'purchasedAt',
   },
   eq: vi.fn(),
   and: vi.fn(),
@@ -30,15 +33,23 @@ const arbCreditPack = fc.record({
   packName: fc.constantFrom('50 RC Pack', '100 RC Pack', '250 RC Pack', '500 RC Pack'),
   rcTotal: fc.integer({ min: 1, max: 1000 }),
   rcRemaining: fc.integer({ min: 0, max: 1000 }),
-  priceGbp: fc.integer({ min: 100, max: 50000 }).map(v => String(v / 100)),
-  purchasedAt: fc.date({ min: new Date('2024-01-01T00:00:00.000Z'), max: new Date('2025-12-31T23:59:59.999Z'), noInvalidDate: true }),
-  expiresAt: fc.date({ min: new Date('2026-06-01T00:00:00.000Z'), max: new Date('2027-12-31T23:59:59.999Z'), noInvalidDate: true }),
+  priceGbp: fc.integer({ min: 100, max: 50000 }).map((v) => String(v / 100)),
+  purchasedAt: fc.date({
+    min: new Date('2024-01-01T00:00:00.000Z'),
+    max: new Date('2025-12-31T23:59:59.999Z'),
+    noInvalidDate: true,
+  }),
+  expiresAt: fc.date({
+    min: new Date('2026-06-01T00:00:00.000Z'),
+    max: new Date('2027-12-31T23:59:59.999Z'),
+    noInvalidDate: true,
+  }),
   userId: fc.constant('user_1'),
-  stripePaymentIntentId: fc.uuid().map(s => `pi_${s}`),
+  stripePaymentIntentId: fc.uuid().map((s) => `pi_${s}`),
 })
 
 // Expired packs have expiresAt in the past
-const arbExpiredPack = arbCreditPack.map(p => ({
+const arbExpiredPack = arbCreditPack.map((p) => ({
   ...p,
   expiresAt: new Date('2020-01-01'),
 }))
@@ -122,7 +133,7 @@ describe('Credit balance properties', () => {
   it('Balance is non-negative', async () => {
     await fc.assert(
       fc.asyncProperty(fc.array(arbCreditPack, { minLength: 0, maxLength: 20 }), async (packs) => {
-        const activePacks = packs.filter(p => p.rcRemaining > 0 && p.expiresAt > new Date())
+        const activePacks = packs.filter((p) => p.rcRemaining > 0 && p.expiresAt > new Date())
         vi.mocked(getDb).mockReturnValue(createMockDbForBalance(activePacks))
 
         const response = await app.inject({ method: 'GET', url: '/api/credits/balance' })
@@ -136,7 +147,7 @@ describe('Credit balance properties', () => {
   it('Balance equals sum of remainders', async () => {
     await fc.assert(
       fc.asyncProperty(fc.array(arbCreditPack, { minLength: 0, maxLength: 20 }), async (packs) => {
-        const activePacks = packs.filter(p => p.rcRemaining > 0 && p.expiresAt > new Date())
+        const activePacks = packs.filter((p) => p.rcRemaining > 0 && p.expiresAt > new Date())
         vi.mocked(getDb).mockReturnValue(createMockDbForBalance(activePacks))
 
         const response = await app.inject({ method: 'GET', url: '/api/credits/balance' })
@@ -151,7 +162,7 @@ describe('Credit balance properties', () => {
   it('Pack ordering is stable', async () => {
     await fc.assert(
       fc.asyncProperty(fc.array(arbCreditPack, { minLength: 2, maxLength: 20 }), async (packs) => {
-        const activePacks = packs.filter(p => p.rcRemaining > 0 && p.expiresAt > new Date())
+        const activePacks = packs.filter((p) => p.rcRemaining > 0 && p.expiresAt > new Date())
         // Sort by expiresAt ascending (as the route does via DB ORDER BY)
         const sortedPacks = [...activePacks].sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
         vi.mocked(getDb).mockReturnValue(createMockDbForBalance(sortedPacks))
@@ -185,22 +196,19 @@ describe('Credit history properties', () => {
 
   it('History pagination is complete', async () => {
     await fc.assert(
-      fc.asyncProperty(
-        fc.array(arbCreditPack, { minLength: 0, maxLength: 10 }),
-        async (packs) => {
-          // The route fetches limit+1 (default 21). Return at most the packs we have.
-          vi.mocked(getDb).mockReturnValue(createMockDbForHistory(packs))
+      fc.asyncProperty(fc.array(arbCreditPack, { minLength: 0, maxLength: 10 }), async (packs) => {
+        // The route fetches limit+1 (default 21). Return at most the packs we have.
+        vi.mocked(getDb).mockReturnValue(createMockDbForHistory(packs))
 
-          const response = await app.inject({ method: 'GET', url: '/api/credits/history' })
-          const body = response.json()
+        const response = await app.inject({ method: 'GET', url: '/api/credits/history' })
+        const body = response.json()
 
-          expect(body.purchases.length).toBeLessThanOrEqual(packs.length)
-          // If fewer packs than limit (20), nextCursor should be null
-          if (packs.length <= 20) {
-            expect(body.nextCursor).toBeNull()
-          }
-        },
-      ),
+        expect(body.purchases.length).toBeLessThanOrEqual(packs.length)
+        // If fewer packs than limit (20), nextCursor should be null
+        if (packs.length <= 20) {
+          expect(body.nextCursor).toBeNull()
+        }
+      }),
       { numRuns: 50 },
     )
   })
@@ -209,17 +217,14 @@ describe('Credit history properties', () => {
     // The balance endpoint filters out expired packs via the DB WHERE clause.
     // We simulate this by returning [] from the DB (as the DB would for expired-only data).
     await fc.assert(
-      fc.asyncProperty(
-        fc.array(arbExpiredPack, { minLength: 1, maxLength: 10 }),
-        async () => {
-          vi.mocked(getDb).mockReturnValue(createMockDbForBalance([]))
+      fc.asyncProperty(fc.array(arbExpiredPack, { minLength: 1, maxLength: 10 }), async () => {
+        vi.mocked(getDb).mockReturnValue(createMockDbForBalance([]))
 
-          const response = await app.inject({ method: 'GET', url: '/api/credits/balance' })
-          const body = response.json()
-          expect(body.totalRc).toBe(0)
-          expect(body.packs).toHaveLength(0)
-        },
-      ),
+        const response = await app.inject({ method: 'GET', url: '/api/credits/balance' })
+        const body = response.json()
+        expect(body.totalRc).toBe(0)
+        expect(body.packs).toHaveLength(0)
+      }),
       { numRuns: 50 },
     )
   })

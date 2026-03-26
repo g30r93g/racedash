@@ -20,8 +20,6 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function JobStatusBadge({ status }: { status: string }) {
   return (
-    <Badge className={STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700'}>
-      {STATUS_LABELS[status] ?? status}
-    </Badge>
+    <Badge className={STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700'}>{STATUS_LABELS[status] ?? status}</Badge>
   )
 }

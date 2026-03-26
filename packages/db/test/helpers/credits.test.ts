@@ -16,10 +16,13 @@ describeDb('reserveCredits', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_reserve_user',
-      email: 'reserve@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_reserve_user',
+        email: 'reserve@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -34,7 +37,6 @@ describeDb('reserveCredits', () => {
     await db.delete(creditReservations)
     await db.delete(creditPacks).where(eq(creditPacks.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('single pack, exact amount — reserves all remaining', async () => {
@@ -75,23 +77,29 @@ describeDb('reserveCredits', () => {
     const soonExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     const laterExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
 
-    const [packA] = await db.insert(creditPacks).values({
-      userId,
-      packName: 'Pack A (soon)',
-      rcTotal: 5,
-      rcRemaining: 5,
-      priceGbp: '5.00',
-      expiresAt: soonExpiry,
-    }).returning()
+    const [packA] = await db
+      .insert(creditPacks)
+      .values({
+        userId,
+        packName: 'Pack A (soon)',
+        rcTotal: 5,
+        rcRemaining: 5,
+        priceGbp: '5.00',
+        expiresAt: soonExpiry,
+      })
+      .returning()
 
-    const [packB] = await db.insert(creditPacks).values({
-      userId,
-      packName: 'Pack B (later)',
-      rcTotal: 100,
-      rcRemaining: 100,
-      priceGbp: '20.00',
-      expiresAt: laterExpiry,
-    }).returning()
+    const [packB] = await db
+      .insert(creditPacks)
+      .values({
+        userId,
+        packName: 'Pack B (later)',
+        rcTotal: 100,
+        rcRemaining: 100,
+        priceGbp: '20.00',
+        expiresAt: laterExpiry,
+      })
+      .returning()
 
     const result = await reserveCredits({ db: db as any, userId, jobId: 'job-3', rcAmount: 8 })
 
@@ -100,8 +108,8 @@ describeDb('reserveCredits', () => {
     expect(result.packBreakdown[1]).toEqual({ packId: packB.id, rcDeducted: 3 })
 
     const packs = await db.select().from(creditPacks).where(eq(creditPacks.userId, userId))
-    const a = packs.find(p => p.id === packA.id)!
-    const b = packs.find(p => p.id === packB.id)!
+    const a = packs.find((p) => p.id === packA.id)!
+    const b = packs.find((p) => p.id === packB.id)!
     expect(a.rcRemaining).toBe(0)
     expect(b.rcRemaining).toBe(97)
   })
@@ -116,9 +124,9 @@ describeDb('reserveCredits', () => {
       expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
     })
 
-    await expect(
-      reserveCredits({ db: db as any, userId, jobId: 'job-4', rcAmount: 20 }),
-    ).rejects.toThrow(InsufficientCreditsError)
+    await expect(reserveCredits({ db: db as any, userId, jobId: 'job-4', rcAmount: 20 })).rejects.toThrow(
+      InsufficientCreditsError,
+    )
   })
 
   it('expired packs are excluded', async () => {
@@ -131,9 +139,9 @@ describeDb('reserveCredits', () => {
       expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // expired yesterday
     })
 
-    await expect(
-      reserveCredits({ db: db as any, userId, jobId: 'job-5', rcAmount: 1 }),
-    ).rejects.toThrow(InsufficientCreditsError)
+    await expect(reserveCredits({ db: db as any, userId, jobId: 'job-5', rcAmount: 1 })).rejects.toThrow(
+      InsufficientCreditsError,
+    )
   })
 
   it('returns reservationId and packBreakdown', async () => {
@@ -160,10 +168,13 @@ describeDb('releaseCredits', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_release_user',
-      email: 'release@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_release_user',
+        email: 'release@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -178,7 +189,6 @@ describeDb('releaseCredits', () => {
     await db.delete(creditReservations)
     await db.delete(creditPacks).where(eq(creditPacks.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('restores credits to a non-expired pack', async () => {
@@ -230,10 +240,13 @@ describeDb('consumeCredits', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_consume_user',
-      email: 'consume@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_consume_user',
+        email: 'consume@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -248,7 +261,6 @@ describeDb('consumeCredits', () => {
     await db.delete(creditReservations)
     await db.delete(creditPacks).where(eq(creditPacks.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('sets reservation status to consumed and settledAt', async () => {

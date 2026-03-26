@@ -65,11 +65,7 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
         { method: 'POST', body: JSON.stringify({ tier: opts.tier }) },
       )
 
-      const outcome = await openCheckoutWindow(
-        mainWindow,
-        checkoutUrl,
-        'RaceDash Cloud \u2014 Subscribe',
-      )
+      const outcome = await openCheckoutWindow(mainWindow, checkoutUrl, 'RaceDash Cloud \u2014 Subscribe')
 
       if (outcome === 'success') {
         try {
@@ -93,11 +89,7 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
         { method: 'POST', body: JSON.stringify({ packSize: opts.packSize }) },
       )
 
-      const outcome = await openCheckoutWindow(
-        mainWindow,
-        checkoutUrl,
-        'RaceDash Cloud \u2014 Purchase Credits',
-      )
+      const outcome = await openCheckoutWindow(mainWindow, checkoutUrl, 'RaceDash Cloud \u2014 Purchase Credits')
 
       if (outcome === 'success') {
         try {
@@ -113,10 +105,7 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
   )
 
   ipcMain.handle('racedash:stripe:portal', async (): Promise<{ portalUrl: string }> => {
-    const { portalUrl } = await fetchWithAuth<{ portalUrl: string }>(
-      '/api/stripe/portal',
-      { method: 'POST' },
-    )
+    const { portalUrl } = await fetchWithAuth<{ portalUrl: string }>('/api/stripe/portal', { method: 'POST' })
     shell.openExternal(portalUrl)
     return { portalUrl }
   })

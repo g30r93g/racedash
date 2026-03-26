@@ -35,9 +35,15 @@ vi.mock('@remotion/renderer', () => ({
 }))
 
 vi.mock('node:child_process', () => ({
-  execFile: vi.fn((_cmd: string, _args: string[], callback: (err: Error | null, result: { stdout: string; stderr: string }) => void) => {
-    callback(null, { stdout: '60\n', stderr: '' })
-  }),
+  execFile: vi.fn(
+    (
+      _cmd: string,
+      _args: string[],
+      callback: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+    ) => {
+      callback(null, { stdout: '60\n', stderr: '' })
+    },
+  ),
   spawn: vi.fn(() => makeSpawnResult(0)),
 }))
 
@@ -60,12 +66,12 @@ function makeSpawnResult(exitCode: number, stderrOutput?: string) {
     },
   }
   setImmediate(() => {
-    if (stderrOutput) stderrListeners.forEach(fn => fn(Buffer.from(stderrOutput)))
+    if (stderrOutput) stderrListeners.forEach((fn) => fn(Buffer.from(stderrOutput)))
     if (exitCode === -1) {
-      errorListeners.forEach(fn => fn(Object.assign(new Error('spawn failed'), { code: 'ENOENT' })))
+      errorListeners.forEach((fn) => fn(Object.assign(new Error('spawn failed'), { code: 'ENOENT' })))
       return
     }
-    closeListeners.forEach(fn => fn(exitCode, null))
+    closeListeners.forEach((fn) => fn(exitCode, null))
   })
   return proc
 }
@@ -111,20 +117,22 @@ describe('overlay profiles', () => {
 
 describe('collectDoctorDiagnostics', () => {
   it('reports Windows defaults and live preference order from injected data', async () => {
-    await expect(collectDoctorDiagnostics({
-      runtimePlatform: 'win32',
-      ffmpegCapabilities: {
-        encoders: new Set(['libx264', 'h264_nvenc', 'hevc_nvenc']),
-        hwaccels: new Set(['d3d11va', 'dxva2']),
-        ffprobeVersion: 'ffprobe version 7.1',
-      },
-      windowsHardwareInfo: {
-        cpu: 'AMD Ryzen',
-        cpuManufacturer: 'AuthenticAMD',
-        gpuNames: ['AMD Radeon RX 7900'],
-        gpuVendors: ['amd'],
-      },
-    })).resolves.toEqual([
+    await expect(
+      collectDoctorDiagnostics({
+        runtimePlatform: 'win32',
+        ffmpegCapabilities: {
+          encoders: new Set(['libx264', 'h264_nvenc', 'hevc_nvenc']),
+          hwaccels: new Set(['d3d11va', 'dxva2']),
+          ffprobeVersion: 'ffprobe version 7.1',
+        },
+        windowsHardwareInfo: {
+          cpu: 'AMD Ryzen',
+          cpuManufacturer: 'AuthenticAMD',
+          gpuNames: ['AMD Radeon RX 7900'],
+          gpuVendors: ['amd'],
+        },
+      }),
+    ).resolves.toEqual([
       { label: 'Platform', value: 'win32' },
       { label: 'Overlay', value: 'VP9 alpha (WebM)' },
       { label: 'ffprobe', value: 'ffprobe version 7.1' },
@@ -138,14 +146,16 @@ describe('collectDoctorDiagnostics', () => {
   })
 
   it('reports macOS defaults', async () => {
-    await expect(collectDoctorDiagnostics({
-      runtimePlatform: 'darwin',
-      ffmpegCapabilities: {
-        encoders: new Set(['hevc_videotoolbox', 'libx264']),
-        hwaccels: new Set(['videotoolbox']),
-        ffprobeVersion: 'ffprobe version 7.1',
-      },
-    })).resolves.toEqual([
+    await expect(
+      collectDoctorDiagnostics({
+        runtimePlatform: 'darwin',
+        ffmpegCapabilities: {
+          encoders: new Set(['hevc_videotoolbox', 'libx264']),
+          hwaccels: new Set(['videotoolbox']),
+          ffprobeVersion: 'ffprobe version 7.1',
+        },
+      }),
+    ).resolves.toEqual([
       { label: 'Platform', value: 'darwin' },
       { label: 'Overlay', value: 'ProRes 4444 alpha (MOV)' },
       { label: 'ffprobe', value: 'ffprobe version 7.1' },
@@ -162,7 +172,10 @@ describe('getVideoDuration', () => {
 
   it('returns parsed seconds from ffprobe stdout', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '120.5\n', stderr: '' })
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '120.5\n',
+        stderr: '',
+      })
     })
     await expect(getVideoDuration('/clip.mp4')).resolves.toBeCloseTo(120.5)
   })
@@ -180,10 +193,10 @@ describe('getVideoFps', () => {
 
   it('parses fractional fps from ffprobe stdout', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '60000/1001\n60000/1001\n', stderr: '' },
-      )
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '60000/1001\n60000/1001\n',
+        stderr: '',
+      })
     })
     await expect(getVideoFps('/clip.mp4')).resolves.toBeCloseTo(60000 / 1001)
   })
@@ -222,11 +235,7 @@ describe('windows hardware helpers', () => {
   })
 
   it('orders NVIDIA decode candidates correctly', () => {
-    expect(getWindowsDecodeCandidateOrder(['nvidia'], ['cuda', 'd3d11va'])).toEqual([
-      'cuda',
-      'd3d11va',
-      'software',
-    ])
+    expect(getWindowsDecodeCandidateOrder(['nvidia'], ['cuda', 'd3d11va'])).toEqual(['cuda', 'd3d11va', 'software'])
   })
 })
 
@@ -254,20 +263,16 @@ describe('compositeVideo', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
-      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '60\n', stderr: '' },
-      )
+      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '60\n',
+        stderr: '',
+      })
     })
-    vi.mocked(spawn).mockImplementation(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementation((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
   })
 
   it('skips ffprobe when durationSeconds is provided', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
       durationSeconds: 90,
       runtimePlatform: 'darwin',
@@ -276,9 +281,7 @@ describe('compositeVideo', () => {
   })
 
   it('passes the macOS videotoolbox path by default', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', { durationSeconds: 60, runtimePlatform: 'darwin' })
     const [, args] = vi.mocked(spawn).mock.calls[0] as [string, string[]]
     expect(args).toContain('-hwaccel')
@@ -287,9 +290,7 @@ describe('compositeVideo', () => {
   })
 
   it('uses quality-first Windows output args', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'win32',
@@ -320,9 +321,7 @@ describe('compositeVideo', () => {
       .mockImplementationOnce(
         (_cmd, _args) => makeSpawnResult(1, 'hardware decode failed') as unknown as ReturnType<typeof spawn>,
       )
-      .mockImplementationOnce(
-        (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-      )
+      .mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'win32',
@@ -344,9 +343,7 @@ describe('compositeVideo', () => {
 
   it('does not report a fallback when software decode is the only option', async () => {
     const diagnostics: Array<{ label: string; value: string }> = []
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'win32',
@@ -368,28 +365,28 @@ describe('compositeVideo', () => {
   })
 
   it('throws when libx264 is unavailable on Windows', async () => {
-    await expect(compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'win32',
-      ffmpegCapabilities: {
-        encoders: new Set(),
-        hwaccels: new Set(['d3d11va']),
-        ffprobeVersion: 'ffprobe version 7.0',
-      },
-      windowsHardwareInfo: {
-        cpu: 'Intel CPU',
-        cpuManufacturer: 'Intel',
-        gpuNames: ['Intel Arc'],
-        gpuVendors: ['intel'],
-      },
-      skipDecodePreflight: true,
-    })).rejects.toThrow('libx264')
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
+        durationSeconds: 60,
+        runtimePlatform: 'win32',
+        ffmpegCapabilities: {
+          encoders: new Set(),
+          hwaccels: new Set(['d3d11va']),
+          ffprobeVersion: 'ffprobe version 7.0',
+        },
+        windowsHardwareInfo: {
+          cpu: 'Intel CPU',
+          cpuManufacturer: 'Intel',
+          gpuNames: ['Intel Arc'],
+          gpuVendors: ['intel'],
+        },
+        skipDecodePreflight: true,
+      }),
+    ).rejects.toThrow('libx264')
   })
 
   it('uses generic software path on Linux', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'linux',
@@ -401,24 +398,26 @@ describe('compositeVideo', () => {
   })
 
   it('throws when duration is zero', async () => {
-    await expect(compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 0,
-      runtimePlatform: 'darwin',
-    })).rejects.toThrow('Video duration must be positive')
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+        durationSeconds: 0,
+        runtimePlatform: 'darwin',
+      }),
+    ).rejects.toThrow('Video duration must be positive')
   })
 
   it('throws when only outputWidth is provided without outputHeight', async () => {
-    await expect(compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'darwin',
-      outputWidth: 1920,
-    })).rejects.toThrow('outputWidth and outputHeight must be provided together')
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+        durationSeconds: 60,
+        runtimePlatform: 'darwin',
+        outputWidth: 1920,
+      }),
+    ).rejects.toThrow('outputWidth and outputHeight must be provided together')
   })
 
   it('includes scale filter when outputWidth and outputHeight are provided', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'darwin',
@@ -431,23 +430,25 @@ describe('compositeVideo', () => {
   })
 
   it('throws on ffmpeg ENOENT error', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(-1) as unknown as ReturnType<typeof spawn>,
-    )
-    await expect(compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'darwin',
-    })).rejects.toThrow('ffmpeg was not found on PATH')
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(-1) as unknown as ReturnType<typeof spawn>)
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+        durationSeconds: 60,
+        runtimePlatform: 'darwin',
+      }),
+    ).rejects.toThrow('ffmpeg was not found on PATH')
   })
 
   it('throws on non-zero ffmpeg exit code', async () => {
     vi.mocked(spawn).mockImplementationOnce(
       (_cmd, _args) => makeSpawnResult(1, 'Some ffmpeg error') as unknown as ReturnType<typeof spawn>,
     )
-    await expect(compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'darwin',
-    })).rejects.toThrow('ffmpeg exited with code 1')
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+        durationSeconds: 60,
+        runtimePlatform: 'darwin',
+      }),
+    ).rejects.toThrow('ffmpeg exited with code 1')
   })
 
   it('throws on ffmpeg killed by signal', async () => {
@@ -461,16 +462,16 @@ describe('compositeVideo', () => {
         if (event === 'error') errorListeners.push(fn as any)
       },
     }
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => {
-        setImmediate(() => closeListeners.forEach(fn => fn(null, 'SIGKILL')))
-        return mock as unknown as ReturnType<typeof spawn>
-      },
-    )
-    await expect(compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'darwin',
-    })).rejects.toThrow('ffmpeg killed by signal SIGKILL')
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => {
+      setImmediate(() => closeListeners.forEach((fn) => fn(null, 'SIGKILL')))
+      return mock as unknown as ReturnType<typeof spawn>
+    })
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+        durationSeconds: 60,
+        runtimePlatform: 'darwin',
+      }),
+    ).rejects.toThrow('ffmpeg killed by signal SIGKILL')
   })
 
   it('calls onProgress with progress percentage', async () => {
@@ -480,37 +481,40 @@ describe('compositeVideo', () => {
       stderr: { on: (_: string, fn: (data: Buffer) => void) => stderrListeners.push(fn) },
       on: (event: string, fn: (...args: unknown[]) => void) => {
         if (event === 'close') closeListeners.push(fn as any)
-        if (event === 'error') {}
+        if (event === 'error') {
+        }
       },
     }
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => {
-        setImmediate(() => {
-          stderrListeners.forEach(fn => fn(Buffer.from('time=00:00:30.00 bitrate=50000')))
-          closeListeners.forEach(fn => fn(0, null))
-        })
-        return mock as unknown as ReturnType<typeof spawn>
-      },
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => {
+      setImmediate(() => {
+        stderrListeners.forEach((fn) => fn(Buffer.from('time=00:00:30.00 bitrate=50000')))
+        closeListeners.forEach((fn) => fn(0, null))
+      })
+      return mock as unknown as ReturnType<typeof spawn>
+    })
     const progressValues: number[] = []
-    await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'darwin',
-    }, (p) => progressValues.push(p))
+    await compositeVideo(
+      '/src.mp4',
+      '/overlay.mov',
+      '/out.mp4',
+      {
+        durationSeconds: 60,
+        runtimePlatform: 'darwin',
+      },
+      (p) => progressValues.push(p),
+    )
     expect(progressValues.length).toBeGreaterThan(0)
     expect(progressValues[0]).toBeCloseTo(0.5)
   })
 
   it('probes ffprobe for duration when not given', async () => {
     vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
-      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '120.5\n', stderr: '' },
-      )
+      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '120.5\n',
+        stderr: '',
+      })
     })
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
       runtimePlatform: 'darwin',
     })
@@ -553,10 +557,10 @@ describe('getVideoResolution', () => {
 
   it('parses width and height from ffprobe output', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '1920x1080\n', stderr: '' },
-      )
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '1920x1080\n',
+        stderr: '',
+      })
     })
     const result = await getVideoResolution('/clip.mp4')
     expect(result).toEqual({ width: 1920, height: 1080 })
@@ -564,10 +568,7 @@ describe('getVideoResolution', () => {
 
   it('throws when ffprobe returns invalid resolution', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '\n', stderr: '' },
-      )
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '\n', stderr: '' })
     })
     await expect(getVideoResolution('/clip.mp4')).rejects.toThrow('ffprobe returned no resolution')
   })
@@ -661,20 +662,17 @@ describe('getVideoFps (extended)', () => {
 
   it('falls back to r_frame_rate when avg_frame_rate is invalid', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '0/0\n30\n', stderr: '' },
-      )
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '0/0\n30\n',
+        stderr: '',
+      })
     })
     await expect(getVideoFps('/clip.mp4')).resolves.toBe(30)
   })
 
   it('throws when no valid fps found', async () => {
     vi.mocked(execFile).mockImplementationOnce((_cmd, _args, callback) => {
-      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '', stderr: '' },
-      )
+      ;(callback as (err: null, result: { stdout: string; stderr: string }) => void)(null, { stdout: '', stderr: '' })
     })
     await expect(getVideoFps('/clip.mp4')).rejects.toThrow('ffprobe returned no fps')
   })
@@ -807,9 +805,7 @@ describe('compositeVideo Windows without injected capabilities', () => {
   })
 
   it('calls probeFfmpegCapabilities and getWindowsHardwareInfo when not injected', async () => {
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'win32',
@@ -845,14 +841,7 @@ describe('renderOverlay', () => {
   it('renders with ProRes 4444 on macOS', async () => {
     const { renderMedia } = await import('@remotion/renderer')
 
-    await renderOverlay(
-      '/entry.tsx',
-      'TestComp',
-      {} as any,
-      '/out-overlay.mov',
-      undefined,
-      'darwin',
-    )
+    await renderOverlay('/entry.tsx', 'TestComp', {} as any, '/out-overlay.mov', undefined, 'darwin')
 
     expect(vi.mocked(renderMedia)).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -866,14 +855,7 @@ describe('renderOverlay', () => {
   it('renders with VP9 on Windows', async () => {
     const { renderMedia } = await import('@remotion/renderer')
 
-    await renderOverlay(
-      '/entry.tsx',
-      'TestComp',
-      {} as any,
-      '/out-overlay.webm',
-      undefined,
-      'win32',
-    )
+    await renderOverlay('/entry.tsx', 'TestComp', {} as any, '/out-overlay.webm', undefined, 'win32')
 
     expect(vi.mocked(renderMedia)).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -891,14 +873,7 @@ describe('renderOverlay', () => {
       opts.onProgress?.({ progress: 0.5, renderedFrames: 150 })
     })
 
-    await renderOverlay(
-      '/entry.tsx',
-      'TestComp',
-      {} as any,
-      '/out-overlay.mov',
-      progressFn,
-      'darwin',
-    )
+    await renderOverlay('/entry.tsx', 'TestComp', {} as any, '/out-overlay.mov', progressFn, 'darwin')
 
     expect(progressFn).toHaveBeenCalledWith({
       progress: 0.5,
@@ -912,10 +887,10 @@ describe('compositeVideo Windows decode validation (no skipDecodePreflight)', ()
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
-      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '60\n', stderr: '' },
-      )
+      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '60\n',
+        stderr: '',
+      })
     })
   })
 
@@ -927,9 +902,7 @@ describe('compositeVideo Windows decode validation (no skipDecodePreflight)', ()
       .mockImplementationOnce(
         (_cmd, _args) => makeSpawnResult(1, 'decode failed') as unknown as ReturnType<typeof spawn>,
       )
-      .mockImplementationOnce(
-        (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-      )
+      .mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
 
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
@@ -948,9 +921,7 @@ describe('compositeVideo Windows decode validation (no skipDecodePreflight)', ()
       onDiagnostic: (d) => diagnostics.push(d),
     })
 
-    expect(diagnostics).toContainEqual(
-      expect.objectContaining({ label: 'Decode probe' }),
-    )
+    expect(diagnostics).toContainEqual(expect.objectContaining({ label: 'Decode probe' }))
     expect(diagnostics).toContainEqual({ label: 'Decode', value: 'software' })
   })
 
@@ -958,12 +929,8 @@ describe('compositeVideo Windows decode validation (no skipDecodePreflight)', ()
     // First spawn: validation probe succeeds
     // Second spawn: actual ffmpeg composite
     vi.mocked(spawn)
-      .mockImplementationOnce(
-        (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-      )
-      .mockImplementationOnce(
-        (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-      )
+      .mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
 
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
@@ -997,21 +964,22 @@ describe('compositeVideo non-ENOENT spawn error', () => {
       stderr: { on: () => {} },
       on: (event: string, fn: (...args: unknown[]) => void) => {
         if (event === 'error') errorListeners.push(fn as any)
-        if (event === 'close') {}
+        if (event === 'close') {
+        }
       },
     }
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => {
-        setImmediate(() => {
-          errorListeners.forEach(fn => fn(new Error('EPERM: operation not permitted')))
-        })
-        return mock as unknown as ReturnType<typeof spawn>
-      },
-    )
-    await expect(compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
-      durationSeconds: 60,
-      runtimePlatform: 'darwin',
-    })).rejects.toThrow('EPERM')
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => {
+      setImmediate(() => {
+        errorListeners.forEach((fn) => fn(new Error('EPERM: operation not permitted')))
+      })
+      return mock as unknown as ReturnType<typeof spawn>
+    })
+    await expect(
+      compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
+        durationSeconds: 60,
+        runtimePlatform: 'darwin',
+      }),
+    ).rejects.toThrow('EPERM')
   })
 })
 
@@ -1019,10 +987,10 @@ describe('compositeVideo Windows decode signal handling', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
-      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '60\n', stderr: '' },
-      )
+      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '60\n',
+        stderr: '',
+      })
     })
   })
 
@@ -1035,20 +1003,17 @@ describe('compositeVideo Windows decode signal handling', () => {
         stderr: { on: (_: string, fn: (data: Buffer) => void) => {} },
         on: (event: string, fn: (...args: unknown[]) => void) => {
           if (event === 'close') closeListeners.push(fn as any)
-          if (event === 'error') {}
+          if (event === 'error') {
+          }
         },
       }
-      setImmediate(() => closeListeners.forEach(fn => fn(null, 'SIGKILL')))
+      setImmediate(() => closeListeners.forEach((fn) => fn(null, 'SIGKILL')))
       return mock
     })()
 
     vi.mocked(spawn)
-      .mockImplementationOnce(
-        (_cmd, _args) => signalProc as unknown as ReturnType<typeof spawn>,
-      )
-      .mockImplementationOnce(
-        (_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>,
-      )
+      .mockImplementationOnce((_cmd, _args) => signalProc as unknown as ReturnType<typeof spawn>)
+      .mockImplementationOnce((_cmd, _args) => makeSpawnResult(0) as unknown as ReturnType<typeof spawn>)
 
     await compositeVideo('/src.mp4', '/overlay.webm', '/out.mp4', {
       durationSeconds: 60,
@@ -1067,9 +1032,7 @@ describe('compositeVideo Windows decode signal handling', () => {
       onDiagnostic: (d) => diagnostics.push(d),
     })
 
-    expect(diagnostics).toContainEqual(
-      expect.objectContaining({ label: 'Decode probe' }),
-    )
+    expect(diagnostics).toContainEqual(expect.objectContaining({ label: 'Decode probe' }))
   })
 })
 
@@ -1077,10 +1040,10 @@ describe('joinVideos with progress', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(execFile).mockImplementation((_cmd, _args, callback) => {
-      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(
-        null,
-        { stdout: '30\n', stderr: '' },
-      )
+      ;(callback as (err: Error | null, result: { stdout: string; stderr: string }) => void)(null, {
+        stdout: '30\n',
+        stderr: '',
+      })
     })
   })
 
@@ -1092,21 +1055,20 @@ describe('joinVideos with progress', () => {
       stderr: { on: (_: string, fn: (data: Buffer) => void) => stderrListeners.push(fn) },
       on: (event: string, fn: (...args: unknown[]) => void) => {
         if (event === 'close') closeListeners.push(fn as any)
-        if (event === 'error') {}
+        if (event === 'error') {
+        }
       },
     }
-    vi.mocked(spawn).mockImplementationOnce(
-      (_cmd, _args) => {
-        setImmediate(() => {
-          stderrListeners.forEach(fn => fn(Buffer.from('time=00:00:15.00')))
-          closeListeners.forEach(fn => fn(0, null))
-        })
-        return mock as unknown as ReturnType<typeof spawn>
-      },
-    )
+    vi.mocked(spawn).mockImplementationOnce((_cmd, _args) => {
+      setImmediate(() => {
+        stderrListeners.forEach((fn) => fn(Buffer.from('time=00:00:15.00')))
+        closeListeners.forEach((fn) => fn(0, null))
+      })
+      return mock as unknown as ReturnType<typeof spawn>
+    })
     await joinVideos(['/a.mp4', '/b.mp4'], '/out.mp4')
     expect(stderrWrite).toHaveBeenCalled()
-    const written = stderrWrite.mock.calls.map(c => String(c[0])).join('')
+    const written = stderrWrite.mock.calls.map((c) => String(c[0])).join('')
     expect(written).toContain('Progress:')
     stderrWrite.mockRestore()
   })

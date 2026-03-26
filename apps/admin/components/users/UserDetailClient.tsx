@@ -232,9 +232,7 @@ export function UserDetailClient({ data }: { data: UserDetailData }) {
                       <JobStatusBadge status={j.status} />
                     </td>
                     <td className="px-4 py-2">{j.rcCost ?? '—'}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {formatDateTime(j.createdAt)}
-                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">{formatDateTime(j.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

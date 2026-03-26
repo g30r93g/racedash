@@ -12,10 +12,13 @@ describeDb('claimNextQueuedSlotToken', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_slot_user',
-      email: 'slot@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_slot_user',
+        email: 'slot@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -26,7 +29,6 @@ describeDb('claimNextQueuedSlotToken', () => {
   afterAll(async () => {
     await db.delete(jobs).where(eq(jobs.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('claims the oldest queued job token', async () => {
@@ -54,13 +56,16 @@ describeDb('claimNextQueuedSlotToken', () => {
   })
 
   it('sets slot_task_token to NULL on the claimed job', async () => {
-    const [job] = await db.insert(jobs).values({
-      userId,
-      status: 'queued',
-      config: {},
-      inputS3Keys: ['key'],
-      slotTaskToken: 'token-abc',
-    }).returning()
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        userId,
+        status: 'queued',
+        config: {},
+        inputS3Keys: ['key'],
+        slotTaskToken: 'token-abc',
+      })
+      .returning()
 
     await claimNextQueuedSlotToken({ db: db as any, userId })
 
@@ -87,10 +92,13 @@ describeDb('claimNextQueuedSlotToken', () => {
   })
 
   it('only claims tokens for the specified user', async () => {
-    const [otherUser] = await db.insert(users).values({
-      clerkId: 'other_slot_user',
-      email: 'other-slot@test.com',
-    }).returning()
+    const [otherUser] = await db
+      .insert(users)
+      .values({
+        clerkId: 'other_slot_user',
+        email: 'other-slot@test.com',
+      })
+      .returning()
 
     await db.insert(jobs).values({
       userId: otherUser.id,

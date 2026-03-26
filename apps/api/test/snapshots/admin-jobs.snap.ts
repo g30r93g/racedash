@@ -67,9 +67,7 @@ describe('admin jobs response shapes', () => {
         status: 'held',
         createdAt: '2026-03-20T08:00:00.000Z',
         settledAt: null,
-        packs: [
-          { packId: 'cp_001', packName: 'Starter Pack', rcDeducted: 20 },
-        ],
+        packs: [{ packId: 'cp_001', packName: 'Starter Pack', rcDeducted: 20 }],
       },
     }
 

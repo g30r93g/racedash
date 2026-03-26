@@ -32,10 +32,7 @@ function parseToFrame(value: string, fps: number): number | null {
 
   const msMatch = v.match(/^(\d{1,2}):(\d{2})\.(\d{1,3})$/)
   if (msMatch) {
-    const totalSeconds =
-      parseInt(msMatch[1]) * 60 +
-      parseInt(msMatch[2]) +
-      parseInt(msMatch[3].padEnd(3, '0')) / 1000
+    const totalSeconds = parseInt(msMatch[1]) * 60 + parseInt(msMatch[2]) + parseInt(msMatch[3].padEnd(3, '0')) / 1000
     return Math.round(totalSeconds * fps)
   }
 
@@ -48,11 +45,7 @@ interface InlineTimestampInputProps {
   onSeek: (frame: number) => void
 }
 
-export function InlineTimestampInput({
-  currentFrame,
-  fps,
-  onSeek,
-}: InlineTimestampInputProps): React.ReactElement {
+export function InlineTimestampInput({ currentFrame, fps, onSeek }: InlineTimestampInputProps): React.ReactElement {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -83,12 +76,7 @@ export function InlineTimestampInput({
 
   if (!editing) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-24 font-mono text-xs"
-        onClick={startEditing}
-      >
+      <Button variant="ghost" size="sm" className="w-24 font-mono text-xs" onClick={startEditing}>
         {formatTime(currentFrame, fps)}
       </Button>
     )

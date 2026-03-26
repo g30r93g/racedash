@@ -201,8 +201,12 @@ describe('registerIpcHandlers', () => {
       // Simulate an active render first
       const event = { sender: { send: mockSend, isDestroyed: () => false } }
       handlers.get('racedash:startRender')!(event, {
-        configPath: '/c.json', videoPaths: ['/v.mp4'], outputPath: '/o.mp4',
-        style: 'modern', renderMode: 'full', outputResolution: 'source',
+        configPath: '/c.json',
+        videoPaths: ['/v.mp4'],
+        outputPath: '/o.mp4',
+        style: 'modern',
+        renderMode: 'full',
+        outputResolution: 'source',
       })
 
       handlers.get('racedash:cancelRender')!()
@@ -251,11 +255,13 @@ describe('previewTimestampsImpl', () => {
   it('creates temp config and returns lap previews', async () => {
     vi.mocked(generateTimestamps).mockResolvedValueOnce({
       chapters: '',
-      segments: [{
-        config: { label: 'Seg 1', source: 'alphaTiming', mode: 'practice' },
-        selectedDriver: { kart: '5', laps: [{ number: 1, lapTime: 62.5 }] },
-        drivers: [{ kart: '5', laps: [{ lapTime: 62.5 }] }],
-      }] as any,
+      segments: [
+        {
+          config: { label: 'Seg 1', source: 'alphaTiming', mode: 'practice' },
+          selectedDriver: { kart: '5', laps: [{ number: 1, lapTime: 62.5 }] },
+          drivers: [{ kart: '5', laps: [{ lapTime: 62.5 }] }],
+        },
+      ] as any,
       offsets: [0],
     })
 

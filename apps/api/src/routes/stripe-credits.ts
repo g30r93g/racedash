@@ -23,11 +23,7 @@ const stripeCreditRoutes: FastifyPluginAsync = async (fastify) => {
       const db = getDb()
       const { userId: clerkUserId } = request.clerk
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.clerkId, clerkUserId))
-        .limit(1)
+      const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
       if (!user) {
         reply.status(404).send({
@@ -40,13 +36,7 @@ const stripeCreditRoutes: FastifyPluginAsync = async (fastify) => {
       const [activeLicense] = await db
         .select({ id: licenses.id })
         .from(licenses)
-        .where(
-          and(
-            eq(licenses.userId, user.id),
-            eq(licenses.status, 'active'),
-            gt(licenses.expiresAt, new Date()),
-          ),
-        )
+        .where(and(eq(licenses.userId, user.id), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
         .limit(1)
 
       if (!activeLicense) {
@@ -63,10 +53,7 @@ const stripeCreditRoutes: FastifyPluginAsync = async (fastify) => {
       if (!stripeCustomerId) {
         const customer = await stripe.customers.create({ email: user.email })
         stripeCustomerId = customer.id
-        await db
-          .update(users)
-          .set({ stripeCustomerId })
-          .where(eq(users.id, user.id))
+        await db.update(users).set({ stripeCustomerId }).where(eq(users.id, user.id))
       }
 
       try {

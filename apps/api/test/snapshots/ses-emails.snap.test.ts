@@ -55,10 +55,7 @@ describe('SES email template snapshots', () => {
   })
 
   it('Failure email matches snapshot', () => {
-    const email = buildFailureEmail(
-      'Brands Hatch Sprint',
-      'Remotion render timed out after 300s',
-    )
+    const email = buildFailureEmail('Brands Hatch Sprint', 'Remotion render timed out after 300s')
 
     expect(email).toMatchInlineSnapshot(`
       {

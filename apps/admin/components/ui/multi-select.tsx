@@ -48,9 +48,7 @@ export function MultiSelect({ options, value, onChange, placeholder = 'Select...
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1 flex-wrap min-h-[38px] w-full px-3 py-1.5 border border-border rounded-md text-sm bg-background text-left"
       >
-        {value.length === 0 && (
-          <span className="text-muted-foreground">{placeholder}</span>
-        )}
+        {value.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
         {value.map((v) => {
           const opt = options.find((o) => o.value === v)
           return (

@@ -5,13 +5,13 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5433:5432"
+      - '5433:5432'
     environment:
       POSTGRES_DB: racedash_local
       POSTGRES_USER: racedash
       POSTGRES_PASSWORD: racedash_local
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U racedash -d racedash_local"]
+      test: ['CMD-SHELL', 'pg_isready -U racedash -d racedash_local']
       interval: 1s
       timeout: 3s
       retries: 15
@@ -21,8 +21,8 @@ services:
   localstack:
     image: localstack/localstack:4.14.0
     ports:
-      - "4566:4566"
-      - "4510-4559:4510-4559"
+      - '4566:4566'
+      - '4510-4559:4510-4559'
     environment:
       - SERVICES=s3,sqs,stepfunctions,lambda,ses,events,iam
       - DEBUG=0
@@ -31,9 +31,9 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./infra/localstack-init:/etc/localstack/init/ready.d"
-      - "${LOCALSTACK_VOLUME_DIR:-localstack-data}:/var/lib/localstack"
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - './infra/localstack-init:/etc/localstack/init/ready.d'
+      - '${LOCALSTACK_VOLUME_DIR:-localstack-data}:/var/lib/localstack'
 
 volumes:
   racedash-pg-data:

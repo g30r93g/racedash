@@ -25,7 +25,17 @@ export {
 
 // Inferred row types
 export type { users as UsersTable } from './schema'
-import type { users, licenses, creditPacks, creditReservations, creditReservationPacks, jobs, socialUploads, connectedAccounts, adminAuditLog } from './schema'
+import type {
+  users,
+  licenses,
+  creditPacks,
+  creditReservations,
+  creditReservationPacks,
+  jobs,
+  socialUploads,
+  connectedAccounts,
+  adminAuditLog,
+} from './schema'
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type License = typeof licenses.$inferSelect

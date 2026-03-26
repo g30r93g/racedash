@@ -38,10 +38,7 @@ export default async function JobsPage({
     <div>
       <PageHeader title="Jobs" />
 
-      <JobFilterForm
-        initialStatuses={status ? status.split(',') : []}
-        initialRange={range}
-      />
+      <JobFilterForm initialStatuses={status ? status.split(',') : []} initialRange={range} />
 
       <Table>
         <TableHeader>
@@ -72,9 +69,7 @@ export default async function JobsPage({
                 {job.durationSec != null ? formatDuration(job.durationSec) : '—'}
               </TableCell>
               <TableCell className="text-muted-foreground">{formatDateTime(job.createdAt)}</TableCell>
-              <TableCell className="text-muted-foreground truncate max-w-[200px]">
-                {job.errorMessage ?? '—'}
-              </TableCell>
+              <TableCell className="text-muted-foreground truncate max-w-[200px]">{job.errorMessage ?? '—'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -82,9 +77,7 @@ export default async function JobsPage({
 
       {data.nextCursor && (
         <div className="mt-4">
-          <Link
-            href={`/jobs?${status ? `status=${status}&` : ''}range=${range}&cursor=${data.nextCursor}`}
-          >
+          <Link href={`/jobs?${status ? `status=${status}&` : ''}range=${range}&cursor=${data.nextCursor}`}>
             <Button variant="outline" size="sm">
               Next →
             </Button>

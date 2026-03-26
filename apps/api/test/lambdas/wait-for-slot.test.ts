@@ -73,9 +73,7 @@ describe('wait-for-slot handler', () => {
     await handler({ jobId: 'job-1', userId: 'user-1', taskToken: 'tok-1' })
 
     expect(mockDb.update).toHaveBeenCalled()
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ slotTaskToken: 'tok-1' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ slotTaskToken: 'tok-1' }))
   })
 
   it('Plus tier has slot limit of 1', async () => {

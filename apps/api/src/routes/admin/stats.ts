@@ -19,9 +19,7 @@ const statsRoutes: FastifyPluginAsync = async (fastify) => {
         count: sql<number>`count(*)::int`,
       })
       .from(jobs)
-      .where(
-        sql`${jobs.status} IN ('uploading', 'queued', 'rendering', 'compositing')`,
-      )
+      .where(sql`${jobs.status} IN ('uploading', 'queued', 'rendering', 'compositing')`)
       .groupBy(jobs.status)
 
     const inFlight = { uploading: 0, queued: 0, rendering: 0, compositing: 0 }
@@ -50,16 +48,9 @@ const statsRoutes: FastifyPluginAsync = async (fastify) => {
         failed: sql<number>`count(*) FILTER (WHERE ${jobs.status} = 'failed')::int`,
       })
       .from(jobs)
-      .where(
-        and(
-          sql`${jobs.status} IN ('complete', 'failed')`,
-          gte(jobs.updatedAt, sevenDaysAgo),
-        ),
-      )
+      .where(and(sql`${jobs.status} IN ('complete', 'failed')`, gte(jobs.updatedAt, sevenDaysAgo)))
 
-    const failureRate7d = terminalRow.total > 0
-      ? Math.round((terminalRow.failed / terminalRow.total) * 1000) / 10
-      : 0
+    const failureRate7d = terminalRow.total > 0 ? Math.round((terminalRow.failed / terminalRow.total) * 1000) / 10 : 0
 
     // Recent 10 failed jobs
     const recentFailed = await db

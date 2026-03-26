@@ -1,6 +1,11 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { loadSessionToken } from './auth-helpers'
-import type { YouTubeConnectionStatus, YouTubeUploadMetadata, YouTubeUploadResult, SocialUploadStatus } from '../types/ipc'
+import type {
+  YouTubeConnectionStatus,
+  YouTubeUploadMetadata,
+  YouTubeUploadResult,
+  SocialUploadStatus,
+} from '../types/ipc'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
@@ -27,10 +32,12 @@ export function registerYouTubeHandlers(mainWindow: BrowserWindow): void {
     // Fetch the OAuth URL from the authenticated API endpoint
     const connectResponse = await fetchWithSession(`${API_URL}/api/auth/youtube/connect`)
     if (!connectResponse.ok) {
-      const err = await connectResponse.json().catch(() => ({ error: { message: 'Failed to initiate YouTube connection' } }))
+      const err = await connectResponse
+        .json()
+        .catch(() => ({ error: { message: 'Failed to initiate YouTube connection' } }))
       throw new Error((err as any).error?.message ?? `Connect failed: ${connectResponse.status}`)
     }
-    const { authUrl } = await connectResponse.json() as { authUrl: string }
+    const { authUrl } = (await connectResponse.json()) as { authUrl: string }
 
     return new Promise<YouTubeConnectionStatus>((resolve) => {
       let resolved = false
@@ -90,35 +97,38 @@ export function registerYouTubeHandlers(mainWindow: BrowserWindow): void {
     return response.json() as Promise<YouTubeConnectionStatus>
   })
 
-  ipcMain.handle('racedash:youtube:upload', async (_event, jobId: string, metadata: YouTubeUploadMetadata): Promise<YouTubeUploadResult> => {
-    // Validate jobId format (UUID)
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jobId)) {
-      throw new Error('Invalid job ID format')
-    }
+  ipcMain.handle(
+    'racedash:youtube:upload',
+    async (_event, jobId: string, metadata: YouTubeUploadMetadata): Promise<YouTubeUploadResult> => {
+      // Validate jobId format (UUID)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jobId)) {
+        throw new Error('Invalid job ID format')
+      }
 
-    const response = await fetchWithSession(`${API_URL}/api/jobs/${jobId}/social-upload`, {
-      method: 'POST',
-      body: JSON.stringify({ platform: 'youtube', metadata }),
-    })
+      const response = await fetchWithSession(`${API_URL}/api/jobs/${jobId}/social-upload`, {
+        method: 'POST',
+        body: JSON.stringify({ platform: 'youtube', metadata }),
+      })
 
-    if (!response.ok) {
-      const error = await response.json() as { error: { code: string; message: string } }
-      throw new Error(error.error?.message ?? `Upload failed: ${response.status}`)
-    }
+      if (!response.ok) {
+        const error = (await response.json()) as { error: { code: string; message: string } }
+        throw new Error(error.error?.message ?? `Upload failed: ${response.status}`)
+      }
 
-    const data = await response.json() as { socialUploadId: string; status: string; rcCost: number }
-    return {
-      socialUploadId: data.socialUploadId,
-      status: 'queued',
-      rcCost: data.rcCost,
-    }
-  })
+      const data = (await response.json()) as { socialUploadId: string; status: string; rcCost: number }
+      return {
+        socialUploadId: data.socialUploadId,
+        status: 'queued',
+        rcCost: data.rcCost,
+      }
+    },
+  )
 
   ipcMain.handle('racedash:youtube:getUploads', async (_event, jobId: string): Promise<SocialUploadStatus[]> => {
     if (!API_URL) return []
     const response = await fetchWithSession(`${API_URL}/api/jobs/${jobId}/social-uploads`)
     if (!response.ok) return []
-    const data = await response.json() as { uploads: SocialUploadStatus[] }
+    const data = (await response.json()) as { uploads: SocialUploadStatus[] }
     return data.uploads
   })
 }

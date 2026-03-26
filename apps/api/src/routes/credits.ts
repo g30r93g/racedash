@@ -10,11 +10,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       reply.status(404).send({
@@ -27,11 +23,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
       .select()
       .from(creditPacks)
       .where(
-        and(
-          eq(creditPacks.userId, user.id),
-          gt(creditPacks.rcRemaining, 0),
-          gt(creditPacks.expiresAt, new Date()),
-        ),
+        and(eq(creditPacks.userId, user.id), gt(creditPacks.rcRemaining, 0), gt(creditPacks.expiresAt, new Date())),
       )
       .orderBy(asc(creditPacks.expiresAt))
 
@@ -58,11 +50,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       reply.status(404).send({
@@ -98,10 +86,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
               eq(creditPacks.userId, user.id),
               or(
                 lt(creditPacks.purchasedAt, cursorPack.purchasedAt),
-                and(
-                  eq(creditPacks.purchasedAt, cursorPack.purchasedAt),
-                  lt(creditPacks.id, cursorPack.id),
-                ),
+                and(eq(creditPacks.purchasedAt, cursorPack.purchasedAt), lt(creditPacks.id, cursorPack.id)),
               ),
             ),
           )

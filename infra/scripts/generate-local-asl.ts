@@ -19,9 +19,7 @@ function findStateMachineDefinition(): any {
         const def = resource.Properties.DefinitionString
         if (typeof def === 'string') return JSON.parse(def)
         if (def?.['Fn::Join']) {
-          const joined = def['Fn::Join'][1]
-            .map((part: any) => (typeof part === 'string' ? part : ''))
-            .join('')
+          const joined = def['Fn::Join'][1].map((part: any) => (typeof part === 'string' ? part : '')).join('')
           return JSON.parse(joined)
         }
       }

@@ -25,10 +25,7 @@ export function resolveDisplayedPosition({
 
   if (positionOverrides != null && positionOverrides.length > 0) {
     for (let i = positionOverrides.length - 1; i >= 0; i--) {
-      if (
-        positionOverrides[i].timestamp <= currentTime &&
-        positionOverrides[i].timestamp > lastTimingEventTime
-      ) {
+      if (positionOverrides[i].timestamp <= currentTime && positionOverrides[i].timestamp > lastTimingEventTime) {
         return positionOverrides[i].position
       }
     }
@@ -71,9 +68,7 @@ export function useDisplayedPosition({
   }, [mode, currentLaps, sessionAllLaps, startingGridPosition])
 
   const computedPosition: number | null =
-    currentTime < raceStart || currentIdx === 0
-      ? positions[0]
-      : positions[currentIdx + 1] ?? null
+    currentTime < raceStart || currentIdx === 0 ? positions[0] : (positions[currentIdx + 1] ?? null)
 
   const lastTimingEventTime = currentTime < raceStart ? -Infinity : timestamps[currentIdx].ytSeconds
 

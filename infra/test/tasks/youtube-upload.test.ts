@@ -194,7 +194,10 @@ function setupSuccessfulUploadFlow() {
       return Promise.resolve({
         ok: true,
         status: 200,
-        headers: { get: (key: string) => key === 'Location' ? 'https://www.googleapis.com/upload/youtube/resume?upload_id=123' : null },
+        headers: {
+          get: (key: string) =>
+            key === 'Location' ? 'https://www.googleapis.com/upload/youtube/resume?upload_id=123' : null,
+        },
       })
     }
 
@@ -212,9 +215,10 @@ function setupSuccessfulUploadFlow() {
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({
-          items: [{ status: { uploadStatus: 'processed' } }],
-        }),
+        json: () =>
+          Promise.resolve({
+            items: [{ status: { uploadStatus: 'processed' } }],
+          }),
       })
     }
 
@@ -232,9 +236,7 @@ describe('youtube-upload Fargate task', () => {
     await runMain()
 
     // Verify S3 GetObject was called
-    expect(mockS3Send).toHaveBeenCalledWith(
-      expect.objectContaining({ _type: 'GetObject' }),
-    )
+    expect(mockS3Send).toHaveBeenCalledWith(expect.objectContaining({ _type: 'GetObject' }))
 
     // Verify YouTube upload endpoint was called with PUT
     const uploadCalls = mockFetch.mock.calls.filter(
@@ -290,9 +292,7 @@ describe('youtube-upload Fargate task', () => {
 
     await runMain()
 
-    expect(mockConsumeCredits).toHaveBeenCalledWith(
-      expect.objectContaining({ jobId: 'rk-001' }),
-    )
+    expect(mockConsumeCredits).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'rk-001' }))
   })
 
   test('updates status to "failed" and stores error_message on failure', async () => {
@@ -338,9 +338,7 @@ describe('youtube-upload Fargate task', () => {
 
     await runMain()
 
-    expect(mockReleaseCredits).toHaveBeenCalledWith(
-      expect.objectContaining({ jobId: 'rk-001' }),
-    )
+    expect(mockReleaseCredits).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'rk-001' }))
   })
 
   test('sends SES failure email on error', async () => {
@@ -393,7 +391,10 @@ describe('youtube-upload Fargate task', () => {
         return Promise.resolve({
           ok: true,
           status: 200,
-          headers: { get: (key: string) => key === 'Location' ? 'https://www.googleapis.com/upload/youtube/resume?upload_id=456' : null },
+          headers: {
+            get: (key: string) =>
+              key === 'Location' ? 'https://www.googleapis.com/upload/youtube/resume?upload_id=456' : null,
+          },
         })
       }
 
@@ -411,9 +412,10 @@ describe('youtube-upload Fargate task', () => {
         return Promise.resolve({
           ok: true,
           status: 200,
-          json: () => Promise.resolve({
-            items: [{ status: { uploadStatus: 'processed' } }],
-          }),
+          json: () =>
+            Promise.resolve({
+              items: [{ status: { uploadStatus: 'processed' } }],
+            }),
         })
       }
 
@@ -487,11 +489,20 @@ describe('youtube-upload Fargate task', () => {
       if (typeof url === 'string' && url.includes('uploadType=resumable')) {
         initCallCount++
         if (initCallCount === 1) {
-          return Promise.resolve({ ok: false, status: 401, text: () => Promise.resolve(''), headers: { get: () => null } })
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            text: () => Promise.resolve(''),
+            headers: { get: () => null },
+          })
         }
         return Promise.resolve({
-          ok: true, status: 200,
-          headers: { get: (key: string) => key === 'Location' ? 'https://www.googleapis.com/upload/youtube/resume?upload_id=789' : null },
+          ok: true,
+          status: 200,
+          headers: {
+            get: (key: string) =>
+              key === 'Location' ? 'https://www.googleapis.com/upload/youtube/resume?upload_id=789' : null,
+          },
         })
       }
       if (typeof url === 'string' && url.includes('resume?upload_id=')) {
@@ -499,7 +510,8 @@ describe('youtube-upload Fargate task', () => {
       }
       if (typeof url === 'string' && url.includes('youtube/v3/videos?id=')) {
         return Promise.resolve({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: () => Promise.resolve({ items: [{ status: { uploadStatus: 'processed' } }] }),
         })
       }
@@ -510,9 +522,7 @@ describe('youtube-upload Fargate task', () => {
 
     // The db.update for connectedAccounts with accessToken should have been called
     const setCallArgs = mockDbUpdateSet.mock.calls
-    const tokenUpdate = setCallArgs.find(
-      ([arg]: [Record<string, unknown>]) => arg && 'accessToken' in arg,
-    )
+    const tokenUpdate = setCallArgs.find(([arg]: [Record<string, unknown>]) => arg && 'accessToken' in arg)
     expect(tokenUpdate).toBeDefined()
   })
 
@@ -523,9 +533,7 @@ describe('youtube-upload Fargate task', () => {
     await runMain()
 
     const setCallArgs = mockDbUpdateSet.mock.calls
-    const lastUsedAtUpdate = setCallArgs.find(
-      ([arg]: [Record<string, unknown>]) => arg && 'lastUsedAt' in arg,
-    )
+    const lastUsedAtUpdate = setCallArgs.find(([arg]: [Record<string, unknown>]) => arg && 'lastUsedAt' in arg)
     expect(lastUsedAtUpdate).toBeDefined()
   })
 
@@ -536,7 +544,8 @@ describe('youtube-upload Fargate task', () => {
     mockFetch.mockImplementation((url: string) => {
       if (typeof url === 'string' && url.includes('uploadType=resumable')) {
         return Promise.resolve({
-          ok: false, status: 500,
+          ok: false,
+          status: 500,
           text: () => Promise.resolve('Error'),
           headers: { get: () => null },
         })

@@ -28,10 +28,13 @@ describeDb('countActiveRenders', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_renders_user',
-      email: 'renders@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_renders_user',
+        email: 'renders@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -42,7 +45,6 @@ describeDb('countActiveRenders', () => {
   afterAll(async () => {
     await db.delete(jobs).where(eq(jobs.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('returns 0 when user has no jobs', async () => {
@@ -99,10 +101,13 @@ describeDb('validateLicenseTier', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_tier_user',
-      email: 'tier@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_tier_user',
+        email: 'tier@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -113,7 +118,6 @@ describeDb('validateLicenseTier', () => {
   afterAll(async () => {
     await db.delete(licenses).where(eq(licenses.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('returns valid=true for active Plus when Plus required', async () => {
@@ -189,10 +193,13 @@ describeDb('checkLicenseExpiry', () => {
   let userId: string
 
   beforeAll(async () => {
-    const [user] = await db.insert(users).values({
-      clerkId: 'test_expiry_user',
-      email: 'expiry@test.com',
-    }).returning()
+    const [user] = await db
+      .insert(users)
+      .values({
+        clerkId: 'test_expiry_user',
+        email: 'expiry@test.com',
+      })
+      .returning()
     userId = user.id
   })
 
@@ -203,7 +210,6 @@ describeDb('checkLicenseExpiry', () => {
   afterAll(async () => {
     await db.delete(licenses).where(eq(licenses.userId, userId))
     await db.delete(users).where(eq(users.id, userId))
-
   })
 
   it('returns hasActiveLicense=true for active non-expired', async () => {

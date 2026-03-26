@@ -38,11 +38,7 @@ const licensesRoutes: FastifyPluginAsync = async (fastify) => {
     const startsAtDate = new Date(startsAt)
     const expiresAtDate = new Date(expiresAt)
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
 
     if (!user) {
       return reply.status(404).send({

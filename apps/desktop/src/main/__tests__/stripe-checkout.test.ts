@@ -89,8 +89,10 @@ describe('registerStripeHandlers', () => {
     })
 
     it('returns cancelled when user navigates to cancel URL', async () => {
-      vi.mocked(fetchWithAuth)
-        .mockResolvedValueOnce({ checkoutUrl: 'https://checkout.stripe.com/test', sessionId: 'cs_2' })
+      vi.mocked(fetchWithAuth).mockResolvedValueOnce({
+        checkoutUrl: 'https://checkout.stripe.com/test',
+        sessionId: 'cs_2',
+      })
 
       const promise = handlers.get('racedash:stripe:subscriptionCheckout')!({}, { tier: 'plus' })
 
@@ -104,8 +106,10 @@ describe('registerStripeHandlers', () => {
     })
 
     it('returns cancelled when window is closed without navigation', async () => {
-      vi.mocked(fetchWithAuth)
-        .mockResolvedValueOnce({ checkoutUrl: 'https://checkout.stripe.com/test', sessionId: 'cs_3' })
+      vi.mocked(fetchWithAuth).mockResolvedValueOnce({
+        checkoutUrl: 'https://checkout.stripe.com/test',
+        sessionId: 'cs_3',
+      })
 
       const promise = handlers.get('racedash:stripe:subscriptionCheckout')!({}, { tier: 'pro' })
 

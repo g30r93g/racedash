@@ -84,7 +84,9 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email" className="text-sm font-medium text-white/70">Email</Label>
+          <Label htmlFor="email" className="text-sm font-medium text-white/70">
+            Email
+          </Label>
           <Input
             id="email"
             type="email"
@@ -98,7 +100,9 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="password" className="text-sm font-medium text-white/70">Password</Label>
+          <Label htmlFor="password" className="text-sm font-medium text-white/70">
+            Password
+          </Label>
           <Input
             id="password"
             type="password"
@@ -110,15 +114,9 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
           />
         </div>
 
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
-        <Button
-          type="submit"
-          disabled={isSubmitting || !signIn}
-          variant="default"
-        >
+        <Button type="submit" disabled={isSubmitting || !signIn} variant="default">
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>

@@ -33,12 +33,7 @@ export function SegmentRow({ segment, index, onEdit, onDelete }: SegmentRowProps
           {segment.videoOffsetFrame !== undefined ? ` · Frame ${segment.videoOffsetFrame}` : ''}
         </p>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onEdit(index)}
-        aria-label={`Edit ${segment.label}`}
-      >
+      <Button variant="ghost" size="icon" onClick={() => onEdit(index)} aria-label={`Edit ${segment.label}`}>
         <ChevronRight className="h-4 w-4" aria-hidden="true" />
       </Button>
       <Button

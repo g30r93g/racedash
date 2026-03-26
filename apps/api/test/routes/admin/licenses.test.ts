@@ -10,7 +10,8 @@ vi.mock('@racedash/db', () => ({
   users: { id: 'id' },
   licenses: { id: 'id', userId: 'userId', status: 'status' },
   logAdminAction: (...args: unknown[]) => mockLogAdminAction(...args),
-  eq: vi.fn(), and: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
 }))
 
 vi.mock('../../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -23,7 +24,19 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'returning', 'transaction']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'returning',
+    'transaction',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }

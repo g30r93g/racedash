@@ -43,27 +43,64 @@ function loadLocalstackVars(): EnvVar[] {
 const LOCALSTACK_VARS: EnvVar[] = loadLocalstackVars()
 
 const DB_VARS: EnvVar[] = [
-  { key: 'DATABASE_URL', description: 'PostgreSQL connection string', default: 'postgresql://racedash:racedash_local@localhost:5433/racedash_local', required: true, hint: 'starts with postgresql://' },
+  {
+    key: 'DATABASE_URL',
+    description: 'PostgreSQL connection string',
+    default: 'postgresql://racedash:racedash_local@localhost:5433/racedash_local',
+    required: true,
+    hint: 'starts with postgresql://',
+  },
 ]
 
 const CLERK_VARS: EnvVar[] = [
-  { key: 'CLERK_SECRET_KEY', description: 'Clerk secret key (from dashboard.clerk.com → API Keys)', required: true, hint: 'starts with sk_test_' },
-  { key: 'CLERK_WEBHOOK_SECRET', description: 'Clerk webhook secret (Webhooks → your endpoint)', required: false, hint: 'starts with whsec_' },
+  {
+    key: 'CLERK_SECRET_KEY',
+    description: 'Clerk secret key (from dashboard.clerk.com → API Keys)',
+    required: true,
+    hint: 'starts with sk_test_',
+  },
+  {
+    key: 'CLERK_WEBHOOK_SECRET',
+    description: 'Clerk webhook secret (Webhooks → your endpoint)',
+    required: false,
+    hint: 'starts with whsec_',
+  },
 ]
 
 const STRIPE_VARS: EnvVar[] = [
-  { key: 'STRIPE_SECRET_KEY', description: 'Stripe secret key (test mode)', required: false, hint: 'starts with sk_test_' },
+  {
+    key: 'STRIPE_SECRET_KEY',
+    description: 'Stripe secret key (test mode)',
+    required: false,
+    hint: 'starts with sk_test_',
+  },
   { key: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook secret', required: false, hint: 'starts with whsec_' },
   { key: 'STRIPE_PRICE_PLUS', description: 'Stripe Plus plan price ID', required: false, hint: 'starts with price_' },
   { key: 'STRIPE_PRICE_PRO', description: 'Stripe Pro plan price ID', required: false, hint: 'starts with price_' },
   { key: 'STRIPE_PRICE_CREDITS_50', description: '50 RC — £7', required: false, hint: 'starts with price_' },
-  { key: 'STRIPE_PRICE_CREDITS_100', description: '100 RC (Starter) — £10', required: false, hint: 'starts with price_' },
-  { key: 'STRIPE_PRICE_CREDITS_250', description: '250 RC (Standard) — £20', required: false, hint: 'starts with price_' },
+  {
+    key: 'STRIPE_PRICE_CREDITS_100',
+    description: '100 RC (Starter) — £10',
+    required: false,
+    hint: 'starts with price_',
+  },
+  {
+    key: 'STRIPE_PRICE_CREDITS_250',
+    description: '250 RC (Standard) — £20',
+    required: false,
+    hint: 'starts with price_',
+  },
   { key: 'STRIPE_PRICE_CREDITS_500', description: '500 RC (Club) — £35', required: false, hint: 'starts with price_' },
 ]
 
 const APP_VARS: EnvVar[] = [
-  { key: 'ADMIN_APP_ORIGIN', description: 'Admin app URL', default: 'http://localhost:3001', required: true, hint: 'starts with http://' },
+  {
+    key: 'ADMIN_APP_ORIGIN',
+    description: 'Admin app URL',
+    default: 'http://localhost:3001',
+    required: true,
+    hint: 'starts with http://',
+  },
 ]
 
 const SECTIONS = [

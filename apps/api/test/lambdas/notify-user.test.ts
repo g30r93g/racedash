@@ -44,17 +44,13 @@ describe('notify-user handler', () => {
   it('sends email with correct subject line', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1' })
 
-    expect(mockSendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ subject: 'Your RaceDash render is ready' }),
-    )
+    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Your RaceDash render is ready' }))
   })
 
   it('looks up user email', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1' })
 
-    expect(mockSendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'user@example.com' }),
-    )
+    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'user@example.com' }))
   })
 
   it('includes project name in the email body', async () => {

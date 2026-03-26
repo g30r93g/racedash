@@ -5,10 +5,29 @@ import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import type { FfmpegStatus, OpenFileOptions, OpenDirectoryOptions, VideoInfo, RenderStartOpts, OutputResolution, DriversResult } from '../types/ipc'
+import type {
+  FfmpegStatus,
+  OpenFileOptions,
+  OpenDirectoryOptions,
+  VideoInfo,
+  RenderStartOpts,
+  OutputResolution,
+  DriversResult,
+} from '../types/ipc'
 import type { OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
 import type { ProjectData, CreateProjectOpts, SegmentConfig as WizardSegmentConfig } from '../types/project'
-import { joinVideos, listDrivers, generateTimestamps, renderSession, parseFpsValue, buildRaceLapSnapshots, buildSessionSegments, loadTimingConfig, resolvePositionOverrides, resolveTimingSegments } from '@racedash/engine'
+import {
+  joinVideos,
+  listDrivers,
+  generateTimestamps,
+  renderSession,
+  parseFpsValue,
+  buildRaceLapSnapshots,
+  buildSessionSegments,
+  loadTimingConfig,
+  resolvePositionOverrides,
+  resolveTimingSegments,
+} from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 import { registerCloudRenderHandlers } from './cloud-render-handlers'
@@ -21,7 +40,10 @@ import { registerCloudRenderHandlers } from './cloud-render-handlers'
  * Converts wizard SegmentConfig[] into the engine's config format.
  * Used by both handleCreateProject and updateProjectHandler.
  */
-export function buildEngineSegments(segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>): Record<string, unknown>[] {
+export function buildEngineSegments(
+  segments: WizardSegmentConfig[],
+  selectedDrivers: Record<string, string>,
+): Record<string, unknown>[] {
   return segments.map((seg) => {
     const base = {
       source: seg.source,
@@ -33,7 +55,8 @@ export function buildEngineSegments(segments: WizardSegmentConfig[], selectedDri
     if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
     if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'mylapsSpeedhive')
+      return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
     if (seg.source === 'manual') return { ...base, timingData: [] }
     return base
   })
@@ -48,16 +71,10 @@ export function buildEngineSegments(segments: WizardSegmentConfig[], selectedDri
  * fails for a remote segment, the original segment is returned so the
  * fetch will be retried when the project is opened.
  */
-async function cacheRemoteTimingData(
-  engineSegments: Record<string, unknown>[],
-): Promise<Record<string, unknown>[]> {
+async function cacheRemoteTimingData(engineSegments: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
   const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
   try {
-    fs.writeFileSync(
-      tempPath,
-      JSON.stringify({ segments: engineSegments }, null, 2),
-      'utf-8',
-    )
+    fs.writeFileSync(tempPath, JSON.stringify({ segments: engineSegments }, null, 2), 'utf-8')
 
     const { segments: segmentConfigs } = await loadTimingConfig(tempPath, true)
     const resolved = await resolveTimingSegments(segmentConfigs)
@@ -86,7 +103,11 @@ async function cacheRemoteTimingData(
     console.error('[racedash] Failed to cache timing data, segments will fetch on open:', err)
     return engineSegments
   } finally {
-    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(tempPath)
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -168,7 +189,10 @@ export function readProjectConfigHandler(configPath: string): Record<string, unk
   return JSON.parse(raw) as Record<string, unknown>
 }
 
-export async function updateProjectConfigOverridesHandler(configPath: string, overrides: ConfigPositionOverride[]): Promise<void> {
+export async function updateProjectConfigOverridesHandler(
+  configPath: string,
+  overrides: ConfigPositionOverride[],
+): Promise<void> {
   if (typeof configPath !== 'string' || configPath.trim().length === 0) {
     throw new Error('updateProjectConfigOverrides: configPath must be a non-empty string')
   }
@@ -282,7 +306,9 @@ export async function updateProjectHandler(
   let existingConfig: Record<string, unknown> = {}
   try {
     existingConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8') as string) as Record<string, unknown>
-  } catch { /* config may not exist yet */ }
+  } catch {
+    /* config may not exist yet */
+  }
 
   // Rebuild config with new segments + per-segment drivers, preserving other keys
   const engineSegments = buildEngineSegments(segments, selectedDrivers)
@@ -420,9 +446,17 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   const cachedSegments = await cacheRemoteTimingData(engineSegments)
 
   const configPath = path.join(saveDir, 'config.json')
-  fs.writeFileSync(configPath, JSON.stringify({
-    segments: cachedSegments,
-  }, null, 2), 'utf-8')
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify(
+      {
+        segments: cachedSegments,
+      },
+      null,
+      2,
+    ),
+    'utf-8',
+  )
 
   // Write app metadata (project.json) — wizard-format segments for UI display.
   const projectPath = path.join(saveDir, 'project.json')
@@ -465,8 +499,10 @@ export function getVideoInfo(videoPath: string): VideoInfo {
   let stdout: Buffer
   try {
     stdout = execFileSync(resolveFfprobeCommand(), [
-      '-v', 'quiet',
-      '-print_format', 'json',
+      '-v',
+      'quiet',
+      '-print_format',
+      'json',
       '-show_streams',
       videoPath,
     ]) as Buffer
@@ -474,9 +510,7 @@ export function getVideoInfo(videoPath: string): VideoInfo {
     const message = err instanceof Error ? err.message : String(err)
     const code = (err as NodeJS.ErrnoException).code
     if (code === 'ENOENT' || message.toLowerCase().includes('not found')) {
-      throw new Error(
-        'ffprobe not found. Install ffmpeg (which bundles ffprobe) and ensure it is on your PATH.'
-      )
+      throw new Error('ffprobe not found. Install ffmpeg (which bundles ffprobe) and ensure it is on your PATH.')
     }
     throw err
   }
@@ -558,7 +592,8 @@ export async function previewDriversImpl(segments: WizardSegmentConfig[]): Promi
     if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
     if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'mylapsSpeedhive')
+      return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
     if (seg.source === 'manual') return { ...base, timingData: [] }
     return base
   })
@@ -566,9 +601,13 @@ export async function previewDriversImpl(segments: WizardSegmentConfig[]): Promi
   const tempPath = path.join(os.tmpdir(), `racedash-preview-${Date.now()}.json`)
   try {
     fs.writeFileSync(tempPath, JSON.stringify({ segments: engineSegments }, null, 2), 'utf-8')
-    return await listDrivers({ configPath: tempPath }) as DriversResult
+    return (await listDrivers({ configPath: tempPath })) as DriversResult
   } finally {
-    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(tempPath)
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -609,18 +648,15 @@ export async function previewTimestampsImpl(
     if (seg.source === 'alphaTiming') return { ...base, url: seg.url ?? '' }
     if (seg.source === 'daytonaEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
-    if (seg.source === 'mylapsSpeedhive') return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
+    if (seg.source === 'mylapsSpeedhive')
+      return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
     if (seg.source === 'manual') return { ...base, timingData: [] }
     return base
   })
 
   const tempPath = path.join(os.tmpdir(), `racedash-preview-ts-${Date.now()}.json`)
   try {
-    fs.writeFileSync(
-      tempPath,
-      JSON.stringify({ segments: engineSegments }, null, 2),
-      'utf-8',
-    )
+    fs.writeFileSync(tempPath, JSON.stringify({ segments: engineSegments }, null, 2), 'utf-8')
     const result = await generateTimestamps({ configPath: tempPath })
     type RawSeg = {
       config: { label?: string; source: string; mode: string }
@@ -638,16 +674,17 @@ export async function previewTimestampsImpl(
         const kart = seg.selectedDriver.kart
         laps = rawLaps.map((lap) => {
           const snapshot = snapshots.find((s) =>
-            s.entries.some((e) => e.kart === kart && e.lapsCompleted === lap.number)
+            s.entries.some((e) => e.kart === kart && e.lapsCompleted === lap.number),
           )
           const entry = snapshot?.entries.find((e) => e.kart === kart)
           return { ...lap, position: entry?.position }
         })
       } else {
         // Practice / qualifying — rank each lap by time across all drivers' best laps
-        const allBestByDriver = (seg.drivers ?? []).map((d) =>
-          Math.min(...d.laps.map((l) => l.lapTime))
-        ).filter(isFinite).sort((a, b) => a - b)
+        const allBestByDriver = (seg.drivers ?? [])
+          .map((d) => Math.min(...d.laps.map((l) => l.lapTime)))
+          .filter(isFinite)
+          .sort((a, b) => a - b)
         laps = rawLaps.map((lap) => {
           const rank = allBestByDriver.findIndex((t) => t >= lap.lapTime)
           return { ...lap, position: rank >= 0 ? rank + 1 : undefined }
@@ -657,7 +694,11 @@ export async function previewTimestampsImpl(
       return { label: seg.config.label ?? seg.config.source, laps }
     })
   } finally {
-    try { fs.unlinkSync(tempPath) } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(tempPath)
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -671,14 +712,12 @@ type GenerateTimestampsHandlerResult = Awaited<ReturnType<typeof generateTimesta
   startingGridPosition?: number
 }
 
-export async function generateTimestampsHandler(
-  opts: { configPath: string; fps?: number },
-): Promise<GenerateTimestampsHandlerResult> {
+export async function generateTimestampsHandler(opts: {
+  configPath: string
+  fps?: number
+}): Promise<GenerateTimestampsHandlerResult> {
   const result = await generateTimestamps(opts)
-  const { segments: sessionSegments, startingGridPosition } = buildSessionSegments(
-    result.segments,
-    result.offsets,
-  )
+  const { segments: sessionSegments, startingGridPosition } = buildSessionSegments(result.segments, result.offsets)
 
   // Attach position overrides to session segments (mirrors renderSession in operations.ts)
   const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
@@ -748,10 +787,20 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:createProject', (_event, opts: CreateProjectOpts) => handleCreateProject(opts))
   ipcMain.handle('racedash:deleteProject', (_event, projectPath: string) => deleteProjectHandler(projectPath))
   ipcMain.handle('racedash:relocateProject', (_event, oldProjectPath: string) => relocateProjectHandler(oldProjectPath))
-  ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) => renameProjectHandler(projectPath, name))
-  ipcMain.handle('racedash:updateProject', (_event, projectPath: string, segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>) => updateProjectHandler(projectPath, segments, selectedDrivers))
+  ipcMain.handle('racedash:renameProject', (_event, projectPath: string, name: string) =>
+    renameProjectHandler(projectPath, name),
+  )
+  ipcMain.handle(
+    'racedash:updateProject',
+    (_event, projectPath: string, segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>) =>
+      updateProjectHandler(projectPath, segments, selectedDrivers),
+  )
   ipcMain.handle('racedash:readProjectConfig', (_event, configPath: string) => readProjectConfigHandler(configPath))
-  ipcMain.handle('racedash:updateProjectConfigOverrides', (_event, configPath: string, overrides: ConfigPositionOverride[]) => updateProjectConfigOverridesHandler(configPath, overrides))
+  ipcMain.handle(
+    'racedash:updateProjectConfigOverrides',
+    (_event, configPath: string, overrides: ConfigPositionOverride[]) =>
+      updateProjectConfigOverridesHandler(configPath, overrides),
+  )
   ipcMain.handle(
     'racedash:saveStyleToConfig',
     (
@@ -764,22 +813,21 @@ export function registerIpcHandlers(): void {
         qualifyingTablePosition?: string
         overlayComponents?: OverlayComponentsConfig
       },
-    ) =>
-      saveStyleToConfigHandler(configPath, overlayType, styling, configOptions),
+    ) => saveStyleToConfigHandler(configPath, overlayType, styling, configOptions),
   )
 
   // Timing — engine integration
-  ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) =>
-    previewDriversImpl(segments)
-  )
-  ipcMain.handle('racedash:previewTimestamps', (_event, segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>) =>
-    previewTimestampsImpl(segments, selectedDrivers)
+  ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) => previewDriversImpl(segments))
+  ipcMain.handle(
+    'racedash:previewTimestamps',
+    (_event, segments: WizardSegmentConfig[], selectedDrivers: Record<string, string>) =>
+      previewTimestampsImpl(segments, selectedDrivers),
   )
   ipcMain.handle('racedash:listDrivers', (_event, opts: { configPath: string; driverQuery?: string }) =>
-    listDrivers(opts)
+    listDrivers(opts),
   )
   ipcMain.handle('racedash:generateTimestamps', (_event, opts: { configPath: string; fps?: number }) =>
-    generateTimestampsHandler(opts)
+    generateTimestampsHandler(opts),
   )
 
   // Export — getVideoInfo (synchronous, uses execFileSync)
@@ -790,8 +838,7 @@ export function registerIpcHandlers(): void {
     activeRenderCancelled = false
     activeRenderSender = event.sender
 
-    const outputResolution =
-      opts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[opts.outputResolution]
+    const outputResolution = opts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[opts.outputResolution]
 
     renderSession(
       {

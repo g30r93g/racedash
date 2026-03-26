@@ -41,9 +41,7 @@ export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalance
                   <span className="text-xs text-foreground">{pack.packName}</span>
                   <span className="text-[11px] text-muted-foreground">
                     Expires {formatDate(pack.expiresAt)}
-                    {isExpiringSoon(pack.expiresAt) && (
-                      <span className="ml-1 text-amber-500">⚠ Expiring soon</span>
-                    )}
+                    {isExpiringSoon(pack.expiresAt) && <span className="ml-1 text-amber-500">⚠ Expiring soon</span>}
                   </span>
                 </div>
                 <span className="text-xs font-medium text-foreground">
@@ -56,9 +54,7 @@ export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalance
       )}
 
       {balance && balance.packs.length === 0 && (
-        <p className="mb-3 text-xs text-muted-foreground">
-          No credit packs. Purchase credits to use cloud rendering.
-        </p>
+        <p className="mb-3 text-xs text-muted-foreground">No credit packs. Purchase credits to use cloud rendering.</p>
       )}
 
       <div className="flex items-center gap-2">
@@ -69,9 +65,7 @@ export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalance
               onClick={() => setSelectedPack(size)}
               className={[
                 'flex-1 py-1.5 text-xs transition-colors first:rounded-l-md last:rounded-r-md',
-                selectedPack === size
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent',
+                selectedPack === size ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent',
               ].join(' ')}
             >
               {size}
@@ -83,11 +77,7 @@ export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalance
         </Button>
       </div>
 
-      <Button
-        variant="link"
-        onClick={onViewHistory}
-        className="mt-2 h-auto w-full p-0 text-xs text-primary"
-      >
+      <Button variant="link" onClick={onViewHistory} className="mt-2 h-auto w-full p-0 text-xs text-primary">
         Purchase history
       </Button>
     </section>

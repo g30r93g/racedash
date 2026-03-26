@@ -9,35 +9,31 @@ import crypto from 'node:crypto'
 describe('Credit conservation', () => {
   it('complete → consumed equals rcCost; failed → net change is 0', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 10_000 }),
-        fc.boolean(),
-        (rcCost, succeeds) => {
-          let reserved = rcCost
-          let consumed = 0
-          let released = 0
+      fc.property(fc.integer({ min: 1, max: 10_000 }), fc.boolean(), (rcCost, succeeds) => {
+        let reserved = rcCost
+        let consumed = 0
+        let released = 0
 
-          if (succeeds) {
-            // finalise-job path: consumeCredits
-            consumed = reserved
-            reserved = 0
-          } else {
-            // release-credits-and-fail path: releaseCredits
-            released = reserved
-            reserved = 0
-          }
+        if (succeeds) {
+          // finalise-job path: consumeCredits
+          consumed = reserved
+          reserved = 0
+        } else {
+          // release-credits-and-fail path: releaseCredits
+          released = reserved
+          reserved = 0
+        }
 
-          if (succeeds) {
-            expect(consumed).toBe(rcCost)
-            expect(reserved).toBe(0)
-          } else {
-            // Net change to user balance: credits released = credits reserved
-            expect(released).toBe(rcCost)
-            expect(consumed).toBe(0)
-            expect(reserved).toBe(0)
-          }
-        },
-      ),
+        if (succeeds) {
+          expect(consumed).toBe(rcCost)
+          expect(reserved).toBe(0)
+        } else {
+          // Net change to user balance: credits released = credits reserved
+          expect(released).toBe(rcCost)
+          expect(consumed).toBe(0)
+          expect(reserved).toBe(0)
+        }
+      }),
       { numRuns: 200 },
     )
   })
@@ -50,9 +46,7 @@ function computeQueuePositions(
   queuedJobIds: string[],
   allQueuedJobs: Array<{ id: string; createdAt: Date }>,
 ): Map<string, number> {
-  const sorted = [...allQueuedJobs].sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-  )
+  const sorted = [...allQueuedJobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
   const map = new Map<string, number>()
   sorted.forEach((j, i) => {
     if (queuedJobIds.includes(j.id)) map.set(j.id, i + 1)
@@ -72,36 +66,29 @@ const arbQueuedJob = fc.record({
 describe('Queue position monotonicity', () => {
   it('N queued jobs → positions 1..N ordered by createdAt ASC', () => {
     fc.assert(
-      fc.property(
-        fc.array(arbQueuedJob, { minLength: 1, maxLength: 50 }),
-        (jobs) => {
-          // Ensure unique IDs
-          const uniqueJobs = jobs.filter(
-            (j, i, arr) => arr.findIndex((x) => x.id === j.id) === i,
-          )
-          const ids = uniqueJobs.map((j) => j.id)
-          const positions = computeQueuePositions(ids, uniqueJobs)
+      fc.property(fc.array(arbQueuedJob, { minLength: 1, maxLength: 50 }), (jobs) => {
+        // Ensure unique IDs
+        const uniqueJobs = jobs.filter((j, i, arr) => arr.findIndex((x) => x.id === j.id) === i)
+        const ids = uniqueJobs.map((j) => j.id)
+        const positions = computeQueuePositions(ids, uniqueJobs)
 
-          // Every ID should have a position
-          expect(positions.size).toBe(uniqueJobs.length)
+        // Every ID should have a position
+        expect(positions.size).toBe(uniqueJobs.length)
 
-          // Positions should be 1..N
-          const posValues = [...positions.values()].sort((a, b) => a - b)
-          posValues.forEach((pos, i) => {
-            expect(pos).toBe(i + 1)
-          })
+        // Positions should be 1..N
+        const posValues = [...positions.values()].sort((a, b) => a - b)
+        posValues.forEach((pos, i) => {
+          expect(pos).toBe(i + 1)
+        })
 
-          // Earlier createdAt → smaller position
-          const sorted = [...uniqueJobs].sort(
-            (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-          )
-          for (let i = 1; i < sorted.length; i++) {
-            const prevPos = positions.get(sorted[i - 1].id)!
-            const currPos = positions.get(sorted[i].id)!
-            expect(prevPos).toBeLessThanOrEqual(currPos)
-          }
-        },
-      ),
+        // Earlier createdAt → smaller position
+        const sorted = [...uniqueJobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        for (let i = 1; i < sorted.length; i++) {
+          const prevPos = positions.get(sorted[i - 1].id)!
+          const currPos = positions.get(sorted[i].id)!
+          expect(prevPos).toBeLessThanOrEqual(currPos)
+        }
+      }),
       { numRuns: 200 },
     )
   })
@@ -119,23 +106,20 @@ function selectBitrateKbps(width: number): number {
 describe('Bitrate selection determinism', () => {
   it('same width → same bitrate (pure function of width)', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 320, max: 7680 }),
-        (width) => {
-          const a = selectBitrateKbps(width)
-          const b = selectBitrateKbps(width)
-          expect(a).toBe(b)
+      fc.property(fc.integer({ min: 320, max: 7680 }), (width) => {
+        const a = selectBitrateKbps(width)
+        const b = selectBitrateKbps(width)
+        expect(a).toBe(b)
 
-          // Also verify the expected tiers
-          if (width >= 3840) {
-            expect(a).toBe(50_000)
-          } else if (width >= 2560) {
-            expect(a).toBe(30_000)
-          } else {
-            expect(a).toBe(20_000)
-          }
-        },
-      ),
+        // Also verify the expected tiers
+        if (width >= 3840) {
+          expect(a).toBe(50_000)
+        } else if (width >= 2560) {
+          expect(a).toBe(30_000)
+        } else {
+          expect(a).toBe(20_000)
+        }
+      }),
       { numRuns: 200 },
     )
   })
@@ -181,9 +165,7 @@ describe('HMAC verification symmetry', () => {
 // The start-upload handler generates exactly partCount presigned URLs
 // with partNumbers 1..partCount. We test the structural invariant directly.
 
-function generatePresignedUrls(
-  partCount: number,
-): Array<{ partNumber: number; url: string }> {
+function generatePresignedUrls(partCount: number): Array<{ partNumber: number; url: string }> {
   const urls: Array<{ partNumber: number; url: string }> = []
   for (let i = 1; i <= partCount; i++) {
     urls.push({ partNumber: i, url: `https://s3.example.com/part-${i}` })
@@ -194,26 +176,23 @@ function generatePresignedUrls(
 describe('Presigned URL count', () => {
   it('partCount in → exactly partCount URLs out, partNumbers 1..partCount', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 100 }),
-        (partCount) => {
-          const urls = generatePresignedUrls(partCount)
+      fc.property(fc.integer({ min: 1, max: 100 }), (partCount) => {
+        const urls = generatePresignedUrls(partCount)
 
-          // Exact count
-          expect(urls).toHaveLength(partCount)
+        // Exact count
+        expect(urls).toHaveLength(partCount)
 
-          // Part numbers are 1..partCount in order
-          urls.forEach((u, i) => {
-            expect(u.partNumber).toBe(i + 1)
-          })
+        // Part numbers are 1..partCount in order
+        urls.forEach((u, i) => {
+          expect(u.partNumber).toBe(i + 1)
+        })
 
-          // Every URL is a non-empty string
-          urls.forEach((u) => {
-            expect(u.url).toBeTruthy()
-            expect(typeof u.url).toBe('string')
-          })
-        },
-      ),
+        // Every URL is a non-empty string
+        urls.forEach((u) => {
+          expect(u.url).toBeTruthy()
+          expect(typeof u.url).toBe('string')
+        })
+      }),
       { numRuns: 200 },
     )
   })

@@ -24,7 +24,9 @@ function formatTimecode(seconds: number): string {
 /** Parse HH:MM:SS.mmm or MM:SS.mmm or SS.mmm — returns seconds, or null if invalid */
 function parseTimecode(value: string): number | null {
   const parts = value.trim().split(':')
-  let h = 0, m = 0, s = 0
+  let h = 0,
+    m = 0,
+    s = 0
   if (parts.length === 3) {
     h = parseInt(parts[0], 10)
     m = parseInt(parts[1], 10)
@@ -113,7 +115,9 @@ export function JumpToDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button onClick={handleJump}>Jump</Button>
         </DialogFooter>
       </DialogContent>

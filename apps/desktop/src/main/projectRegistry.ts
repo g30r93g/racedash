@@ -57,10 +57,7 @@ export function removeFromRegistry(projectJsonPath: string): Promise<void> {
   })
 }
 
-export function replaceInRegistry(
-  oldProjectPath: string,
-  newProjectPath: string,
-): Promise<void> {
+export function replaceInRegistry(oldProjectPath: string, newProjectPath: string): Promise<void> {
   return serialise(async () => {
     const current = await readRegistry()
     const idx = current.indexOf(oldProjectPath)

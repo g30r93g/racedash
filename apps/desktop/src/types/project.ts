@@ -1,11 +1,6 @@
 // Wizard-selectable timing sources. The engine also supports 'cached' (produced at
 // save time by cacheRemoteTimingData), but it is not user-selectable.
-export type TimingSource =
-  | 'alphaTiming'
-  | 'mylapsSpeedhive'
-  | 'daytonaEmail'
-  | 'teamsportEmail'
-  | 'manual'
+export type TimingSource = 'alphaTiming' | 'mylapsSpeedhive' | 'daytonaEmail' | 'teamsportEmail' | 'manual'
 
 // SessionMode mirrors @racedash/core — kept in sync manually.
 export type SessionMode = 'practice' | 'qualifying' | 'race'

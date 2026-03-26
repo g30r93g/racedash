@@ -30,7 +30,8 @@ interface LocalRenderControlsProps {
 }
 
 const shimmerStyle: React.CSSProperties = {
-  background: 'linear-gradient(90deg, #6e6e6e 0%, #6e6e6e 25%, #e8e8e8 45%, #ffffff 50%, #e8e8e8 55%, #6e6e6e 75%, #6e6e6e 100%)',
+  background:
+    'linear-gradient(90deg, #6e6e6e 0%, #6e6e6e 25%, #e8e8e8 45%, #ffffff 50%, #e8e8e8 55%, #6e6e6e 75%, #6e6e6e 100%)',
   backgroundSize: '400% 100%',
   backgroundClip: 'text',
   WebkitBackgroundClip: 'text',
@@ -62,7 +63,9 @@ export function LocalRenderControls({
             className="min-w-0 flex-1 font-mono text-xs"
             disabled={isBusy}
           />
-          <Button variant="outline" size="sm" onClick={onBrowse} disabled={isBusy}>Browse</Button>
+          <Button variant="outline" size="sm" onClick={onBrowse} disabled={isBusy}>
+            Browse
+          </Button>
         </div>
       </section>
 
@@ -92,7 +95,9 @@ export function LocalRenderControls({
             <Progress value={Math.round(renderProgress * 100)} />
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               {renderFrames && (
-                <span>Frame {renderFrames.rendered} of {renderFrames.total}</span>
+                <span>
+                  Frame {renderFrames.rendered} of {renderFrames.total}
+                </span>
               )}
               {etaSeconds != null && (
                 <span className={renderFrames ? '' : 'ml-auto'}>{formatDuration(etaSeconds)} remaining</span>

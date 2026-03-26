@@ -3,11 +3,43 @@ import type { FastifyInstance } from 'fastify'
 
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', email: 'email' },
-  jobs: { id: 'id', userId: 'userId', status: 'status', config: 'config', inputS3Keys: 'inputS3Keys', uploadIds: 'uploadIds', outputS3Key: 'outputS3Key', downloadExpiresAt: 'downloadExpiresAt', slotTaskToken: 'slotTaskToken', renderTaskToken: 'renderTaskToken', remotionRenderId: 'remotionRenderId', rcCost: 'rcCost', sfnExecutionArn: 'sfnExecutionArn', errorMessage: 'errorMessage', createdAt: 'createdAt', updatedAt: 'updatedAt' },
-  creditReservations: { id: 'id', jobId: 'jobId', rcAmount: 'rcAmount', status: 'status', createdAt: 'createdAt', settledAt: 'settledAt' },
+  jobs: {
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    config: 'config',
+    inputS3Keys: 'inputS3Keys',
+    uploadIds: 'uploadIds',
+    outputS3Key: 'outputS3Key',
+    downloadExpiresAt: 'downloadExpiresAt',
+    slotTaskToken: 'slotTaskToken',
+    renderTaskToken: 'renderTaskToken',
+    remotionRenderId: 'remotionRenderId',
+    rcCost: 'rcCost',
+    sfnExecutionArn: 'sfnExecutionArn',
+    errorMessage: 'errorMessage',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+  },
+  creditReservations: {
+    id: 'id',
+    jobId: 'jobId',
+    rcAmount: 'rcAmount',
+    status: 'status',
+    createdAt: 'createdAt',
+    settledAt: 'settledAt',
+  },
   creditReservationPacks: { reservationId: 'reservationId', packId: 'packId', rcDeducted: 'rcDeducted' },
   creditPacks: { id: 'id', packName: 'packName' },
-  eq: vi.fn(), and: vi.fn(), gt: vi.fn(), lt: vi.fn(), gte: vi.fn(), desc: vi.fn(), or: vi.fn(), inArray: vi.fn(), sql: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
+  gt: vi.fn(),
+  lt: vi.fn(),
+  gte: vi.fn(),
+  desc: vi.fn(),
+  or: vi.fn(),
+  inArray: vi.fn(),
+  sql: vi.fn(),
 }))
 
 vi.mock('../../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -20,7 +52,21 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'returning', 'transaction', 'innerJoin', 'groupBy']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'returning',
+    'transaction',
+    'innerJoin',
+    'groupBy',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }
@@ -195,13 +241,23 @@ describe('GET /api/admin/jobs/:id', () => {
 
   it('returns full job detail', async () => {
     const jobRow = {
-      id: 'job-1', userId: 'u-1', userEmail: 'user@test.com',
-      status: 'complete', config: { fps: 30 }, inputS3Keys: ['key1'],
-      uploadIds: ['up1'], outputS3Key: 'output.mp4',
-      downloadExpiresAt: now, slotTaskToken: null,
-      renderTaskToken: null, remotionRenderId: 'r-1',
-      rcCost: 10, sfnExecutionArn: null, errorMessage: null,
-      createdAt: now, updatedAt: now,
+      id: 'job-1',
+      userId: 'u-1',
+      userEmail: 'user@test.com',
+      status: 'complete',
+      config: { fps: 30 },
+      inputS3Keys: ['key1'],
+      uploadIds: ['up1'],
+      outputS3Key: 'output.mp4',
+      downloadExpiresAt: now,
+      slotTaskToken: null,
+      renderTaskToken: null,
+      remotionRenderId: 'r-1',
+      rcCost: 10,
+      sfnExecutionArn: null,
+      errorMessage: null,
+      createdAt: now,
+      updatedAt: now,
     }
     mockDb.limit.mockResolvedValueOnce([jobRow])
     // No credit reservation
@@ -233,13 +289,23 @@ describe('GET /api/admin/jobs/:id', () => {
   it('includes sfnConsoleUrl when sfnExecutionArn is present', async () => {
     const arn = 'arn:aws:states:eu-west-2:123:execution:MyStateMachine:exec-1'
     const jobRow = {
-      id: 'job-1', userId: 'u-1', userEmail: 'user@test.com',
-      status: 'rendering', config: {}, inputS3Keys: [],
-      uploadIds: [], outputS3Key: null,
-      downloadExpiresAt: null, slotTaskToken: null,
-      renderTaskToken: null, remotionRenderId: null,
-      rcCost: null, sfnExecutionArn: arn, errorMessage: null,
-      createdAt: now, updatedAt: now,
+      id: 'job-1',
+      userId: 'u-1',
+      userEmail: 'user@test.com',
+      status: 'rendering',
+      config: {},
+      inputS3Keys: [],
+      uploadIds: [],
+      outputS3Key: null,
+      downloadExpiresAt: null,
+      slotTaskToken: null,
+      renderTaskToken: null,
+      remotionRenderId: null,
+      rcCost: null,
+      sfnExecutionArn: arn,
+      errorMessage: null,
+      createdAt: now,
+      updatedAt: now,
     }
     mockDb.limit.mockResolvedValueOnce([jobRow])
     mockDb.limit.mockResolvedValueOnce([])
@@ -257,27 +323,47 @@ describe('GET /api/admin/jobs/:id', () => {
 
   it('includes creditReservation when one exists', async () => {
     const jobRow = {
-      id: 'job-1', userId: 'u-1', userEmail: 'user@test.com',
-      status: 'complete', config: {}, inputS3Keys: [],
-      uploadIds: [], outputS3Key: 'output.mp4',
-      downloadExpiresAt: null, slotTaskToken: null,
-      renderTaskToken: null, remotionRenderId: null,
-      rcCost: 10, sfnExecutionArn: null, errorMessage: null,
-      createdAt: now, updatedAt: now,
+      id: 'job-1',
+      userId: 'u-1',
+      userEmail: 'user@test.com',
+      status: 'complete',
+      config: {},
+      inputS3Keys: [],
+      uploadIds: [],
+      outputS3Key: 'output.mp4',
+      downloadExpiresAt: null,
+      slotTaskToken: null,
+      renderTaskToken: null,
+      remotionRenderId: null,
+      rcCost: 10,
+      sfnExecutionArn: null,
+      errorMessage: null,
+      createdAt: now,
+      updatedAt: now,
     }
     mockDb.limit.mockResolvedValueOnce([jobRow])
     // Credit reservation exists
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'res-1', rcAmount: 10, status: 'settled',
-      createdAt: now, settledAt: now,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'res-1',
+        rcAmount: 10,
+        status: 'settled',
+        createdAt: now,
+        settledAt: now,
+      },
+    ])
     // Skip .where() for job query and credit reservation query — keep chain intact
     mockDb.where
-      .mockReturnValueOnce(mockDb)   // job query .where()
-      .mockReturnValueOnce(mockDb)   // credit reservation .where()
-      .mockResolvedValueOnce([{      // pack breakdown .where() — terminates
-        packId: 'cp-1', packName: 'Starter', rcDeducted: 10,
-      }])
+      .mockReturnValueOnce(mockDb) // job query .where()
+      .mockReturnValueOnce(mockDb) // credit reservation .where()
+      .mockResolvedValueOnce([
+        {
+          // pack breakdown .where() — terminates
+          packId: 'cp-1',
+          packName: 'Starter',
+          rcDeducted: 10,
+        },
+      ])
 
     const response = await app.inject({
       method: 'GET',

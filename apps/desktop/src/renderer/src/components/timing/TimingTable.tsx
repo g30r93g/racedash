@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import React from 'react'
 
@@ -21,7 +14,7 @@ export interface LapRow {
   lap: number
   timeMs: number
   position: number | null
-  lapTimeLabel?: string  // if present, rendered instead of formatting timeMs
+  lapTimeLabel?: string // if present, rendered instead of formatting timeMs
 }
 
 interface TimingTableProps {
@@ -76,15 +69,16 @@ export function TimingTable({ rows, bestLapTimeMs, activeLapNumber, mode }: Timi
                   <span className="flex items-center gap-2">
                     <span>{`P${row.position}`}</span>
                     {positionDelta !== null && positionDelta !== 0 && (
-                      <span className={cn(
-                        'text-[10px] font-bold',
-                        positionDelta > 0 ? 'text-green-500' : 'text-red-500',
-                      )}>
+                      <span
+                        className={cn('text-[10px] font-bold', positionDelta > 0 ? 'text-green-500' : 'text-red-500')}
+                      >
                         {positionDelta > 0 ? `+${positionDelta}` : `${positionDelta}`}
                       </span>
                     )}
                   </span>
-                ) : '—'}
+                ) : (
+                  '—'
+                )}
               </TableCell>
             </TableRow>
           )

@@ -54,14 +54,16 @@ describe('loadTimingConfig', () => {
 
   it('rejects timingData on non-manual sources', async () => {
     const configPath = await writeTempConfig({
-      segments: [{
-        driver: 'Alice',
-        source: 'alphaTiming',
-        mode: 'practice',
-        offset: '1:00.000',
-        url: 'https://results.alphatiming.co.uk/session/1',
-        timingData: [{ lap: 1, time: '1:00.000' }],
-      }],
+      segments: [
+        {
+          driver: 'Alice',
+          source: 'alphaTiming',
+          mode: 'practice',
+          offset: '1:00.000',
+          url: 'https://results.alphatiming.co.uk/session/1',
+          timingData: [{ lap: 1, time: '1:00.000' }],
+        },
+      ],
     } as TimingConfig & { segments: Array<Record<string, string | number | object>> })
 
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('only valid for source "manual"')
@@ -69,12 +71,14 @@ describe('loadTimingConfig', () => {
 
   it('requires emailPath for daytonaEmail segments', async () => {
     const configPath = await writeTempConfig({
-      segments: [{
-        driver: 'Alice',
-        source: 'daytonaEmail',
-        mode: 'race',
-        offset: '1:00.000',
-      }],
+      segments: [
+        {
+          driver: 'Alice',
+          source: 'daytonaEmail',
+          mode: 'race',
+          offset: '1:00.000',
+        },
+      ],
     } as TimingConfig & { segments: Array<Record<string, string | number>> })
 
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('missing "emailPath"')
@@ -83,13 +87,15 @@ describe('loadTimingConfig', () => {
   it('loads overlay component config from config.json', async () => {
     const configPath = await writeTempConfig({
       overlayComponents: { leaderboard: false },
-      segments: [{
-        driver: 'Alice',
-        source: 'manual',
-        mode: 'practice',
-        offset: '1:00.000',
-        timingData: [{ lap: 1, time: '1:00.000' }],
-      }],
+      segments: [
+        {
+          driver: 'Alice',
+          source: 'manual',
+          mode: 'practice',
+          offset: '1:00.000',
+          timingData: [{ lap: 1, time: '1:00.000' }],
+        },
+      ],
     })
 
     const result = await loadTimingConfig(configPath, true)
@@ -120,9 +126,20 @@ describe('cached source validation', () => {
       raceSnapshots: true,
     },
     startingGrid: [{ kart: '42', position: 1 }],
-    replayData: [[
-      { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 60.0, gapToLeader: '', intervalToAhead: '' },
-    ]],
+    replayData: [
+      [
+        {
+          driverId: 1,
+          position: 1,
+          kart: '42',
+          name: 'Alice',
+          lapsCompleted: 1,
+          totalSeconds: 60.0,
+          gapToLeader: '',
+          intervalToAhead: '',
+        },
+      ],
+    ],
   }
 
   it('accepts a valid cached segment', async () => {
@@ -185,23 +202,39 @@ describe('resolveCachedSegment', () => {
       startingGrid: true,
       raceSnapshots: true,
     }
-    const startingGrid = [{ kart: '42', position: 1 }, { kart: '7', position: 2 }]
-    const replayData: unknown[][] = [[
-      { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 60.123, gapToLeader: '', intervalToAhead: '' },
-    ]]
+    const startingGrid = [
+      { kart: '42', position: 1 },
+      { kart: '7', position: 2 },
+    ]
+    const replayData: unknown[][] = [
+      [
+        {
+          driverId: 1,
+          position: 1,
+          kart: '42',
+          name: 'Alice',
+          lapsCompleted: 1,
+          totalSeconds: 60.123,
+          gapToLeader: '',
+          intervalToAhead: '',
+        },
+      ],
+    ]
 
     const configPath = await writeTempConfig({
-      segments: [{
-        driver: 'Alice',
-        source: 'cached',
-        mode: 'race',
-        offset: '1:00.000',
-        originalSource: 'alphaTiming',
-        drivers,
-        capabilities,
-        startingGrid,
-        replayData,
-      }],
+      segments: [
+        {
+          driver: 'Alice',
+          source: 'cached',
+          mode: 'race',
+          offset: '1:00.000',
+          originalSource: 'alphaTiming',
+          drivers,
+          capabilities,
+          startingGrid,
+          replayData,
+        },
+      ],
     })
     const loaded = await loadTimingConfig(configPath, true)
     const resolved = await resolveTimingSegments(loaded.segments)
@@ -233,15 +266,17 @@ describe('resolveCachedSegment', () => {
     }
 
     const configPath = await writeTempConfig({
-      segments: [{
-        driver: 'Alice',
-        source: 'cached',
-        mode: 'practice',
-        offset: '0:30.000',
-        originalSource: 'manual',
-        drivers,
-        capabilities,
-      }],
+      segments: [
+        {
+          driver: 'Alice',
+          source: 'cached',
+          mode: 'practice',
+          offset: '0:30.000',
+          originalSource: 'manual',
+          drivers,
+          capabilities,
+        },
+      ],
     })
     const loaded = await loadTimingConfig(configPath, true)
     const resolved = await resolveTimingSegments(loaded.segments)
@@ -250,10 +285,30 @@ describe('resolveCachedSegment', () => {
   })
 
   it('round-trips through JSON serialization without data loss', async () => {
-    const replayData: unknown[][] = [[
-      { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 60.123, gapToLeader: '', intervalToAhead: '' },
-      { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 1, totalSeconds: 61.0, gapToLeader: '0.877', intervalToAhead: '0.877' },
-    ]]
+    const replayData: unknown[][] = [
+      [
+        {
+          driverId: 1,
+          position: 1,
+          kart: '42',
+          name: 'Alice',
+          lapsCompleted: 1,
+          totalSeconds: 60.123,
+          gapToLeader: '',
+          intervalToAhead: '',
+        },
+        {
+          driverId: 2,
+          position: 2,
+          kart: '7',
+          name: 'Bob',
+          lapsCompleted: 1,
+          totalSeconds: 61.0,
+          gapToLeader: '0.877',
+          intervalToAhead: '0.877',
+        },
+      ],
+    ]
 
     const segment = {
       driver: 'Alice',
@@ -261,9 +316,7 @@ describe('resolveCachedSegment', () => {
       mode: 'race',
       offset: '1:00.000',
       originalSource: 'alphaTiming',
-      drivers: [
-        { kart: '42', name: 'Alice', laps: [{ number: 1, lapTime: 60.123, cumulative: 60.123 }] },
-      ],
+      drivers: [{ kart: '42', name: 'Alice', laps: [{ number: 1, lapTime: 60.123, cumulative: 60.123 }] }],
       capabilities: {
         driverDiscovery: true,
         lapTimes: true,
@@ -296,11 +349,16 @@ describe('resolveCachedSegment', () => {
 
 describe('validateManualTimingData', () => {
   it('accepts sequential laps starting at lap 0', () => {
-    expect(validateManualTimingData([
-      { lap: 0, time: '0:15.000' },
-      { lap: 1, time: '1:00.000' },
-      { lap: 2, time: '58.500' },
-    ], 0)).toEqual([
+    expect(
+      validateManualTimingData(
+        [
+          { lap: 0, time: '0:15.000' },
+          { lap: 1, time: '1:00.000' },
+          { lap: 2, time: '58.500' },
+        ],
+        0,
+      ),
+    ).toEqual([
       { lap: 0, time: '0:15.000' },
       { lap: 1, time: '1:00.000' },
       { lap: 2, time: '58.500' },
@@ -308,17 +366,27 @@ describe('validateManualTimingData', () => {
   })
 
   it('accepts sequential laps starting at lap 1', () => {
-    expect(validateManualTimingData([
-      { lap: 1, time: '1:00.000' },
-      { lap: 2, time: '58.500' },
-    ], 0)).toHaveLength(2)
+    expect(
+      validateManualTimingData(
+        [
+          { lap: 1, time: '1:00.000' },
+          { lap: 2, time: '58.500' },
+        ],
+        0,
+      ),
+    ).toHaveLength(2)
   })
 
   it('rejects non-sequential manual timing data', () => {
-    expect(() => validateManualTimingData([
-      { lap: 0, time: '0:15.000' },
-      { lap: 2, time: '58.500' },
-    ], 0)).toThrow('sequential without gaps')
+    expect(() =>
+      validateManualTimingData(
+        [
+          { lap: 0, time: '0:15.000' },
+          { lap: 2, time: '58.500' },
+        ],
+        0,
+      ),
+    ).toThrow('sequential without gaps')
   })
 })
 
@@ -339,7 +407,7 @@ describe('manual source', () => {
     ])
 
     const { segments } = buildSessionSegments(resolved, [90])
-    expect(segments[0].session.timestamps.map(ts => ({ lap: ts.lap.number, ytSeconds: ts.ytSeconds }))).toEqual([
+    expect(segments[0].session.timestamps.map((ts) => ({ lap: ts.lap.number, ytSeconds: ts.ytSeconds }))).toEqual([
       { lap: 0, ytSeconds: 75 },
       { lap: 1, ytSeconds: 90 },
       { lap: 2, ytSeconds: 150 },
@@ -361,7 +429,7 @@ describe('teamsportEmail source', () => {
 
     expect(resolved[0].drivers).toHaveLength(3)
     expect(resolved[0].selectedDriver?.name).toBe('Bob Example')
-    expect(resolved[0].selectedDriver?.laps.map(lap => lap.lapTime)).toEqual([62.5, 60.25])
+    expect(resolved[0].selectedDriver?.laps.map((lap) => lap.lapTime)).toEqual([62.5, 60.25])
     expect(resolved[0].capabilities.driverDiscovery).toBe(true)
   })
 })
@@ -398,7 +466,7 @@ describe('mylapsSpeedhive source', () => {
     expect(fetchMock).toHaveBeenCalled()
     expect(resolved[0].drivers).toHaveLength(2)
     expect(resolved[0].selectedDriver).toMatchObject({ name: 'Callum Bendelow', kart: '153' })
-    expect(resolved[0].selectedDriver?.laps.map(lap => lap.lapTime)).toEqual([51.163, 48.419, 47.901])
+    expect(resolved[0].selectedDriver?.laps.map((lap) => lap.lapTime)).toEqual([51.163, 48.419, 47.901])
   })
 })
 
@@ -466,17 +534,16 @@ describe('daytonaEmail source', () => {
 describe('driver list helpers', () => {
   it('treats identical driver lists as shared', () => {
     const drivers = [driver('1', 'Alice'), driver('2', 'Bob')]
-    expect(driverListsAreIdentical([
-      { config: baseSegment('alphaTiming'), capabilities: baseCapabilities(), drivers },
-      { config: baseSegment('mylapsSpeedhive'), capabilities: baseCapabilities(), drivers: [...drivers] },
-    ])).toBe(true)
+    expect(
+      driverListsAreIdentical([
+        { config: baseSegment('alphaTiming'), capabilities: baseCapabilities(), drivers },
+        { config: baseSegment('mylapsSpeedhive'), capabilities: baseCapabilities(), drivers: [...drivers] },
+      ]),
+    ).toBe(true)
   })
 
   it('highlights matching drivers by partial case-insensitive query', () => {
-    const matches = filterDriverHighlights(
-      [driver('1', 'Alice Example'), driver('2', 'Bob Example')],
-      'ali',
-    )
+    const matches = filterDriverHighlights([driver('1', 'Alice Example'), driver('2', 'Bob Example')], 'ali')
     expect(matches).toEqual([driver('1', 'Alice Example')])
   })
 })
@@ -506,7 +573,9 @@ function driver(kart: string, name: string): DriverRow {
   return { kart, name, laps: [] }
 }
 
-async function writeTempConfig(config: TimingConfig | { segments: Array<Record<string, string | number | object>> }): Promise<string> {
+async function writeTempConfig(
+  config: TimingConfig | { segments: Array<Record<string, string | number | object>> },
+): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'racedash-config-'))
   const filePath = join(dir, 'config.json')
   await writeFile(filePath, JSON.stringify(config, null, 2))
@@ -640,10 +709,7 @@ describe('buildRaceLapSnapshots', () => {
   })
 
   it('computes videoTimestamp = offsetSeconds + P1 totalSeconds', () => {
-    const replayData: ReplayLapData = [
-      [makeEntry(1, '1', 0)],
-      [makeEntry(1, '1', 69.707), makeEntry(2, '2', 70.207)],
-    ]
+    const replayData: ReplayLapData = [[makeEntry(1, '1', 0)], [makeEntry(1, '1', 69.707), makeEntry(2, '2', 70.207)]]
     const result = buildRaceLapSnapshots(replayData, 100)
     expect(result).toHaveLength(1)
     expect(result[0].videoTimestamp).toBe(169.707)
@@ -661,19 +727,13 @@ describe('buildRaceLapSnapshots', () => {
   })
 
   it('returns [] if all snapshots have null P1 totalSeconds', () => {
-    const replayData: ReplayLapData = [
-      [makeEntry(1, '1', 0)],
-      [makeEntry(1, '1', null), makeEntry(2, '2', null)],
-    ]
+    const replayData: ReplayLapData = [[makeEntry(1, '1', 0)], [makeEntry(1, '1', null), makeEntry(2, '2', null)]]
     const result = buildRaceLapSnapshots(replayData, 0)
     expect(result).toEqual([])
   })
 
   it('mapped RaceLapEntry omits totalSeconds and driverId', () => {
-    const replayData: ReplayLapData = [
-      [makeEntry(1, '1', 0)],
-      [makeEntry(1, '1', 60.0), makeEntry(2, '2', 60.5)],
-    ]
+    const replayData: ReplayLapData = [[makeEntry(1, '1', 0)], [makeEntry(1, '1', 60.0), makeEntry(2, '2', 60.5)]]
     const result = buildRaceLapSnapshots(replayData, 0)
     expect(result).toHaveLength(1)
     const entry = result[0].entries[0]
@@ -714,15 +774,15 @@ describe('validatePositionOverrideConfig', () => {
   })
 
   it('rejects overrides on non-race segments', () => {
-    expect(() =>
-      validatePositionOverrideConfig([{ timestamp: '6:02.345', position: 6 }], 'qualifying', 0),
-    ).toThrow('only valid for race segments')
+    expect(() => validatePositionOverrideConfig([{ timestamp: '6:02.345', position: 6 }], 'qualifying', 0)).toThrow(
+      'only valid for race segments',
+    )
   })
 
   it('rejects invalid positions', () => {
-    expect(() =>
-      validatePositionOverrideConfig([{ timestamp: '6:02.345', position: 0 }], 'race', 0),
-    ).toThrow('position must be an integer >= 1')
+    expect(() => validatePositionOverrideConfig([{ timestamp: '6:02.345', position: 0 }], 'race', 0)).toThrow(
+      'position must be an integer >= 1',
+    )
   })
 })
 
@@ -782,13 +842,9 @@ describe('resolvePositionOverrides', () => {
   })
 
   it('rejects overrides before the segment offset', () => {
-    expect(() =>
-      resolvePositionOverrides(
-        [{ timestamp: '4:59.999', position: 6 }],
-        300,
-        0,
-      ),
-    ).toThrow('timestamp must be >= the segment offset')
+    expect(() => resolvePositionOverrides([{ timestamp: '4:59.999', position: 6 }], 300, 0)).toThrow(
+      'timestamp must be >= the segment offset',
+    )
   })
 })
 
@@ -798,27 +854,47 @@ describe('cached source property and characterisation tests', () => {
       // Build a rich dataset: 3 drivers, 3 laps each, race mode
       // with startingGrid and replayData (2 lap snapshots)
       const drivers = [
-        { kart: '42', name: 'Alice', laps: [
-          { number: 1, lapTime: 62.345, cumulative: 62.345 },
-          { number: 2, lapTime: 58.901, cumulative: 121.246 },
-          { number: 3, lapTime: 59.100, cumulative: 180.346 },
-        ]},
-        { kart: '7', name: 'Bob', laps: [
-          { number: 1, lapTime: 63.000, cumulative: 63.000 },
-          { number: 2, lapTime: 59.500, cumulative: 122.500 },
-          { number: 3, lapTime: 60.200, cumulative: 182.700 },
-        ]},
-        { kart: '13', name: 'Charlie', laps: [
-          { number: 1, lapTime: 64.100, cumulative: 64.100 },
-          { number: 2, lapTime: 60.000, cumulative: 124.100 },
-          { number: 3, lapTime: 58.500, cumulative: 182.600 },
-        ]},
+        {
+          kart: '42',
+          name: 'Alice',
+          laps: [
+            { number: 1, lapTime: 62.345, cumulative: 62.345 },
+            { number: 2, lapTime: 58.901, cumulative: 121.246 },
+            { number: 3, lapTime: 59.1, cumulative: 180.346 },
+          ],
+        },
+        {
+          kart: '7',
+          name: 'Bob',
+          laps: [
+            { number: 1, lapTime: 63.0, cumulative: 63.0 },
+            { number: 2, lapTime: 59.5, cumulative: 122.5 },
+            { number: 3, lapTime: 60.2, cumulative: 182.7 },
+          ],
+        },
+        {
+          kart: '13',
+          name: 'Charlie',
+          laps: [
+            { number: 1, lapTime: 64.1, cumulative: 64.1 },
+            { number: 2, lapTime: 60.0, cumulative: 124.1 },
+            { number: 3, lapTime: 58.5, cumulative: 182.6 },
+          ],
+        },
       ]
       const capabilities = {
-        driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
-        position: true, classificationPosition: true, leaderboard: true,
-        gapToLeader: true, gapToKartAhead: true, gapToKartBehind: false,
-        startingGrid: true, raceSnapshots: true,
+        driverDiscovery: true,
+        lapTimes: true,
+        bestLap: true,
+        lastLap: true,
+        position: true,
+        classificationPosition: true,
+        leaderboard: true,
+        gapToLeader: true,
+        gapToKartAhead: true,
+        gapToKartBehind: false,
+        startingGrid: true,
+        raceSnapshots: true,
       }
       const startingGrid = [
         { position: 1, kart: '42', name: 'Alice' },
@@ -829,31 +905,119 @@ describe('cached source property and characterisation tests', () => {
       const replayData = [
         // Pre-race (index 0) — positions from grid
         [
-          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 3, position: 3, kart: '13', name: 'Charlie', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+          {
+            driverId: 1,
+            position: 1,
+            kart: '42',
+            name: 'Alice',
+            lapsCompleted: 0,
+            totalSeconds: null,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 2,
+            position: 2,
+            kart: '7',
+            name: 'Bob',
+            lapsCompleted: 0,
+            totalSeconds: null,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 3,
+            position: 3,
+            kart: '13',
+            name: 'Charlie',
+            lapsCompleted: 0,
+            totalSeconds: null,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
         ],
         // After leader lap 1
         [
-          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 62.345, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 1, totalSeconds: 63.000, gapToLeader: '0.655', intervalToAhead: '0.655' },
-          { driverId: 3, position: 3, kart: '13', name: 'Charlie', lapsCompleted: 1, totalSeconds: 64.100, gapToLeader: '1.755', intervalToAhead: '1.100' },
+          {
+            driverId: 1,
+            position: 1,
+            kart: '42',
+            name: 'Alice',
+            lapsCompleted: 1,
+            totalSeconds: 62.345,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 2,
+            position: 2,
+            kart: '7',
+            name: 'Bob',
+            lapsCompleted: 1,
+            totalSeconds: 63.0,
+            gapToLeader: '0.655',
+            intervalToAhead: '0.655',
+          },
+          {
+            driverId: 3,
+            position: 3,
+            kart: '13',
+            name: 'Charlie',
+            lapsCompleted: 1,
+            totalSeconds: 64.1,
+            gapToLeader: '1.755',
+            intervalToAhead: '1.100',
+          },
         ],
         // After leader lap 2
         [
-          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 2, totalSeconds: 121.246, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 2, totalSeconds: 122.500, gapToLeader: '1.254', intervalToAhead: '1.254' },
-          { driverId: 3, position: 3, kart: '13', name: 'Charlie', lapsCompleted: 2, totalSeconds: 124.100, gapToLeader: '2.854', intervalToAhead: '1.600' },
+          {
+            driverId: 1,
+            position: 1,
+            kart: '42',
+            name: 'Alice',
+            lapsCompleted: 2,
+            totalSeconds: 121.246,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 2,
+            position: 2,
+            kart: '7',
+            name: 'Bob',
+            lapsCompleted: 2,
+            totalSeconds: 122.5,
+            gapToLeader: '1.254',
+            intervalToAhead: '1.254',
+          },
+          {
+            driverId: 3,
+            position: 3,
+            kart: '13',
+            name: 'Charlie',
+            lapsCompleted: 2,
+            totalSeconds: 124.1,
+            gapToLeader: '2.854',
+            intervalToAhead: '1.600',
+          },
         ],
       ]
 
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Alice',
-          source: 'cached', mode: 'race', offset: '0:00.000',
-          originalSource: 'alphaTiming',
-          drivers, capabilities, startingGrid, replayData,
-        }],
+        segments: [
+          {
+            driver: 'Alice',
+            source: 'cached',
+            mode: 'race',
+            offset: '0:00.000',
+            originalSource: 'alphaTiming',
+            drivers,
+            capabilities,
+            startingGrid,
+            replayData,
+          },
+        ],
       })
 
       const loaded = await loadTimingConfig(configPath, true)
@@ -882,25 +1046,37 @@ describe('cached source property and characterisation tests', () => {
     it('preserves floating-point precision through JSON round-trip', async () => {
       // Edge cases: very small differences, repeating decimals, accumulated sums
       const edgeCaseLaps = [
-        { number: 1, lapTime: 0.001, cumulative: 0.001 },           // very small
-        { number: 2, lapTime: 59.999, cumulative: 60.0 },           // near-integer sum
+        { number: 1, lapTime: 0.001, cumulative: 0.001 }, // very small
+        { number: 2, lapTime: 59.999, cumulative: 60.0 }, // near-integer sum
         { number: 3, lapTime: 0.1 + 0.2, cumulative: 60.0 + 0.3 }, // IEEE 754 classic
         { number: 4, lapTime: 123.456789, cumulative: 183.756789 }, // many decimals
       ]
 
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Precision Test',
-          source: 'cached', mode: 'practice', offset: '0:00.000',
-          originalSource: 'alphaTiming',
-          drivers: [{ kart: '1', name: 'Precision Test', laps: edgeCaseLaps }],
-          capabilities: {
-            driverDiscovery: false, lapTimes: true, bestLap: true, lastLap: true,
-            position: false, classificationPosition: false, leaderboard: false,
-            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
-            startingGrid: false, raceSnapshots: false,
+        segments: [
+          {
+            driver: 'Precision Test',
+            source: 'cached',
+            mode: 'practice',
+            offset: '0:00.000',
+            originalSource: 'alphaTiming',
+            drivers: [{ kart: '1', name: 'Precision Test', laps: edgeCaseLaps }],
+            capabilities: {
+              driverDiscovery: false,
+              lapTimes: true,
+              bestLap: true,
+              lastLap: true,
+              position: false,
+              classificationPosition: false,
+              leaderboard: false,
+              gapToLeader: false,
+              gapToKartAhead: false,
+              gapToKartBehind: false,
+              startingGrid: false,
+              raceSnapshots: false,
+            },
           },
-        }],
+        ],
       })
 
       const loaded = await loadTimingConfig(configPath, true)
@@ -923,18 +1099,30 @@ describe('cached source property and characterisation tests', () => {
       ]
 
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Alice',
-          source: 'cached', mode: 'race', offset: '0:00.000',
-          originalSource: 'alphaTiming',
-          drivers,
-          capabilities: {
-            driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
-            position: true, classificationPosition: true, leaderboard: true,
-            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
-            startingGrid: false, raceSnapshots: false,
+        segments: [
+          {
+            driver: 'Alice',
+            source: 'cached',
+            mode: 'race',
+            offset: '0:00.000',
+            originalSource: 'alphaTiming',
+            drivers,
+            capabilities: {
+              driverDiscovery: true,
+              lapTimes: true,
+              bestLap: true,
+              lastLap: true,
+              position: true,
+              classificationPosition: true,
+              leaderboard: true,
+              gapToLeader: false,
+              gapToKartAhead: false,
+              gapToKartBehind: false,
+              startingGrid: false,
+              raceSnapshots: false,
+            },
           },
-        }],
+        ],
       })
 
       const loaded = await loadTimingConfig(configPath, true)
@@ -945,28 +1133,44 @@ describe('cached source property and characterisation tests', () => {
       expect(resolved1[0].selectedDriver?.kart).toBe('13')
 
       // Ambiguous match should throw (same behavior as all other sources)
-      await expect(resolveTimingSegments(loaded.segments.map(s => ({ ...s, driver: 'Georg' })))).rejects.toThrow(/ambiguous/i)
+      await expect(resolveTimingSegments(loaded.segments.map((s) => ({ ...s, driver: 'Georg' })))).rejects.toThrow(
+        /ambiguous/i,
+      )
 
       // No match should throw
-      await expect(resolveTimingSegments(loaded.segments.map(s => ({ ...s, driver: 'Nonexistent' })))).rejects.toThrow(/no driver/i)
+      await expect(
+        resolveTimingSegments(loaded.segments.map((s) => ({ ...s, driver: 'Nonexistent' }))),
+      ).rejects.toThrow(/no driver/i)
     })
   })
 
   describe('no nested caching', () => {
     it('cached segments resolve with source still set to cached', async () => {
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Test',
-          source: 'cached', mode: 'race', offset: '0:00.000',
-          originalSource: 'alphaTiming',
-          drivers: [{ kart: '1', name: 'Test', laps: [{ number: 1, lapTime: 60, cumulative: 60 }] }],
-          capabilities: {
-            driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
-            position: true, classificationPosition: true, leaderboard: true,
-            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
-            startingGrid: false, raceSnapshots: false,
+        segments: [
+          {
+            driver: 'Test',
+            source: 'cached',
+            mode: 'race',
+            offset: '0:00.000',
+            originalSource: 'alphaTiming',
+            drivers: [{ kart: '1', name: 'Test', laps: [{ number: 1, lapTime: 60, cumulative: 60 }] }],
+            capabilities: {
+              driverDiscovery: true,
+              lapTimes: true,
+              bestLap: true,
+              lastLap: true,
+              position: true,
+              classificationPosition: true,
+              leaderboard: true,
+              gapToLeader: false,
+              gapToKartAhead: false,
+              gapToKartBehind: false,
+              startingGrid: false,
+              raceSnapshots: false,
+            },
           },
-        }],
+        ],
       })
 
       const loaded = await loadTimingConfig(configPath, true)
@@ -980,18 +1184,30 @@ describe('cached source property and characterisation tests', () => {
 
     it('rejects originalSource set to cached at validation level', async () => {
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Test',
-          source: 'cached', mode: 'race', offset: '0:00.000',
-          originalSource: 'cached',  // THIS SHOULD BE REJECTED
-          drivers: [],
-          capabilities: {
-            driverDiscovery: false, lapTimes: true, bestLap: true, lastLap: true,
-            position: false, classificationPosition: false, leaderboard: false,
-            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
-            startingGrid: false, raceSnapshots: false,
+        segments: [
+          {
+            driver: 'Test',
+            source: 'cached',
+            mode: 'race',
+            offset: '0:00.000',
+            originalSource: 'cached', // THIS SHOULD BE REJECTED
+            drivers: [],
+            capabilities: {
+              driverDiscovery: false,
+              lapTimes: true,
+              bestLap: true,
+              lastLap: true,
+              position: false,
+              classificationPosition: false,
+              leaderboard: false,
+              gapToLeader: false,
+              gapToKartAhead: false,
+              gapToKartBehind: false,
+              startingGrid: false,
+              raceSnapshots: false,
+            },
           },
-        }],
+        ],
       })
 
       await expect(loadTimingConfig(configPath, true)).rejects.toThrow(/originalSource/)
@@ -1001,14 +1217,22 @@ describe('cached source property and characterisation tests', () => {
   describe('full pipeline: cached → buildSessionSegments', () => {
     it('produces correct SessionSegment with leaderboard, grid position, and race snapshots', async () => {
       const drivers = [
-        { kart: '42', name: 'Alice', laps: [
-          { number: 1, lapTime: 62.0, cumulative: 62.0 },
-          { number: 2, lapTime: 58.0, cumulative: 120.0 },
-        ]},
-        { kart: '7', name: 'Bob', laps: [
-          { number: 1, lapTime: 63.0, cumulative: 63.0 },
-          { number: 2, lapTime: 59.0, cumulative: 122.0 },
-        ]},
+        {
+          kart: '42',
+          name: 'Alice',
+          laps: [
+            { number: 1, lapTime: 62.0, cumulative: 62.0 },
+            { number: 2, lapTime: 58.0, cumulative: 120.0 },
+          ],
+        },
+        {
+          kart: '7',
+          name: 'Bob',
+          laps: [
+            { number: 1, lapTime: 63.0, cumulative: 63.0 },
+            { number: 2, lapTime: 59.0, cumulative: 122.0 },
+          ],
+        },
       ]
       const startingGrid = [
         { position: 1, kart: '42', name: 'Alice' },
@@ -1017,34 +1241,103 @@ describe('cached source property and characterisation tests', () => {
       const replayData = [
         // Pre-race
         [
-          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 0, totalSeconds: null, gapToLeader: '', intervalToAhead: '' },
+          {
+            driverId: 1,
+            position: 1,
+            kart: '42',
+            name: 'Alice',
+            lapsCompleted: 0,
+            totalSeconds: null,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 2,
+            position: 2,
+            kart: '7',
+            name: 'Bob',
+            lapsCompleted: 0,
+            totalSeconds: null,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
         ],
         // After lap 1
         [
-          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 1, totalSeconds: 62.0, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 1, totalSeconds: 63.0, gapToLeader: '1.000', intervalToAhead: '1.000' },
+          {
+            driverId: 1,
+            position: 1,
+            kart: '42',
+            name: 'Alice',
+            lapsCompleted: 1,
+            totalSeconds: 62.0,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 2,
+            position: 2,
+            kart: '7',
+            name: 'Bob',
+            lapsCompleted: 1,
+            totalSeconds: 63.0,
+            gapToLeader: '1.000',
+            intervalToAhead: '1.000',
+          },
         ],
         // After lap 2
         [
-          { driverId: 1, position: 1, kart: '42', name: 'Alice', lapsCompleted: 2, totalSeconds: 120.0, gapToLeader: '', intervalToAhead: '' },
-          { driverId: 2, position: 2, kart: '7', name: 'Bob', lapsCompleted: 2, totalSeconds: 122.0, gapToLeader: '2.000', intervalToAhead: '2.000' },
+          {
+            driverId: 1,
+            position: 1,
+            kart: '42',
+            name: 'Alice',
+            lapsCompleted: 2,
+            totalSeconds: 120.0,
+            gapToLeader: '',
+            intervalToAhead: '',
+          },
+          {
+            driverId: 2,
+            position: 2,
+            kart: '7',
+            name: 'Bob',
+            lapsCompleted: 2,
+            totalSeconds: 122.0,
+            gapToLeader: '2.000',
+            intervalToAhead: '2.000',
+          },
         ],
       ]
       const capabilities = {
-        driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
-        position: true, classificationPosition: true, leaderboard: true,
-        gapToLeader: true, gapToKartAhead: true, gapToKartBehind: false,
-        startingGrid: true, raceSnapshots: true,
+        driverDiscovery: true,
+        lapTimes: true,
+        bestLap: true,
+        lastLap: true,
+        position: true,
+        classificationPosition: true,
+        leaderboard: true,
+        gapToLeader: true,
+        gapToKartAhead: true,
+        gapToKartBehind: false,
+        startingGrid: true,
+        raceSnapshots: true,
       }
 
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Alice',
-          source: 'cached', mode: 'race', offset: '10:00.000',
-          originalSource: 'alphaTiming',
-          drivers, capabilities, startingGrid, replayData,
-        }],
+        segments: [
+          {
+            driver: 'Alice',
+            source: 'cached',
+            mode: 'race',
+            offset: '10:00.000',
+            originalSource: 'alphaTiming',
+            drivers,
+            capabilities,
+            startingGrid,
+            replayData,
+          },
+        ],
       })
 
       const loaded = await loadTimingConfig(configPath, true)
@@ -1063,8 +1356,8 @@ describe('cached source property and characterisation tests', () => {
       // --- Lap timestamps offset by 600s ---
       // ytSeconds = cumulative - lapTime + offset
       expect(seg.session.timestamps).toHaveLength(2)
-      expect(seg.session.timestamps[0].ytSeconds).toBe(offset + 62.0 - 62.0)   // lap 1 start
-      expect(seg.session.timestamps[1].ytSeconds).toBe(offset + 120.0 - 58.0)  // lap 2 start
+      expect(seg.session.timestamps[0].ytSeconds).toBe(offset + 62.0 - 62.0) // lap 1 start
+      expect(seg.session.timestamps[1].ytSeconds).toBe(offset + 120.0 - 58.0) // lap 2 start
 
       // --- Starting grid position ---
       expect(startingGridPosition).toBe(1) // Alice is P1
@@ -1098,28 +1391,36 @@ describe('cached source property and characterisation tests', () => {
 
     it('handles practice mode without replayData or startingGrid', async () => {
       const drivers = [
-        { kart: '42', name: 'Alice', laps: [
-          { number: 1, lapTime: 62.0, cumulative: 62.0 },
-        ]},
-        { kart: '7', name: 'Bob', laps: [
-          { number: 1, lapTime: 63.0, cumulative: 63.0 },
-        ]},
+        { kart: '42', name: 'Alice', laps: [{ number: 1, lapTime: 62.0, cumulative: 62.0 }] },
+        { kart: '7', name: 'Bob', laps: [{ number: 1, lapTime: 63.0, cumulative: 63.0 }] },
       ]
 
       const configPath = await writeTempConfig({
-        segments: [{
-          driver: 'Alice',
-          source: 'cached', mode: 'practice', offset: '0:00.000',
-          originalSource: 'alphaTiming',
-          drivers,
-          capabilities: {
-            driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
-            position: false, classificationPosition: false, leaderboard: true,
-            gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
-            startingGrid: false, raceSnapshots: false,
+        segments: [
+          {
+            driver: 'Alice',
+            source: 'cached',
+            mode: 'practice',
+            offset: '0:00.000',
+            originalSource: 'alphaTiming',
+            drivers,
+            capabilities: {
+              driverDiscovery: true,
+              lapTimes: true,
+              bestLap: true,
+              lastLap: true,
+              position: false,
+              classificationPosition: false,
+              leaderboard: true,
+              gapToLeader: false,
+              gapToKartAhead: false,
+              gapToKartBehind: false,
+              startingGrid: false,
+              raceSnapshots: false,
+            },
+            // No startingGrid, no replayData
           },
-          // No startingGrid, no replayData
-        }],
+        ],
       })
 
       const loaded = await loadTimingConfig(configPath, true)
@@ -1141,8 +1442,22 @@ describe('cached source property and characterisation tests', () => {
 describe('flattenTimestamps', () => {
   it('flattens and sorts timestamps from multiple segments', () => {
     const segments = [
-      { session: { timestamps: [{ ytSeconds: 30, label: 'L1' }, { ytSeconds: 90, label: 'L2' }] } },
-      { session: { timestamps: [{ ytSeconds: 10, label: 'L0' }, { ytSeconds: 60, label: 'L1' }] } },
+      {
+        session: {
+          timestamps: [
+            { ytSeconds: 30, label: 'L1' },
+            { ytSeconds: 90, label: 'L2' },
+          ],
+        },
+      },
+      {
+        session: {
+          timestamps: [
+            { ytSeconds: 10, label: 'L0' },
+            { ytSeconds: 60, label: 'L1' },
+          ],
+        },
+      },
     ] as any
     const result = flattenTimestamps(segments)
     expect(result.map((t: any) => t.ytSeconds)).toEqual([10, 30, 60, 90])
@@ -1196,13 +1511,26 @@ describe('driverListsAreIdentical (extended)', () => {
   })
 
   it('returns false when driver lists differ', () => {
-    const seg1 = { drivers: [{ kart: '1', name: 'A', laps: [] }, { kart: '2', name: 'B', laps: [] }] } as any
-    const seg2 = { drivers: [{ kart: '1', name: 'A', laps: [] }, { kart: '3', name: 'C', laps: [] }] } as any
+    const seg1 = {
+      drivers: [
+        { kart: '1', name: 'A', laps: [] },
+        { kart: '2', name: 'B', laps: [] },
+      ],
+    } as any
+    const seg2 = {
+      drivers: [
+        { kart: '1', name: 'A', laps: [] },
+        { kart: '3', name: 'C', laps: [] },
+      ],
+    } as any
     expect(driverListsAreIdentical([seg1, seg2])).toBe(false)
   })
 
   it('returns true when driver lists are identical', () => {
-    const drivers = [{ kart: '1', name: 'A', laps: [] }, { kart: '2', name: 'B', laps: [] }]
+    const drivers = [
+      { kart: '1', name: 'A', laps: [] },
+      { kart: '2', name: 'B', laps: [] },
+    ]
     const seg1 = { drivers } as any
     const seg2 = { drivers } as any
     expect(driverListsAreIdentical([seg1, seg2])).toBe(true)
@@ -1227,57 +1555,92 @@ describe('loadTimingConfig edge cases', () => {
   it('requires driver when requireDriver is true', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{ source: 'alphaTiming', mode: 'race', offset: '0:00', url: 'https://example.com' }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [{ source: 'alphaTiming', mode: 'race', offset: '0:00', url: 'https://example.com' }],
+      }),
+    )
     await expect(loadTimingConfig(configPath, true)).rejects.toThrow('driver is required')
   })
 
   it('rejects url on teamsportEmail source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'teamsportEmail', mode: 'practice', offset: '0:00',
-        emailPath: 'test.eml', url: 'https://bad.com',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'teamsportEmail',
+            mode: 'practice',
+            offset: '0:00',
+            emailPath: 'test.eml',
+            url: 'https://bad.com',
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('url is not valid for source "teamsportEmail"')
   })
 
   it('rejects timingData on teamsportEmail source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'teamsportEmail', mode: 'practice', offset: '0:00',
-        emailPath: 'test.eml', timingData: [{ lap: 1, time: '1:00' }],
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'teamsportEmail',
+            mode: 'practice',
+            offset: '0:00',
+            emailPath: 'test.eml',
+            timingData: [{ lap: 1, time: '1:00' }],
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('timingData is only valid for source "manual"')
   })
 
   it('rejects emailPath on alphaTiming source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'alphaTiming', mode: 'race', offset: '0:00',
-        url: 'https://example.com', emailPath: 'test.eml',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'alphaTiming',
+            mode: 'race',
+            offset: '0:00',
+            url: 'https://example.com',
+            emailPath: 'test.eml',
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('emailPath is not valid for source "alphaTiming"')
   })
 
   it('parses daytonaEmail segment config', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'daytonaEmail', mode: 'practice', offset: '0:00',
-        driver: 'Test', emailPath: 'test.eml',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'daytonaEmail',
+            mode: 'practice',
+            offset: '0:00',
+            driver: 'Test',
+            emailPath: 'test.eml',
+          },
+        ],
+      }),
+    )
     const config = await loadTimingConfig(configPath, true)
     expect(config.segments[0].source).toBe('daytonaEmail')
   })
@@ -1285,24 +1648,40 @@ describe('loadTimingConfig edge cases', () => {
   it('rejects url on daytonaEmail source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'daytonaEmail', mode: 'practice', offset: '0:00',
-        emailPath: 'test.eml', url: 'https://bad.com',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'daytonaEmail',
+            mode: 'practice',
+            offset: '0:00',
+            emailPath: 'test.eml',
+            url: 'https://bad.com',
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('url is not valid for source "daytonaEmail"')
   })
 
   it('parses mylapsSpeedhive segment config', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'mylapsSpeedhive', mode: 'practice', offset: '0:00',
-        driver: 'Test', url: 'https://speedhive.mylaps.com/sessions/12345',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'mylapsSpeedhive',
+            mode: 'practice',
+            offset: '0:00',
+            driver: 'Test',
+            url: 'https://speedhive.mylaps.com/sessions/12345',
+          },
+        ],
+      }),
+    )
     const config = await loadTimingConfig(configPath, true)
     expect(config.segments[0].source).toBe('mylapsSpeedhive')
   })
@@ -1310,91 +1689,144 @@ describe('loadTimingConfig edge cases', () => {
   it('rejects emailPath on mylapsSpeedhive source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'mylapsSpeedhive', mode: 'practice', offset: '0:00',
-        url: 'https://speedhive.mylaps.com/sessions/12345',
-        emailPath: 'test.eml',
-      }],
-    }))
-    await expect(loadTimingConfig(configPath, false)).rejects.toThrow('emailPath is not valid for source "mylapsSpeedhive"')
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'mylapsSpeedhive',
+            mode: 'practice',
+            offset: '0:00',
+            url: 'https://speedhive.mylaps.com/sessions/12345',
+            emailPath: 'test.eml',
+          },
+        ],
+      }),
+    )
+    await expect(loadTimingConfig(configPath, false)).rejects.toThrow(
+      'emailPath is not valid for source "mylapsSpeedhive"',
+    )
   })
 
   it('rejects timingData on mylapsSpeedhive source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'mylapsSpeedhive', mode: 'practice', offset: '0:00',
-        url: 'https://speedhive.mylaps.com/sessions/12345',
-        timingData: [{ lap: 1, time: '1:00.000' }],
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'mylapsSpeedhive',
+            mode: 'practice',
+            offset: '0:00',
+            url: 'https://speedhive.mylaps.com/sessions/12345',
+            timingData: [{ lap: 1, time: '1:00.000' }],
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('timingData is only valid for source "manual"')
   })
 
   it('rejects url on manual source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'manual', mode: 'practice', offset: '0:00',
-        driver: 'Test', url: 'https://bad.com',
-        timingData: [{ lap: 1, time: '1:00.000' }],
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'manual',
+            mode: 'practice',
+            offset: '0:00',
+            driver: 'Test',
+            url: 'https://bad.com',
+            timingData: [{ lap: 1, time: '1:00.000' }],
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('url is not valid for source "manual"')
   })
 
   it('rejects emailPath on manual source', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'manual', mode: 'practice', offset: '0:00',
-        driver: 'Test', emailPath: 'test.eml',
-        timingData: [{ lap: 1, time: '1:00.000' }],
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'manual',
+            mode: 'practice',
+            offset: '0:00',
+            driver: 'Test',
+            emailPath: 'test.eml',
+            timingData: [{ lap: 1, time: '1:00.000' }],
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('emailPath is not valid for source "manual"')
   })
 
   it('rejects non-object positionOverrides entries', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'alphaTiming', mode: 'race', offset: '0:00',
-        url: 'https://example.com',
-        positionOverrides: ['bad'],
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'alphaTiming',
+            mode: 'race',
+            offset: '0:00',
+            url: 'https://example.com',
+            positionOverrides: ['bad'],
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('must be an object')
   })
 
   it('rejects positionOverrides with missing timestamp', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'alphaTiming', mode: 'race', offset: '0:00',
-        url: 'https://example.com',
-        positionOverrides: [{ position: 1 }],
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'alphaTiming',
+            mode: 'race',
+            offset: '0:00',
+            url: 'https://example.com',
+            positionOverrides: [{ position: 1 }],
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('missing "timestamp"')
   })
 
   it('rejects non-array positionOverrides', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'alphaTiming', mode: 'race', offset: '0:00',
-        url: 'https://example.com',
-        positionOverrides: 'bad',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'alphaTiming',
+            mode: 'race',
+            offset: '0:00',
+            url: 'https://example.com',
+            positionOverrides: 'bad',
+          },
+        ],
+      }),
+    )
     await expect(loadTimingConfig(configPath, false)).rejects.toThrow('must be an array')
   })
 })
@@ -1403,25 +1835,38 @@ describe('resolveDriversCommandSegments', () => {
   it('returns driver display info for cached segments', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'cached',
-        mode: 'practice',
-        offset: '0:00',
-        driver: 'Alice',
-        originalSource: 'alphaTiming',
-        drivers: [
-          { kart: '5', name: 'Alice', laps: [{ number: 1, lapTime: 62.5, cumulative: 62.5 }] },
-          { kart: '7', name: 'Bob', laps: [{ number: 1, lapTime: 63.0, cumulative: 63.0 }] },
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'cached',
+            mode: 'practice',
+            offset: '0:00',
+            driver: 'Alice',
+            originalSource: 'alphaTiming',
+            drivers: [
+              { kart: '5', name: 'Alice', laps: [{ number: 1, lapTime: 62.5, cumulative: 62.5 }] },
+              { kart: '7', name: 'Bob', laps: [{ number: 1, lapTime: 63.0, cumulative: 63.0 }] },
+            ],
+            capabilities: {
+              driverDiscovery: true,
+              lapTimes: true,
+              bestLap: true,
+              lastLap: true,
+              position: false,
+              classificationPosition: false,
+              leaderboard: true,
+              gapToLeader: false,
+              gapToKartAhead: false,
+              gapToKartBehind: false,
+              startingGrid: false,
+              raceSnapshots: false,
+            },
+          },
         ],
-        capabilities: {
-          driverDiscovery: true, lapTimes: true, bestLap: true, lastLap: true,
-          position: false, classificationPosition: false, leaderboard: true,
-          gapToLeader: false, gapToKartAhead: false, gapToKartBehind: false,
-          startingGrid: false, raceSnapshots: false,
-        },
-      }],
-    }))
+      }),
+    )
 
     const loaded = await loadTimingConfig(configPath, true)
     const result = await resolveDriversCommandSegments(loaded.segments)
@@ -1443,15 +1888,20 @@ describe('resolveTimingSegments with alphaTiming source', () => {
 
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'alphaTiming',
-        mode: 'practice',
-        offset: '0:00',
-        driver: 'Alice',
-        url: 'https://alphatiming.example.com/session/1',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'alphaTiming',
+            mode: 'practice',
+            offset: '0:00',
+            driver: 'Alice',
+            url: 'https://alphatiming.example.com/session/1',
+          },
+        ],
+      }),
+    )
 
     const loaded = await loadTimingConfig(configPath, true)
     const resolved = await resolveTimingSegments(loaded.segments)
@@ -1473,20 +1923,38 @@ describe('resolveTimingSegments with alphaTiming source', () => {
     ])
     vi.spyOn(scraper, 'parseGrid').mockReturnValueOnce([{ position: 1, kart: '5', name: 'Alice' }])
     vi.spyOn(scraper, 'parseReplayLapData').mockReturnValueOnce({
-      snapshots: [[{ driverId: 1, position: 1, kart: '5', name: 'Alice', lapsCompleted: 1, totalSeconds: 62.5, gapToLeader: '0.000', intervalToAhead: '' }]],
+      snapshots: [
+        [
+          {
+            driverId: 1,
+            position: 1,
+            kart: '5',
+            name: 'Alice',
+            lapsCompleted: 1,
+            totalSeconds: 62.5,
+            gapToLeader: '0.000',
+            intervalToAhead: '',
+          },
+        ],
+      ],
     })
 
     const dir = await mkdtemp(join(tmpdir(), 'racedash-test-'))
     const configPath = join(dir, 'config.json')
-    await writeFile(configPath, JSON.stringify({
-      segments: [{
-        source: 'alphaTiming',
-        mode: 'race',
-        offset: '0:00',
-        driver: 'Alice',
-        url: 'https://alphatiming.example.com/session/1',
-      }],
-    }))
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        segments: [
+          {
+            source: 'alphaTiming',
+            mode: 'race',
+            offset: '0:00',
+            driver: 'Alice',
+            url: 'https://alphatiming.example.com/session/1',
+          },
+        ],
+      }),
+    )
 
     const loaded = await loadTimingConfig(configPath, true)
     const resolved = await resolveTimingSegments(loaded.segments)
@@ -1501,12 +1969,14 @@ describe('resolveTimingSegments with alphaTiming source', () => {
 
 describe('buildSessionSegments edge case: no selectedDriver', () => {
   it('throws when no selected driver resolved', () => {
-    const resolved = [{
-      config: { mode: 'practice', label: undefined },
-      drivers: [],
-      selectedDriver: undefined,
-      capabilities: { leaderboard: false },
-    }] as any
+    const resolved = [
+      {
+        config: { mode: 'practice', label: undefined },
+        drivers: [],
+        selectedDriver: undefined,
+        capabilities: { leaderboard: false },
+      },
+    ] as any
 
     expect(() => buildSessionSegments(resolved, [0])).toThrow('No selected driver')
   })

@@ -249,10 +249,10 @@ export function buildRaceLapSnapshots(replayData: ReplayLapData, offsetSeconds: 
   const result: RaceLapSnapshot[] = []
   for (let i = 1; i < replayData.length; i++) {
     const snapshot = replayData[i]
-    const p1 = snapshot.find(entry => entry.position === 1)
+    const p1 = snapshot.find((entry) => entry.position === 1)
     if (!p1 || p1.totalSeconds === null) continue
     const videoTimestamp = offsetSeconds + p1.totalSeconds
-    const entries: RaceLapEntry[] = snapshot.map(entry => ({
+    const entries: RaceLapEntry[] = snapshot.map((entry) => ({
       kart: entry.kart,
       name: entry.name,
       position: entry.position,
@@ -311,9 +311,7 @@ export function resolvePositionOverrides(
   for (let i = 0; i < positionOverrides.length; i++) {
     const resolvedTimestamp = parseOffset(positionOverrides[i].timestamp, fps)
     if (resolvedTimestamp < offsetSeconds) {
-      throw new Error(
-        `segments[${segmentIndex}].positionOverrides[${i}].timestamp must be >= the segment offset`,
-      )
+      throw new Error(`segments[${segmentIndex}].positionOverrides[${i}].timestamp must be >= the segment offset`)
     }
     if (resolvedTimestamp <= previousTimestamp) {
       throw new Error(`segments[${segmentIndex}].positionOverrides must be sorted ascending by timestamp`)
@@ -321,7 +319,7 @@ export function resolvePositionOverrides(
     previousTimestamp = resolvedTimestamp
   }
 
-  return positionOverrides.map(entry => ({
+  return positionOverrides.map((entry) => ({
     timestamp: parseOffset(entry.timestamp, fps),
     position: entry.position,
   }))
@@ -355,17 +353,13 @@ export async function loadTimingConfig(configPath: string, requireDriver: boolea
   }
 }
 
-export async function resolveTimingSegments(
-  segments: SegmentConfig[],
-): Promise<ResolvedTimingSegment[]> {
-  return Promise.all(segments.map(segment => resolveTimingSegment(segment, segment.driver)))
+export async function resolveTimingSegments(segments: SegmentConfig[]): Promise<ResolvedTimingSegment[]> {
+  return Promise.all(segments.map((segment) => resolveTimingSegment(segment, segment.driver)))
 }
 
-export async function resolveDriversCommandSegments(
-  segments: SegmentConfig[],
-): Promise<DriversCommandSegment[]> {
+export async function resolveDriversCommandSegments(segments: SegmentConfig[]): Promise<DriversCommandSegment[]> {
   const resolved = await resolveTimingSegments(segments)
-  return resolved.map(segment => ({
+  return resolved.map((segment) => ({
     config: segment.config,
     capabilities: segment.capabilities,
     drivers: getDriversForDisplay(segment),
@@ -373,7 +367,9 @@ export async function resolveDriversCommandSegments(
   }))
 }
 
-export function getDriversForDisplay(segment: Pick<ResolvedTimingSegment, 'drivers' | 'selectedDriver' | 'capabilities'>): DriverRow[] {
+export function getDriversForDisplay(
+  segment: Pick<ResolvedTimingSegment, 'drivers' | 'selectedDriver' | 'capabilities'>,
+): DriverRow[] {
   if (segment.capabilities.driverDiscovery) return segment.drivers
   return segment.selectedDriver ? [segment.selectedDriver] : []
 }
@@ -381,13 +377,13 @@ export function getDriversForDisplay(segment: Pick<ResolvedTimingSegment, 'drive
 export function driverListsAreIdentical(segments: DriversCommandSegment[]): boolean {
   if (segments.length <= 1) return true
   const signature = serialiseDriverList(segments[0].drivers)
-  return segments.every(segment => serialiseDriverList(segment.drivers) === signature)
+  return segments.every((segment) => serialiseDriverList(segment.drivers) === signature)
 }
 
 export function filterDriverHighlights(drivers: DriverRow[], query: string | undefined): DriverRow[] {
   if (!query) return []
   const lowered = query.toLowerCase()
-  return drivers.filter(driver => driver.name.toLowerCase().includes(lowered))
+  return drivers.filter((driver) => driver.name.toLowerCase().includes(lowered))
 }
 
 export function formatDriverDisplay(driver: DriverRow): string {
@@ -416,29 +412,30 @@ export function buildSessionSegments(
     }
 
     if (resolved.config.mode === 'race' && startingGridPosition === undefined && resolved.startingGrid) {
-      const gridEntry = resolved.startingGrid.find(entry => entry.kart === selectedDriver.kart)
+      const gridEntry = resolved.startingGrid.find((entry) => entry.kart === selectedDriver.kart)
       if (gridEntry) startingGridPosition = gridEntry.position
     }
 
     const leaderboardSourceDrivers = resolved.capabilities.leaderboard
-      ? resolved.drivers.filter(driver => driver.laps.length > 0)
+      ? resolved.drivers.filter((driver) => driver.laps.length > 0)
       : []
 
     segments.push({
       mode: resolved.config.mode,
       session,
-      sessionAllLaps: leaderboardSourceDrivers.length > 0
-        ? leaderboardSourceDrivers.map(driver => driver.laps)
-        : [selectedDriver.laps],
-      leaderboardDrivers: leaderboardSourceDrivers.length === 0
-        ? undefined
-        : resolved.config.mode === 'race'
-          ? buildRaceDrivers(leaderboardSourceDrivers, offsetSeconds)
-          : buildLeaderboardDrivers(leaderboardSourceDrivers, selectedDriver.kart, offsetSeconds),
+      sessionAllLaps:
+        leaderboardSourceDrivers.length > 0
+          ? leaderboardSourceDrivers.map((driver) => driver.laps)
+          : [selectedDriver.laps],
+      leaderboardDrivers:
+        leaderboardSourceDrivers.length === 0
+          ? undefined
+          : resolved.config.mode === 'race'
+            ? buildRaceDrivers(leaderboardSourceDrivers, offsetSeconds)
+            : buildLeaderboardDrivers(leaderboardSourceDrivers, selectedDriver.kart, offsetSeconds),
       label: resolved.config.label,
-      raceLapSnapshots: resolved.replayData == null
-        ? undefined
-        : buildRaceLapSnapshots(resolved.replayData, offsetSeconds),
+      raceLapSnapshots:
+        resolved.replayData == null ? undefined : buildRaceLapSnapshots(resolved.replayData, offsetSeconds),
     })
   }
 
@@ -446,20 +443,18 @@ export function buildSessionSegments(
 }
 
 export function flattenTimestamps(segments: SessionSegment[]): LapTimestamp[] {
-  return segments
-    .flatMap(segment => segment.session.timestamps)
-    .sort((a, b) => a.ytSeconds - b.ytSeconds)
+  return segments.flatMap((segment) => segment.session.timestamps).sort((a, b) => a.ytSeconds - b.ytSeconds)
 }
 
 export function buildLapTimestamps(laps: Lap[], offsetSeconds: number): LapTimestamp[] {
-  return laps.map(lap => ({
+  return laps.map((lap) => ({
     lap,
     ytSeconds: roundMillis(lap.cumulative - lap.lapTime + offsetSeconds),
   }))
 }
 
 export function buildRaceDrivers(allDrivers: DriverRow[], offsetSeconds: number): LeaderboardDriver[] {
-  return allDrivers.map(driver => ({
+  return allDrivers.map((driver) => ({
     kart: driver.kart,
     name: driver.name,
     timestamps: buildLapTimestamps(driver.laps, offsetSeconds),
@@ -471,13 +466,13 @@ export function buildLeaderboardDrivers(
   ourKart: string,
   offsetSeconds: number,
 ): LeaderboardDriver[] {
-  const ourDriver = allDrivers.find(driver => driver.kart === ourKart)
+  const ourDriver = allDrivers.find((driver) => driver.kart === ourKart)
   if (!ourDriver) return []
 
   const ourTotal = ourDriver.laps.reduce((sum, lap) => sum + lap.lapTime, 0)
   const sessionEnd = offsetSeconds + ourTotal
 
-  return allDrivers.map(driver => {
+  return allDrivers.map((driver) => {
     const driverTotal = driver.laps.reduce((sum, lap) => sum + lap.lapTime, 0)
     const driverStart = sessionEnd - driverTotal
     return {
@@ -524,7 +519,7 @@ export function validateManualTimingData(value: JsonValue | undefined, segmentIn
 }
 
 export function buildManualDriver(driverName: string, timingData: ManualTimingEntry[]): DriverRow {
-  const parsed = timingData.map(entry => ({
+  const parsed = timingData.map((entry) => ({
     number: entry.lap,
     lapTime: parseLapTimeText(entry.time)!,
   }))
@@ -564,7 +559,7 @@ export function parseTeamsportEmailBody(body: string): TeamsportParsedEmail {
   }
 
   const headers = table.find('tr').first().find('th').slice(1).toArray()
-  const names = headers.map(header => $(header).text().trim()).filter(Boolean)
+  const names = headers.map((header) => $(header).text().trim()).filter(Boolean)
   if (names.length === 0) {
     throw new Error('Could not parse TeamSport driver names from email')
   }
@@ -576,7 +571,10 @@ export function parseTeamsportEmailBody(body: string): TeamsportParsedEmail {
     if (!Number.isFinite(lapNumber)) continue
 
     names.forEach((_, index) => {
-      const text = cells.eq(index + 1).text().trim()
+      const text = cells
+        .eq(index + 1)
+        .text()
+        .trim()
       const lapTime = parseLapTimeText(text)
       if (lapTime === null) return
       entriesByDriver[index].push({ number: lapNumber, lapTime })
@@ -602,7 +600,7 @@ export function parseDaytonaEmailBody(body: string): DaytonaParsedEmail {
 
   const lapEntries = $('#dlLapTime span[id^="dlLapTime_lblTime_"]')
     .toArray()
-    .map(element => parseDaytonaLapRow($(element).text()))
+    .map((element) => parseDaytonaLapRow($(element).text()))
     .filter((entry): entry is { number: number; lapTime: number } => entry != null)
 
   if (lapEntries.length === 0) {
@@ -617,9 +615,14 @@ export function parseDaytonaEmailBody(body: string): DaytonaParsedEmail {
 
   const classificationTable = $('table')
     .toArray()
-    .map(element => $(element))
-    .find(table => {
-      const headers = table.find('tr').first().find('td,th').toArray().map(cell => $(cell).text().replace(/\s+/g, ' ').trim())
+    .map((element) => $(element))
+    .find((table) => {
+      const headers = table
+        .find('tr')
+        .first()
+        .find('td,th')
+        .toArray()
+        .map((cell) => $(cell).text().replace(/\s+/g, ' ').trim())
       return headers.includes('Kart') && headers.includes('Racer') && headers.includes('Best Lap')
     })
 
@@ -630,19 +633,23 @@ export function parseDaytonaEmailBody(body: string): DaytonaParsedEmail {
     }
   }
 
-  const drivers = classificationTable.find('tr').slice(1).toArray().flatMap(row => {
-    const cells = $(row).find('td')
-    if (cells.length < 3) return []
+  const drivers = classificationTable
+    .find('tr')
+    .slice(1)
+    .toArray()
+    .flatMap((row) => {
+      const cells = $(row).find('td')
+      if (cells.length < 3) return []
 
-    const kart = cells.eq(1).text().replace(/\s+/g, ' ').trim()
-    const name = normaliseDaytonaDriverName(cells.eq(2).text())
-    if (!kart || !name) return []
+      const kart = cells.eq(1).text().replace(/\s+/g, ' ').trim()
+      const name = normaliseDaytonaDriverName(cells.eq(2).text())
+      if (!kart || !name) return []
 
-    if (kart === selectedDriver.kart) return [selectedDriver]
-    return [{ kart, name, laps: [] as Lap[] }]
-  })
+      if (kart === selectedDriver.kart) return [selectedDriver]
+      return [{ kart, name, laps: [] as Lap[] }]
+    })
 
-  if (!drivers.some(driver => driver.kart === selectedDriver.kart)) {
+  if (!drivers.some((driver) => driver.kart === selectedDriver.kart)) {
     drivers.push(selectedDriver)
   }
 
@@ -657,8 +664,8 @@ export async function readBestEmlBody(emailPath: string): Promise<string> {
   }
 
   const ordered = [
-    ...bodies.filter(body => body.contentType.includes('text/html')),
-    ...bodies.filter(body => body.contentType.includes('text/plain')),
+    ...bodies.filter((body) => body.contentType.includes('text/html')),
+    ...bodies.filter((body) => body.contentType.includes('text/plain')),
     ...bodies,
   ]
 
@@ -678,7 +685,10 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
   const label = value.label
   const driver = typeof value.driver === 'string' && value.driver.trim() ? value.driver.trim() : undefined
 
-  if (typeof source !== 'string' || !['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual', 'cached'].includes(source)) {
+  if (
+    typeof source !== 'string' ||
+    !['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual', 'cached'].includes(source)
+  ) {
     throw new Error(`segments[${segmentIndex}] is missing a valid "source"`)
   }
   const timingSource = source as TimingSource
@@ -693,11 +703,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
     throw new Error(`segments[${segmentIndex}].label must be a string`)
   }
 
-  const positionOverrides = validatePositionOverrideConfig(
-    value.positionOverrides,
-    mode,
-    segmentIndex,
-  )
+  const positionOverrides = validatePositionOverrideConfig(value.positionOverrides, mode, segmentIndex)
 
   switch (timingSource) {
     case 'alphaTiming': {
@@ -790,9 +796,7 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
       const VALID_ORIGINAL_SOURCES = ['alphaTiming', 'teamsportEmail', 'daytonaEmail', 'mylapsSpeedhive', 'manual']
       const originalSource = value.originalSource
       if (typeof originalSource !== 'string' || !VALID_ORIGINAL_SOURCES.includes(originalSource)) {
-        throw new Error(
-          `segments[${segmentIndex}].originalSource must be one of: ${VALID_ORIGINAL_SOURCES.join(', ')}`,
-        )
+        throw new Error(`segments[${segmentIndex}].originalSource must be one of: ${VALID_ORIGINAL_SOURCES.join(', ')}`)
       }
       if (!Array.isArray(value.drivers)) {
         throw new Error(`segments[${segmentIndex}].drivers must be an array for cached source`)
@@ -810,8 +814,8 @@ function validateSegmentConfig(value: JsonObject, segmentIndex: number, configDi
         originalSource: originalSource as Exclude<TimingSource, 'cached'>,
         drivers: value.drivers as unknown as DriverRow[],
         capabilities: value.capabilities as unknown as TimingCapabilities,
-        startingGrid: Array.isArray(value.startingGrid) ? value.startingGrid as unknown as GridEntry[] : undefined,
-        replayData: Array.isArray(value.replayData) ? value.replayData as unknown as ReplayLapData : undefined,
+        startingGrid: Array.isArray(value.startingGrid) ? (value.startingGrid as unknown as GridEntry[]) : undefined,
+        replayData: Array.isArray(value.replayData) ? (value.replayData as unknown as ReplayLapData) : undefined,
       } satisfies CachedSegmentConfig
     }
   }
@@ -849,10 +853,7 @@ async function resolveAlphaTimingSegment(
   let startingGrid: GridEntry[] | undefined
   let replayData: ReplayLapData | undefined
   if (segment.mode === 'race') {
-    const [gridHtml, replayHtml] = await Promise.all([
-      fetchGridHtml(segment.url),
-      fetchReplayHtml(segment.url),
-    ])
+    const [gridHtml, replayHtml] = await Promise.all([fetchGridHtml(segment.url), fetchReplayHtml(segment.url)])
     startingGrid = parseGrid(gridHtml)
     replayData = parseReplayLapData(replayHtml)
   }
@@ -915,7 +916,9 @@ async function resolveDaytonaEmailSegment(
 ): Promise<ResolvedTimingSegment> {
   const body = await readBestEmlBody(segment.emailPath)
   const parsed = parseDaytonaEmailBody(body)
-  const selectedDriver = driverQuery ? matchDriver(parsed.drivers, driverQuery, segment.emailPath) : parsed.selectedDriver
+  const selectedDriver = driverQuery
+    ? matchDriver(parsed.drivers, driverQuery, segment.emailPath)
+    : parsed.selectedDriver
 
   return {
     config: segment,
@@ -962,7 +965,7 @@ async function resolveMylapsSpeedhiveSegment(
     ),
   )
 
-  const drivers = lapDataResponses.map(response => {
+  const drivers = lapDataResponses.map((response) => {
     if (response.lapDataInfo == null) {
       throw new Error(`Missing Daytona participant lap data for session ${sessionId}`)
     }
@@ -971,7 +974,7 @@ async function resolveMylapsSpeedhiveSegment(
       name: response.lapDataInfo.participantInfo.name,
       laps: buildLaps(
         response.laps
-          .map(lap => ({ number: lap.lapNr, lapTime: parseLapTimeText(lap.lapTime) }))
+          .map((lap) => ({ number: lap.lapNr, lapTime: parseLapTimeText(lap.lapTime) }))
           .filter((lap): lap is { number: number; lapTime: number } => lap.lapTime != null),
       ),
     }
@@ -1037,9 +1040,7 @@ async function resolveCachedSegment(
   segment: CachedSegmentConfig,
   driverQuery?: string,
 ): Promise<ResolvedTimingSegment> {
-  const selectedDriver = driverQuery
-    ? matchDriver(segment.drivers, driverQuery, 'cached data')
-    : undefined
+  const selectedDriver = driverQuery ? matchDriver(segment.drivers, driverQuery, 'cached data') : undefined
 
   return {
     config: segment,
@@ -1061,25 +1062,22 @@ async function fetchDaytonaJson<T>(pathname: string): Promise<T> {
 
 function matchDriver(drivers: DriverRow[], query: string, context: string): DriverRow {
   const lowered = query.toLowerCase()
-  const matches = drivers.filter(driver => driver.name.toLowerCase().includes(lowered))
+  const matches = drivers.filter((driver) => driver.name.toLowerCase().includes(lowered))
   if (matches.length === 0) {
     throw new Error(
-      `No driver matching "${query}" found for ${context}. Available: ${drivers.map(driver => driver.name).join(', ')}`,
+      `No driver matching "${query}" found for ${context}. Available: ${drivers.map((driver) => driver.name).join(', ')}`,
     )
   }
   if (matches.length > 1) {
     throw new Error(
       `"${query}" is ambiguous for ${context}. Matches:\n` +
-        matches.map(driver => `  ${formatDriverDisplay(driver)}`).join('\n'),
+        matches.map((driver) => `  ${formatDriverDisplay(driver)}`).join('\n'),
     )
   }
   return matches[0]
 }
 
-function buildLaps(
-  entries: Array<{ number: number; lapTime: number }>,
-  allowFormationLap = false,
-): Lap[] {
+function buildLaps(entries: Array<{ number: number; lapTime: number }>, allowFormationLap = false): Lap[] {
   let cumulative = 0
   return entries.map((entry, index) => {
     if (allowFormationLap && index === 0 && entry.number === 0) {
@@ -1162,7 +1160,7 @@ function roundMillis(value: number): number {
 }
 
 function serialiseDriverList(drivers: DriverRow[]): string {
-  return JSON.stringify(drivers.map(driver => ({ kart: driver.kart, name: driver.name })))
+  return JSON.stringify(drivers.map((driver) => ({ kart: driver.kart, name: driver.name })))
 }
 
 function normaliseDaytonaDriverName(value: string): string {
@@ -1180,13 +1178,15 @@ function parseMimeBodies(raw: string): Array<{ contentType: string; body: string
     const boundary = getHeaderParam(contentType, 'boundary')
     if (!boundary) return []
 
-    return splitMultipartBody(body, boundary).flatMap(part => parseMimeBodies(part))
+    return splitMultipartBody(body, boundary).flatMap((part) => parseMimeBodies(part))
   }
 
-  return [{
-    contentType: contentType.toLowerCase(),
-    body: decodeMimeBody(body, headers['content-transfer-encoding']),
-  }]
+  return [
+    {
+      contentType: contentType.toLowerCase(),
+      body: decodeMimeBody(body, headers['content-transfer-encoding']),
+    },
+  ]
 }
 
 function splitMimeEntity(raw: string): { headers: Record<string, string>; body: string } {
@@ -1219,8 +1219,8 @@ function splitMultipartBody(body: string, boundary: string): string[] {
   return body
     .split(marker)
     .slice(1)
-    .map(part => part.replace(/^\n/, '').replace(/\n--$/, '').trim())
-    .filter(part => part && part !== '--')
+    .map((part) => part.replace(/^\n/, '').replace(/\n--$/, '').trim())
+    .filter((part) => part && part !== '--')
 }
 
 function decodeMimeBody(body: string, encoding: string | undefined): string {
@@ -1230,9 +1230,7 @@ function decodeMimeBody(body: string, encoding: string | undefined): string {
   }
 
   if (normalisedEncoding?.includes('quoted-printable')) {
-    return body
-      .replace(/=\n/g, '')
-      .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    return body.replace(/=\n/g, '').replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
   }
 
   return body

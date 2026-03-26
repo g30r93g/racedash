@@ -32,9 +32,7 @@ export function RecentFailedJobsTable({ jobs }: { jobs: FailedJob[] }) {
               </a>
             </TableCell>
             <TableCell>{job.userEmail}</TableCell>
-            <TableCell className="text-muted-foreground truncate max-w-[300px]">
-              {job.errorMessage ?? '—'}
-            </TableCell>
+            <TableCell className="text-muted-foreground truncate max-w-[300px]">{job.errorMessage ?? '—'}</TableCell>
             <TableCell className="text-muted-foreground">{formatDateTime(job.failedAt)}</TableCell>
           </TableRow>
         ))}

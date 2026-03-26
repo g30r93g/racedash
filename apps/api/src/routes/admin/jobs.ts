@@ -77,9 +77,7 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       jobs: page.map((j) => {
         const isTerminal = j.status === 'complete' || j.status === 'failed'
-        const durationSec = isTerminal
-          ? Math.round((j.updatedAt.getTime() - j.createdAt.getTime()) / 1000)
-          : null
+        const durationSec = isTerminal ? Math.round((j.updatedAt.getTime() - j.createdAt.getTime()) / 1000) : null
 
         return {
           id: j.id,
@@ -138,11 +136,7 @@ const jobsRoutes: FastifyPluginAsync = async (fastify) => {
     // Fetch credit reservation if exists
     let creditReservation: AdminJobDetailResponse['creditReservation'] = null
 
-    const [reservation] = await db
-      .select()
-      .from(creditReservations)
-      .where(eq(creditReservations.jobId, id))
-      .limit(1)
+    const [reservation] = await db.select().from(creditReservations).where(eq(creditReservations.jobId, id)).limit(1)
 
     if (reservation) {
       const packBreakdown = await db

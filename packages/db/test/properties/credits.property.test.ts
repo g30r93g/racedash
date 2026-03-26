@@ -41,15 +41,11 @@ describe('computeCredits properties', () => {
 
   it('4K always costs >= same content at 1080p', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 1, max: 240 }),
-        fc.integer({ min: 1, max: 36000 }),
-        (fps, durationSec) => {
-          const cost1080p = computeCredits({ width: 1920, height: 1080, fps, durationSec })
-          const cost4k = computeCredits({ width: 3840, height: 2160, fps, durationSec })
-          expect(cost4k).toBeGreaterThanOrEqual(cost1080p)
-        },
-      ),
+      fc.property(fc.integer({ min: 1, max: 240 }), fc.integer({ min: 1, max: 36000 }), (fps, durationSec) => {
+        const cost1080p = computeCredits({ width: 1920, height: 1080, fps, durationSec })
+        const cost4k = computeCredits({ width: 3840, height: 2160, fps, durationSec })
+        expect(cost4k).toBeGreaterThanOrEqual(cost1080p)
+      }),
     )
   })
 

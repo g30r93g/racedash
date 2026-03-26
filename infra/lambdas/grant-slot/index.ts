@@ -10,8 +10,5 @@ export const handler = async (event: GrantSlotEvent): Promise<void> => {
   const { jobId } = event
   const db = getDb()
 
-  await db
-    .update(jobs)
-    .set({ status: 'rendering', updatedAt: new Date() })
-    .where(eq(jobs.id, jobId))
+  await db.update(jobs).set({ status: 'rendering', updatedAt: new Date() }).where(eq(jobs.id, jobId))
 }

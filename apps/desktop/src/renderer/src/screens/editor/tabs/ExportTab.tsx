@@ -65,7 +65,15 @@ interface LastRender {
   timestamp: Date
 }
 
-export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, authUser, licenseTier, onSignIn }: ExportTabProps): React.ReactElement {
+export function ExportTab({
+  project,
+  videoInfo,
+  onRenderingChange,
+  overlayType,
+  authUser,
+  licenseTier,
+  onSignIn,
+}: ExportTabProps): React.ReactElement {
   const licensed = hasCloudLicense(licenseTier)
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
@@ -89,20 +97,26 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
   const renderStartRef = useRef<number>(0)
   const cleanupRef = useRef<Array<() => void>>([])
   useEffect(() => {
-    return () => { cleanupRef.current.forEach((fn) => fn()) }
+    return () => {
+      cleanupRef.current.forEach((fn) => fn())
+    }
   }, [])
 
   // Fetch credit balance when cloud destination is selected
   useEffect(() => {
     if (renderDestination === 'cloud' && authUser) {
-      window.racedash.credits.getBalance().then((b) => setCreditBalance(b.totalRc)).catch(() => {})
+      window.racedash.credits
+        .getBalance()
+        .then((b) => setCreditBalance(b.totalRc))
+        .catch(() => {})
     }
   }, [renderDestination, authUser])
 
   // Compute estimated cost when cloud is selected and video info is available
   useEffect(() => {
     if (renderDestination === 'cloud' && videoInfo) {
-      window.racedash.cloudRender.estimateCost(videoInfo, outputResolution, outputFrameRate)
+      window.racedash.cloudRender
+        .estimateCost(videoInfo, outputResolution, outputFrameRate)
         .then(setEstimatedCost)
         .catch(() => {})
     }
@@ -145,7 +159,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
           const remaining = (elapsed / event.progress) * (1 - event.progress)
           setEtaSeconds(remaining)
         }
-      })
+      }),
     )
     cleanupRef.current.push(
       window.racedash.onRenderComplete((result: RenderCompleteResult) => {
@@ -153,7 +167,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
         setLastRender({ status: 'completed', outputPath: result.outputPath, timestamp: new Date() })
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
-      })
+      }),
     )
     cleanupRef.current.push(
       window.racedash.onRenderError((err) => {
@@ -162,7 +176,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
         console.error('Render error:', err.message)
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
-      })
+      }),
     )
 
     try {
@@ -280,7 +294,8 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
     { value: 'cloud', label: 'Cloud' },
   ]
 
-  const isCloudDisabled = !authUser || !licenseTier || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
+  const isCloudDisabled =
+    !authUser || !licenseTier || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
   const isBusy = rendering || cloudUploading
 
   return (
@@ -289,10 +304,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
       <section>
         <SectionLabel>Source Video</SectionLabel>
         <div className="rounded-md border border-border bg-accent px-3">
-          <InfoRow
-            label="Resolution"
-            value={videoInfo ? formatResolution(videoInfo.width, videoInfo.height) : '—'}
-          />
+          <InfoRow label="Resolution" value={videoInfo ? formatResolution(videoInfo.width, videoInfo.height) : '—'} />
           <div className="border-t border-border" />
           <InfoRow label="Frame rate" value={videoInfo ? formatFps(videoInfo.fps) : '—'} />
         </div>
@@ -301,7 +313,12 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
       {/* RENDER DESTINATION */}
       <section>
         <SectionLabel>Render Destination</SectionLabel>
-        <OptionGroup options={destinationOptions} value={renderDestination} onValueChange={setRenderDestination as (v: string) => void} disabled={isBusy} />
+        <OptionGroup
+          options={destinationOptions}
+          value={renderDestination}
+          onValueChange={setRenderDestination as (v: string) => void}
+          disabled={isBusy}
+        />
       </section>
 
       {/* RENDER SETTINGS */}
@@ -350,10 +367,12 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
         <section>
           <SectionLabel>Last Render</SectionLabel>
           <div className="flex items-center gap-3 rounded-md border border-border bg-accent px-3 py-2">
-            <div className={[
-              'h-2 w-2 shrink-0 rounded-full',
-              lastRender.status === 'completed' ? 'bg-green-500' : 'bg-destructive',
-            ].join(' ')} />
+            <div
+              className={[
+                'h-2 w-2 shrink-0 rounded-full',
+                lastRender.status === 'completed' ? 'bg-green-500' : 'bg-destructive',
+              ].join(' ')}
+            />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-xs text-foreground">
                 {lastRender.status === 'completed' ? 'Completed' : 'Failed'}

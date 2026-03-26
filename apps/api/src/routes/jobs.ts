@@ -1,37 +1,38 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import {
-  users, jobs, licenses,
-  reserveCredits, computeCredits, checkLicenseExpiry,
+  users,
+  jobs,
+  licenses,
+  reserveCredits,
+  computeCredits,
+  checkLicenseExpiry,
   InsufficientCreditsError,
 } from '@racedash/db'
-import {
-  CreateMultipartUploadCommand,
-  UploadPartCommand,
-  CompleteMultipartUploadCommand,
-} from '@aws-sdk/client-s3'
+import { CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { StartExecutionCommand } from '@aws-sdk/client-sfn'
 import { getSignedUrl as getCloudFrontSignedUrl } from '@aws-sdk/cloudfront-signer'
 import { getDb } from '../lib/db'
 import { s3, sfn } from '../lib/aws'
 import type {
-  CreateJobRequest, CreateJobResponse,
-  StartUploadRequest, StartUploadResponse,
-  CompleteUploadRequest, CompleteUploadResponse,
+  CreateJobRequest,
+  CreateJobResponse,
+  StartUploadRequest,
+  StartUploadResponse,
+  CompleteUploadRequest,
+  CompleteUploadResponse,
   DownloadResponse,
-  ListJobsResponse, ListJobsItem,
-  JobStatusEvent, JobConfig,
+  ListJobsResponse,
+  ListJobsItem,
+  JobStatusEvent,
+  JobConfig,
   ApiError,
 } from '../types'
 
 async function resolveUser(clerkUserId: string) {
   const db = getDb()
-  const [user] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.clerkId, clerkUserId))
-    .limit(1)
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
   return user ?? null
 }
 
@@ -45,7 +46,10 @@ async function findOwnedJob(userId: string, jobId: string) {
   return job ?? null
 }
 
-function computeQueuePositions(queuedJobIds: string[], allQueuedJobs: Array<{ id: string; createdAt: Date }>): Map<string, number> {
+function computeQueuePositions(
+  queuedJobIds: string[],
+  allQueuedJobs: Array<{ id: string; createdAt: Date }>,
+): Map<string, number> {
   const sorted = [...allQueuedJobs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
   const map = new Map<string, number>()
   sorted.forEach((j, i) => {
@@ -56,91 +60,88 @@ function computeQueuePositions(queuedJobIds: string[], allQueuedJobs: Array<{ id
 
 const jobRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/jobs — create a new cloud render job
-  fastify.post<{ Body: CreateJobRequest; Reply: CreateJobResponse | ApiError }>(
-    '/api/jobs',
-    async (request, reply) => {
-      const db = getDb()
-      const user = await resolveUser(request.clerk.userId)
-      if (!user) {
-        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
-        return
-      }
+  fastify.post<{ Body: CreateJobRequest; Reply: CreateJobResponse | ApiError }>('/api/jobs', async (request, reply) => {
+    const db = getDb()
+    const user = await resolveUser(request.clerk.userId)
+    if (!user) {
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
+      return
+    }
 
-      // Check license
-      const licenseResult = await checkLicenseExpiry({ db, userId: user.id })
-      if (!licenseResult.hasActiveLicense) {
-        reply.status(403).send({
-          error: { code: 'LICENSE_REQUIRED', message: 'An active license is required for cloud rendering' },
-        })
-        return
-      }
-
-      const { config: reqConfig, sourceVideo, projectName, sessionType } = request.body
-      if (!sourceVideo || !reqConfig) {
-        reply.status(400).send({
-          error: { code: 'INVALID_REQUEST', message: 'Missing required fields: config and sourceVideo' },
-        })
-        return
-      }
-
-      const rcCost = computeCredits({
-        width: sourceVideo.width,
-        height: sourceVideo.height,
-        fps: sourceVideo.fps,
-        durationSec: sourceVideo.durationSeconds,
+    // Check license
+    const licenseResult = await checkLicenseExpiry({ db, userId: user.id })
+    if (!licenseResult.hasActiveLicense) {
+      reply.status(403).send({
+        error: { code: 'LICENSE_REQUIRED', message: 'An active license is required for cloud rendering' },
       })
+      return
+    }
 
-      // Store full config as JSONB
-      const jobConfig: JobConfig = {
-        resolution: reqConfig.resolution,
-        frameRate: reqConfig.frameRate,
-        renderMode: reqConfig.renderMode,
-        overlayStyle: reqConfig.overlayStyle,
-        config: reqConfig.config,
-        sourceVideo,
-        projectName,
-        sessionType,
-      }
+    const { config: reqConfig, sourceVideo, projectName, sessionType } = request.body
+    if (!sourceVideo || !reqConfig) {
+      reply.status(400).send({
+        error: { code: 'INVALID_REQUEST', message: 'Missing required fields: config and sourceVideo' },
+      })
+      return
+    }
 
-      // Insert job first to get the ID
-      const [job] = await db
-        .insert(jobs)
-        .values({
-          userId: user.id,
-          status: 'uploading',
-          config: jobConfig,
-          inputS3Keys: [],
-          rcCost,
+    const rcCost = computeCredits({
+      width: sourceVideo.width,
+      height: sourceVideo.height,
+      fps: sourceVideo.fps,
+      durationSec: sourceVideo.durationSeconds,
+    })
+
+    // Store full config as JSONB
+    const jobConfig: JobConfig = {
+      resolution: reqConfig.resolution,
+      frameRate: reqConfig.frameRate,
+      renderMode: reqConfig.renderMode,
+      overlayStyle: reqConfig.overlayStyle,
+      config: reqConfig.config,
+      sourceVideo,
+      projectName,
+      sessionType,
+    }
+
+    // Insert job first to get the ID
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        userId: user.id,
+        status: 'uploading',
+        config: jobConfig,
+        inputS3Keys: [],
+        rcCost,
+      })
+      .returning()
+
+    // Reserve credits
+    try {
+      await reserveCredits({ db, userId: user.id, jobId: job.id, rcAmount: rcCost })
+    } catch (err) {
+      // Clean up the job row on credit failure
+      await db.delete(jobs).where(eq(jobs.id, job.id))
+      if (err instanceof InsufficientCreditsError) {
+        reply.status(402).send({
+          error: {
+            code: 'INSUFFICIENT_CREDITS',
+            message: `Insufficient credits: ${err.available} available, ${err.requested} required`,
+          },
         })
-        .returning()
-
-      // Reserve credits
-      try {
-        await reserveCredits({ db, userId: user.id, jobId: job.id, rcAmount: rcCost })
-      } catch (err) {
-        // Clean up the job row on credit failure
-        await db.delete(jobs).where(eq(jobs.id, job.id))
-        if (err instanceof InsufficientCreditsError) {
-          reply.status(402).send({
-            error: {
-              code: 'INSUFFICIENT_CREDITS',
-              message: `Insufficient credits: ${err.available} available, ${err.requested} required`,
-            },
-          })
-          return
-        }
-        throw err
+        return
       }
+      throw err
+    }
 
-      const uploadKey = `uploads/${job.id}/joined.mp4`
-      await db
-        .update(jobs)
-        .set({ inputS3Keys: [uploadKey] })
-        .where(eq(jobs.id, job.id))
+    const uploadKey = `uploads/${job.id}/joined.mp4`
+    await db
+      .update(jobs)
+      .set({ inputS3Keys: [uploadKey] })
+      .where(eq(jobs.id, job.id))
 
-      reply.status(201).send({ jobId: job.id, rcCost, uploadKey })
-    },
-  )
+    reply.status(201).send({ jobId: job.id, rcCost, uploadKey })
+  })
 
   // POST /api/jobs/:id/start-upload — presigned multipart URLs
   fastify.post<{
@@ -160,7 +161,9 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
     if (job.status !== 'uploading') {
-      reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` } })
+      reply.status(409).send({
+        error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` },
+      })
       return
     }
 
@@ -170,11 +173,13 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
     const key = `uploads/${job.id}/joined.mp4`
     const { partCount, contentType } = request.body
 
-    const { UploadId } = await s3.send(new CreateMultipartUploadCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: contentType || 'video/mp4',
-    }))
+    const { UploadId } = await s3.send(
+      new CreateMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: contentType || 'video/mp4',
+      }),
+    )
 
     if (!UploadId) throw new Error('Failed to create multipart upload')
 
@@ -222,7 +227,9 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
     if (job.status !== 'uploading') {
-      reply.status(409).send({ error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` } })
+      reply.status(409).send({
+        error: { code: 'INVALID_JOB_STATUS', message: `Job is in '${job.status}' status, expected 'uploading'` },
+      })
       return
     }
 
@@ -236,27 +243,31 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const key = `uploads/${job.id}/joined.mp4`
-    await s3.send(new CompleteMultipartUploadCommand({
-      Bucket: bucket,
-      Key: key,
-      UploadId: uploadIds.uploadId,
-      MultipartUpload: {
-        Parts: request.body.parts.map((p) => ({
-          PartNumber: p.partNumber,
-          ETag: p.etag,
-        })),
-      },
-    }))
+    await s3.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadIds.uploadId,
+        MultipartUpload: {
+          Parts: request.body.parts.map((p) => ({
+            PartNumber: p.partNumber,
+            ETag: p.etag,
+          })),
+        },
+      }),
+    )
 
     // Start Step Functions execution
     const stateMachineArn = process.env.STEP_FUNCTIONS_STATE_MACHINE_ARN
     if (!stateMachineArn) throw new Error('STEP_FUNCTIONS_STATE_MACHINE_ARN is required')
 
-    const { executionArn } = await sfn.send(new StartExecutionCommand({
-      stateMachineArn,
-      name: `job-${job.id}-${Date.now()}`,
-      input: JSON.stringify({ jobId: job.id, userId: user.id }),
-    }))
+    const { executionArn } = await sfn.send(
+      new StartExecutionCommand({
+        stateMachineArn,
+        name: `job-${job.id}-${Date.now()}`,
+        input: JSON.stringify({ jobId: job.id, userId: user.id }),
+      }),
+    )
 
     const db = getDb()
     await db
@@ -272,94 +283,91 @@ const jobRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // GET /api/jobs/:id/status — SSE stream
-  fastify.get<{ Params: { id: string }; Reply: ApiError }>(
-    '/api/jobs/:id/status',
-    async (request, reply) => {
-      const user = await resolveUser(request.clerk.userId)
-      if (!user) {
-        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
-        return
-      }
+  fastify.get<{ Params: { id: string }; Reply: ApiError }>('/api/jobs/:id/status', async (request, reply) => {
+    const user = await resolveUser(request.clerk.userId)
+    if (!user) {
+      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
+      return
+    }
 
-      const job = await findOwnedJob(user.id, request.params.id)
-      if (!job) {
-        reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
-        return
-      }
+    const job = await findOwnedJob(user.id, request.params.id)
+    if (!job) {
+      reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })
+      return
+    }
 
-      reply.raw.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      })
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    })
 
-      const db = getDb()
-      let closed = false
+    const db = getDb()
+    let closed = false
 
-      request.raw.on('close', () => { closed = true })
+    request.raw.on('close', () => {
+      closed = true
+    })
 
-      const sendEvent = (data: JobStatusEvent) => {
-        if (closed) return
-        reply.raw.write(`data: ${JSON.stringify(data)}\n\n`)
-      }
+    const sendEvent = (data: JobStatusEvent) => {
+      if (closed) return
+      reply.raw.write(`data: ${JSON.stringify(data)}\n\n`)
+    }
 
-      const poll = async () => {
-        const [current] = await db
-          .select()
+    const poll = async () => {
+      const [current] = await db.select().from(jobs).where(eq(jobs.id, job.id)).limit(1)
+      if (!current) return null
+
+      let queuePosition: number | null = null
+      if (current.status === 'queued') {
+        const queuedJobs = await db
+          .select({ id: jobs.id, createdAt: jobs.createdAt })
           .from(jobs)
-          .where(eq(jobs.id, job.id))
-          .limit(1)
-        if (!current) return null
+          .where(and(eq(jobs.userId, user.id), eq(jobs.status, 'queued')))
 
-        let queuePosition: number | null = null
-        if (current.status === 'queued') {
-          const queuedJobs = await db
-            .select({ id: jobs.id, createdAt: jobs.createdAt })
-            .from(jobs)
-            .where(and(eq(jobs.userId, user.id), eq(jobs.status, 'queued')))
-
-          const positions = computeQueuePositions([current.id], queuedJobs)
-          queuePosition = positions.get(current.id) ?? null
-        }
-
-        const event: JobStatusEvent = {
-          status: current.status as JobStatusEvent['status'],
-          progress: current.status === 'rendering' ? 0 : current.status === 'complete' ? 1 : 0,
-          queuePosition,
-          downloadExpiresAt: current.downloadExpiresAt?.toISOString() ?? null,
-          errorMessage: current.errorMessage,
-        }
-        sendEvent(event)
-
-        return current.status
+        const positions = computeQueuePositions([current.id], queuedJobs)
+        queuePosition = positions.get(current.id) ?? null
       }
 
-      // Send initial status
-      const initialStatus = await poll()
-      if (initialStatus === 'complete' || initialStatus === 'failed') {
-        reply.raw.end()
+      const event: JobStatusEvent = {
+        status: current.status as JobStatusEvent['status'],
+        progress: current.status === 'rendering' ? 0 : current.status === 'complete' ? 1 : 0,
+        queuePosition,
+        downloadExpiresAt: current.downloadExpiresAt?.toISOString() ?? null,
+        errorMessage: current.errorMessage,
+      }
+      sendEvent(event)
+
+      return current.status
+    }
+
+    // Send initial status
+    const initialStatus = await poll()
+    if (initialStatus === 'complete' || initialStatus === 'failed') {
+      reply.raw.end()
+      return
+    }
+
+    // Poll every 2 seconds
+    const interval = setInterval(async () => {
+      if (closed) {
+        clearInterval(interval)
         return
       }
+      const status = await poll()
+      if (status === 'complete' || status === 'failed' || status === null) {
+        clearInterval(interval)
+        reply.raw.end()
+      }
+    }, 2000)
 
-      // Poll every 2 seconds
-      const interval = setInterval(async () => {
-        if (closed) {
-          clearInterval(interval)
-          return
-        }
-        const status = await poll()
-        if (status === 'complete' || status === 'failed' || status === null) {
-          clearInterval(interval)
-          reply.raw.end()
-        }
-      }, 2000)
+    request.raw.on('close', () => {
+      clearInterval(interval)
+    })
 
-      request.raw.on('close', () => { clearInterval(interval) })
-
-      // Keep the connection open — don't return a value (SSE is streaming)
-      await reply
-    },
-  )
+    // Keep the connection open — don't return a value (SSE is streaming)
+    await reply
+  })
 
   // GET /api/jobs/:id/download — signed CloudFront URL
   fastify.get<{ Params: { id: string }; Reply: DownloadResponse | ApiError }>(

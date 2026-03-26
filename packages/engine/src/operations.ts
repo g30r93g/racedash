@@ -34,9 +34,7 @@ import type {
   TimestampsResult,
 } from './types'
 
-export function getRenderExperimentalWarning(
-  platform: NodeJS.Platform = process.platform,
-): string | undefined {
+export function getRenderExperimentalWarning(platform: NodeJS.Platform = process.platform): string | undefined {
   if (platform !== 'win32') return undefined
   return 'Windows render support is experimental and may require fallback paths depending on your FFmpeg and GPU setup.'
 }
@@ -52,7 +50,7 @@ export async function joinVideos(files: string[], outputPath: string): Promise<v
 export async function listDrivers(opts: DriversOptions): Promise<DriversResult> {
   const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, false)
   const withOverride = opts.driverQuery
-    ? segmentConfigs.map(seg => ({ ...seg, driver: opts.driverQuery }))
+    ? segmentConfigs.map((seg) => ({ ...seg, driver: opts.driverQuery }))
     : segmentConfigs
   const segments = await resolveDriversCommandSegments(withOverride)
   return {
@@ -64,7 +62,7 @@ export async function listDrivers(opts: DriversOptions): Promise<DriversResult> 
 export async function generateTimestamps(opts: TimestampsOptions): Promise<TimestampsResult> {
   const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
   const resolvedSegments = await resolveTimingSegments(segmentConfigs)
-  const offsets = segmentConfigs.map(segment => parseOffset(segment.offset, opts.fps))
+  const offsets = segmentConfigs.map((segment) => parseOffset(segment.offset, opts.fps))
   const { segments } = buildSessionSegments(resolvedSegments, offsets)
   return {
     chapters: formatChapters(flattenTimestamps(segments)),
@@ -127,13 +125,11 @@ export async function renderSession(
     const outputResolution = opts.outputResolution ?? videoResolution
     const frameDuration = 1 / fps
 
-    const rawOffsets = segmentConfigs.map(segment => parseOffset(segment.offset, fps))
+    const rawOffsets = segmentConfigs.map((segment) => parseOffset(segment.offset, fps))
     const resolvedPositionOverrides = segmentConfigs.map((segment, index) =>
       resolvePositionOverrides(segment.positionOverrides, rawOffsets[index], index, fps),
     )
-    const snappedOffsets = rawOffsets.map(raw =>
-      roundMillis(Math.round(raw / frameDuration) * frameDuration),
-    )
+    const snappedOffsets = rawOffsets.map((raw) => roundMillis(Math.round(raw / frameDuration) * frameDuration))
 
     const resolvedSegments = await resolveTimingSegments(segmentConfigs)
     const { segments, startingGridPosition } = buildSessionSegments(resolvedSegments, snappedOffsets)
@@ -141,21 +137,15 @@ export async function renderSession(
       segment.positionOverrides = resolvedPositionOverrides[index]
     })
 
-    const boxPosition = (
-      opts.boxPosition ?? configBoxPosition ?? defaultBoxPositionForStyle(opts.style)
-    ) as BoxPosition
-    const resolvedTablePosition = (opts.qualifyingTablePosition ?? configTablePosition) as
-      | CornerPosition
-      | undefined
+    const boxPosition = (opts.boxPosition ?? configBoxPosition ?? defaultBoxPositionForStyle(opts.style)) as BoxPosition
+    const resolvedTablePosition = (opts.qualifyingTablePosition ?? configTablePosition) as CornerPosition | undefined
 
     // Compute overlayY from style strip heights if not explicitly provided
     let overlayY = opts.overlayY ?? 0
     const stripHeight = BOX_STRIP_HEIGHTS[opts.style]
     if (stripHeight != null && opts.overlayY == null) {
       const scaledStrip = Math.round((stripHeight * outputResolution.width) / 1920)
-      overlayY = boxPosition.startsWith('bottom')
-        ? outputResolution.height - scaledStrip
-        : 0
+      overlayY = boxPosition.startsWith('bottom') ? outputResolution.height - scaledStrip : 0
     }
 
     const overlayProps = {
@@ -191,7 +181,8 @@ export async function renderSession(
         opts.style,
         overlayProps,
         overlayPath,
-        ({ progress, renderedFrames, totalFrames }) => onProgress({ phase: 'Rendering overlay', progress, renderedFrames, totalFrames }),
+        ({ progress, renderedFrames, totalFrames }) =>
+          onProgress({ phase: 'Rendering overlay', progress, renderedFrames, totalFrames }),
       )
     }
 

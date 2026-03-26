@@ -6,7 +6,9 @@ export const reservationStatusEnum = pgEnum('reservation_status', ['reserved', '
 export const creditReservations = pgTable('credit_reservations', {
   id: uuid('id').defaultRandom().primaryKey(),
   jobId: text('job_id').unique().notNull(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull(),
   rcAmount: integer('rc_amount').notNull(),
   status: reservationStatusEnum('status').notNull().default('reserved'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -50,7 +50,7 @@ async function waitForRateLimit(url: string): Promise<void> {
     const delay = Math.min(1000 * 2 ** backoffAttempt, 30_000)
     backoffAttempt++
     console.debug(`[scraper] Rate limit hit for ${url}, waiting ${delay}ms before retrying...`)
-    await new Promise(r => setTimeout(r, delay))
+    await new Promise((r) => setTimeout(r, delay))
   }
 }
 
@@ -62,12 +62,7 @@ export async function fetchGridHtml(url: string): Promise<string> {
   return fetchTab(url, '/grid')
 }
 
-async function fetchTab(
-  url: string,
-  tab: string,
-  retries = 3,
-  timeoutMs = 30_000,
-): Promise<string> {
+async function fetchTab(url: string, tab: string, retries = 3, timeoutMs = 30_000): Promise<string> {
   const resolved = normaliseUrl(url, tab)
   let lastError: unknown
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -82,7 +77,7 @@ async function fetchTab(
     } catch (err) {
       lastError = err
       if (attempt < retries - 1) {
-        await new Promise(r => setTimeout(r, 1000 * 2 ** attempt))
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
       }
     }
   }
@@ -198,7 +193,7 @@ function buildReplayColumnMap($: cheerio.CheerioAPI): Record<string, number> {
 
   const map: Record<string, number> = {}
   for (let i = 0; i < headers.length; i++) {
-    map[headers[i]] = i + 1   // +1 because D[0] has no header
+    map[headers[i]] = i + 1 // +1 because D[0] has no header
   }
   return map
 }
@@ -226,12 +221,12 @@ export function parseReplayLapData(html: string): ReplayLapData {
   const kartIdx = col['No.']
   const nameIdx = col['Name']
   const lapsIdx = col['Laps']
-  const timeIdx = col['Time']          // may be undefined (e.g. IAME)
+  const timeIdx = col['Time'] // may be undefined (e.g. IAME)
   const gapIdx = col['Gap to 1st']
   const intervalIdx = col['Gap']
 
-  return (raw.laps as Array<Array<{ C: number; D: [string, string][] }>>) .map(snapshot =>
-    snapshot.map(entry => ({
+  return (raw.laps as Array<Array<{ C: number; D: [string, string][] }>>).map((snapshot) =>
+    snapshot.map((entry) => ({
       driverId: entry.C,
       position: parseInt(entry.D[posIdx][0], 10),
       kart: extractKartFromColumn(entry.D[kartIdx][0]),

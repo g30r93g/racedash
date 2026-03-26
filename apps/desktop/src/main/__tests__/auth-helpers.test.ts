@@ -36,7 +36,9 @@ describe('loadSessionToken', () => {
 
   it('returns null on corrupted session file', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
-    vi.mocked(fsMock.readFileSync).mockImplementation(() => { throw new Error('corrupted') })
+    vi.mocked(fsMock.readFileSync).mockImplementation(() => {
+      throw new Error('corrupted')
+    })
 
     expect(loadSessionToken()).toBeNull()
   })

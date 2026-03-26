@@ -10,40 +10,19 @@ import {
   parseReplayLapData,
 } from './index'
 
-const replayHtml = readFileSync(
-  join(__dirname, '__fixtures__/replay_sample.html'),
-  'utf-8',
-)
+const replayHtml = readFileSync(join(__dirname, '__fixtures__/replay_sample.html'), 'utf-8')
 
-const replayBukcCls = readFileSync(
-  join(__dirname, '__fixtures__/replay_bukc_cls.html'),
-  'utf-8',
-)
+const replayBukcCls = readFileSync(join(__dirname, '__fixtures__/replay_bukc_cls.html'), 'utf-8')
 
-const replayBukcSectors = readFileSync(
-  join(__dirname, '__fixtures__/replay_bukc_sectors.html'),
-  'utf-8',
-)
+const replayBukcSectors = readFileSync(join(__dirname, '__fixtures__/replay_bukc_sectors.html'), 'utf-8')
 
-const replayClub100 = readFileSync(
-  join(__dirname, '__fixtures__/replay_club100.html'),
-  'utf-8',
-)
+const replayClub100 = readFileSync(join(__dirname, '__fixtures__/replay_club100.html'), 'utf-8')
 
-const replayIame = readFileSync(
-  join(__dirname, '__fixtures__/replay_iame.html'),
-  'utf-8',
-)
+const replayIame = readFileSync(join(__dirname, '__fixtures__/replay_iame.html'), 'utf-8')
 
-const sampleHtml = readFileSync(
-  join(__dirname, '__fixtures__/laptimes_sample.html'),
-  'utf8',
-)
+const sampleHtml = readFileSync(join(__dirname, '__fixtures__/laptimes_sample.html'), 'utf8')
 
-const gridHtml = readFileSync(
-  join(__dirname, '__fixtures__/grid_sample.html'),
-  'utf8',
-)
+const gridHtml = readFileSync(join(__dirname, '__fixtures__/grid_sample.html'), 'utf8')
 
 describe('parseDrivers', () => {
   it('returns two drivers', () => {
@@ -122,8 +101,8 @@ describe('parseGrid', () => {
       </table>`
     const drivers = parseDrivers(html)
     expect(drivers[0].laps).toHaveLength(2)
-    expect(drivers[0].laps.every(l => !isNaN(l.lapTime))).toBe(true)
-    expect(drivers[0].laps.every(l => !isNaN(l.cumulative))).toBe(true)
+    expect(drivers[0].laps.every((l) => !isNaN(l.lapTime))).toBe(true)
+    expect(drivers[0].laps.every((l) => !isNaN(l.cumulative))).toBe(true)
   })
 
   it('parses sub-minute lap times in SS.mmm format', () => {
@@ -205,7 +184,7 @@ describe('parseReplayLapData', () => {
   it('maps P2 fields correctly in snapshot 1', () => {
     const result = parseReplayLapData(replayHtml)
     const snap1 = result[1]
-    const p2 = snap1.find(e => e.position === 2)!
+    const p2 = snap1.find((e) => e.position === 2)!
     expect(p2.intervalToAhead).toBe('0.099')
     expect(p2.gapToLeader).toBe('0.099')
   })
@@ -213,7 +192,7 @@ describe('parseReplayLapData', () => {
   it('maps P3 (lapped driver) fields correctly in snapshot 1', () => {
     const result = parseReplayLapData(replayHtml)
     const snap1 = result[1]
-    const p3 = snap1.find(e => e.position === 3)!
+    const p3 = snap1.find((e) => e.position === 3)!
     expect(p3.gapToLeader).toBe('1 L')
     expect(p3.intervalToAhead).toBe('5.200')
     expect(p3.lapsCompleted).toBe(0)
@@ -313,7 +292,7 @@ describe('parseReplayLapData — BUKC with sector columns (14 D columns)', () =>
 
   it('maps totalSeconds from Time column', () => {
     const result = parseReplayLapData(replayBukcSectors)
-    expect(result[1][0].totalSeconds).toBeCloseTo(71.490)
+    expect(result[1][0].totalSeconds).toBeCloseTo(71.49)
   })
 
   it('maps gapToLeader and intervalToAhead correctly', () => {
@@ -495,7 +474,8 @@ describe('rate limiting', () => {
 
   it('counts retry attempts against the rate limit', async () => {
     // Make fetch fail once then succeed — the retry should also consume a rate limit slot
-    const mockFetch = vi.fn()
+    const mockFetch = vi
+      .fn()
       .mockRejectedValueOnce(new Error('network error'))
       .mockResolvedValue({ ok: true, text: () => Promise.resolve(fakeHtml) })
     vi.stubGlobal('fetch', mockFetch)

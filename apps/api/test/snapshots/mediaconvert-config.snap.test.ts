@@ -25,23 +25,27 @@ function buildMediaConvertConfig(opts: {
         { FileInput: `s3://${opts.uploadBucket}/uploads/${opts.jobId}/joined.mp4` },
         { FileInput: `s3://${opts.rendersBucket}/renders/${opts.jobId}/overlay.mov` },
       ],
-      OutputGroups: [{
-        OutputGroupSettings: {
-          Type: 'FILE_GROUP_SETTINGS',
-          FileGroupSettings: {
-            Destination: `s3://${opts.rendersBucket}/renders/${opts.jobId}/output`,
-          },
-        },
-        Outputs: [{
-          VideoDescription: {
-            CodecSettings: {
-              Codec: 'H_264',
-              H264Settings: { Bitrate: bitrateKbps * 1000 },
+      OutputGroups: [
+        {
+          OutputGroupSettings: {
+            Type: 'FILE_GROUP_SETTINGS',
+            FileGroupSettings: {
+              Destination: `s3://${opts.rendersBucket}/renders/${opts.jobId}/output`,
             },
           },
-          ContainerSettings: { Container: 'MP4' },
-        }],
-      }],
+          Outputs: [
+            {
+              VideoDescription: {
+                CodecSettings: {
+                  Codec: 'H_264',
+                  H264Settings: { Bitrate: bitrateKbps * 1000 },
+                },
+              },
+              ContainerSettings: { Container: 'MP4' },
+            },
+          ],
+        },
+      ],
     },
   }
 }

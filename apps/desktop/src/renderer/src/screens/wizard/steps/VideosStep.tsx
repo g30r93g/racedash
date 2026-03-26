@@ -26,8 +26,8 @@ export function VideosStep({ videoPaths, onChange, joining, joinError }: VideosS
       <div>
         <h2 className="text-base font-semibold text-foreground">Select your video files</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Select your GoPro chapter files. If your recording spans multiple files, select them
-          all — they'll be joined in the order shown below.
+          Select your GoPro chapter files. If your recording spans multiple files, select them all — they'll be joined
+          in the order shown below.
         </p>
       </div>
 
@@ -50,9 +50,7 @@ export function VideosStep({ videoPaths, onChange, joining, joinError }: VideosS
           Joining video files…
         </p>
       )}
-      {joinError && (
-        <p className="text-sm text-destructive">{joinError}</p>
-      )}
+      {joinError && <p className="text-sm text-destructive">{joinError}</p>}
     </div>
   )
 }

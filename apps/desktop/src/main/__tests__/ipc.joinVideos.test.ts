@@ -58,7 +58,7 @@ describe('joinVideosImpl', () => {
     await joinVideosImpl(['/videos/ch1.mp4', '/videos/ch2.mp4'])
     expect(mockEngineJoinVideos).toHaveBeenCalledWith(
       ['/videos/ch1.mp4', '/videos/ch2.mp4'],
-      expect.stringContaining('racedash-join-')
+      expect.stringContaining('racedash-join-'),
     )
   })
 

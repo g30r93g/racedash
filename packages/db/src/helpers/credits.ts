@@ -24,13 +24,7 @@ export async function reserveCredits(input: ReserveCreditsInput): Promise<Reserv
     const packs = await tx
       .select()
       .from(creditPacks)
-      .where(
-        and(
-          eq(creditPacks.userId, userId),
-          gt(creditPacks.rcRemaining, 0),
-          gt(creditPacks.expiresAt, new Date()),
-        ),
-      )
+      .where(and(eq(creditPacks.userId, userId), gt(creditPacks.rcRemaining, 0), gt(creditPacks.expiresAt, new Date())))
       .orderBy(asc(creditPacks.expiresAt))
       .for('update')
 
@@ -55,10 +49,7 @@ export async function reserveCredits(input: ReserveCreditsInput): Promise<Reserv
       remaining -= deduct
     }
 
-    const [reservation] = await tx
-      .insert(creditReservations)
-      .values({ jobId, userId, rcAmount })
-      .returning()
+    const [reservation] = await tx.insert(creditReservations).values({ jobId, userId, rcAmount }).returning()
 
     await tx.insert(creditReservationPacks).values(
       breakdown.map(({ packId, rcDeducted }) => ({
@@ -83,11 +74,7 @@ export interface ReleaseCreditsInput {
 export async function releaseCredits(input: ReleaseCreditsInput): Promise<void> {
   const { db, jobId } = input
 
-  const [reservation] = await db
-    .select()
-    .from(creditReservations)
-    .where(eq(creditReservations.jobId, jobId))
-    .limit(1)
+  const [reservation] = await db.select().from(creditReservations).where(eq(creditReservations.jobId, jobId)).limit(1)
 
   if (!reservation || reservation.status !== 'reserved') return
 
@@ -126,11 +113,7 @@ export interface ConsumeCreditsInput {
 export async function consumeCredits(input: ConsumeCreditsInput): Promise<void> {
   const { db, jobId } = input
 
-  const [reservation] = await db
-    .select()
-    .from(creditReservations)
-    .where(eq(creditReservations.jobId, jobId))
-    .limit(1)
+  const [reservation] = await db.select().from(creditReservations).where(eq(creditReservations.jobId, jobId)).limit(1)
 
   if (!reservation || reservation.status !== 'reserved') return
 

@@ -54,50 +54,38 @@ describe('release-credits-and-fail handler', () => {
   it('calls releaseCredits', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' })
 
-    expect(mockReleaseCredits).toHaveBeenCalledWith(
-      expect.objectContaining({ jobId: 'job-1' }),
-    )
+    expect(mockReleaseCredits).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'job-1' }))
   })
 
   it('sets status to failed', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' })
 
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'failed' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }))
   })
 
   it('stores the error message', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' })
 
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ errorMessage: 'render timeout' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ errorMessage: 'render timeout' }))
   })
 
   it('sends a failure notification email via SES', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' })
 
-    expect(mockSendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ subject: 'Your RaceDash render failed' }),
-    )
+    expect(mockSendEmail).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Your RaceDash render failed' }))
   })
 
   it('catches SES errors without throwing', async () => {
     mockSendEmail.mockRejectedValue(new Error('SES down'))
 
     // Should NOT throw
-    await expect(
-      handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' }),
-    ).resolves.not.toThrow()
+    await expect(handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' })).resolves.not.toThrow()
   })
 
   it('calls claimNextQueuedSlotToken', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1', error: 'render timeout' })
 
-    expect(mockClaimNextQueuedSlotToken).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'user-1' }),
-    )
+    expect(mockClaimNextQueuedSlotToken).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-1' }))
   })
 
   it('sends SendTaskSuccess when a queued token is claimed', async () => {

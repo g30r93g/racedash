@@ -64,42 +64,45 @@ export function registerTokenHandlers(mainWindow: BrowserWindow): void {
   // Authenticated fetch — used by renderer for API calls via main process
   const API_URL = import.meta.env.VITE_API_URL ?? ''
 
-  ipcMain.handle('racedash:auth:fetchWithAuth', async (_event, url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
-    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`
+  ipcMain.handle(
+    'racedash:auth:fetchWithAuth',
+    async (_event, url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => {
+      const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`
 
-    if (!fullUrl.startsWith(API_URL)) {
-      throw new Error(`URL not allowed: ${fullUrl}`)
-    }
+      if (!fullUrl.startsWith(API_URL)) {
+        throw new Error(`URL not allowed: ${fullUrl}`)
+      }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    }
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(init?.headers ?? {}),
+      }
 
-    if (sessionToken) {
-      headers['Authorization'] = `Bearer ${sessionToken}`
-    }
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`
+      }
 
-    const response = await fetch(fullUrl, {
-      method: init?.method ?? 'GET',
-      headers,
-      body: init?.body,
-    })
+      const response = await fetch(fullUrl, {
+        method: init?.method ?? 'GET',
+        headers,
+        body: init?.body,
+      })
 
-    // Emit sessionExpired if API returns 401
-    if (response.status === 401) {
-      mainWindow.webContents.send('racedash:auth:sessionExpired')
-    }
+      // Emit sessionExpired if API returns 401
+      if (response.status === 401) {
+        mainWindow.webContents.send('racedash:auth:sessionExpired')
+      }
 
-    const responseHeaders: Record<string, string> = {}
-    response.headers.forEach((value, key) => {
-      responseHeaders[key] = value
-    })
+      const responseHeaders: Record<string, string> = {}
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value
+      })
 
-    return {
-      status: response.status,
-      headers: responseHeaders,
-      body: await response.text(),
-    }
-  })
+      return {
+        status: response.status,
+        headers: responseHeaders,
+        body: await response.text(),
+      }
+    },
+  )
 }

@@ -18,12 +18,6 @@
     "sourceMap": true,
     "declarationMap": true
   },
-  "include": [
-    "bin/**/*.ts",
-    "lib/**/*.ts",
-    "lambdas/**/*.ts",
-    "scripts/**/*.ts",
-    "test/**/*.ts"
-  ],
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "lambdas/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist", "cdk.out"]
 }

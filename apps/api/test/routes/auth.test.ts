@@ -61,12 +61,14 @@ describe('GET /api/auth/me', () => {
     const now = new Date()
     const future = new Date(Date.now() + 86400000)
 
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'user-1',
-      clerkId: 'clerk_test_user',
-      email: 'gg@racedash.app',
-      createdAt: now,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'user-1',
+        clerkId: 'clerk_test_user',
+        email: 'gg@racedash.app',
+        createdAt: now,
+      },
+    ])
 
     mockGetUser.mockResolvedValueOnce({
       firstName: 'G.',
@@ -75,13 +77,15 @@ describe('GET /api/auth/me', () => {
       imageUrl: 'https://img.clerk.com/avatar.png',
     })
 
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'lic-1',
-      userId: 'user-1',
-      tier: 'pro',
-      status: 'active',
-      expiresAt: future,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'lic-1',
+        userId: 'user-1',
+        tier: 'pro',
+        status: 'active',
+        expiresAt: future,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -102,12 +106,14 @@ describe('GET /api/auth/me', () => {
   it('returns license: null when user has no active license', async () => {
     const now = new Date()
 
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'user-1',
-      clerkId: 'clerk_test_user',
-      email: 'gg@racedash.app',
-      createdAt: now,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'user-1',
+        clerkId: 'clerk_test_user',
+        email: 'gg@racedash.app',
+        createdAt: now,
+      },
+    ])
 
     mockGetUser.mockResolvedValueOnce({
       firstName: 'G.',
@@ -132,12 +138,14 @@ describe('GET /api/auth/me', () => {
   it('returns license: null when license is expired', async () => {
     const now = new Date()
 
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'user-1',
-      clerkId: 'clerk_test_user',
-      email: 'gg@racedash.app',
-      createdAt: now,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'user-1',
+        clerkId: 'clerk_test_user',
+        email: 'gg@racedash.app',
+        createdAt: now,
+      },
+    ])
 
     mockGetUser.mockResolvedValueOnce({
       firstName: 'G.',

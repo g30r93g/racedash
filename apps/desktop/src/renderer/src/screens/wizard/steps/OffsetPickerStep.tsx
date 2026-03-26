@@ -1,10 +1,5 @@
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FrameScrubber } from '@/components/video/FrameScrubber'
 import { useEffect, useState } from 'react'
 
@@ -33,12 +28,15 @@ export function OffsetPickerStep({
 
   useEffect(() => {
     if (!open) return
-    window.racedash.getVideoInfo(videoPath).then((info) => {
-      setFps(info.fps || DEFAULT_FPS)
-      setTotalFrames(Math.floor(info.durationSeconds * (info.fps || DEFAULT_FPS)))
-    }).catch((err) => {
-      console.warn('[racedash] getVideoInfo fallback:', err)
-    })
+    window.racedash
+      .getVideoInfo(videoPath)
+      .then((info) => {
+        setFps(info.fps || DEFAULT_FPS)
+        setTotalFrames(Math.floor(info.durationSeconds * (info.fps || DEFAULT_FPS)))
+      })
+      .catch((err) => {
+        console.warn('[racedash] getVideoInfo fallback:', err)
+      })
   }, [open, videoPath])
 
   function seekToFrame(frame: number) {
@@ -52,9 +50,7 @@ export function OffsetPickerStep({
         <DialogHeader>
           <DialogTitle>Set video offset — {segmentLabel}</DialogTitle>
         </DialogHeader>
-        <p className="text-xs text-muted-foreground">
-          Scrub to the first frame of the session, then confirm.
-        </p>
+        <p className="text-xs text-muted-foreground">Scrub to the first frame of the session, then confirm.</p>
 
         <FrameScrubber
           videoPath={videoPath}
@@ -66,8 +62,15 @@ export function OffsetPickerStep({
         />
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => { onConfirm(currentFrame); onOpenChange(false) }}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              onConfirm(currentFrame)
+              onOpenChange(false)
+            }}
+          >
             ✓ Use frame {currentFrame}
           </Button>
         </div>

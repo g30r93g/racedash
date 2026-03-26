@@ -70,42 +70,52 @@ export class PipelineStack extends cdk.Stack {
     })
 
     // Remotion Lambda IAM
-    remotionFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:GetObject', 's3:PutObject'],
-      resources: [`${props.rendersBucket.bucketArn}/renders/*`],
-    }))
-    remotionFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:GetObject'],
-      resources: [`${remotionSiteBucket.bucketArn}/*`],
-    }))
-    remotionFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:GetObject'],
-      resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
-    }))
+    remotionFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject', 's3:PutObject'],
+        resources: [`${props.rendersBucket.bucketArn}/renders/*`],
+      }),
+    )
+    remotionFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: [`${remotionSiteBucket.bucketArn}/*`],
+      }),
+    )
+    remotionFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
+      }),
+    )
     // Self-invoke for Remotion chunk parallelism — use constructed ARN to avoid cycle
-    remotionFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['lambda:InvokeFunction'],
-      resources: [
-        `arn:aws:lambda:${this.region}:${this.account}:function:racedash-remotion-${config.env}`,
-      ],
-    }))
+    remotionFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: [`arn:aws:lambda:${this.region}:${this.account}:function:racedash-remotion-${config.env}`],
+      }),
+    )
 
     // MediaConvert IAM role
     const mediaConvertRole = new iam.Role(this, 'MediaConvertRole', {
       roleName: `RaceDashMediaConvertRole-${config.env}`,
       assumedBy: new iam.ServicePrincipal('mediaconvert.amazonaws.com'),
     })
-    mediaConvertRole.addToPolicy(new iam.PolicyStatement({
-      actions: ['s3:GetObject'],
-      resources: [
-        `${props.rendersBucket.bucketArn}/renders/*/overlay.mov`,
-        `${props.uploadsBucket.bucketArn}/uploads/*/joined.mp4`,
-      ],
-    }))
-    mediaConvertRole.addToPolicy(new iam.PolicyStatement({
-      actions: ['s3:PutObject'],
-      resources: [`${props.rendersBucket.bucketArn}/renders/*/output.mp4`],
-    }))
+    mediaConvertRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: [
+          `${props.rendersBucket.bucketArn}/renders/*/overlay.mov`,
+          `${props.uploadsBucket.bucketArn}/uploads/*/joined.mp4`,
+        ],
+      }),
+    )
+    mediaConvertRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:PutObject'],
+        resources: [`${props.rendersBucket.bucketArn}/renders/*/output.mp4`],
+      }),
+    )
 
     // Pipeline Lambdas
     const waitForSlot = new PipelineLambda(this, 'WaitForSlotFunction', {
@@ -230,25 +240,29 @@ export class PipelineStack extends cdk.Stack {
     this.stateMachineArn = stateMachine.stateMachineArn
 
     // State machine execution role: MediaConvert + PassRole + EventBridge
-    stateMachine.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['mediaconvert:CreateJob'],
-      resources: ['*'],
-    }))
-    stateMachine.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['iam:PassRole'],
-      resources: [mediaConvertRole.roleArn],
-      conditions: {
-        StringEquals: {
-          'iam:PassedToService': 'mediaconvert.amazonaws.com',
+    stateMachine.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['mediaconvert:CreateJob'],
+        resources: ['*'],
+      }),
+    )
+    stateMachine.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['iam:PassRole'],
+        resources: [mediaConvertRole.roleArn],
+        conditions: {
+          StringEquals: {
+            'iam:PassedToService': 'mediaconvert.amazonaws.com',
+          },
         },
-      },
-    }))
-    stateMachine.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['events:PutTargets', 'events:PutRule', 'events:DescribeRule'],
-      resources: [
-        `arn:aws:events:${this.region}:${this.account}:rule/StepFunctionsGetEventsForMediaConvertJobRule`,
-      ],
-    }))
+      }),
+    )
+    stateMachine.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['events:PutTargets', 'events:PutRule', 'events:DescribeRule'],
+        resources: [`arn:aws:events:${this.region}:${this.account}:rule/StepFunctionsGetEventsForMediaConvertJobRule`],
+      }),
+    )
 
     // Grant callback permissions to Lambdas that need them.
     // Use constructed ARN to avoid cyclic dependency between Lambda roles
@@ -258,10 +272,12 @@ export class PipelineStack extends cdk.Stack {
       actions: ['states:SendTaskSuccess', 'states:SendTaskFailure'],
       resources: [stateMachineArnRef],
     })
-    waitForSlot.function.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['states:SendTaskSuccess'],
-      resources: [stateMachineArnRef],
-    }))
+    waitForSlot.function.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['states:SendTaskSuccess'],
+        resources: [stateMachineArnRef],
+      }),
+    )
     finaliseJob.function.addToRolePolicy(taskTokenPolicy)
     releaseCreditsAndFail.function.addToRolePolicy(taskTokenPolicy)
 

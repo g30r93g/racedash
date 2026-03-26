@@ -53,21 +53,22 @@ export function useYouTubeUploads(jobId: string | null) {
 
     // Poll while any upload is in a non-terminal state
     const interval = setInterval(() => {
-      const hasActive = uploads.some((u) =>
-        ['queued', 'uploading', 'processing'].includes(u.status),
-      )
+      const hasActive = uploads.some((u) => ['queued', 'uploading', 'processing'].includes(u.status))
       if (hasActive) poll()
     }, 10_000)
 
     return () => clearInterval(interval)
   }, [jobId, poll, uploads])
 
-  const upload = useCallback(async (metadata: YouTubeUploadMetadata) => {
-    if (!jobId) throw new Error('No job selected')
-    const result = await window.racedash.youtube.upload(jobId, metadata)
-    await poll()
-    return result
-  }, [jobId, poll])
+  const upload = useCallback(
+    async (metadata: YouTubeUploadMetadata) => {
+      if (!jobId) throw new Error('No job selected')
+      const result = await window.racedash.youtube.upload(jobId, metadata)
+      await poll()
+      return result
+    },
+    [jobId, poll],
+  )
 
   return { uploads, upload, poll }
 }

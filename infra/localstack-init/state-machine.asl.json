@@ -31,9 +31,7 @@
       },
       "ResultPath": "$.grantResult",
       "Next": "StartRenderOverlay",
-      "Catch": [
-        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
-      ]
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }]
     },
     "StartRenderOverlay": {
       "Type": "Task",
@@ -50,7 +48,11 @@
       "ResultPath": "$.renderResult",
       "Next": "PrepareComposite",
       "Catch": [
-        { "ErrorEquals": ["States.HeartbeatTimeout", "States.TaskFailed"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" },
+        {
+          "ErrorEquals": ["States.HeartbeatTimeout", "States.TaskFailed"],
+          "Next": "ReleaseCreditsAndFail",
+          "ResultPath": "$.error"
+        },
         { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
       ]
     },
@@ -63,9 +65,7 @@
       },
       "ResultPath": "$.compositeResult",
       "Next": "RunMediaConvert",
-      "Catch": [
-        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
-      ]
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }]
     },
     "RunMediaConvert": {
       "Type": "Pass",
@@ -88,9 +88,7 @@
       },
       "ResultPath": "$.finaliseResult",
       "Next": "NotifyUser",
-      "Catch": [
-        { "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }
-      ]
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "ReleaseCreditsAndFail", "ResultPath": "$.error" }]
     },
     "NotifyUser": {
       "Type": "Task",
@@ -104,9 +102,7 @@
       },
       "ResultPath": "$.notifyResult",
       "Next": "Succeed",
-      "Catch": [
-        { "ErrorEquals": ["States.ALL"], "Next": "LogNotifyError", "ResultPath": "$.error" }
-      ]
+      "Catch": [{ "ErrorEquals": ["States.ALL"], "Next": "LogNotifyError", "ResultPath": "$.error" }]
     },
     "LogNotifyError": {
       "Type": "Pass",

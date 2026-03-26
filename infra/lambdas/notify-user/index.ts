@@ -13,20 +13,12 @@ export const handler = async (event: NotifyUserEvent): Promise<void> => {
   const db = getDb()
 
   // Look up user email
-  const [user] = await db
-    .select({ email: users.email })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
+  const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1)
 
   if (!user) throw new Error(`User ${userId} not found`)
 
   // Look up project name from job config
-  const [job] = await db
-    .select({ config: jobs.config })
-    .from(jobs)
-    .where(eq(jobs.id, jobId))
-    .limit(1)
+  const [job] = await db.select({ config: jobs.config }).from(jobs).where(eq(jobs.id, jobId)).limit(1)
 
   const projectName = (job?.config as any)?.projectName ?? 'your project'
 

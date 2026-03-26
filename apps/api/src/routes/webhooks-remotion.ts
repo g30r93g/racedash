@@ -42,17 +42,21 @@ const webhooksRemotionRoutes: FastifyPluginAsync = async (fastify) => {
     const { taskToken } = payload.customData
 
     if (payload.type === 'success') {
-      await sfn.send(new SendTaskSuccessCommand({
-        taskToken,
-        output: JSON.stringify({ renderId: payload.renderId }),
-      }))
+      await sfn.send(
+        new SendTaskSuccessCommand({
+          taskToken,
+          output: JSON.stringify({ renderId: payload.renderId }),
+        }),
+      )
     } else {
       const errorMessage = payload.errors?.map((e) => e.message).join('; ') ?? `Remotion render ${payload.type}`
-      await sfn.send(new SendTaskFailureCommand({
-        taskToken,
-        error: payload.type,
-        cause: errorMessage,
-      }))
+      await sfn.send(
+        new SendTaskFailureCommand({
+          taskToken,
+          error: payload.type,
+          cause: errorMessage,
+        }),
+      )
     }
 
     reply.status(200).send('')

@@ -9,10 +9,21 @@ import { SectionLabel } from '../shared/SectionLabel'
 import { CreditBalance } from './CreditBalance'
 import { CreditHistory } from './CreditHistory'
 import { YouTubeIcon } from '../icons/YouTubeIcon'
-import type { AuthUser, AuthLicense, CreditBalance as CreditBalanceType, CreditHistory as CreditHistoryType, YouTubeConnectionStatus } from '../../../../types/ipc'
+import type {
+  AuthUser,
+  AuthLicense,
+  CreditBalance as CreditBalanceType,
+  CreditHistory as CreditHistoryType,
+  YouTubeConnectionStatus,
+} from '../../../../types/ipc'
 
 function initials(name: string): string {
-  return name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+  return name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 }
 
 function formatDate(iso: string): string {
@@ -73,15 +84,14 @@ export function AccountDetails({
   }
 
   const tierLabel = license?.tier === 'pro' ? 'PRO' : license?.tier === 'plus' ? 'PLUS' : null
-  const planName = license?.tier === 'pro' ? 'RaceDash Cloud Pro' : license?.tier === 'plus' ? 'RaceDash Cloud Plus' : null
+  const planName =
+    license?.tier === 'pro' ? 'RaceDash Cloud Pro' : license?.tier === 'plus' ? 'RaceDash Cloud Plus' : null
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">
-            {initials(user.name)}
-          </AvatarFallback>
+          <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">{initials(user.name)}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -125,21 +135,14 @@ export function AccountDetails({
 
       {license && !showHistory && (
         <>
-          <CreditBalance
-            balance={creditBalance}
-            onTopUp={onTopUpCredits}
-            onViewHistory={() => setShowHistory(true)}
-          />
+          <CreditBalance balance={creditBalance} onTopUp={onTopUpCredits} onViewHistory={() => setShowHistory(true)} />
           <Separator />
         </>
       )}
 
       {license && showHistory && (
         <>
-          <CreditHistory
-            fetchHistory={fetchCreditHistory}
-            onBack={() => setShowHistory(false)}
-          />
+          <CreditHistory fetchHistory={fetchCreditHistory} onBack={() => setShowHistory(false)} />
           <Separator />
         </>
       )}
@@ -152,7 +155,9 @@ export function AccountDetails({
               <div className="flex items-center gap-2">
                 <YouTubeIcon className="h-4 w-4 text-red-500" />
                 <span className="text-sm">{youtubeStatus.account?.accountName}</span>
-                <Badge variant="outline" className="text-[10px]">Connected</Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  Connected
+                </Badge>
               </div>
               <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={onYouTubeDisconnect}>
                 Disconnect
@@ -183,11 +188,7 @@ export function AccountDetails({
 
       <Separator />
 
-      <Button
-        variant="destructive"
-        className="w-full bg-red-950 text-red-500 hover:bg-red-900"
-        onClick={onSignOut}
-      >
+      <Button variant="destructive" className="w-full bg-red-950 text-red-500 hover:bg-red-900" onClick={onSignOut}>
         Sign out
       </Button>
     </div>

@@ -90,11 +90,17 @@ describe('registerCloudRenderHandlers', () => {
   it('uploadPart reads file and PUTs to presigned URL', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      headers: { get: (h: string) => h === 'etag' ? '"abc123"' : null },
+      headers: { get: (h: string) => (h === 'etag' ? '"abc123"' : null) },
     })
 
     const result = await handlers.get('racedash:cloudRender:uploadPart')!(
-      {}, 'job-1', 'https://s3.example.com/part1', '/video.mp4', 1, 0, 5242880,
+      {},
+      'job-1',
+      'https://s3.example.com/part1',
+      '/video.mp4',
+      1,
+      0,
+      5242880,
     )
 
     expect(fsMock.openSync).toHaveBeenCalledWith('/video.mp4', 'r')
@@ -181,21 +187,30 @@ describe('registerCloudRenderHandlers', () => {
 
   it('estimateCost calculates credits for standard video', () => {
     const cost = handlers.get('racedash:cloudRender:estimateCost')!(
-      {}, { durationSeconds: 120, width: 1920, height: 1080, fps: 60 }, '1080p', '60fps',
+      {},
+      { durationSeconds: 120, width: 1920, height: 1080, fps: 60 },
+      '1080p',
+      '60fps',
     )
     expect(cost).toBe(2) // 2 min * 1.0 * 1.0 = 2
   })
 
   it('estimateCost applies 4K multiplier', () => {
     const cost = handlers.get('racedash:cloudRender:estimateCost')!(
-      {}, { durationSeconds: 60, width: 3840, height: 2160, fps: 60 }, '4K', '60fps',
+      {},
+      { durationSeconds: 60, width: 3840, height: 2160, fps: 60 },
+      '4K',
+      '60fps',
     )
     expect(cost).toBe(3) // 1 min * 3.0 * 1.0 = 3
   })
 
   it('estimateCost applies high frame rate multiplier', () => {
     const cost = handlers.get('racedash:cloudRender:estimateCost')!(
-      {}, { durationSeconds: 60, width: 1920, height: 1080, fps: 120 }, '1080p', '120fps',
+      {},
+      { durationSeconds: 60, width: 1920, height: 1080, fps: 120 },
+      '1080p',
+      '120fps',
     )
     expect(cost).toBe(2) // 1 min * 1.0 * 1.75 = 1.75 → ceil = 2
   })

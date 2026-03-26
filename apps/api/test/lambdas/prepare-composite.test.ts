@@ -21,7 +21,7 @@ import { handler } from '../../../../infra/lambdas/prepare-composite/index'
 
 function makeConfig(width: number) {
   return {
-    sourceVideo: { width, height: width * 9 / 16, fps: 30, durationSeconds: 60, fileSizeBytes: 500_000 },
+    sourceVideo: { width, height: (width * 9) / 16, fps: 30, durationSeconds: 60, fileSizeBytes: 500_000 },
   }
 }
 
@@ -47,9 +47,7 @@ describe('prepare-composite handler', () => {
   it('sets status to compositing', async () => {
     await handler({ jobId: 'job-1' })
 
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'compositing' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ status: 'compositing' }))
   })
 
   it('returns correct input S3 keys', async () => {
@@ -65,8 +63,8 @@ describe('prepare-composite handler', () => {
 
     const result = await handler({ jobId: 'job-1' })
 
-    const bitrate = result.mediaConvertSettings.OutputGroups[0].Outputs[0]
-      .VideoDescription.CodecSettings.H264Settings.Bitrate
+    const bitrate =
+      result.mediaConvertSettings.OutputGroups[0].Outputs[0].VideoDescription.CodecSettings.H264Settings.Bitrate
     expect(bitrate).toBe(50_000_000)
   })
 
@@ -75,8 +73,8 @@ describe('prepare-composite handler', () => {
 
     const result = await handler({ jobId: 'job-1' })
 
-    const bitrate = result.mediaConvertSettings.OutputGroups[0].Outputs[0]
-      .VideoDescription.CodecSettings.H264Settings.Bitrate
+    const bitrate =
+      result.mediaConvertSettings.OutputGroups[0].Outputs[0].VideoDescription.CodecSettings.H264Settings.Bitrate
     expect(bitrate).toBe(30_000_000)
   })
 
@@ -85,16 +83,15 @@ describe('prepare-composite handler', () => {
 
     const result = await handler({ jobId: 'job-1' })
 
-    const bitrate = result.mediaConvertSettings.OutputGroups[0].Outputs[0]
-      .VideoDescription.CodecSettings.H264Settings.Bitrate
+    const bitrate =
+      result.mediaConvertSettings.OutputGroups[0].Outputs[0].VideoDescription.CodecSettings.H264Settings.Bitrate
     expect(bitrate).toBe(20_000_000)
   })
 
   it('sets output destination under renders/{jobId}/output', async () => {
     const result = await handler({ jobId: 'job-1' })
 
-    const dest = result.mediaConvertSettings.OutputGroups[0].OutputGroupSettings
-      .FileGroupSettings.Destination
+    const dest = result.mediaConvertSettings.OutputGroups[0].OutputGroupSettings.FileGroupSettings.Destination
     expect(dest).toBe('s3://renders-bucket/renders/job-1/output')
   })
 

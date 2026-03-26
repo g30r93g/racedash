@@ -49,13 +49,23 @@ export function RenderSettings({
       {/* OUTPUT RESOLUTION */}
       <section>
         <SectionLabel>Output Resolution</SectionLabel>
-        <OptionGroup options={resolutionOptions} value={outputResolution} onValueChange={setOutputResolution} disabled={disabled} />
+        <OptionGroup
+          options={resolutionOptions}
+          value={outputResolution}
+          onValueChange={setOutputResolution}
+          disabled={disabled}
+        />
       </section>
 
       {/* OUTPUT FRAME RATE */}
       <section>
         <SectionLabel>Output Frame Rate</SectionLabel>
-        <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} disabled={disabled} />
+        <OptionGroup
+          options={frameRateOptions}
+          value={outputFrameRate}
+          onValueChange={setOutputFrameRate}
+          disabled={disabled}
+        />
       </section>
 
       {/* RENDER MODE */}

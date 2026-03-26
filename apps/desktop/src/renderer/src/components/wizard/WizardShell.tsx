@@ -42,7 +42,12 @@ export function WizardShell({
   const isLastStep = currentStep === steps.length - 1
 
   return (
-    <Dialog open={true} onOpenChange={(open) => { if (!open) onCancel() }}>
+    <Dialog
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) onCancel()
+      }}
+    >
       <DialogContent
         className="flex w-172.5 flex-col gap-0 p-0"
         onInteractOutside={(event) => event.preventDefault()}
@@ -52,11 +57,11 @@ export function WizardShell({
           <StepIndicator currentStep={currentStep + 1} steps={steps} />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto px-8 py-6">{children}</div>
 
-        <div className={`flex shrink-0 items-center justify-between border-t border-border px-8 py-4${hideButtonBar ? ' hidden' : ''}`}>
+        <div
+          className={`flex shrink-0 items-center justify-between border-t border-border px-8 py-4${hideButtonBar ? ' hidden' : ''}`}
+        >
           <Button variant="ghost" onClick={isFirstStep ? onCancel : onBack}>
             {isFirstStep ? 'Cancel' : '\u2190 Back'}
           </Button>

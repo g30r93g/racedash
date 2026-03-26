@@ -5,7 +5,9 @@ vi.mock('@racedash/engine', async (importOriginal) => {
   return {
     ...actual,
     loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{}] }),
-    resolveTimingSegments: vi.fn().mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
+    resolveTimingSegments: vi
+      .fn()
+      .mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
   }
 })
 
@@ -77,7 +79,14 @@ describe('buildEngineSegments', () => {
     ]
     const result = buildEngineSegments(segments, drivers)
     expect(result).toEqual([
-      { source: 'alphaTiming', mode: 'race', offset: '100 F', label: 'Race', driver: 'G. Gorzynski', url: 'https://example.com' },
+      {
+        source: 'alphaTiming',
+        mode: 'race',
+        offset: '100 F',
+        label: 'Race',
+        driver: 'G. Gorzynski',
+        url: 'https://example.com',
+      },
     ])
   })
 
@@ -87,42 +96,62 @@ describe('buildEngineSegments', () => {
     ]
     const result = buildEngineSegments(segments, drivers)
     expect(result).toEqual([
-      { source: 'daytonaEmail', mode: 'practice', offset: '0 F', label: 'Practice', driver: 'A. Smith', emailPath: '/path/to/email.eml' },
+      {
+        source: 'daytonaEmail',
+        mode: 'practice',
+        offset: '0 F',
+        label: 'Practice',
+        driver: 'A. Smith',
+        emailPath: '/path/to/email.eml',
+      },
     ])
   })
 
   it('converts teamsportEmail segment', () => {
-    const segments: SegmentConfig[] = [
-      { label: 'Race', source: 'teamsportEmail', emailPath: '/path/to/email.txt' },
-    ]
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'teamsportEmail', emailPath: '/path/to/email.txt' }]
     const result = buildEngineSegments(segments, drivers)
     expect(result).toEqual([
-      { source: 'teamsportEmail', mode: 'race', offset: '0 F', label: 'Race', driver: 'G. Gorzynski', emailPath: '/path/to/email.txt' },
+      {
+        source: 'teamsportEmail',
+        mode: 'race',
+        offset: '0 F',
+        label: 'Race',
+        driver: 'G. Gorzynski',
+        emailPath: '/path/to/email.txt',
+      },
     ])
   })
 
   it('converts mylapsSpeedhive segment with url', () => {
     const segments: SegmentConfig[] = [
-      { label: 'Qualifying', source: 'mylapsSpeedhive', session: 'qualifying', url: 'https://speedhive.mylaps.com/Sessions/123' },
+      {
+        label: 'Qualifying',
+        source: 'mylapsSpeedhive',
+        session: 'qualifying',
+        url: 'https://speedhive.mylaps.com/Sessions/123',
+      },
     ]
     const result = buildEngineSegments(segments, drivers)
     expect(result).toEqual([
-      { source: 'mylapsSpeedhive', mode: 'qualifying', offset: '0 F', label: 'Qualifying', driver: 'B. Johnson', url: 'https://speedhive.mylaps.com/Sessions/123' },
+      {
+        source: 'mylapsSpeedhive',
+        mode: 'qualifying',
+        offset: '0 F',
+        label: 'Qualifying',
+        driver: 'B. Johnson',
+        url: 'https://speedhive.mylaps.com/Sessions/123',
+      },
     ])
   })
 
   it('constructs speedhive url from eventId when url is missing', () => {
-    const segments: SegmentConfig[] = [
-      { label: 'Race', source: 'mylapsSpeedhive', eventId: '456' },
-    ]
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'mylapsSpeedhive', eventId: '456' }]
     const result = buildEngineSegments(segments, drivers)
     expect(result[0]).toMatchObject({ url: 'https://speedhive.mylaps.com/Sessions/456' })
   })
 
   it('converts manual segment with empty timingData', () => {
-    const segments: SegmentConfig[] = [
-      { label: 'Race', source: 'manual' },
-    ]
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'manual' }]
     const result = buildEngineSegments(segments, drivers)
     expect(result).toEqual([
       { source: 'manual', mode: 'race', offset: '0 F', label: 'Race', driver: 'G. Gorzynski', timingData: [] },
@@ -130,17 +159,13 @@ describe('buildEngineSegments', () => {
   })
 
   it('defaults mode to race when session is undefined', () => {
-    const segments: SegmentConfig[] = [
-      { label: 'Race', source: 'alphaTiming', url: 'https://example.com' },
-    ]
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'alphaTiming', url: 'https://example.com' }]
     const result = buildEngineSegments(segments, drivers)
     expect(result[0]).toMatchObject({ mode: 'race' })
   })
 
   it('defaults videoOffsetFrame to 0 when undefined', () => {
-    const segments: SegmentConfig[] = [
-      { label: 'Race', source: 'alphaTiming', url: 'https://example.com' },
-    ]
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'alphaTiming', url: 'https://example.com' }]
     const result = buildEngineSegments(segments, drivers)
     expect(result[0]).toMatchObject({ offset: '0 F' })
   })
@@ -148,7 +173,13 @@ describe('buildEngineSegments', () => {
 
 describe('updateProjectHandler', () => {
   const newSegments: SegmentConfig[] = [
-    { label: 'Qualifying', source: 'alphaTiming', url: 'https://example.com/q', session: 'qualifying', videoOffsetFrame: 50 },
+    {
+      label: 'Qualifying',
+      source: 'alphaTiming',
+      url: 'https://example.com/q',
+      session: 'qualifying',
+      videoOffsetFrame: 50,
+    },
   ]
   const newDrivers = { Qualifying: 'A. Smith' }
 
@@ -161,7 +192,7 @@ describe('updateProjectHandler', () => {
     const result = await updateProjectHandler(PROJECT_PATH, newSegments, newDrivers)
 
     // config.json: preserves overlayType and styling, updates segments with per-segment driver
-    const configWriteCall = mockWriteFileSync.mock.calls.find(c => c[0] === CONFIG_PATH)
+    const configWriteCall = mockWriteFileSync.mock.calls.find((c) => c[0] === CONFIG_PATH)
     expect(configWriteCall).toBeDefined()
     const writtenConfig = JSON.parse(configWriteCall![1] as string)
     expect(writtenConfig.overlayType).toBe('banner')
@@ -170,15 +201,21 @@ describe('updateProjectHandler', () => {
     // Remote segments get cached (resolved to 'cached' source with inline data)
     expect(writtenConfig.segments).toEqual([
       {
-        source: 'cached', mode: 'qualifying', offset: '50 F', label: 'Qualifying',
+        source: 'cached',
+        mode: 'qualifying',
+        offset: '50 F',
+        label: 'Qualifying',
         driver: 'A. Smith',
         originalSource: 'alphaTiming',
-        drivers: [], capabilities: {}, startingGrid: [], replayData: [],
+        drivers: [],
+        capabilities: {},
+        startingGrid: [],
+        replayData: [],
       },
     ])
 
     // project.json: updated segments + drivers
-    const projectWriteCall = mockWriteFileSync.mock.calls.find(c => c[0] === PROJECT_PATH)
+    const projectWriteCall = mockWriteFileSync.mock.calls.find((c) => c[0] === PROJECT_PATH)
     expect(projectWriteCall).toBeDefined()
     const writtenProject = JSON.parse(projectWriteCall![1] as string)
     expect(writtenProject.segments).toEqual(newSegments)
@@ -201,15 +238,15 @@ describe('updateProjectHandler', () => {
 
     await updateProjectHandler(PROJECT_PATH, newSegments, newDrivers)
 
-    const configWriteCall = mockWriteFileSync.mock.calls.find(c => c[0] === CONFIG_PATH)
+    const configWriteCall = mockWriteFileSync.mock.calls.find((c) => c[0] === CONFIG_PATH)
     const writtenConfig = JSON.parse(configWriteCall![1] as string)
     expect(writtenConfig.boxPosition).toBe('top-right')
   })
 
   it('handles missing config.json gracefully', async () => {
-    mockReadFileSync
-      .mockReturnValueOnce(JSON.stringify(SAMPLE_PROJECT))
-      .mockImplementationOnce(() => { throw new Error('ENOENT') })
+    mockReadFileSync.mockReturnValueOnce(JSON.stringify(SAMPLE_PROJECT)).mockImplementationOnce(() => {
+      throw new Error('ENOENT')
+    })
 
     const result = await updateProjectHandler(PROJECT_PATH, newSegments, newDrivers)
     expect(result.selectedDrivers).toEqual(newDrivers)
@@ -228,6 +265,8 @@ describe('updateProjectHandler', () => {
   })
 
   it('throws when selectedDrivers is not an object', async () => {
-    await expect(updateProjectHandler(PROJECT_PATH, newSegments, null as unknown as Record<string, string>)).rejects.toThrow('must be an object')
+    await expect(
+      updateProjectHandler(PROJECT_PATH, newSegments, null as unknown as Record<string, string>),
+    ).rejects.toThrow('must be an object')
   })
 })

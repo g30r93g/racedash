@@ -43,10 +43,12 @@ const webhooksRenderRoutes: FastifyPluginAsync = async (fastify) => {
       const token = await claimNextQueuedSlotToken({ db, userId })
 
       if (token) {
-        await sfn.send(new SendTaskSuccessCommand({
-          taskToken: token,
-          output: '{}',
-        }))
+        await sfn.send(
+          new SendTaskSuccessCommand({
+            taskToken: token,
+            output: '{}',
+          }),
+        )
       }
     }
 

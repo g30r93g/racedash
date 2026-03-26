@@ -3,11 +3,7 @@ import type { StartUploadResponse } from '../../src/types'
 
 // Mirrors the presigned URL structure from POST /api/jobs/:id/start-upload
 
-function buildPresignedUrlResponse(opts: {
-  uploadId: string
-  jobId: string
-  partCount: number
-}): StartUploadResponse {
+function buildPresignedUrlResponse(opts: { uploadId: string; jobId: string; partCount: number }): StartUploadResponse {
   const presignedUrls: Array<{ partNumber: number; url: string }> = []
   for (let i = 1; i <= opts.partCount; i++) {
     presignedUrls.push({

@@ -5,10 +5,7 @@ import { licenses, creditPacks, type DrizzleDb } from '@racedash/db'
  * Returns true if a license row already exists for this subscription ID.
  * Used to enforce idempotency on subscription.created webhooks.
  */
-export async function licenseExistsForSubscription(
-  db: DrizzleDb,
-  stripeSubscriptionId: string,
-): Promise<boolean> {
+export async function licenseExistsForSubscription(db: DrizzleDb, stripeSubscriptionId: string): Promise<boolean> {
   const [existing] = await db
     .select({ id: licenses.id })
     .from(licenses)
@@ -23,10 +20,7 @@ export async function licenseExistsForSubscription(
  * The credit_packs table has a UNIQUE constraint on stripe_payment_intent_id,
  * but pre-checking avoids noisy constraint errors.
  */
-export async function creditPackExistsForPaymentIntent(
-  db: DrizzleDb,
-  stripePaymentIntentId: string,
-): Promise<boolean> {
+export async function creditPackExistsForPaymentIntent(db: DrizzleDb, stripePaymentIntentId: string): Promise<boolean> {
   const [existing] = await db
     .select({ id: creditPacks.id })
     .from(creditPacks)

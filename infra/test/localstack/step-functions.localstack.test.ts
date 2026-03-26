@@ -15,29 +15,36 @@ const sfn = new SFNClient({
   },
 })
 
-const STATE_MACHINE_ARN = process.env.STEP_FUNCTIONS_STATE_MACHINE_ARN ||
+const STATE_MACHINE_ARN =
+  process.env.STEP_FUNCTIONS_STATE_MACHINE_ARN ||
   'arn:aws:states:us-east-1:000000000000:stateMachine:RenderPipeline-local'
 
 describe('Step Functions (LocalStack)', () => {
   test('state machine can be started with a valid input payload', async () => {
-    const result = await sfn.send(new StartExecutionCommand({
-      stateMachineArn: STATE_MACHINE_ARN,
-      input: JSON.stringify({ jobId: 'test-123', userId: 'user-456' }),
-    }))
+    const result = await sfn.send(
+      new StartExecutionCommand({
+        stateMachineArn: STATE_MACHINE_ARN,
+        input: JSON.stringify({ jobId: 'test-123', userId: 'user-456' }),
+      }),
+    )
 
     expect(result.executionArn).toBeDefined()
     expect(result.startDate).toBeDefined()
   })
 
   test('execution can be described after start', async () => {
-    const start = await sfn.send(new StartExecutionCommand({
-      stateMachineArn: STATE_MACHINE_ARN,
-      input: JSON.stringify({ jobId: 'test-describe', userId: 'user-describe' }),
-    }))
+    const start = await sfn.send(
+      new StartExecutionCommand({
+        stateMachineArn: STATE_MACHINE_ARN,
+        input: JSON.stringify({ jobId: 'test-describe', userId: 'user-describe' }),
+      }),
+    )
 
-    const desc = await sfn.send(new DescribeExecutionCommand({
-      executionArn: start.executionArn!,
-    }))
+    const desc = await sfn.send(
+      new DescribeExecutionCommand({
+        executionArn: start.executionArn!,
+      }),
+    )
 
     expect(desc.status).toBeDefined()
     expect(desc.stateMachineArn).toBe(STATE_MACHINE_ARN)

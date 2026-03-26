@@ -46,7 +46,9 @@ export function VerifyCodeForm({
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="verify-code" className="text-sm font-medium text-white/70">Verification code</Label>
+          <Label htmlFor="verify-code" className="text-sm font-medium text-white/70">
+            Verification code
+          </Label>
           <Input
             id="verify-code"
             type="text"
@@ -61,15 +63,9 @@ export function VerifyCodeForm({
           />
         </div>
 
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          variant="default"
-        >
+        <Button type="submit" disabled={isSubmitting} variant="default">
           {isSubmitting ? 'Verifying...' : submitLabel}
         </Button>
 

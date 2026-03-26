@@ -83,7 +83,9 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="signup-first-name" className="text-sm font-medium text-white/70">First name</Label>
+            <Label htmlFor="signup-first-name" className="text-sm font-medium text-white/70">
+              First name
+            </Label>
             <Input
               id="signup-first-name"
               type="text"
@@ -96,7 +98,9 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
             />
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="signup-last-name" className="text-sm font-medium text-white/70">Last name</Label>
+            <Label htmlFor="signup-last-name" className="text-sm font-medium text-white/70">
+              Last name
+            </Label>
             <Input
               id="signup-last-name"
               type="text"
@@ -110,7 +114,9 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="signup-email" className="text-sm font-medium text-white/70">Email</Label>
+          <Label htmlFor="signup-email" className="text-sm font-medium text-white/70">
+            Email
+          </Label>
           <Input
             id="signup-email"
             type="email"
@@ -123,7 +129,9 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="signup-password" className="text-sm font-medium text-white/70">Password</Label>
+          <Label htmlFor="signup-password" className="text-sm font-medium text-white/70">
+            Password
+          </Label>
           <Input
             id="signup-password"
             type="password"
@@ -135,18 +143,12 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
           />
         </div>
 
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
         {/* CAPTCHA placeholder — Clerk renders Cloudflare Turnstile here */}
         <div id="clerk-captcha" data-cl-theme="dark" data-cl-size="compact" />
 
-        <Button
-          type="submit"
-          disabled={isSubmitting || !signUp}
-          variant="default"
-        >
+        <Button type="submit" disabled={isSubmitting || !signUp} variant="default">
           {isSubmitting ? 'Creating account...' : 'Create account'}
         </Button>
       </form>

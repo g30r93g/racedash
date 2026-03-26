@@ -11,12 +11,20 @@ vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId' },
   licenses: { id: 'id', userId: 'userId', status: 'status', expiresAt: 'expiresAt' },
   connectedAccounts: {
-    id: 'id', userId: 'userId', platform: 'platform',
-    accountName: 'accountName', accountId: 'accountId',
-    accessToken: 'accessToken', refreshToken: 'refreshToken',
-    connectedAt: 'connectedAt', lastUsedAt: 'lastUsedAt',
+    id: 'id',
+    userId: 'userId',
+    platform: 'platform',
+    accountName: 'accountName',
+    accountId: 'accountId',
+    accessToken: 'accessToken',
+    refreshToken: 'refreshToken',
+    connectedAt: 'connectedAt',
+    lastUsedAt: 'lastUsedAt',
   },
-  eq: vi.fn(), and: vi.fn(), gt: vi.fn(), desc: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
+  gt: vi.fn(),
+  desc: vi.fn(),
 }))
 
 vi.mock('../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -39,7 +47,19 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'delete', 'returning']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'delete',
+    'returning',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }
@@ -67,8 +87,8 @@ describe('YouTube Auth Routes', () => {
 
   describe('GET /api/auth/youtube/connect', () => {
     it('returns 200 with authUrl containing Google OAuth URL with correct scope and state', async () => {
-      mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])  // user lookup
-      mockDb.limit.mockResolvedValueOnce([{ id: 'lic-1' }])   // license lookup
+      mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }]) // user lookup
+      mockDb.limit.mockResolvedValueOnce([{ id: 'lic-1' }]) // license lookup
 
       const response = await app.inject({
         method: 'GET',
@@ -84,7 +104,7 @@ describe('YouTube Auth Routes', () => {
     })
 
     it('returns 404 when user not found', async () => {
-      mockDb.limit.mockResolvedValueOnce([])  // no user
+      mockDb.limit.mockResolvedValueOnce([]) // no user
 
       const response = await app.inject({
         method: 'GET',
@@ -96,8 +116,8 @@ describe('YouTube Auth Routes', () => {
     })
 
     it('returns 403 when user has no active license', async () => {
-      mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])  // user found
-      mockDb.limit.mockResolvedValueOnce([])                    // no license
+      mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }]) // user found
+      mockDb.limit.mockResolvedValueOnce([]) // no license
 
       const response = await app.inject({
         method: 'GET',
@@ -164,7 +184,9 @@ describe('YouTube Auth Routes', () => {
       const { createHmac } = await import('node:crypto')
       const key = process.env.TOKEN_ENCRYPTION_KEY!
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString(
+        'base64url',
+      )
       const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
       const validState = `${header}.${body}.${signature}`
 
@@ -181,7 +203,9 @@ describe('YouTube Auth Routes', () => {
       const { createHmac } = await import('node:crypto')
       const key = process.env.TOKEN_ENCRYPTION_KEY!
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString(
+        'base64url',
+      )
       const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
       const validState = `${header}.${body}.${signature}`
 
@@ -218,7 +242,9 @@ describe('YouTube Auth Routes', () => {
       const { createHmac } = await import('node:crypto')
       const key = process.env.TOKEN_ENCRYPTION_KEY!
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString(
+        'base64url',
+      )
       const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
       const validState = `${header}.${body}.${signature}`
 
@@ -250,7 +276,9 @@ describe('YouTube Auth Routes', () => {
       const { createHmac } = await import('node:crypto')
       const key = process.env.TOKEN_ENCRYPTION_KEY!
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString(
+        'base64url',
+      )
       const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
       const validState = `${header}.${body}.${signature}`
 
@@ -269,7 +297,9 @@ describe('YouTube Auth Routes', () => {
       const { createHmac } = await import('node:crypto')
       const key = process.env.TOKEN_ENCRYPTION_KEY!
       const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString('base64url')
+      const body = Buffer.from(JSON.stringify({ sub: 'user-1', exp: Math.floor(Date.now() / 1000) + 600 })).toString(
+        'base64url',
+      )
       const signature = createHmac('sha256', key).update(`${header}.${body}`).digest('base64url')
       const validState = `${header}.${body}.${signature}`
 
@@ -295,12 +325,15 @@ describe('YouTube Auth Routes', () => {
   describe('GET /api/auth/youtube/status', () => {
     it('returns connected=true with account details when YouTube is connected', async () => {
       const connectedAt = new Date('2026-03-18T12:00:00.000Z')
-      mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])  // user lookup
-      mockDb.limit.mockResolvedValueOnce([{                     // connected account
-        accountName: 'G. Gorzynski Racing',
-        accountId: 'UC_test123',
-        connectedAt,
-      }])
+      mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }]) // user lookup
+      mockDb.limit.mockResolvedValueOnce([
+        {
+          // connected account
+          accountName: 'G. Gorzynski Racing',
+          accountId: 'UC_test123',
+          connectedAt,
+        },
+      ])
 
       const response = await app.inject({
         method: 'GET',
@@ -329,7 +362,7 @@ describe('YouTube Auth Routes', () => {
     })
 
     it('returns connected=false when user not found', async () => {
-      mockDb.limit.mockResolvedValueOnce([])  // no user
+      mockDb.limit.mockResolvedValueOnce([]) // no user
 
       const response = await app.inject({
         method: 'GET',
@@ -342,11 +375,13 @@ describe('YouTube Auth Routes', () => {
 
     it('does not include access or refresh tokens in response', async () => {
       mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-      mockDb.limit.mockResolvedValueOnce([{
-        accountName: 'Channel',
-        accountId: 'UC123',
-        connectedAt: new Date(),
-      }])
+      mockDb.limit.mockResolvedValueOnce([
+        {
+          accountName: 'Channel',
+          accountId: 'UC123',
+          connectedAt: new Date(),
+        },
+      ])
 
       const response = await app.inject({
         method: 'GET',
@@ -391,7 +426,7 @@ describe('YouTube Auth Routes', () => {
     })
 
     it('returns 404 when user not found', async () => {
-      mockDb.limit.mockResolvedValueOnce([])  // no user
+      mockDb.limit.mockResolvedValueOnce([]) // no user
 
       const response = await app.inject({
         method: 'DELETE',

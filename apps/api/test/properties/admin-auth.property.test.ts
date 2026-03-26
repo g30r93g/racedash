@@ -36,9 +36,7 @@ describe('admin-auth property tests', () => {
     fc.assert(
       fc.property(
         // Generate a list of 0..200 mock user IDs (sorted, as the real query uses ORDER BY id ASC)
-        fc.array(fc.uuid(), { minLength: 0, maxLength: 200 }).map((ids) =>
-          [...new Set(ids)].sort(),
-        ),
+        fc.array(fc.uuid(), { minLength: 0, maxLength: 200 }).map((ids) => [...new Set(ids)].sort()),
         // Page size between 1 and 100 (matches the real clamp in userSearchSchema)
         fc.integer({ min: 1, max: 100 }),
         (allUserIds, pageSize) => {
@@ -49,9 +47,7 @@ describe('admin-auth property tests', () => {
 
           for (let i = 0; i < maxIterations; i++) {
             // Filter by cursor
-            const eligible = cursor
-              ? allUserIds.filter((id) => id > cursor!)
-              : allUserIds
+            const eligible = cursor ? allUserIds.filter((id) => id > cursor!) : allUserIds
 
             const page = eligible.slice(0, pageSize)
             const hasMore = eligible.length > pageSize

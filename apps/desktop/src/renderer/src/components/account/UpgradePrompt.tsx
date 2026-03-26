@@ -25,9 +25,7 @@ export function UpgradePrompt({ feature, onUpgrade, onDismiss, inline }: Upgrade
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-80 rounded-lg border border-border bg-background p-6 shadow-lg">
-        <h3 className="mb-2 text-sm font-semibold text-foreground">
-          This feature requires RaceDash Cloud Pro
-        </h3>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">This feature requires RaceDash Cloud Pro</h3>
         <p className="mb-4 text-xs text-muted-foreground">{feature}</p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onDismiss} className="flex-1">

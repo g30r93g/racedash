@@ -20,15 +20,15 @@ interface AppSidebarProps {
 }
 
 function initials(name: string): string {
-  return name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
+  return name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 }
 
-export function AppSidebar({
-  activeTab,
-  onTabChange,
-  cloudRenderCount,
-  user,
-}: AppSidebarProps): React.ReactElement {
+export function AppSidebar({ activeTab, onTabChange, cloudRenderCount, user }: AppSidebarProps): React.ReactElement {
   return (
     <div className="flex w-[190px] shrink-0 flex-col rounded-lg bg-[#161616]">
       {/* Logo */}
@@ -74,12 +74,8 @@ export function AppSidebar({
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium text-white">{user.name}</p>
-              {user.plan === 'pro' && (
-                <p className="text-[10px] text-blue-400">RaceDash Cloud PRO</p>
-              )}
-              {user.plan === 'plus' && (
-                <p className="text-[10px] text-emerald-400">RaceDash Cloud PLUS</p>
-              )}
+              {user.plan === 'pro' && <p className="text-[10px] text-blue-400">RaceDash Cloud PRO</p>}
+              {user.plan === 'plus' && <p className="text-[10px] text-emerald-400">RaceDash Cloud PLUS</p>}
             </div>
           </div>
         </div>
@@ -107,9 +103,7 @@ function NavItem({
       onClick={onClick}
       className={cn(
         'w-full justify-start gap-2.5 px-3 py-2 text-sm',
-        active
-          ? 'bg-white/10 text-white hover:bg-white/10'
-          : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+        active ? 'bg-white/10 text-white hover:bg-white/10' : 'text-white/50 hover:bg-white/5 hover:text-white/80',
       )}
     >
       {icon}

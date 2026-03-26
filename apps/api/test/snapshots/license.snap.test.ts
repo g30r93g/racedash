@@ -7,8 +7,13 @@ import licenseRoutes from '../../src/routes/license'
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId', email: 'email', stripeCustomerId: 'stripeCustomerId' },
   licenses: {
-    id: 'id', userId: 'userId', status: 'status', expiresAt: 'expiresAt',
-    tier: 'tier', stripeSubscriptionId: 'stripeSubscriptionId', stripeCustomerId: 'stripeCustomerId',
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    tier: 'tier',
+    stripeSubscriptionId: 'stripeSubscriptionId',
+    stripeCustomerId: 'stripeCustomerId',
     startsAt: 'startsAt',
   },
   getSlotLimit: vi.fn((tier: string) => (tier === 'plus' ? 1 : 3)),

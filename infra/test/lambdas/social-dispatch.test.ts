@@ -46,17 +46,19 @@ jest.mock('drizzle-orm', () => ({
 
 function makeSqsEvent(body: Record<string, unknown>): SQSEvent {
   return {
-    Records: [{
-      messageId: 'msg-1',
-      receiptHandle: 'rh-1',
-      body: JSON.stringify(body),
-      attributes: {} as any,
-      messageAttributes: {},
-      md5OfBody: '',
-      eventSource: 'aws:sqs',
-      eventSourceARN: 'arn:aws:sqs:us-east-1:123456789012:queue',
-      awsRegion: 'us-east-1',
-    }],
+    Records: [
+      {
+        messageId: 'msg-1',
+        receiptHandle: 'rh-1',
+        body: JSON.stringify(body),
+        attributes: {} as any,
+        messageAttributes: {},
+        md5OfBody: '',
+        eventSource: 'aws:sqs',
+        eventSourceARN: 'arn:aws:sqs:us-east-1:123456789012:queue',
+        awsRegion: 'us-east-1',
+      },
+    ],
   }
 }
 
@@ -129,17 +131,13 @@ describe('social-dispatch Lambda', () => {
   test('updates social_uploads.status to "uploading" after successful RunTask', async () => {
     await handler(makeSqsEvent(VALID_PAYLOAD))
 
-    expect(mockDbSet).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'uploading' }),
-    )
+    expect(mockDbSet).toHaveBeenCalledWith(expect.objectContaining({ status: 'uploading' }))
   })
 
   test('throws error for unrecognised platform (message goes to DLQ)', async () => {
     const badPayload = { ...VALID_PAYLOAD, platform: 'tiktok' }
 
-    await expect(handler(makeSqsEvent(badPayload))).rejects.toThrow(
-      'Unsupported platform: tiktok',
-    )
+    await expect(handler(makeSqsEvent(badPayload))).rejects.toThrow('Unsupported platform: tiktok')
   })
 
   test('parses SQS event record body as JSON', async () => {

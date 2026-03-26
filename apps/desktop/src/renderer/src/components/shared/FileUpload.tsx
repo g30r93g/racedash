@@ -42,23 +42,15 @@ export function FileUpload({
   }
 
   // Derive a display label for the dropzone when a value (path) is already set
-  const currentFileName = value ? value.split(/[\\/]/).pop() ?? value : undefined
+  const currentFileName = value ? (value.split(/[\\/]/).pop() ?? value) : undefined
 
   return (
-    <FileUploadUI
-      accept={acceptString}
-      multiple={multiple}
-      onValueChange={handleValueChange}
-    >
+    <FileUploadUI accept={acceptString} multiple={multiple} onValueChange={handleValueChange}>
       <FileUploadDropzone className="gap-3 py-8">
         <div className="flex flex-col items-center gap-1 text-center">
           <UploadIcon className="size-8 text-muted-foreground" />
-          <p className="text-sm font-medium">
-            {currentFileName ?? placeholder}
-          </p>
-          {hint && (
-            <p className="text-xs text-muted-foreground">{hint}</p>
-          )}
+          <p className="text-sm font-medium">{currentFileName ?? placeholder}</p>
+          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
           {accept && (
             <p className="text-xs text-muted-foreground">
               {accept.map((e) => e.toUpperCase()).join(', ')} files accepted

@@ -14,22 +14,13 @@ export const handler = async (event: WaitForSlotEvent): Promise<void> => {
   const db = getDb()
 
   // Store taskToken on the job
-  await db
-    .update(jobs)
-    .set({ slotTaskToken: taskToken, updatedAt: new Date() })
-    .where(eq(jobs.id, jobId))
+  await db.update(jobs).set({ slotTaskToken: taskToken, updatedAt: new Date() }).where(eq(jobs.id, jobId))
 
   // Look up user's license tier
   const [license] = await db
     .select({ tier: licenses.tier })
     .from(licenses)
-    .where(
-      and(
-        eq(licenses.userId, userId),
-        eq(licenses.status, 'active'),
-        gt(licenses.expiresAt, new Date()),
-      ),
-    )
+    .where(and(eq(licenses.userId, userId), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
     .orderBy(desc(licenses.expiresAt))
     .limit(1)
 

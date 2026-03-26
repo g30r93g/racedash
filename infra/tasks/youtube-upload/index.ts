@@ -74,7 +74,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
     throw new Error('TOKEN_REFRESH_FAILED')
   }
 
-  const data = await response.json() as { access_token: string }
+  const data = (await response.json()) as { access_token: string }
   return data.access_token
 }
 
@@ -86,7 +86,7 @@ async function youtubeApiFetch(
 
   let response = await fetch(url, {
     ...fetchOpts,
-    headers: { ...fetchOpts.headers as Record<string, string>, Authorization: `Bearer ${accessToken}` },
+    headers: { ...(fetchOpts.headers as Record<string, string>), Authorization: `Bearer ${accessToken}` },
   })
 
   if (response.status === 401) {
@@ -108,7 +108,7 @@ async function youtubeApiFetch(
     // Retry with new token
     response = await fetch(url, {
       ...fetchOpts,
-      headers: { ...fetchOpts.headers as Record<string, string>, Authorization: `Bearer ${newAccessToken}` },
+      headers: { ...(fetchOpts.headers as Record<string, string>), Authorization: `Bearer ${newAccessToken}` },
     })
 
     if (response.status === 401) {
@@ -121,7 +121,12 @@ async function youtubeApiFetch(
 
 // ── Failure handling ──────────────────────────────────────────────────────
 
-async function failUpload(db: any, payload: SocialUploadPayload, errorMessage: string, userEmail?: string): Promise<void> {
+async function failUpload(
+  db: any,
+  payload: SocialUploadPayload,
+  errorMessage: string,
+  userEmail?: string,
+): Promise<void> {
   await db
     .update(socialUploads)
     .set({ status: 'failed', errorMessage, updatedAt: new Date() })
@@ -131,16 +136,20 @@ async function failUpload(db: any, payload: SocialUploadPayload, errorMessage: s
 
   if (userEmail) {
     try {
-      await ses.send(new SendEmailCommand({
-        Source: process.env.SES_FROM_ADDRESS!,
-        Destination: { ToAddresses: [userEmail] },
-        Message: {
-          Subject: { Data: 'RaceDash Cloud — YouTube Upload Failed' },
-          Body: {
-            Text: { Data: `Your YouTube upload for "${payload.metadata.title}" failed: ${errorMessage}\n\nYour 10 RC have been refunded. You can retry the upload from the Cloud Renders tab in RaceDash Desktop.` },
+      await ses.send(
+        new SendEmailCommand({
+          Source: process.env.SES_FROM_ADDRESS!,
+          Destination: { ToAddresses: [userEmail] },
+          Message: {
+            Subject: { Data: 'RaceDash Cloud — YouTube Upload Failed' },
+            Body: {
+              Text: {
+                Data: `Your YouTube upload for "${payload.metadata.title}" failed: ${errorMessage}\n\nYour 10 RC have been refunded. You can retry the upload from the Cloud Renders tab in RaceDash Desktop.`,
+              },
+            },
           },
-        },
-      }))
+        }),
+      )
     } catch (emailErr) {
       console.error('Failed to send failure notification email:', emailErr)
     }
@@ -172,7 +181,12 @@ async function main(): Promise<void> {
     .limit(1)
 
   if (!account) {
-    await failUpload(db, payload, 'YouTube account not connected. Please reconnect your YouTube account in Settings.', userEmail)
+    await failUpload(
+      db,
+      payload,
+      'YouTube account not connected. Please reconnect your YouTube account in Settings.',
+      userEmail,
+    )
     process.exit(0)
   }
 
@@ -183,7 +197,12 @@ async function main(): Promise<void> {
     accessToken = decryptToken(account.accessToken)
     refreshToken = account.refreshToken ? decryptToken(account.refreshToken) : ''
   } catch {
-    await failUpload(db, payload, 'Failed to decrypt YouTube credentials. Please reconnect your YouTube account.', userEmail)
+    await failUpload(
+      db,
+      payload,
+      'Failed to decrypt YouTube credentials. Please reconnect your YouTube account.',
+      userEmail,
+    )
     process.exit(0)
   }
 
@@ -314,7 +333,7 @@ async function main(): Promise<void> {
     }
 
     // Extract video ID from the final response
-    const uploadResult = await lastPutResponse.json() as { id: string }
+    const uploadResult = (await lastPutResponse.json()) as { id: string }
     const videoId = uploadResult.id
 
     // Update status to processing
@@ -337,7 +356,7 @@ async function main(): Promise<void> {
       )
 
       if (statusResponse.ok) {
-        const statusData = await statusResponse.json() as { items: Array<{ status: { uploadStatus: string } }> }
+        const statusData = (await statusResponse.json()) as { items: Array<{ status: { uploadStatus: string } }> }
         if (statusData.items?.[0]?.status?.uploadStatus === 'processed') {
           // Success
           const platformUrl = `https://youtube.com/watch?v=${videoId}`
@@ -359,7 +378,12 @@ async function main(): Promise<void> {
         }
 
         if (statusData.items?.[0]?.status?.uploadStatus === 'failed') {
-          await failUpload(db, payload, 'YouTube rejected the video during processing. Please check the video format and try again.', userEmail)
+          await failUpload(
+            db,
+            payload,
+            'YouTube rejected the video during processing. Please check the video format and try again.',
+            userEmail,
+          )
           process.exit(0)
         }
       }
@@ -368,7 +392,12 @@ async function main(): Promise<void> {
     }
 
     // Processing timeout
-    await failUpload(db, payload, "YouTube processing timed out. The video may still be processing — check your YouTube Studio.", userEmail)
+    await failUpload(
+      db,
+      payload,
+      'YouTube processing timed out. The video may still be processing — check your YouTube Studio.',
+      userEmail,
+    )
     process.exit(0)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error during upload'

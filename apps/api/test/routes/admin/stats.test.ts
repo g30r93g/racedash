@@ -3,8 +3,19 @@ import type { FastifyInstance } from 'fastify'
 
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', email: 'email' },
-  jobs: { id: 'id', userId: 'userId', status: 'status', errorMessage: 'errorMessage', updatedAt: 'updatedAt', createdAt: 'createdAt' },
-  eq: vi.fn(), and: vi.fn(), gte: vi.fn(), lte: vi.fn(), sql: vi.fn((...args: unknown[]) => args),
+  jobs: {
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    errorMessage: 'errorMessage',
+    updatedAt: 'updatedAt',
+    createdAt: 'createdAt',
+  },
+  eq: vi.fn(),
+  and: vi.fn(),
+  gte: vi.fn(),
+  lte: vi.fn(),
+  sql: vi.fn((...args: unknown[]) => args),
 }))
 
 vi.mock('../../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -39,25 +50,33 @@ describe('GET /api/admin/stats/overview', () => {
     await app.close()
   })
 
-  function setupMockDb(overrides: {
-    inFlight?: Array<{ status: string; count: number }>
-    completedCount?: number
-    failedCount?: number
-    terminalTotal?: number
-    terminalFailed?: number
-    recentFailed?: Array<any>
-  } = {}) {
+  function setupMockDb(
+    overrides: {
+      inFlight?: Array<{ status: string; count: number }>
+      completedCount?: number
+      failedCount?: number
+      terminalTotal?: number
+      terminalFailed?: number
+      recentFailed?: Array<any>
+    } = {},
+  ) {
     let callCount = 0
     const mockDb: any = {
       select: vi.fn(() => {
         callCount++
         switch (callCount) {
-          case 1: return createChain(overrides.inFlight ?? [])
-          case 2: return createChain([{ count: overrides.completedCount ?? 0 }])
-          case 3: return createChain([{ count: overrides.failedCount ?? 0 }])
-          case 4: return createChain([{ total: overrides.terminalTotal ?? 0, failed: overrides.terminalFailed ?? 0 }])
-          case 5: return createChain(overrides.recentFailed ?? [])
-          default: return createChain([])
+          case 1:
+            return createChain(overrides.inFlight ?? [])
+          case 2:
+            return createChain([{ count: overrides.completedCount ?? 0 }])
+          case 3:
+            return createChain([{ count: overrides.failedCount ?? 0 }])
+          case 4:
+            return createChain([{ total: overrides.terminalTotal ?? 0, failed: overrides.terminalFailed ?? 0 }])
+          case 5:
+            return createChain(overrides.recentFailed ?? [])
+          default:
+            return createChain([])
         }
       }),
     }

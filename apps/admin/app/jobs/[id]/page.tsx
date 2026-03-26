@@ -49,17 +49,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div>
-      <PageHeader
-        title={`Job ${job.id.slice(0, 8)}...`}
-        breadcrumb={{ label: 'Jobs', href: '/jobs' }}
-      />
+      <PageHeader title={`Job ${job.id.slice(0, 8)}...`} breadcrumb={{ label: 'Jobs', href: '/jobs' }} />
 
       <div className="space-y-6">
         <section className="rounded-lg border border-border p-5">
           <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <div>
               <dt className="text-muted-foreground">Status</dt>
-              <dd><JobStatusBadge status={job.status} /></dd>
+              <dd>
+                <JobStatusBadge status={job.status} />
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">RC Cost</dt>
@@ -123,7 +122,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
             <div>
               <dt className="text-muted-foreground">Step Functions</dt>
-              <dd><SfnExecutionLink url={data.sfnConsoleUrl} /></dd>
+              <dd>
+                <SfnExecutionLink url={data.sfnConsoleUrl} />
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Remotion Render ID</dt>
@@ -146,11 +147,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               </div>
               <div>
                 <dt className="text-muted-foreground">Settled</dt>
-                <dd>
-                  {data.creditReservation.settledAt
-                    ? formatDateTime(data.creditReservation.settledAt)
-                    : '—'}
-                </dd>
+                <dd>{data.creditReservation.settledAt ? formatDateTime(data.creditReservation.settledAt) : '—'}</dd>
               </div>
             </dl>
             {data.creditReservation.packs.length > 0 && (

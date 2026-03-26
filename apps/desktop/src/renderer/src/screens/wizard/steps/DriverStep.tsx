@@ -43,7 +43,9 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
         setDriversBySegment(bySegment)
       } catch {
         const bySegment: Record<string, DriverEntry[]> = {}
-        segments.forEach((seg) => { bySegment[seg.label] = PLACEHOLDER_DRIVERS })
+        segments.forEach((seg) => {
+          bySegment[seg.label] = PLACEHOLDER_DRIVERS
+        })
         setDriversBySegment(bySegment)
       } finally {
         setLoading(false)
@@ -66,8 +68,8 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
       <div>
         <h2 className="text-base font-semibold text-foreground">Select driver</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose which driver's perspective to render for each session. The overlay will highlight
-          this driver in the leaderboard and track their position.
+          Choose which driver's perspective to render for each session. The overlay will highlight this driver in the
+          leaderboard and track their position.
         </p>
       </div>
 
@@ -90,9 +92,10 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
         {segments.map((seg) => {
           const drivers = driversBySegment[seg.label] ?? []
           const filtered = search
-            ? drivers.filter((d) =>
-                d.name.toLowerCase().includes(search.toLowerCase()) ||
-                d.kart.toLowerCase().includes(search.toLowerCase())
+            ? drivers.filter(
+                (d) =>
+                  d.name.toLowerCase().includes(search.toLowerCase()) ||
+                  d.kart.toLowerCase().includes(search.toLowerCase()),
               )
             : drivers
           const selectedForSegment = selectedDrivers[seg.label] ?? ''
@@ -105,42 +108,46 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
                   Loading drivers…
                 </div>
               ) : (
-              <>
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search drivers..."
-                className="mb-3"
-              />
+                <>
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search drivers..."
+                    className="mb-3"
+                  />
 
-              <div className="flex flex-col gap-1">
-                {filtered.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">No drivers found.</p>
-                )}
-                {filtered.map((driver) => {
-                  const isSelected = selectedForSegment === driver.name
-                  return (
-                    <Button
-                      key={driver.kart}
-                      variant="ghost"
-                      className={cn(
-                        'flex h-auto w-full items-center justify-start gap-3 rounded-lg border px-4 py-2.5',
-                        isSelected
-                          ? 'border-primary bg-primary/10 text-foreground'
-                          : 'border-border bg-background text-foreground hover:bg-accent'
-                      )}
-                      onClick={() => onChange({ ...selectedDrivers, [seg.label]: driver.name })}
-                    >
-                      <span className="w-6 shrink-0 text-center font-mono text-sm text-muted-foreground">
-                        {driver.kart}
-                      </span>
-                      <span className="flex-1 text-sm">{driver.name}</span>
-                      <Check className="h-4 w-4 shrink-0 text-primary" style={{ opacity: isSelected ? 1 : 0 }} aria-hidden="true" />
-                    </Button>
-                  )
-                })}
-              </div>
-              </>
+                  <div className="flex flex-col gap-1">
+                    {filtered.length === 0 && (
+                      <p className="py-4 text-center text-sm text-muted-foreground">No drivers found.</p>
+                    )}
+                    {filtered.map((driver) => {
+                      const isSelected = selectedForSegment === driver.name
+                      return (
+                        <Button
+                          key={driver.kart}
+                          variant="ghost"
+                          className={cn(
+                            'flex h-auto w-full items-center justify-start gap-3 rounded-lg border px-4 py-2.5',
+                            isSelected
+                              ? 'border-primary bg-primary/10 text-foreground'
+                              : 'border-border bg-background text-foreground hover:bg-accent',
+                          )}
+                          onClick={() => onChange({ ...selectedDrivers, [seg.label]: driver.name })}
+                        >
+                          <span className="w-6 shrink-0 text-center font-mono text-sm text-muted-foreground">
+                            {driver.kart}
+                          </span>
+                          <span className="flex-1 text-sm">{driver.name}</span>
+                          <Check
+                            className="h-4 w-4 shrink-0 text-primary"
+                            style={{ opacity: isSelected ? 1 : 0 }}
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </TabsContent>
           )

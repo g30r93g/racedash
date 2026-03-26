@@ -48,14 +48,18 @@ export class SocialStack extends cdk.Stack {
     })
 
     // Task role permissions
-    taskDef.taskRole.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ['s3:GetObject'],
-      resources: [`${props.rendersBucket.bucketArn}/renders/*`],
-    }))
-    taskDef.taskRole.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ['ses:SendEmail'],
-      resources: [props.sesIdentityArn],
-    }))
+    taskDef.taskRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: [`${props.rendersBucket.bucketArn}/renders/*`],
+      }),
+    )
+    taskDef.taskRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ['ses:SendEmail'],
+        resources: [props.sesIdentityArn],
+      }),
+    )
 
     // Container (placeholder ECR image)
     taskDef.addContainer('YouTubeUploadContainer', {
@@ -118,22 +122,23 @@ export class SocialStack extends cdk.Stack {
     })
 
     // Dispatch Lambda IAM
-    dispatchFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ecs:RunTask'],
-      resources: [taskDef.taskDefinitionArn],
-    }))
-    dispatchFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['iam:PassRole'],
-      resources: [
-        taskDef.executionRole!.roleArn,
-        taskDef.taskRole.roleArn,
-      ],
-      conditions: {
-        StringEquals: {
-          'iam:PassedToService': 'ecs-tasks.amazonaws.com',
+    dispatchFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ecs:RunTask'],
+        resources: [taskDef.taskDefinitionArn],
+      }),
+    )
+    dispatchFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['iam:PassRole'],
+        resources: [taskDef.executionRole!.roleArn, taskDef.taskRole.roleArn],
+        conditions: {
+          StringEquals: {
+            'iam:PassedToService': 'ecs-tasks.amazonaws.com',
+          },
         },
-      },
-    }))
+      }),
+    )
 
     // SQS triggers dispatch Lambda
     dispatchFunction.addEventSource(

@@ -30,9 +30,7 @@ export function ExtendLicenseDialog({
   onSuccess,
 }: ExtendLicenseDialogProps) {
   const [expiresAt, setExpiresAt] = useState(
-    new Date(new Date(currentExpiresAt).getTime() + 90 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10),
+    new Date(new Date(currentExpiresAt).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

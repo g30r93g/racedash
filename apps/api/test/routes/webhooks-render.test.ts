@@ -15,7 +15,10 @@ vi.mock('../../src/lib/aws', () => ({
 
 vi.mock('@aws-sdk/client-sfn', () => ({
   SFNClient: vi.fn(),
-  SendTaskSuccessCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'SendTaskSuccess' }),
+  SendTaskSuccessCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'SendTaskSuccess'
+  }),
 }))
 
 vi.mock('@racedash/db', () => ({
@@ -50,7 +53,9 @@ describe('POST /api/webhooks/render', () => {
     app = await createUnauthenticatedTestApp(webhooksRenderRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -75,9 +80,7 @@ describe('POST /api/webhooks/render', () => {
     expect(mockClaimNextQueuedSlotToken).toHaveBeenCalled()
 
     const { SendTaskSuccessCommand } = await import('@aws-sdk/client-sfn')
-    expect(SendTaskSuccessCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ taskToken: 'queued-task-token-1' }),
-    )
+    expect(SendTaskSuccessCommand).toHaveBeenCalledWith(expect.objectContaining({ taskToken: 'queued-task-token-1' }))
   })
 
   it('processes FAILED event and attempts to signal next slot', async () => {

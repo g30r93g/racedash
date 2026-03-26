@@ -18,14 +18,23 @@ function formatCountdown(expiresAt: string): string {
   return `Expires in ${hours} hour${hours !== 1 ? 's' : ''}`
 }
 
-function statusBadge(status: CloudJobStatus): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } {
+function statusBadge(status: CloudJobStatus): {
+  label: string
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'
+} {
   switch (status) {
-    case 'uploading': return { label: 'Uploading', variant: 'secondary' }
-    case 'queued': return { label: 'Queued', variant: 'outline' }
-    case 'rendering': return { label: 'Rendering', variant: 'secondary' }
-    case 'compositing': return { label: 'Compositing', variant: 'secondary' }
-    case 'complete': return { label: 'Complete', variant: 'default' }
-    case 'failed': return { label: 'Failed', variant: 'destructive' }
+    case 'uploading':
+      return { label: 'Uploading', variant: 'secondary' }
+    case 'queued':
+      return { label: 'Queued', variant: 'outline' }
+    case 'rendering':
+      return { label: 'Rendering', variant: 'secondary' }
+    case 'compositing':
+      return { label: 'Compositing', variant: 'secondary' }
+    case 'complete':
+      return { label: 'Complete', variant: 'default' }
+    case 'failed':
+      return { label: 'Failed', variant: 'destructive' }
   }
 }
 
@@ -37,7 +46,11 @@ interface CloudRendersListProps {
   creditBalance: number
 }
 
-export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: CloudRendersListProps): React.ReactElement {
+export function CloudRendersList({
+  authUser,
+  youtubeConnected,
+  creditBalance,
+}: CloudRendersListProps): React.ReactElement {
   const { session } = useSession()
   const [jobs, setJobs] = useState<CloudRenderJob[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,18 +105,20 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
           source.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data)
-              setJobs((prev) => prev.map((j) =>
-                j.id === job.id
-                  ? {
-                      ...j,
-                      status: data.status,
-                      progress: data.progress ?? j.progress,
-                      queuePosition: data.queuePosition,
-                      downloadExpiresAt: data.downloadExpiresAt,
-                      errorMessage: data.errorMessage,
-                    }
-                  : j
-              ))
+              setJobs((prev) =>
+                prev.map((j) =>
+                  j.id === job.id
+                    ? {
+                        ...j,
+                        status: data.status,
+                        progress: data.progress ?? j.progress,
+                        queuePosition: data.queuePosition,
+                        downloadExpiresAt: data.downloadExpiresAt,
+                        errorMessage: data.errorMessage,
+                      }
+                    : j,
+                ),
+              )
 
               // Close SSE on terminal state
               if (data.status === 'complete' || data.status === 'failed') {
@@ -142,11 +157,14 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
 
   const [uploadDialogJob, setUploadDialogJob] = useState<CloudRenderJob | null>(null)
 
-  const handleUpload = useCallback(async (metadata: YouTubeUploadMetadata) => {
-    if (!uploadDialogJob) return
-    await window.racedash.youtube.upload(uploadDialogJob.id, metadata)
-    setUploadDialogJob(null)
-  }, [uploadDialogJob])
+  const handleUpload = useCallback(
+    async (metadata: YouTubeUploadMetadata) => {
+      if (!uploadDialogJob) return
+      await window.racedash.youtube.upload(uploadDialogJob.id, metadata)
+      setUploadDialogJob(null)
+    },
+    [uploadDialogJob],
+  )
 
   if (loading) {
     return <p className="p-4 text-xs text-muted-foreground">Loading…</p>
@@ -156,9 +174,7 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
         <p className="text-sm text-muted-foreground">No cloud renders yet.</p>
-        <p className="text-xs text-muted-foreground">
-          Submit a render from the Export tab to get started.
-        </p>
+        <p className="text-xs text-muted-foreground">Submit a render from the Export tab to get started.</p>
       </div>
     )
   }
@@ -175,7 +191,14 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
             <section>
               <SectionLabel>Active</SectionLabel>
               <div className="flex flex-col gap-2">
-                {active.map((job) => <JobCard key={job.id} job={job} youtubeConnected={youtubeConnected} onUploadClick={setUploadDialogJob} />)}
+                {active.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    youtubeConnected={youtubeConnected}
+                    onUploadClick={setUploadDialogJob}
+                  />
+                ))}
               </div>
             </section>
           )}
@@ -184,7 +207,14 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
             <section>
               <SectionLabel>Completed</SectionLabel>
               <div className="flex flex-col gap-2">
-                {completed.map((job) => <JobCard key={job.id} job={job} youtubeConnected={youtubeConnected} onUploadClick={setUploadDialogJob} />)}
+                {completed.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    youtubeConnected={youtubeConnected}
+                    onUploadClick={setUploadDialogJob}
+                  />
+                ))}
               </div>
             </section>
           )}
@@ -193,7 +223,14 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
             <section>
               <SectionLabel>Failed</SectionLabel>
               <div className="flex flex-col gap-2">
-                {failed.map((job) => <JobCard key={job.id} job={job} youtubeConnected={youtubeConnected} onUploadClick={setUploadDialogJob} />)}
+                {failed.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    youtubeConnected={youtubeConnected}
+                    onUploadClick={setUploadDialogJob}
+                  />
+                ))}
               </div>
             </section>
           )}
@@ -203,7 +240,9 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
       {uploadDialogJob && (
         <YouTubeUploadDialog
           open={!!uploadDialogJob}
-          onOpenChange={(open) => { if (!open) setUploadDialogJob(null) }}
+          onOpenChange={(open) => {
+            if (!open) setUploadDialogJob(null)
+          }}
           onUpload={handleUpload}
           defaultTitle={`${uploadDialogJob.projectName} - ${uploadDialogJob.sessionType}`}
           creditBalance={creditBalance}
@@ -213,7 +252,11 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
   )
 }
 
-function JobCard({ job, youtubeConnected, onUploadClick }: {
+function JobCard({
+  job,
+  youtubeConnected,
+  onUploadClick,
+}: {
   job: CloudRenderJob
   youtubeConnected: boolean
   onUploadClick: (job: CloudRenderJob) => void
@@ -224,7 +267,10 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
 
   useEffect(() => {
     if (job.status === 'complete') {
-      window.racedash.youtube.getUploads(job.id).then(setUploads).catch(() => {})
+      window.racedash.youtube
+        .getUploads(job.id)
+        .then(setUploads)
+        .catch(() => {})
     }
   }, [job.id, job.status])
 
@@ -247,7 +293,9 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
     <div className="flex flex-col gap-1.5 rounded-md border border-border bg-accent/40 p-3">
       <div className="flex items-center gap-2">
         <span className="flex-1 truncate text-sm font-medium text-foreground">{job.projectName}</span>
-        <Badge variant={badge.variant} className="text-[10px] shrink-0">{badge.label}</Badge>
+        <Badge variant={badge.variant} className="text-[10px] shrink-0">
+          {badge.label}
+        </Badge>
       </div>
 
       <p className="text-[11px] text-muted-foreground">
@@ -256,9 +304,7 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
 
       {/* Queued — show queue position */}
       {job.status === 'queued' && job.queuePosition != null && (
-        <p className="text-[11px] text-muted-foreground">
-          Position {job.queuePosition} in queue
-        </p>
+        <p className="text-[11px] text-muted-foreground">Position {job.queuePosition} in queue</p>
       )}
 
       {/* Rendering — show progress bar */}
@@ -273,7 +319,10 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
       {job.status === 'compositing' && (
         <div className="mt-1">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" style={{ animation: 'slide 1.5s ease-in-out infinite' }} />
+            <div
+              className="h-full w-1/3 animate-pulse rounded-full bg-primary"
+              style={{ animation: 'slide 1.5s ease-in-out infinite' }}
+            />
           </div>
           <p className="mt-0.5 text-[10px] text-muted-foreground">Compositing video…</p>
         </div>
@@ -293,31 +342,26 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
       {job.status === 'complete' && (
         <div className="mt-1 flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={handleDownload}
-              disabled={isExpired}
-            >
+            <Button variant="outline" size="sm" className="text-xs" onClick={handleDownload} disabled={isExpired}>
               {isExpired ? 'Expired' : 'Download'}
             </Button>
             {youtubeUpload?.status === 'live' && (
-              <Button variant="outline" size="sm" className="text-xs"
-                onClick={() => window.open(youtubeUpload.platformUrl ?? undefined)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => window.open(youtubeUpload.platformUrl ?? undefined)}
+              >
                 View on YouTube
               </Button>
             )}
             {!hasActiveUpload && youtubeConnected && (
-              <Button variant="outline" size="sm" className="text-xs"
-                onClick={() => onUploadClick(job)}>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => onUploadClick(job)}>
                 Upload to YouTube
               </Button>
             )}
             {job.downloadExpiresAt && (
-              <span className="text-[10px] text-muted-foreground">
-                {formatCountdown(job.downloadExpiresAt)}
-              </span>
+              <span className="text-[10px] text-muted-foreground">{formatCountdown(job.downloadExpiresAt)}</span>
             )}
           </div>
 
@@ -325,8 +369,7 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
             <div className="flex flex-col gap-1">
               <p className="text-[10px] text-destructive">{youtubeUpload.errorMessage}</p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="text-xs"
-                  onClick={() => onUploadClick(job)}>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => onUploadClick(job)}>
                   Retry Upload
                 </Button>
                 <span className="text-[10px] text-muted-foreground">10 RC refunded</span>
@@ -338,9 +381,11 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
               <span className="text-[10px] text-muted-foreground">
-                {youtubeUpload.status === 'queued' ? 'Queued...' :
-                 youtubeUpload.status === 'uploading' ? 'Uploading to YouTube...' :
-                 'Processing on YouTube...'}
+                {youtubeUpload.status === 'queued'
+                  ? 'Queued...'
+                  : youtubeUpload.status === 'uploading'
+                    ? 'Uploading to YouTube...'
+                    : 'Processing on YouTube...'}
               </span>
             </div>
           )}
@@ -350,9 +395,7 @@ function JobCard({ job, youtubeConnected, onUploadClick }: {
       {/* Failed — error message and credits restored note */}
       {job.status === 'failed' && (
         <div className="mt-1 flex flex-col gap-0.5">
-          {job.errorMessage && (
-            <p className="text-[11px] text-destructive">{job.errorMessage}</p>
-          )}
+          {job.errorMessage && <p className="text-[11px] text-destructive">{job.errorMessage}</p>}
           <p className="text-[10px] text-muted-foreground">Credits restored</p>
         </div>
       )}

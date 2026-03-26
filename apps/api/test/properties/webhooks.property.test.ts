@@ -11,11 +11,18 @@ import { licenseExistsForSubscription, creditPackExistsForPaymentIntent } from '
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId', email: 'email', stripeCustomerId: 'stripeCustomerId' },
   licenses: {
-    id: 'id', userId: 'userId', status: 'status', expiresAt: 'expiresAt',
-    tier: 'tier', stripeSubscriptionId: 'stripeSubscriptionId', stripeCustomerId: 'stripeCustomerId',
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    tier: 'tier',
+    stripeSubscriptionId: 'stripeSubscriptionId',
+    stripeCustomerId: 'stripeCustomerId',
   },
   creditPacks: {
-    id: 'id', userId: 'userId', stripePaymentIntentId: 'stripePaymentIntentId',
+    id: 'id',
+    userId: 'userId',
+    stripePaymentIntentId: 'stripePaymentIntentId',
   },
   eq: vi.fn(),
   and: vi.fn(),
@@ -47,11 +54,13 @@ function setupStripe() {
   } as any)
 }
 
-function createMockDb(opts: {
-  selectResult?: any[]
-  insertFn?: vi.Mock
-  updateFn?: vi.Mock
-} = {}) {
+function createMockDb(
+  opts: {
+    selectResult?: any[]
+    insertFn?: vi.Mock
+    updateFn?: vi.Mock
+  } = {},
+) {
   const { selectResult = [], insertFn, updateFn } = opts
 
   return {
@@ -92,57 +101,56 @@ describe('Webhook idempotency properties', () => {
     // Replaying the same subscription.created event K times should only attempt insert once
     // (the first call), and subsequent calls are skipped by the idempotency check.
     await fc.assert(
-      fc.asyncProperty(
-        fc.integer({ min: 2, max: 10 }),
-        async (replayCount) => {
-          vi.clearAllMocks()
-          setupStripe()
+      fc.asyncProperty(fc.integer({ min: 2, max: 10 }), async (replayCount) => {
+        vi.clearAllMocks()
+        setupStripe()
 
-          const insertValues = vi.fn().mockResolvedValue(undefined)
-          const mockDb = createMockDb({
-            selectResult: [{ id: 'user_1' }],
-            insertFn: insertValues,
-          })
-          vi.mocked(getDb).mockReturnValue(mockDb as any)
-          vi.mocked(tierFromPriceId).mockReturnValue('pro')
+        const insertValues = vi.fn().mockResolvedValue(undefined)
+        const mockDb = createMockDb({
+          selectResult: [{ id: 'user_1' }],
+          insertFn: insertValues,
+        })
+        vi.mocked(getDb).mockReturnValue(mockDb as any)
+        vi.mocked(tierFromPriceId).mockReturnValue('pro')
 
-          const event = {
-            type: 'customer.subscription.created',
-            data: {
-              object: {
-                id: 'sub_idem_test',
-                customer: 'cus_123',
-                status: 'active',
-                items: {
-                  data: [{
+        const event = {
+          type: 'customer.subscription.created',
+          data: {
+            object: {
+              id: 'sub_idem_test',
+              customer: 'cus_123',
+              status: 'active',
+              items: {
+                data: [
+                  {
                     price: { id: 'price_test_pro' },
                     current_period_start: 1700000000,
                     current_period_end: 1731536000,
-                  }],
-                },
+                  },
+                ],
               },
             },
-          }
+          },
+        }
 
-          // First delivery: idempotency check returns false (not yet processed)
-          vi.mocked(licenseExistsForSubscription).mockResolvedValueOnce(false)
+        // First delivery: idempotency check returns false (not yet processed)
+        vi.mocked(licenseExistsForSubscription).mockResolvedValueOnce(false)
+        mockConstructEvent.mockReturnValueOnce(event)
+        const first = await injectWebhook(app)
+        expect(first.statusCode).toBe(200)
+
+        // Subsequent deliveries: idempotency check returns true (already processed)
+        for (let i = 1; i < replayCount; i++) {
+          vi.mocked(licenseExistsForSubscription).mockResolvedValueOnce(true)
           mockConstructEvent.mockReturnValueOnce(event)
-          const first = await injectWebhook(app)
-          expect(first.statusCode).toBe(200)
+          const response = await injectWebhook(app)
+          expect(response.statusCode).toBe(200)
+          expect(response.json()).toEqual({ received: true })
+        }
 
-          // Subsequent deliveries: idempotency check returns true (already processed)
-          for (let i = 1; i < replayCount; i++) {
-            vi.mocked(licenseExistsForSubscription).mockResolvedValueOnce(true)
-            mockConstructEvent.mockReturnValueOnce(event)
-            const response = await injectWebhook(app)
-            expect(response.statusCode).toBe(200)
-            expect(response.json()).toEqual({ received: true })
-          }
-
-          // Insert should have been called exactly once (on the first delivery)
-          expect(insertValues).toHaveBeenCalledTimes(1)
-        },
-      ),
+        // Insert should have been called exactly once (on the first delivery)
+        expect(insertValues).toHaveBeenCalledTimes(1)
+      }),
       { numRuns: 20 },
     )
   })
@@ -161,8 +169,14 @@ describe('Subscription lifecycle properties', () => {
     // For any Stripe subscription status, the mapped license status is always
     // one of the three valid values: 'active', 'expired', or 'cancelled'
     const arbStripeStatus = fc.constantFrom(
-      'active', 'trialing', 'past_due', 'unpaid',
-      'canceled', 'incomplete_expired', 'incomplete', 'paused',
+      'active',
+      'trialing',
+      'past_due',
+      'unpaid',
+      'canceled',
+      'incomplete_expired',
+      'incomplete',
+      'paused',
     )
 
     await fc.assert(
@@ -186,11 +200,13 @@ describe('Subscription lifecycle properties', () => {
               customer: 'cus_123',
               status: stripeStatus,
               items: {
-                data: [{
-                  price: { id: 'price_test_pro' },
-                  current_period_start: 1700000000,
-                  current_period_end: 1731536000,
-                }],
+                data: [
+                  {
+                    price: { id: 'price_test_pro' },
+                    current_period_start: 1700000000,
+                    current_period_end: 1731536000,
+                  },
+                ],
               },
             },
           },
@@ -220,10 +236,17 @@ describe('Unknown event safety properties', () => {
 
   it('Unknown events are safe', async () => {
     // Any unknown event type should be silently ignored and return { received: true }
-    const arbUnknownEventType = fc.string({ minLength: 3, maxLength: 50 }).filter(
-      s => !['customer.subscription.created', 'customer.subscription.updated',
-        'customer.subscription.deleted', 'checkout.session.completed'].includes(s),
-    )
+    const arbUnknownEventType = fc
+      .string({ minLength: 3, maxLength: 50 })
+      .filter(
+        (s) =>
+          ![
+            'customer.subscription.created',
+            'customer.subscription.updated',
+            'customer.subscription.deleted',
+            'checkout.session.completed',
+          ].includes(s),
+      )
 
     await fc.assert(
       fc.asyncProperty(arbUnknownEventType, async (eventType) => {

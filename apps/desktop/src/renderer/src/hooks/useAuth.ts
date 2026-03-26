@@ -74,9 +74,7 @@ export function useAuth(): UseAuthReturn {
         await window.racedash.auth.saveSessionToken(token)
 
         console.log('[useAuth] fetching profile from /api/auth/me')
-        const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth(
-          '/api/auth/me',
-        )
+        const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth('/api/auth/me')
 
         console.log('[useAuth] profile response:', response.status, response.body.slice(0, 200))
 
@@ -100,7 +98,9 @@ export function useAuth(): UseAuthReturn {
     }
 
     fetchProfile()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [isSignedIn, session, clerkUser?.id])
 
   const authModal = useContext(AuthModalContext)

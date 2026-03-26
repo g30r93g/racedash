@@ -42,14 +42,8 @@ export function useCardOverlayState({
 
   const effectiveTime = isEnd ? segEnd - 0.001 : currentTime
 
-  const currentLap = useMemo(
-    () => getLapAtTime(session.timestamps, effectiveTime),
-    [session.timestamps, effectiveTime],
-  )
-  const currentIdx = useMemo(
-    () => session.timestamps.indexOf(currentLap),
-    [session.timestamps, currentLap],
-  )
+  const currentLap = useMemo(() => getLapAtTime(session.timestamps, effectiveTime), [session.timestamps, effectiveTime])
+  const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
 
   const livePosition = useLivePosition(segment, effectiveTime)
   const displayedPosition = useDisplayedPosition({
@@ -69,9 +63,7 @@ export function useCardOverlayState({
     [session.timestamps, currentIdx, isEnd],
   )
   const lastLapTime = useMemo(
-    () => completedLaps.length > 0
-      ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime)
-      : placeholder,
+    () => (completedLaps.length > 0 ? formatLapTime(completedLaps[completedLaps.length - 1].lap.lapTime) : placeholder),
     [completedLaps, placeholder],
   )
   const sessionBestTime = useMemo(() => {

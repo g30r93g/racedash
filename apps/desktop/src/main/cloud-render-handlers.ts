@@ -6,10 +6,14 @@ import { Readable } from 'node:stream'
 import { createWriteStream } from 'node:fs'
 import { fetchWithAuth } from './api-client'
 import type {
-  CreateCloudJobOpts, CreateCloudJobResult,
-  StartUploadOpts, StartUploadResult,
-  CompletedPart, CompleteUploadResult,
-  DownloadUrlResult, ListJobsResult,
+  CreateCloudJobOpts,
+  CreateCloudJobResult,
+  StartUploadOpts,
+  StartUploadResult,
+  CompletedPart,
+  CompleteUploadResult,
+  DownloadUrlResult,
+  ListJobsResult,
   VideoInfo,
 } from '../types/ipc'
 
@@ -93,32 +97,23 @@ export function registerCloudRenderHandlers(): void {
   )
 
   // Cancel upload
-  ipcMain.handle(
-    'racedash:cloudRender:cancelUpload',
-    async (_event, jobId: string): Promise<void> => {
-      const controller = activeUploads.get(jobId)
-      if (controller) {
-        controller.abort()
-        activeUploads.delete(jobId)
-      }
-    },
-  )
+  ipcMain.handle('racedash:cloudRender:cancelUpload', async (_event, jobId: string): Promise<void> => {
+    const controller = activeUploads.get(jobId)
+    if (controller) {
+      controller.abort()
+      activeUploads.delete(jobId)
+    }
+  })
 
   // Get SSE status URL
-  ipcMain.handle(
-    'racedash:cloudRender:getStatusUrl',
-    async (_event, jobId: string): Promise<string> => {
-      return `${API_URL}/api/jobs/${jobId}/status`
-    },
-  )
+  ipcMain.handle('racedash:cloudRender:getStatusUrl', async (_event, jobId: string): Promise<string> => {
+    return `${API_URL}/api/jobs/${jobId}/status`
+  })
 
   // Get download URL
-  ipcMain.handle(
-    'racedash:cloudRender:getDownloadUrl',
-    async (_event, jobId: string): Promise<DownloadUrlResult> => {
-      return fetchWithAuth<DownloadUrlResult>(`/api/jobs/${jobId}/download`)
-    },
-  )
+  ipcMain.handle('racedash:cloudRender:getDownloadUrl', async (_event, jobId: string): Promise<DownloadUrlResult> => {
+    return fetchWithAuth<DownloadUrlResult>(`/api/jobs/${jobId}/download`)
+  })
 
   // Download render to a local path
   ipcMain.handle(
@@ -136,53 +131,44 @@ export function registerCloudRenderHandlers(): void {
         fs.mkdirSync(dir, { recursive: true })
       }
 
-      await pipeline(
-        Readable.fromWeb(response.body as any),
-        createWriteStream(outputPath),
-      )
+      await pipeline(Readable.fromWeb(response.body as any), createWriteStream(outputPath))
     },
   )
 
   // List jobs
-  ipcMain.handle(
-    'racedash:cloudRender:listJobs',
-    async (_event, cursor?: string): Promise<ListJobsResult> => {
-      const params = new URLSearchParams()
-      if (cursor) params.set('cursor', cursor)
-      const qs = params.toString()
-      const url = qs ? `/api/jobs?${qs}` : '/api/jobs'
-      const result = await fetchWithAuth<any>(url)
-      // Map API response to CloudRenderJob shape
-      return {
-        jobs: result.jobs.map((j: any) => ({
-          id: j.id,
-          projectName: j.projectName,
-          sessionType: j.sessionType,
-          status: j.status,
-          config: {
-            resolution: j.config?.resolution,
-            frameRate: j.config?.frameRate,
-            renderMode: j.config?.renderMode,
-          },
-          rcCost: j.rcCost,
-          queuePosition: j.queuePosition,
-          progress: 0,
-          downloadExpiresAt: j.downloadExpiresAt,
-          errorMessage: j.errorMessage,
-          createdAt: j.createdAt,
-        })),
-        nextCursor: result.nextCursor,
-      }
-    },
-  )
+  ipcMain.handle('racedash:cloudRender:listJobs', async (_event, cursor?: string): Promise<ListJobsResult> => {
+    const params = new URLSearchParams()
+    if (cursor) params.set('cursor', cursor)
+    const qs = params.toString()
+    const url = qs ? `/api/jobs?${qs}` : '/api/jobs'
+    const result = await fetchWithAuth<any>(url)
+    // Map API response to CloudRenderJob shape
+    return {
+      jobs: result.jobs.map((j: any) => ({
+        id: j.id,
+        projectName: j.projectName,
+        sessionType: j.sessionType,
+        status: j.status,
+        config: {
+          resolution: j.config?.resolution,
+          frameRate: j.config?.frameRate,
+          renderMode: j.config?.renderMode,
+        },
+        rcCost: j.rcCost,
+        queuePosition: j.queuePosition,
+        progress: 0,
+        downloadExpiresAt: j.downloadExpiresAt,
+        errorMessage: j.errorMessage,
+        createdAt: j.createdAt,
+      })),
+      nextCursor: result.nextCursor,
+    }
+  })
 
   // Get actual file size (used by renderer to compute correct part count)
-  ipcMain.handle(
-    'racedash:cloudRender:getFileSize',
-    (_event, filePath: string): number => {
-      return fs.statSync(filePath).size
-    },
-  )
+  ipcMain.handle('racedash:cloudRender:getFileSize', (_event, filePath: string): number => {
+    return fs.statSync(filePath).size
+  })
 
   // Estimate cost (pure, no network)
   ipcMain.handle(

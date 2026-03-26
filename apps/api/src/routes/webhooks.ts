@@ -55,19 +55,13 @@ const webhookRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (event.type === 'user.created') {
         const clerkId = event.data.id
-        const emailObj = event.data.email_addresses?.find(
-          (e) => e.email_address,
-        )
+        const emailObj = event.data.email_addresses?.find((e) => e.email_address)
         const email = emailObj?.email_address ?? ''
 
         const db = getDb()
 
         // Idempotent: skip if user already exists
-        const [existing] = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(eq(users.clerkId, clerkId))
-          .limit(1)
+        const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkId)).limit(1)
 
         if (!existing) {
           await db.insert(users).values({ clerkId, email })

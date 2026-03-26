@@ -1,12 +1,4 @@
-export function MetricCard({
-  label,
-  value,
-  suffix,
-}: {
-  label: string
-  value: number
-  suffix?: string
-}) {
+export function MetricCard({ label, value, suffix }: { label: string; value: number; suffix?: string }) {
   return (
     <div className="rounded-lg border border-border p-4 bg-card">
       <p className="text-sm text-muted-foreground">{label}</p>

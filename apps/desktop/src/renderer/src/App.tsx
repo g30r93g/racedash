@@ -21,45 +21,39 @@ export function App(): React.ReactElement {
 
   return (
     <AuthModalContext.Provider value={authModalValue}>
-    <div className="flex h-screen flex-col overflow-hidden">
-      {/* macOS traffic light clearance + window drag region.
+      <div className="flex h-screen flex-col overflow-hidden">
+        {/* macOS traffic light clearance + window drag region.
           36px matches the hiddenInset inset on macOS.
           Any interactive element placed inside this region must set
           style={{ WebkitAppRegion: 'no-drag' }} to remain clickable. */}
-      <div
-        className="relative flex h-9 w-full shrink-0 items-center justify-center"
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      >
-        <UpdateBanner />
-        <span className="text-xs font-medium text-white/40 select-none">RaceDash</span>
-      </div>
+        <div
+          className="relative flex h-9 w-full shrink-0 items-center justify-center"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          <UpdateBanner />
+          <span className="text-xs font-medium text-white/40 select-none">RaceDash</span>
+        </div>
 
-      {/* Screen content — fills remaining height */}
-      <div className="relative flex flex-1 overflow-hidden">
-        {project ? (
-          <Editor project={project} onClose={() => setProject(null)} />
-        ) : (
-          <>
-            {/* Editor skeleton visible behind the library overlay */}
-            <EditorSkeleton />
-            {/* Project library floats over the skeleton */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
-              <ProjectLibrary
-                onOpen={setProject}
-                onNew={() => setWizardOpen(true)}
-              />
-            </div>
-          </>
+        {/* Screen content — fills remaining height */}
+        <div className="relative flex flex-1 overflow-hidden">
+          {project ? (
+            <Editor project={project} onClose={() => setProject(null)} />
+          ) : (
+            <>
+              {/* Editor skeleton visible behind the library overlay */}
+              <EditorSkeleton />
+              {/* Project library floats over the skeleton */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
+                <ProjectLibrary onOpen={setProject} onNew={() => setWizardOpen(true)} />
+              </div>
+            </>
+          )}
+        </div>
+        {wizardOpen && (
+          <ProjectCreationWizard onComplete={handleProjectCreated} onCancel={() => setWizardOpen(false)} />
         )}
+        <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       </div>
-      {wizardOpen && (
-        <ProjectCreationWizard
-          onComplete={handleProjectCreated}
-          onCancel={() => setWizardOpen(false)}
-        />
-      )}
-      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-    </div>
     </AuthModalContext.Provider>
   )
 }

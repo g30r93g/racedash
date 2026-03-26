@@ -7,8 +7,14 @@ import creditRoutes from '../../src/routes/credits'
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId', email: 'email', stripeCustomerId: 'stripeCustomerId' },
   creditPacks: {
-    id: 'id', userId: 'userId', rcRemaining: 'rcRemaining', expiresAt: 'expiresAt',
-    packName: 'packName', rcTotal: 'rcTotal', purchasedAt: 'purchasedAt', priceGbp: 'priceGbp',
+    id: 'id',
+    userId: 'userId',
+    rcRemaining: 'rcRemaining',
+    expiresAt: 'expiresAt',
+    packName: 'packName',
+    rcTotal: 'rcTotal',
+    purchasedAt: 'purchasedAt',
+    priceGbp: 'priceGbp',
   },
   eq: vi.fn(),
   and: vi.fn(),

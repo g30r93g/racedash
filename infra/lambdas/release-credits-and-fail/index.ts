@@ -18,11 +18,12 @@ export const handler = async (event: ReleaseCreditsAndFailEvent): Promise<void> 
   await releaseCredits({ db, jobId })
 
   // Mark job as failed
-  const errorMessage = typeof error === 'string'
-    ? error
-    : (error && typeof error === 'object' && 'message' in error)
-      ? String((error as { message: unknown }).message)
-      : 'Unknown error'
+  const errorMessage =
+    typeof error === 'string'
+      ? error
+      : error && typeof error === 'object' && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : 'Unknown error'
 
   await db
     .update(jobs)
@@ -35,18 +36,10 @@ export const handler = async (event: ReleaseCreditsAndFailEvent): Promise<void> 
 
   // Send failure notification — SES errors must not throw
   try {
-    const [user] = await db
-      .select({ email: users.email })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1)
 
     if (user) {
-      const [job] = await db
-        .select({ config: jobs.config })
-        .from(jobs)
-        .where(eq(jobs.id, jobId))
-        .limit(1)
+      const [job] = await db.select({ config: jobs.config }).from(jobs).where(eq(jobs.id, jobId)).limit(1)
 
       const projectName = (job?.config as any)?.projectName ?? 'your project'
 

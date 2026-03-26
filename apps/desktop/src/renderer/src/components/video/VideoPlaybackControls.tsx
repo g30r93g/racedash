@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Pause, Play } from 'lucide-react'
+import { Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import React, { useState } from 'react'
 import { JumpToDialog } from '../timing/JumpToDialog'
 
@@ -51,11 +51,7 @@ export function VideoPlaybackControls({
               aria-label={playing ? 'Pause' : 'Play'}
               className="h-7 w-7 shrink-0"
             >
-              {playing ? (
-                <Pause size={12} />
-              ) : (
-                <Play size={12} />
-              )}
+              {playing ? <Pause size={12} /> : <Play size={12} />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{playing ? 'Pause' : 'Play'}</TooltipContent>
@@ -80,11 +76,7 @@ export function VideoPlaybackControls({
               aria-label={muted ? 'Unmute' : 'Mute'}
               className="h-7 w-7 shrink-0"
             >
-              {muted ? (
-                <Play size={14} />
-              ) : (
-                <Pause size={14} />
-              )}
+              {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>{muted ? 'Unmute' : 'Mute'}</TooltipContent>

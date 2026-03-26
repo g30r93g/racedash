@@ -4,8 +4,8 @@ export type LeaderboardMode = 'qualifying' | 'practice' | 'race'
 
 export interface RankedDriver extends LeaderboardDriver {
   position: number
-  best: number           // best completed lap time (qualifying/practice); Infinity if none
-  lapsCompleted: number  // total completed laps at currentTime
+  best: number // best completed lap time (qualifying/practice); Infinity if none
+  lapsCompleted: number // total completed laps at currentTime
   cumulativeTime: number // qualifying/practice: sum of completed lap durations; race: absolute video end-time of last completed lap
   interval: string | null // pre-computed time column string; null for P1
 }
@@ -80,7 +80,7 @@ export function selectWindow(
   if (leaderboard.length === 0) return []
 
   if (mode === 'race') {
-    const ourIdx = leaderboard.findIndex(d => d.kart === ourKart)
+    const ourIdx = leaderboard.findIndex((d) => d.kart === ourKart)
     if (ourIdx === -1) return []
     // Within top 10: show 1-10
     if (ourIdx < 10) return leaderboard.slice(0, Math.min(10, leaderboard.length))
@@ -91,7 +91,7 @@ export function selectWindow(
   }
 
   // qualifying / practice: existing 4-row logic
-  const ourIdx = leaderboard.findIndex(d => d.kart === ourKart)
+  const ourIdx = leaderboard.findIndex((d) => d.kart === ourKart)
   if (ourIdx <= 0) return leaderboard.slice(0, Math.min(4, leaderboard.length))
 
   const last = leaderboard.length - 1
@@ -151,14 +151,14 @@ function buildRaceLeaderboardFromSnapshots(
 
   // For each entry in the active snapshot, resolve to the latest snapshot up to
   // currentTime that still matches that driver's completed-lap count.
-  const resolvedEntries: RaceLapEntry[] = active.entries.map(entry => {
+  const resolvedEntries: RaceLapEntry[] = active.entries.map((entry) => {
     if (driverLapsCompleted.size === 0) return entry
 
     const lapsCompleted = driverLapsCompleted.get(entry.kart)
     if (lapsCompleted === undefined) return entry
 
     for (let i = activeIdx; i >= 0; i--) {
-      const driverEntry = snapshots[i].entries.find(e => e.kart === entry.kart)
+      const driverEntry = snapshots[i].entries.find((e) => e.kart === entry.kart)
       if (driverEntry && driverEntry.lapsCompleted === lapsCompleted) {
         return driverEntry
       }
@@ -203,17 +203,13 @@ function buildRaceLeaderboardFromSnapshots(
   })
 }
 
-function buildRaceLeaderboard(
-  drivers: LeaderboardDriver[],
-  currentTime: number,
-  ourKart?: string,
-): RankedDriver[] {
+function buildRaceLeaderboard(drivers: LeaderboardDriver[], currentTime: number, ourKart?: string): RankedDriver[] {
   // First pass: determine how many laps each driver has completed by currentTime.
   const driverState: Array<{
     driver: LeaderboardDriver
     lapsCompleted: number
-    lastCumulative: number  // race-relative cumulative of last completed lap
-    lastEndTime: number     // absolute video end-time of last completed lap (for fallback)
+    lastCumulative: number // race-relative cumulative of last completed lap
+    lastEndTime: number // absolute video end-time of last completed lap (for fallback)
   }> = []
 
   for (const d of drivers) {
@@ -239,7 +235,7 @@ function buildRaceLeaderboard(
   // lap (ourLapsCompleted + 1) cumulative — the lap currently being driven.  This
   // matches getPosition(race, currentIdx+1, …) so that retired/short-lap drivers who
   // beat us in lap N but lack lap N+1 data don't rank above us.
-  const ourState = ourKart ? driverState.find(s => s.driver.kart === ourKart) : undefined
+  const ourState = ourKart ? driverState.find((s) => s.driver.kart === ourKart) : undefined
 
   if (ourState) {
     const ourLapsCompleted = ourState.lapsCompleted
@@ -247,7 +243,7 @@ function buildRaceLeaderboard(
     const targetLapIdx = ourLapsCompleted
 
     type Scored = (typeof driverState)[number] & { score: number }
-    const scored: Scored[] = driverState.map(s => ({
+    const scored: Scored[] = driverState.map((s) => ({
       ...s,
       score: s.driver.timestamps[targetLapIdx]?.lap.cumulative ?? Infinity,
     }))
@@ -295,9 +291,7 @@ function buildRaceLeaderboard(
   }))
 
   ranked.sort((a, b) =>
-    b.lapsCompleted !== a.lapsCompleted
-      ? b.lapsCompleted - a.lapsCompleted
-      : a.cumulativeTime - b.cumulativeTime,
+    b.lapsCompleted !== a.lapsCompleted ? b.lapsCompleted - a.lapsCompleted : a.cumulativeTime - b.cumulativeTime,
   )
 
   for (let i = 0; i < ranked.length; i++) {

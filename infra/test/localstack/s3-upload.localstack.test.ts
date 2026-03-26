@@ -24,26 +24,34 @@ describe('S3 Upload (LocalStack)', () => {
     const key = 'uploads/test-job-123/joined.mp4'
     const body = Buffer.from('mock video content')
 
-    await s3.send(new PutObjectCommand({
-      Bucket: UPLOAD_BUCKET,
-      Key: key,
-      Body: body,
-    }))
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: key,
+        Body: body,
+      }),
+    )
 
-    const result = await s3.send(new GetObjectCommand({
-      Bucket: UPLOAD_BUCKET,
-      Key: key,
-    }))
+    const result = await s3.send(
+      new GetObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: key,
+      }),
+    )
     const content = await result.Body!.transformToByteArray()
     expect(Buffer.from(content).toString()).toBe('mock video content')
   })
 
   test('presigned PUT URL allows upload', async () => {
     const key = 'uploads/test-job-456/joined.mp4'
-    const url = await getSignedUrl(s3, new PutObjectCommand({
-      Bucket: UPLOAD_BUCKET,
-      Key: key,
-    }), { expiresIn: 3600 })
+    const url = await getSignedUrl(
+      s3,
+      new PutObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: key,
+      }),
+      { expiresIn: 3600 },
+    )
 
     expect(url).toContain(UPLOAD_BUCKET)
     expect(url).toContain(encodeURIComponent(key).replace(/%2F/g, '/'))
@@ -51,24 +59,32 @@ describe('S3 Upload (LocalStack)', () => {
 
   test('presigned GET URL allows download', async () => {
     const key = 'uploads/test-job-789/joined.mp4'
-    await s3.send(new PutObjectCommand({
-      Bucket: UPLOAD_BUCKET,
-      Key: key,
-      Body: Buffer.from('download test'),
-    }))
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: key,
+        Body: Buffer.from('download test'),
+      }),
+    )
 
-    const url = await getSignedUrl(s3, new GetObjectCommand({
-      Bucket: UPLOAD_BUCKET,
-      Key: key,
-    }), { expiresIn: 3600 })
+    const url = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: UPLOAD_BUCKET,
+        Key: key,
+      }),
+      { expiresIn: 3600 },
+    )
 
     expect(url).toContain(UPLOAD_BUCKET)
   })
 
   test('lifecycle rules are configured', async () => {
-    const result = await s3.send(new GetBucketLifecycleConfigurationCommand({
-      Bucket: UPLOAD_BUCKET,
-    }))
+    const result = await s3.send(
+      new GetBucketLifecycleConfigurationCommand({
+        Bucket: UPLOAD_BUCKET,
+      }),
+    )
 
     expect(result.Rules).toBeDefined()
     const expireRule = result.Rules!.find((r) => r.ID === 'expire-uploads')

@@ -30,17 +30,10 @@ export const handler = async (event: StartRenderOverlayEvent): Promise<void> => 
   const db = getDb()
 
   // Store render task token
-  await db
-    .update(jobs)
-    .set({ renderTaskToken: taskToken, updatedAt: new Date() })
-    .where(eq(jobs.id, jobId))
+  await db.update(jobs).set({ renderTaskToken: taskToken, updatedAt: new Date() }).where(eq(jobs.id, jobId))
 
   // Read job config
-  const [job] = await db
-    .select({ config: jobs.config })
-    .from(jobs)
-    .where(eq(jobs.id, jobId))
-    .limit(1)
+  const [job] = await db.select({ config: jobs.config }).from(jobs).where(eq(jobs.id, jobId)).limit(1)
 
   if (!job) throw new Error(`Job ${jobId} not found`)
 
@@ -77,8 +70,5 @@ export const handler = async (event: StartRenderOverlayEvent): Promise<void> => 
     region: (process.env.AWS_REGION as any) ?? 'eu-west-2',
   })
 
-  await db
-    .update(jobs)
-    .set({ remotionRenderId: renderId, updatedAt: new Date() })
-    .where(eq(jobs.id, jobId))
+  await db.update(jobs).set({ remotionRenderId: renderId, updatedAt: new Date() }).where(eq(jobs.id, jobId))
 }

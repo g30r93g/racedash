@@ -31,9 +31,7 @@ export function SegmentsStep({ videoPaths, joinedVideoPath, segments, onChange, 
   function handleSave(segment: SegmentConfig) {
     if (!formMode) return
     onChange(
-      formMode.mode === 'add'
-        ? [...segments, segment]
-        : segments.map((s, i) => (i === formMode.index ? segment : s))
+      formMode.mode === 'add' ? [...segments, segment] : segments.map((s, i) => (i === formMode.index ? segment : s)),
     )
     closeForm()
   }
@@ -56,8 +54,8 @@ export function SegmentsStep({ videoPaths, joinedVideoPath, segments, onChange, 
       <div>
         <h2 className="text-base font-semibold text-foreground">Define segments</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          A segment is a named session — e.g. Practice or Race. Each has its own timing source
-          and a start position in your video.
+          A segment is a named session — e.g. Practice or Race. Each has its own timing source and a start position in
+          your video.
         </p>
       </div>
 
@@ -75,11 +73,7 @@ export function SegmentsStep({ videoPaths, joinedVideoPath, segments, onChange, 
                 onDelete={(i) => onChange(segments.filter((_, j) => j !== i))}
               />
             ))}
-            <Button
-              variant="outline"
-              className="mt-2 w-full border-dashed"
-              onClick={() => openForm({ mode: 'add' })}
-            >
+            <Button variant="outline" className="mt-2 w-full border-dashed" onClick={() => openForm({ mode: 'add' })}>
               + Add another segment
             </Button>
           </>

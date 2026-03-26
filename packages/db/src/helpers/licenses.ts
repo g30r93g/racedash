@@ -11,9 +11,12 @@ const TIER_RANK: Record<LicenseTier, number> = {
 
 export function getSlotLimit(tier: LicenseTier): 1 | 3 {
   switch (tier) {
-    case 'plus': return 1
-    case 'pro': return 3
-    default: throw new Error(`Unrecognized license tier: ${tier satisfies never}`)
+    case 'plus':
+      return 1
+    case 'pro':
+      return 3
+    default:
+      throw new Error(`Unrecognized license tier: ${tier satisfies never}`)
   }
 }
 
@@ -21,12 +24,7 @@ export async function countActiveRenders(db: DrizzleDb, userId: string): Promise
   const [result] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(jobs)
-    .where(
-      and(
-        eq(jobs.userId, userId),
-        inArray(jobs.status, ['rendering', 'compositing']),
-      ),
-    )
+    .where(and(eq(jobs.userId, userId), inArray(jobs.status, ['rendering', 'compositing'])))
 
   return result?.count ?? 0
 }
@@ -52,13 +50,7 @@ export async function validateLicenseTier(input: ValidateLicenseTierInput): Prom
   const [license] = await db
     .select()
     .from(licenses)
-    .where(
-      and(
-        eq(licenses.userId, userId),
-        eq(licenses.status, 'active'),
-        gt(licenses.expiresAt, new Date()),
-      ),
-    )
+    .where(and(eq(licenses.userId, userId), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
     .orderBy(desc(licenses.expiresAt))
     .limit(1)
 

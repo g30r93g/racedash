@@ -15,8 +15,14 @@ vi.mock('../../src/lib/aws', () => ({
 
 vi.mock('@aws-sdk/client-sfn', () => ({
   SFNClient: vi.fn(),
-  SendTaskSuccessCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'SendTaskSuccess' }),
-  SendTaskFailureCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'SendTaskFailure' }),
+  SendTaskSuccessCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'SendTaskSuccess'
+  }),
+  SendTaskFailureCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'SendTaskFailure'
+  }),
 }))
 
 import { createUnauthenticatedTestApp } from '../helpers/test-app'
@@ -57,7 +63,9 @@ describe('POST /api/webhooks/remotion', () => {
     app = await createUnauthenticatedTestApp(webhooksRemotionRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -81,9 +89,7 @@ describe('POST /api/webhooks/remotion', () => {
     expect(response.statusCode).toBe(200)
 
     const { SendTaskSuccessCommand } = await import('@aws-sdk/client-sfn')
-    expect(SendTaskSuccessCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ taskToken: 'task-token-1' }),
-    )
+    expect(SendTaskSuccessCommand).toHaveBeenCalledWith(expect.objectContaining({ taskToken: 'task-token-1' }))
   })
 
   it('processes error webhook and sends SendTaskFailureCommand', async () => {
@@ -181,9 +187,7 @@ describe('POST /api/webhooks/remotion', () => {
     })
 
     const { SendTaskSuccessCommand } = await import('@aws-sdk/client-sfn')
-    expect(SendTaskSuccessCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ taskToken: 'task-token-1' }),
-    )
+    expect(SendTaskSuccessCommand).toHaveBeenCalledWith(expect.objectContaining({ taskToken: 'task-token-1' }))
   })
 
   it('uses REMOTION_WEBHOOK_SECRET and rawBody for HMAC verification', async () => {

@@ -20,14 +20,7 @@ interface RevokeLicenseDialogProps {
   onSuccess: () => void
 }
 
-export function RevokeLicenseDialog({
-  userId,
-  licenseId,
-  tier,
-  open,
-  onClose,
-  onSuccess,
-}: RevokeLicenseDialogProps) {
+export function RevokeLicenseDialog({ userId, licenseId, tier, open, onClose, onSuccess }: RevokeLicenseDialogProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

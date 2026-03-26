@@ -48,15 +48,12 @@ describe('checkFfmpegImpl', () => {
   })
 
   it('returns found=true with path when ffmpeg is on PATH', () => {
-    vi.spyOn(childProcess, 'execFileSync').mockReturnValue(
-      Buffer.from('/usr/local/bin/ffmpeg\n')
-    )
+    vi.spyOn(childProcess, 'execFileSync').mockReturnValue(Buffer.from('/usr/local/bin/ffmpeg\n'))
     const result = checkFfmpegImpl()
     expect(result).toEqual({ found: true, path: '/usr/local/bin/ffmpeg' })
-    expect(childProcess.execFileSync).toHaveBeenCalledWith(
-      process.platform === 'win32' ? 'where.exe' : 'which',
-      ['ffmpeg']
-    )
+    expect(childProcess.execFileSync).toHaveBeenCalledWith(process.platform === 'win32' ? 'where.exe' : 'which', [
+      'ffmpeg',
+    ])
   })
 
   it('returns found=false when ffmpeg is not on PATH', () => {
@@ -68,16 +65,14 @@ describe('checkFfmpegImpl', () => {
   })
 
   it('trims whitespace from the path', () => {
-    vi.spyOn(childProcess, 'execFileSync').mockReturnValue(
-      Buffer.from('  /opt/homebrew/bin/ffmpeg  \n')
-    )
+    vi.spyOn(childProcess, 'execFileSync').mockReturnValue(Buffer.from('  /opt/homebrew/bin/ffmpeg  \n'))
     const result = checkFfmpegImpl()
     expect(result).toEqual({ found: true, path: '/opt/homebrew/bin/ffmpeg' })
   })
 
   it('uses the first path when the lookup command returns multiple matches', () => {
     vi.spyOn(childProcess, 'execFileSync').mockReturnValue(
-      Buffer.from('C:\\ffmpeg\\bin\\ffmpeg.exe\r\nD:\\backup\\ffmpeg.exe\r\n')
+      Buffer.from('C:\\ffmpeg\\bin\\ffmpeg.exe\r\nD:\\backup\\ffmpeg.exe\r\n'),
     )
     const result = checkFfmpegImpl()
     expect(result).toEqual({ found: true, path: 'C:\\ffmpeg\\bin\\ffmpeg.exe' })

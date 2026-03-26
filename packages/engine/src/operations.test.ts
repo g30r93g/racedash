@@ -54,13 +54,11 @@ vi.mock('./timingSources', () => ({
     overlayComponents: undefined,
     styling: undefined,
   }),
-  resolveDriversCommandSegments: vi.fn().mockResolvedValue([
-    { drivers: ['Driver A', 'Driver B'], source: 'alphaTiming' },
-  ]),
+  resolveDriversCommandSegments: vi
+    .fn()
+    .mockResolvedValue([{ drivers: ['Driver A', 'Driver B'], source: 'alphaTiming' }]),
   resolvePositionOverrides: vi.fn().mockReturnValue([]),
-  resolveTimingSegments: vi.fn().mockResolvedValue([
-    { mode: 'race', laps: [], source: 'alphaTiming' },
-  ]),
+  resolveTimingSegments: vi.fn().mockResolvedValue([{ mode: 'race', laps: [], source: 'alphaTiming' }]),
 }))
 
 vi.mock('node:fs/promises', async (importActual) => {
@@ -117,18 +115,14 @@ describe('listDrivers', () => {
   it('loads config and returns driver segments', async () => {
     const result = await listDrivers({ configPath: '/config.yaml' })
     expect(loadTimingConfig).toHaveBeenCalledWith('/config.yaml', false)
-    expect(result.segments).toEqual([
-      { drivers: ['Driver A', 'Driver B'], source: 'alphaTiming' },
-    ])
+    expect(result.segments).toEqual([{ drivers: ['Driver A', 'Driver B'], source: 'alphaTiming' }])
     expect(result.driverListsIdentical).toBe(true)
   })
 
   it('applies driverQuery filter to segments', async () => {
     await listDrivers({ configPath: '/config.yaml', driverQuery: 'Smith' })
     expect(resolveDriversCommandSegments).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ driver: 'Smith' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ driver: 'Smith' })]),
     )
   })
 })
@@ -161,10 +155,7 @@ describe('renderSession', () => {
 
   it('renders overlay and composites video', async () => {
     const progress: Array<{ phase: string; progress: number }> = []
-    const result = await renderSession(
-      baseOpts,
-      (e) => progress.push(e),
-    )
+    const result = await renderSession(baseOpts, (e) => progress.push(e))
 
     expect(loadTimingConfig).toHaveBeenCalledWith('/config.yaml', true)
     expect(renderOverlay).toHaveBeenCalled()
@@ -175,10 +166,7 @@ describe('renderSession', () => {
 
   it('joins multiple videos before rendering', async () => {
     const progress: Array<{ phase: string; progress: number }> = []
-    await renderSession(
-      { ...baseOpts, videoPaths: ['/clip1.mp4', '/clip2.mp4'] },
-      (e) => progress.push(e),
-    )
+    await renderSession({ ...baseOpts, videoPaths: ['/clip1.mp4', '/clip2.mp4'] }, (e) => progress.push(e))
 
     expect(compositorJoinVideos).toHaveBeenCalledWith(
       ['/clip1.mp4', '/clip2.mp4'],
@@ -194,10 +182,7 @@ describe('renderSession', () => {
     vi.mocked(access).mockResolvedValueOnce(undefined)
     vi.mocked(getVideoDuration).mockResolvedValueOnce(120).mockResolvedValueOnce(120)
 
-    const result = await renderSession(
-      baseOpts,
-      () => {},
-    )
+    const result = await renderSession(baseOpts, () => {})
 
     expect(renderOverlay).not.toHaveBeenCalled()
     expect(result.overlayReused).toBe(true)
@@ -207,29 +192,20 @@ describe('renderSession', () => {
     vi.mocked(access).mockResolvedValueOnce(undefined)
     vi.mocked(getVideoDuration).mockResolvedValueOnce(120)
 
-    await renderSession(
-      { ...baseOpts, noCache: true },
-      () => {},
-    )
+    await renderSession({ ...baseOpts, noCache: true }, () => {})
 
     expect(renderOverlay).toHaveBeenCalled()
   })
 
   it('returns overlay path when onlyRenderOverlay is true', async () => {
-    const result = await renderSession(
-      { ...baseOpts, onlyRenderOverlay: true },
-      () => {},
-    )
+    const result = await renderSession({ ...baseOpts, onlyRenderOverlay: true }, () => {})
 
     expect(result.outputPath).toContain('-overlay.mov')
     expect(compositeVideo).not.toHaveBeenCalled()
   })
 
   it('passes outputResolution to compositeVideo when provided', async () => {
-    await renderSession(
-      { ...baseOpts, outputResolution: { width: 3840, height: 2160 } },
-      () => {},
-    )
+    await renderSession({ ...baseOpts, outputResolution: { width: 3840, height: 2160 } }, () => {})
 
     expect(compositeVideo).toHaveBeenCalledWith(
       expect.any(String),
@@ -321,10 +297,7 @@ describe('renderSession', () => {
   })
 
   it('passes explicit overlayX and overlayY', async () => {
-    await renderSession(
-      { ...baseOpts, overlayX: 100, overlayY: 200 },
-      () => {},
-    )
+    await renderSession({ ...baseOpts, overlayX: 100, overlayY: 200 }, () => {})
 
     expect(compositeVideo).toHaveBeenCalledWith(
       expect.any(String),
@@ -339,10 +312,9 @@ describe('renderSession', () => {
     vi.mocked(compositorJoinVideos).mockResolvedValueOnce(undefined)
     vi.mocked(resolveTimingSegments).mockRejectedValueOnce(new Error('timing error'))
 
-    await expect(renderSession(
-      { ...baseOpts, videoPaths: ['/a.mp4', '/b.mp4'] },
-      () => {},
-    )).rejects.toThrow('timing error')
+    await expect(renderSession({ ...baseOpts, videoPaths: ['/a.mp4', '/b.mp4'] }, () => {})).rejects.toThrow(
+      'timing error',
+    )
 
     expect(unlink).toHaveBeenCalled()
   })

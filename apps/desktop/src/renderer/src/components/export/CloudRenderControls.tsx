@@ -49,12 +49,15 @@ export function CloudRenderControls({
         {!authUser ? (
           <div className="rounded-md border border-border bg-accent px-3 py-3">
             <p className="text-xs text-muted-foreground">Sign in to use cloud rendering</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={onSignIn}>Sign in</Button>
+            <Button variant="outline" size="sm" className="mt-2" onClick={onSignIn}>
+              Sign in
+            </Button>
           </div>
         ) : !licenseTier ? (
           <div className="rounded-md border border-border bg-accent px-3 py-3">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Subscription required:</span> Cloud rendering requires a RaceDash Cloud subscription
+              <span className="font-medium text-foreground">Subscription required:</span> Cloud rendering requires a
+              RaceDash Cloud subscription
             </p>
           </div>
         ) : (
@@ -77,9 +80,7 @@ export function CloudRenderControls({
               </p>
             )}
             {licenseTier === 'plus' && (
-              <p className="text-[10px] text-muted-foreground">
-                Upgrade to Pro for 3 concurrent render slots
-              </p>
+              <p className="text-[10px] text-muted-foreground">Upgrade to Pro for 3 concurrent render slots</p>
             )}
           </div>
         )}
@@ -103,7 +104,9 @@ export function CloudRenderControls({
                 <Progress value={Math.round((uploadProgress.bytesUploaded / uploadProgress.bytesTotal) * 100)} />
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                   <span>{formatBytes(uploadProgress.uploadSpeed)}/s</span>
-                  <span>{formatBytes(uploadProgress.bytesUploaded)} / {formatBytes(uploadProgress.bytesTotal)}</span>
+                  <span>
+                    {formatBytes(uploadProgress.bytesUploaded)} / {formatBytes(uploadProgress.bytesTotal)}
+                  </span>
                 </div>
               </>
             ) : (
@@ -112,7 +115,10 @@ export function CloudRenderControls({
                 <span>Preparing upload…</span>
               </div>
             )}
-            <Button variant="outline" onClick={() => uploadProgress && window.racedash.cloudRender.cancelUpload(uploadProgress.jobId)}>
+            <Button
+              variant="outline"
+              onClick={() => uploadProgress && window.racedash.cloudRender.cancelUpload(uploadProgress.jobId)}
+            >
               Cancel
             </Button>
           </div>

@@ -14,8 +14,7 @@ export function useAdminAuth(): AdminAuth {
 
   const isLoading = !isAuthLoaded || !isUserLoaded
 
-  const isAdmin =
-    !isLoading && !!userId && (user?.publicMetadata as Record<string, unknown>)?.role === 'admin'
+  const isAdmin = !isLoading && !!userId && (user?.publicMetadata as Record<string, unknown>)?.role === 'admin'
 
   return {
     isAdmin,

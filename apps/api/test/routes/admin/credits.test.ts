@@ -8,9 +8,22 @@ const { mockLogAdminAction } = vi.hoisted(() => {
 
 vi.mock('@racedash/db', () => ({
   users: { id: 'id' },
-  creditPacks: { id: 'id', userId: 'userId', packName: 'packName', rcTotal: 'rcTotal', rcRemaining: 'rcRemaining', priceGbp: 'priceGbp', purchasedAt: 'purchasedAt', expiresAt: 'expiresAt' },
+  creditPacks: {
+    id: 'id',
+    userId: 'userId',
+    packName: 'packName',
+    rcTotal: 'rcTotal',
+    rcRemaining: 'rcRemaining',
+    priceGbp: 'priceGbp',
+    purchasedAt: 'purchasedAt',
+    expiresAt: 'expiresAt',
+  },
   logAdminAction: (...args: unknown[]) => mockLogAdminAction(...args),
-  eq: vi.fn(), and: vi.fn(), gt: vi.fn(), asc: vi.fn(), sql: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
+  gt: vi.fn(),
+  asc: vi.fn(),
+  sql: vi.fn(),
 }))
 
 vi.mock('../../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -23,7 +36,20 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'returning', 'transaction', 'for']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'returning',
+    'transaction',
+    'for',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }
@@ -58,10 +84,17 @@ describe('POST /api/admin/users/:id/credits', () => {
 
     mockDb.transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => {
       const tx = createMockDb()
-      tx.returning.mockResolvedValueOnce([{
-        id: 'cp-1', packName: 'Admin Grant', rcTotal: 50, rcRemaining: 50,
-        priceGbp: '0', purchasedAt: now, expiresAt: futureDate,
-      }])
+      tx.returning.mockResolvedValueOnce([
+        {
+          id: 'cp-1',
+          packName: 'Admin Grant',
+          rcTotal: 50,
+          rcRemaining: 50,
+          priceGbp: '0',
+          purchasedAt: now,
+          expiresAt: futureDate,
+        },
+      ])
       mockLogAdminAction.mockResolvedValueOnce(undefined)
       return fn(tx)
     })
@@ -84,10 +117,17 @@ describe('POST /api/admin/users/:id/credits', () => {
 
     mockDb.transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => {
       const tx = createMockDb()
-      tx.returning.mockResolvedValueOnce([{
-        id: 'cp-1', packName: 'Admin Grant', rcTotal: 50, rcRemaining: 50,
-        priceGbp: '0', purchasedAt: now, expiresAt: futureDate,
-      }])
+      tx.returning.mockResolvedValueOnce([
+        {
+          id: 'cp-1',
+          packName: 'Admin Grant',
+          rcTotal: 50,
+          rcRemaining: 50,
+          priceGbp: '0',
+          purchasedAt: now,
+          expiresAt: futureDate,
+        },
+      ])
       mockLogAdminAction.mockResolvedValueOnce(undefined)
       return fn(tx)
     })
@@ -136,9 +176,7 @@ describe('POST /api/admin/users/:id/credits', () => {
 
     mockDb.transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => {
       const tx = createMockDb()
-      tx.for.mockResolvedValueOnce([
-        { id: 'cp-1', packName: 'Starter', rcRemaining: 5, expiresAt: futureDate },
-      ])
+      tx.for.mockResolvedValueOnce([{ id: 'cp-1', packName: 'Starter', rcRemaining: 5, expiresAt: futureDate }])
       return fn(tx)
     })
 
@@ -157,9 +195,7 @@ describe('POST /api/admin/users/:id/credits', () => {
 
     mockDb.transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => {
       const tx = createMockDb()
-      tx.for.mockResolvedValueOnce([
-        { id: 'cp-1', packName: 'Starter', rcRemaining: 30, expiresAt: futureDate },
-      ])
+      tx.for.mockResolvedValueOnce([{ id: 'cp-1', packName: 'Starter', rcRemaining: 30, expiresAt: futureDate }])
       tx.where.mockReturnValue(tx)
       mockLogAdminAction.mockResolvedValueOnce(undefined)
       return fn(tx)
@@ -239,9 +275,7 @@ describe('POST /api/admin/users/:id/credits', () => {
 
     mockDb.transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => {
       const tx = createMockDb()
-      tx.for.mockResolvedValueOnce([
-        { id: 'cp-1', packName: 'Starter', rcRemaining: 20, expiresAt: futureDate },
-      ])
+      tx.for.mockResolvedValueOnce([{ id: 'cp-1', packName: 'Starter', rcRemaining: 20, expiresAt: futureDate }])
       tx.where.mockReturnValue(tx)
       mockLogAdminAction.mockResolvedValueOnce(undefined)
       return fn(tx)

@@ -20,9 +20,7 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href === '/'
-            ? pathname === '/'
-            : pathname.startsWith(item.href)
+          const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
 
           return (
             <Link

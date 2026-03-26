@@ -17,10 +17,7 @@ export interface LogAdminActionParams {
   payload: Record<string, unknown>
 }
 
-export async function logAdminAction(
-  db: DbOrTx,
-  params: LogAdminActionParams,
-): Promise<void> {
+export async function logAdminAction(db: DbOrTx, params: LogAdminActionParams): Promise<void> {
   await db.insert(adminAuditLog).values({
     adminClerkId: params.adminClerkId,
     action: params.action,

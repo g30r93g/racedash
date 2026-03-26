@@ -29,9 +29,7 @@ describe('grant-slot handler', () => {
     await handler({ jobId: 'job-1' })
 
     expect(mockDb.update).toHaveBeenCalled()
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'rendering' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ status: 'rendering' }))
   })
 
   it('sets the updatedAt timestamp', async () => {

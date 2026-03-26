@@ -22,11 +22,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       const db = getDb()
       const { userId: clerkUserId } = request.clerk
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.clerkId, clerkUserId))
-        .limit(1)
+      const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
       if (!user) {
         reply.status(404).send({
@@ -39,13 +35,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       const [existingLicense] = await db
         .select({ id: licenses.id })
         .from(licenses)
-        .where(
-          and(
-            eq(licenses.userId, user.id),
-            eq(licenses.status, 'active'),
-            gt(licenses.expiresAt, new Date()),
-          ),
-        )
+        .where(and(eq(licenses.userId, user.id), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
         .limit(1)
 
       if (existingLicense) {
@@ -62,10 +52,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
       if (!stripeCustomerId) {
         const customer = await stripe.customers.create({ email: user.email })
         stripeCustomerId = customer.id
-        await db
-          .update(users)
-          .set({ stripeCustomerId })
-          .where(eq(users.id, user.id))
+        await db.update(users).set({ stripeCustomerId }).where(eq(users.id, user.id))
       }
 
       const priceId = priceIdForTier(tier)
@@ -102,50 +89,43 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
   )
 
   // POST /api/stripe/portal — create a Stripe Customer Portal session
-  fastify.post<{ Reply: PortalResponse | ApiError }>(
-    '/api/stripe/portal',
-    async (request, reply) => {
-      const db = getDb()
-      const { userId: clerkUserId } = request.clerk
+  fastify.post<{ Reply: PortalResponse | ApiError }>('/api/stripe/portal', async (request, reply) => {
+    const db = getDb()
+    const { userId: clerkUserId } = request.clerk
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.clerkId, clerkUserId))
-        .limit(1)
+    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
-      if (!user) {
-        reply.status(404).send({
-          error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
-        })
-        return
-      }
+    if (!user) {
+      reply.status(404).send({
+        error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
+      })
+      return
+    }
 
-      if (!user.stripeCustomerId) {
-        reply.status(404).send({
-          error: { code: 'NO_STRIPE_CUSTOMER', message: 'No Stripe customer associated with this account' },
-        })
-        return
-      }
+    if (!user.stripeCustomerId) {
+      reply.status(404).send({
+        error: { code: 'NO_STRIPE_CUSTOMER', message: 'No Stripe customer associated with this account' },
+      })
+      return
+    }
 
-      const stripe = getStripe()
-      const returnUrl = process.env.APP_RETURN_URL ?? 'https://racedash.io'
+    const stripe = getStripe()
+    const returnUrl = process.env.APP_RETURN_URL ?? 'https://racedash.io'
 
-      try {
-        const session = await stripe.billingPortal.sessions.create({
-          customer: user.stripeCustomerId,
-          return_url: returnUrl,
-        })
+    try {
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: returnUrl,
+      })
 
-        return { portalUrl: session.url }
-      } catch (err) {
-        fastify.log.error(err, 'Stripe Customer Portal session creation failed')
-        reply.status(502).send({
-          error: { code: 'STRIPE_ERROR', message: 'Failed to create portal session' },
-        })
-      }
-    },
-  )
+      return { portalUrl: session.url }
+    } catch (err) {
+      fastify.log.error(err, 'Stripe Customer Portal session creation failed')
+      reply.status(502).send({
+        error: { code: 'STRIPE_ERROR', message: 'Failed to create portal session' },
+      })
+    }
+  })
 }
 
 export default stripeRoutes

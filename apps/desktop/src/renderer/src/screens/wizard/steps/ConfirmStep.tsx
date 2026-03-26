@@ -81,17 +81,11 @@ export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }
     >
       <div>
         <h2 className="text-base font-semibold text-foreground">Confirm and create project</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review your setup and confirm to save the project.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Review your setup and confirm to save the project.</p>
       </div>
 
       <FormField label="Project name">
-        <Input
-          value={state.projectName}
-          onChange={(e) => onNameChange(e.target.value)}
-          disabled={loading}
-        />
+        <Input value={state.projectName} onChange={(e) => onNameChange(e.target.value)} disabled={loading} />
       </FormField>
 
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">
@@ -135,9 +129,7 @@ export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }
                 <InfoRow label="Source" value={seg.source} />
                 <InfoRow label="Driver" value={state.selectedDrivers[seg.label] || '—'} />
                 {seg.url && <InfoRow label="URL" value={seg.url} />}
-                {seg.emailPath && (
-                  <InfoRow label="File" value={seg.emailPath.split('/').pop() ?? seg.emailPath} />
-                )}
+                {seg.emailPath && <InfoRow label="File" value={seg.emailPath.split('/').pop() ?? seg.emailPath} />}
                 <InfoRow
                   label="Offset"
                   value={seg.videoOffsetFrame !== undefined ? `Frame ${seg.videoOffsetFrame}` : 'Not set'}
@@ -150,11 +142,7 @@ export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button
-        onClick={handleCreate}
-        disabled={loading || !state.projectName.trim()}
-        className="self-end"
-      >
+      <Button onClick={handleCreate} disabled={loading || !state.projectName.trim()} className="self-end">
         {loading ? 'Saving project...' : 'Create Project'}
       </Button>
     </SpinnerOverlay>

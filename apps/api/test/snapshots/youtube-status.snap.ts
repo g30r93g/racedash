@@ -9,12 +9,20 @@ vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId' },
   licenses: { id: 'id', userId: 'userId', status: 'status', expiresAt: 'expiresAt' },
   connectedAccounts: {
-    id: 'id', userId: 'userId', platform: 'platform',
-    accountName: 'accountName', accountId: 'accountId',
-    accessToken: 'accessToken', refreshToken: 'refreshToken',
-    connectedAt: 'connectedAt', lastUsedAt: 'lastUsedAt',
+    id: 'id',
+    userId: 'userId',
+    platform: 'platform',
+    accountName: 'accountName',
+    accountId: 'accountId',
+    accessToken: 'accessToken',
+    refreshToken: 'refreshToken',
+    connectedAt: 'connectedAt',
+    lastUsedAt: 'lastUsedAt',
   },
-  eq: vi.fn(), and: vi.fn(), gt: vi.fn(), desc: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
+  gt: vi.fn(),
+  desc: vi.fn(),
 }))
 
 vi.mock('../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -31,7 +39,19 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'delete', 'returning']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'delete',
+    'returning',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }
@@ -59,11 +79,13 @@ describe('Snapshot: YouTube Status & Disconnect', () => {
 
   it('GET /auth/youtube/status (connected) shape', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      accountName: 'G. Gorzynski Racing',
-      accountId: 'UC_test',
-      connectedAt: new Date('2026-03-18T12:00:00.000Z'),
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        accountName: 'G. Gorzynski Racing',
+        accountId: 'UC_test',
+        connectedAt: new Date('2026-03-18T12:00:00.000Z'),
+      },
+    ])
 
     const response = await app.inject({ method: 'GET', url: '/api/auth/youtube/status' })
     expect(response.json()).toMatchInlineSnapshot(`

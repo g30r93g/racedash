@@ -51,7 +51,9 @@ export function YouTubeUploadDialog({
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="yt-title" className="text-xs">Title</Label>
+            <Label htmlFor="yt-title" className="text-xs">
+              Title
+            </Label>
             <Input
               id="yt-title"
               value={title}
@@ -63,7 +65,9 @@ export function YouTubeUploadDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="yt-description" className="text-xs">Description</Label>
+            <Label htmlFor="yt-description" className="text-xs">
+              Description
+            </Label>
             <textarea
               id="yt-description"
               value={description}
@@ -75,7 +79,9 @@ export function YouTubeUploadDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="yt-privacy" className="text-xs">Privacy</Label>
+            <Label htmlFor="yt-privacy" className="text-xs">
+              Privacy
+            </Label>
             <Select value={privacy} onValueChange={(v) => setPrivacy(v as typeof privacy)}>
               <SelectTrigger className="text-sm">
                 <SelectValue />
@@ -89,7 +95,9 @@ export function YouTubeUploadDialog({
           </div>
 
           <div className="rounded-md border border-border bg-accent/40 px-3 py-2">
-            <p className="text-xs text-foreground">This upload will use <strong>10 RC</strong></p>
+            <p className="text-xs text-foreground">
+              This upload will use <strong>10 RC</strong>
+            </p>
             <p className="text-xs text-muted-foreground">Your balance: {creditBalance} RC</p>
           </div>
 

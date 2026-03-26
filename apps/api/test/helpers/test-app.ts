@@ -15,25 +15,19 @@ declare module 'fastify' {
  * No real DB or Stripe connections are established — callers must mock
  * those dependencies per test.
  */
-export async function createTestApp(
-  routes: Parameters<FastifyInstance['register']>[0],
-): Promise<FastifyInstance> {
+export async function createTestApp(routes: Parameters<FastifyInstance['register']>[0]): Promise<FastifyInstance> {
   const app = Fastify({ logger: false })
 
   // Raw body parser (mirrors app.ts for webhook signature verification)
-  app.addContentTypeParser(
-    'application/json',
-    { parseAs: 'string' },
-    (req, body, done) => {
-      try {
-        const parsed = JSON.parse(body as string)
-        req.rawBody = body
-        done(null, parsed)
-      } catch (err) {
-        done(err as Error, undefined)
-      }
-    },
-  )
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      const parsed = JSON.parse(body as string)
+      req.rawBody = body
+      done(null, parsed)
+    } catch (err) {
+      done(err as Error, undefined)
+    }
+  })
 
   // Mock Clerk auth — every request is treated as authenticated
   app.decorateRequest('clerk', null)
@@ -59,19 +53,15 @@ export async function createUnauthenticatedTestApp(
   const app = Fastify({ logger: false })
 
   // Raw body parser (mirrors app.ts for webhook signature verification)
-  app.addContentTypeParser(
-    'application/json',
-    { parseAs: 'string' },
-    (req, body, done) => {
-      try {
-        const parsed = JSON.parse(body as string)
-        req.rawBody = body
-        done(null, parsed)
-      } catch (err) {
-        done(err as Error, undefined)
-      }
-    },
-  )
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      const parsed = JSON.parse(body as string)
+      req.rawBody = body
+      done(null, parsed)
+    } catch (err) {
+      done(err as Error, undefined)
+    }
+  })
 
   await app.register(routes)
   await app.ready()

@@ -44,10 +44,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div>
-      <PageHeader
-        title={data.user.email}
-        breadcrumb={{ label: 'Users', href: '/users' }}
-      />
+      <PageHeader title={data.user.email} breadcrumb={{ label: 'Users', href: '/users' }} />
       <UserDetailClient data={data} />
     </div>
   )

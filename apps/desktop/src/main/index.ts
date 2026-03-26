@@ -61,23 +61,25 @@ export async function cleanupEmptyRacedashTempDirs(
     return
   }
 
-  await Promise.all(entries
-    .filter(name => name.startsWith(prefix))
-    .map(async (name) => {
-      const targetPath = path.join(tempRoot, name)
+  await Promise.all(
+    entries
+      .filter((name) => name.startsWith(prefix))
+      .map(async (name) => {
+        const targetPath = path.join(tempRoot, name)
 
-      try {
-        const stats = await fs.promises.lstat(targetPath)
-        if (!stats.isDirectory()) return
+        try {
+          const stats = await fs.promises.lstat(targetPath)
+          if (!stats.isDirectory()) return
 
-        const children = await fs.promises.readdir(targetPath)
-        if (children.length !== 0) return
+          const children = await fs.promises.readdir(targetPath)
+          if (children.length !== 0) return
 
-        await fs.promises.rmdir(targetPath)
-      } catch {
-        // Ignore races and permission issues in the shared temp directory.
-      }
-    }))
+          await fs.promises.rmdir(targetPath)
+        } catch {
+          // Ignore races and permission issues in the shared temp directory.
+        }
+      }),
+  )
 }
 
 app.whenReady().then(async () => {

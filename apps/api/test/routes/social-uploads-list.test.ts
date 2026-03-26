@@ -5,7 +5,9 @@ vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId' },
   jobs: { id: 'id', userId: 'userId' },
   socialUploads: { jobId: 'jobId', createdAt: 'createdAt' },
-  eq: vi.fn(), and: vi.fn(), desc: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
+  desc: vi.fn(),
 }))
 
 vi.mock('../../src/lib/db', () => ({ getDb: vi.fn() }))

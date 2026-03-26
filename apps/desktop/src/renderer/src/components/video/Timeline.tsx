@@ -59,8 +59,8 @@ type RawSegment = {
 function deriveLapSpans(seg: RawSegment, offsetSeconds: number): LapSpan[] {
   if (!seg.selectedDriver) return []
   const laps = seg.selectedDriver.laps as RawLap[]
-  const fastestTime = Math.min(...laps.map(l => l.lapTime))
-  return laps.map(lap => ({
+  const fastestTime = Math.min(...laps.map((l) => l.lapTime))
+  return laps.map((lap) => ({
     label: `L${lap.number}`,
     startSeconds: lap.cumulative - lap.lapTime + offsetSeconds,
     endSeconds: lap.cumulative + offsetSeconds,
@@ -75,10 +75,10 @@ function derivePositionDots(seg: RawSegment, offsetSeconds: number): Omit<Positi
   let prevPosition: number | null = null
   for (let i = 1; i < replayData.length; i++) {
     const snapshot = replayData[i]
-    const p1 = snapshot.find(e => e.position === 1)
+    const p1 = snapshot.find((e) => e.position === 1)
     if (!p1 || p1.totalSeconds === null) continue
     const videoSeconds = offsetSeconds + p1.totalSeconds
-    const entry = snapshot.find(e => e.kart === selectedDriver.kart)
+    const entry = snapshot.find((e) => e.kart === selectedDriver.kart)
     if (!entry) continue
     if (entry.position !== prevPosition) {
       dots.push({ videoSeconds, position: entry.position, kind: 'replay' })
@@ -94,7 +94,14 @@ function positionDotColor(direction: 'up' | 'down' | null): string {
   return '#6b7280'
 }
 
-export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult, overrides = [], onSeek }: TimelineProps): React.ReactElement {
+export function Timeline({
+  project,
+  videoInfo,
+  currentTime = 0,
+  timestampsResult,
+  overrides = [],
+  onSeek,
+}: TimelineProps): React.ReactElement {
   const duration = videoInfo?.durationSeconds ?? 30
   const fps = videoInfo?.fps ?? 60
   const [zoomIdx, setZoomIdx] = useState(0)
@@ -146,11 +153,14 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
 
     // Derive grid (Lap 0) position as the direction seed
     let gridPosition: number | null = null
-    for (const seg of (timestampsResult?.segments ?? [])) {
+    for (const seg of timestampsResult?.segments ?? []) {
       const s = seg as RawSegment
       if (!s.selectedDriver || !s.replayData?.[0]) continue
-      const entry = s.replayData[0].find(e => e.kart === s.selectedDriver!.kart)
-      if (entry) { gridPosition = entry.position; break }
+      const entry = s.replayData[0].find((e) => e.kart === s.selectedDriver!.kart)
+      if (entry) {
+        gridPosition = entry.position
+        break
+      }
     }
 
     // Merge, sort by time, compute direction across the unified sequence
@@ -163,8 +173,8 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
     })
 
     return {
-      positionDots: withDirection.filter(d => d.kind === 'replay'),
-      overrideDots: withDirection.filter(d => d.kind === 'override'),
+      positionDots: withDirection.filter((d) => d.kind === 'replay'),
+      overrideDots: withDirection.filter((d) => d.kind === 'override'),
     }
   }, [rawReplayDots, overrides, fps, timestampsResult])
 
@@ -206,17 +216,25 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{zoom}×</span>
           <Button
-            size="icon" variant="outline" aria-label="Zoom out"
+            size="icon"
+            variant="outline"
+            aria-label="Zoom out"
             className="h-5 w-5"
             disabled={zoomIdx === 0}
             onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
-          >−</Button>
+          >
+            −
+          </Button>
           <Button
-            size="icon" variant="outline" aria-label="Zoom in"
+            size="icon"
+            variant="outline"
+            aria-label="Zoom in"
             className="h-5 w-5"
             disabled={zoomIdx === ZOOM_LEVELS.length - 1}
             onClick={() => setZoomIdx((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))}
-          >+</Button>
+          >
+            +
+          </Button>
         </div>
       </div>
 
@@ -247,7 +265,11 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
             {/* Ruler */}
             <div className="relative h-5 shrink-0">
               {ticks.map((t) => (
-                <div key={t} className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center" style={{ left: pct(t) }}>
+                <div
+                  key={t}
+                  className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
+                  style={{ left: pct(t) }}
+                >
                   <span className="text-[10px] text-muted-foreground">{formatRulerLabel(t)}</span>
                   <div className="h-1.5 w-px bg-border" />
                 </div>
@@ -356,9 +378,7 @@ export function Timeline({ project, videoInfo, currentTime = 0, timestampsResult
                 style={{ left: pct(currentTime) }}
               >
                 <div className="rounded bg-primary px-1 py-px">
-                  <span className="font-mono text-[10px] text-primary-foreground">
-                    {formatRulerLabel(currentTime)}
-                  </span>
+                  <span className="font-mono text-[10px] text-primary-foreground">{formatRulerLabel(currentTime)}</span>
                 </div>
                 <div className="w-px flex-1 bg-primary" />
               </div>

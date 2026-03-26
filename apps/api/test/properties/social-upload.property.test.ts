@@ -41,17 +41,13 @@ describe('Property-based tests — Social Upload', () => {
     const states = Object.keys(validTransitions)
 
     fc.assert(
-      fc.property(
-        fc.constantFrom(...states),
-        fc.constantFrom(...states),
-        (from, to) => {
-          const isValid = validTransitions[from].includes(to)
-          // This isn't asserting implementation — it validates our transition model is consistent
-          if (from === to) return true // staying in same state is not a transition
-          // Valid transitions must exist in the model
-          return typeof isValid === 'boolean'
-        },
-      ),
+      fc.property(fc.constantFrom(...states), fc.constantFrom(...states), (from, to) => {
+        const isValid = validTransitions[from].includes(to)
+        // This isn't asserting implementation — it validates our transition model is consistent
+        if (from === to) return true // staying in same state is not a transition
+        // Valid transitions must exist in the model
+        return typeof isValid === 'boolean'
+      }),
       { numRuns: 100 },
     )
   })
@@ -68,7 +64,8 @@ describe('Property-based tests — Social Upload', () => {
           privacy: fc.oneof(fc.constantFrom(...validPrivacies), fc.string(), fc.constant(undefined as any)),
         }),
         (metadata) => {
-          const titleValid = typeof metadata.title === 'string' && metadata.title.length > 0 && metadata.title.length <= 100
+          const titleValid =
+            typeof metadata.title === 'string' && metadata.title.length > 0 && metadata.title.length <= 100
           const descValid = typeof metadata.description === 'string' && metadata.description.length <= 5000
           const privacyValid = validPrivacies.includes(metadata.privacy as string)
           const allValid = titleValid && descValid && privacyValid

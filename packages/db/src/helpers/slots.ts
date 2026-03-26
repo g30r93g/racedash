@@ -6,9 +6,7 @@ export interface ClaimNextQueuedSlotTokenInput {
   userId: string
 }
 
-export async function claimNextQueuedSlotToken(
-  input: ClaimNextQueuedSlotTokenInput,
-): Promise<string | null> {
+export async function claimNextQueuedSlotToken(input: ClaimNextQueuedSlotTokenInput): Promise<string | null> {
   const { db, userId } = input
 
   const result = await db.execute(sql`
@@ -30,6 +28,8 @@ export async function claimNextQueuedSlotToken(
   `)
 
   // Handle both neon-http (returns rows directly) and node-postgres (returns { rows })
-  const rows = (Array.isArray(result) ? result : (result as any).rows ?? []) as Array<{ slot_task_token: string | null }>
+  const rows = (Array.isArray(result) ? result : ((result as any).rows ?? [])) as Array<{
+    slot_task_token: string | null
+  }>
   return rows[0]?.slot_task_token ?? null
 }

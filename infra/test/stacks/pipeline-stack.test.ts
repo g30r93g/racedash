@@ -97,12 +97,8 @@ describe('PipelineStack', () => {
   test('State machine execution role has mediaconvert:CreateJob, iam:PassRole, and lambda:InvokeFunction permissions', () => {
     const policies = template.findResources('AWS::IAM::Policy')
     const policyValues = Object.values(policies) as any[]
-    const allStatements = policyValues.flatMap(
-      (p) => p.Properties?.PolicyDocument?.Statement ?? [],
-    )
-    const allActions = allStatements.flatMap((s: any) =>
-      Array.isArray(s.Action) ? s.Action : [s.Action],
-    )
+    const allStatements = policyValues.flatMap((p) => p.Properties?.PolicyDocument?.Statement ?? [])
+    const allActions = allStatements.flatMap((s: any) => (Array.isArray(s.Action) ? s.Action : [s.Action]))
 
     expect(allActions).toContain('mediaconvert:CreateJob')
     expect(allActions).toContain('iam:PassRole')
@@ -112,12 +108,8 @@ describe('PipelineStack', () => {
   test('FinaliseJobFunction has states:SendTaskSuccess and states:SendTaskFailure permissions', () => {
     const policies = template.findResources('AWS::IAM::Policy')
     const policyValues = Object.values(policies) as any[]
-    const allStatements = policyValues.flatMap(
-      (p) => p.Properties?.PolicyDocument?.Statement ?? [],
-    )
-    const allActions = allStatements.flatMap((s: any) =>
-      Array.isArray(s.Action) ? s.Action : [s.Action],
-    )
+    const allStatements = policyValues.flatMap((p) => p.Properties?.PolicyDocument?.Statement ?? [])
+    const allActions = allStatements.flatMap((s: any) => (Array.isArray(s.Action) ? s.Action : [s.Action]))
 
     expect(allActions).toContain('states:SendTaskSuccess')
     expect(allActions).toContain('states:SendTaskFailure')
@@ -126,12 +118,8 @@ describe('PipelineStack', () => {
   test('ReleaseCreditsAndFailFunction has states:SendTaskSuccess, states:SendTaskFailure, and ses:SendEmail permissions', () => {
     const policies = template.findResources('AWS::IAM::Policy')
     const policyValues = Object.values(policies) as any[]
-    const allStatements = policyValues.flatMap(
-      (p) => p.Properties?.PolicyDocument?.Statement ?? [],
-    )
-    const allActions = allStatements.flatMap((s: any) =>
-      Array.isArray(s.Action) ? s.Action : [s.Action],
-    )
+    const allStatements = policyValues.flatMap((p) => p.Properties?.PolicyDocument?.Statement ?? [])
+    const allActions = allStatements.flatMap((s: any) => (Array.isArray(s.Action) ? s.Action : [s.Action]))
 
     expect(allActions).toContain('states:SendTaskSuccess')
     expect(allActions).toContain('states:SendTaskFailure')
@@ -154,9 +142,7 @@ describe('PipelineStack', () => {
     template.hasResourceProperties('AWS::Events::Rule', {
       EventPattern: Match.objectLike({
         source: Match.arrayWith(['aws.states']),
-        'detail-type': Match.arrayWith([
-          Match.stringLikeRegexp('Step Functions Execution Status Change'),
-        ]),
+        'detail-type': Match.arrayWith([Match.stringLikeRegexp('Step Functions Execution Status Change')]),
       }),
     })
   })

@@ -34,11 +34,7 @@ const creditsRoutes: FastifyPluginAsync = async (fastify) => {
     const { id: userId } = request.params
     const adminClerkId = request.clerk.userId
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
 
     if (!user) {
       return reply.status(404).send({
@@ -103,11 +99,7 @@ const creditsRoutes: FastifyPluginAsync = async (fastify) => {
           .select()
           .from(creditPacks)
           .where(
-            and(
-              eq(creditPacks.userId, userId),
-              gt(creditPacks.rcRemaining, 0),
-              gt(creditPacks.expiresAt, new Date()),
-            ),
+            and(eq(creditPacks.userId, userId), gt(creditPacks.rcRemaining, 0), gt(creditPacks.expiresAt, new Date())),
           )
           .orderBy(asc(creditPacks.expiresAt))
           .for('update')

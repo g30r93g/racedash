@@ -19,18 +19,8 @@ export {
   type CheckLicenseExpiryResult,
 } from './licenses'
 
-export {
-  claimNextQueuedSlotToken,
-  type ClaimNextQueuedSlotTokenInput,
-} from './slots'
+export { claimNextQueuedSlotToken, type ClaimNextQueuedSlotTokenInput } from './slots'
 
-export {
-  computeCredits,
-  type ComputeCreditsInput,
-} from './compute-credits'
+export { computeCredits, type ComputeCreditsInput } from './compute-credits'
 
-export {
-  logAdminAction,
-  type AdminAuditAction,
-  type LogAdminActionParams,
-} from './audit'
+export { logAdminAction, type AdminAuditAction, type LogAdminActionParams } from './audit'

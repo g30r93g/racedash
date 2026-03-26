@@ -42,10 +42,15 @@ interface SourceFieldsProps {
 }
 
 function SourceFields({
-  source, url, setUrl,
-  eventId, setEventId,
-  sessionName, setSessionName,
-  emailPath, setEmailPath,
+  source,
+  url,
+  setUrl,
+  eventId,
+  setEventId,
+  sessionName,
+  setSessionName,
+  emailPath,
+  setEmailPath,
 }: SourceFieldsProps) {
   if (source === 'alphaTiming') {
     return (
@@ -104,8 +109,8 @@ function SourceFields({
   if (source === 'manual') {
     return (
       <p className="rounded-lg border border-border bg-accent/40 px-4 py-3 text-sm text-muted-foreground">
-        No timing file needed. Lap times and positions will be entered manually in the editor
-        once the project is created.
+        No timing file needed. Lap times and positions will be entered manually in the editor once the project is
+        created.
       </p>
     )
   }
@@ -123,13 +128,9 @@ function VideoOffsetField({ videoOffsetFrame, disabled, onPick }: VideoOffsetFie
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
       <div>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          Video offset
-        </p>
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Video offset</p>
         <p className="mt-0.5 text-sm text-foreground">
-          {videoOffsetFrame !== undefined
-            ? `Frame ${videoOffsetFrame}`
-            : 'Not set — pick a frame to sync timing'}
+          {videoOffsetFrame !== undefined ? `Frame ${videoOffsetFrame}` : 'Not set — pick a frame to sync timing'}
         </p>
       </div>
       <Button variant="outline" size="sm" onClick={onPick} disabled={disabled}>
@@ -164,7 +165,9 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
   const [showOffsetPicker, setShowOffsetPicker] = useState(false)
   const labelRef = useRef<HTMLInputElement>(null)
 
-  React.useEffect(() => { labelRef.current?.focus() }, [])
+  React.useEffect(() => {
+    labelRef.current?.focus()
+  }, [])
 
   function changeSource(next: TimingSource) {
     setSource(next)
@@ -206,17 +209,10 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
           ← Segments
         </Button>
 
-        <h2 className="text-base font-semibold text-foreground">
-          {mode === 'add' ? 'Add segment' : 'Edit segment'}
-        </h2>
+        <h2 className="text-base font-semibold text-foreground">{mode === 'add' ? 'Add segment' : 'Edit segment'}</h2>
 
         <FormField label="Segment label">
-          <Input
-            ref={labelRef}
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Race"
-          />
+          <Input ref={labelRef} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Race" />
         </FormField>
 
         <FormField label="Segment mode">
@@ -229,10 +225,14 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
 
         <SourceFields
           source={source}
-          url={url} setUrl={setUrl}
-          eventId={eventId} setEventId={setEventId}
-          sessionName={sessionName} setSessionName={setSessionName}
-          emailPath={emailPath} setEmailPath={setEmailPath}
+          url={url}
+          setUrl={setUrl}
+          eventId={eventId}
+          setEventId={setEventId}
+          sessionName={sessionName}
+          setSessionName={setSessionName}
+          emailPath={emailPath}
+          setEmailPath={setEmailPath}
         />
 
         <VideoOffsetField

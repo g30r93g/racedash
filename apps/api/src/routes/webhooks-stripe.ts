@@ -65,9 +65,8 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
         case 'customer.subscription.created': {
           const subscription = event.data.object as Stripe.Subscription
           const stripeSubscriptionId = subscription.id
-          const stripeCustomerId = typeof subscription.customer === 'string'
-            ? subscription.customer
-            : subscription.customer.id
+          const stripeCustomerId =
+            typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
 
           // Idempotency: skip if already processed
           if (await licenseExistsForSubscription(db, stripeSubscriptionId)) break
@@ -168,9 +167,7 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
           if (session.metadata?.type !== 'credit_pack') break
           if (session.payment_status !== 'paid') break
 
-          const stripeCustomerId = typeof session.customer === 'string'
-            ? session.customer
-            : session.customer?.id
+          const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
 
           if (!stripeCustomerId) break
 
@@ -191,9 +188,8 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
             break
           }
 
-          const paymentIntentId = typeof session.payment_intent === 'string'
-            ? session.payment_intent
-            : session.payment_intent?.id
+          const paymentIntentId =
+            typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
 
           if (!paymentIntentId) break
 

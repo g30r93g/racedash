@@ -43,11 +43,7 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
@@ -58,25 +54,18 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
     const [license] = await db
       .select({ id: licenses.id })
       .from(licenses)
-      .where(
-        and(
-          eq(licenses.userId, user.id),
-          eq(licenses.status, 'active'),
-          gt(licenses.expiresAt, new Date()),
-        ),
-      )
+      .where(and(eq(licenses.userId, user.id), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
       .orderBy(desc(licenses.expiresAt))
       .limit(1)
 
     if (!license) {
-      reply.status(403).send({ error: { code: 'LICENSE_REQUIRED', message: 'An active license is required to connect YouTube' } })
+      reply
+        .status(403)
+        .send({ error: { code: 'LICENSE_REQUIRED', message: 'An active license is required to connect YouTube' } })
       return
     }
 
-    const state = signJwt(
-      { sub: user.id, exp: Math.floor(Date.now() / 1000) + 600 },
-      getEncryptionKey(),
-    )
+    const state = signJwt({ sub: user.id, exp: Math.floor(Date.now() / 1000) + 600 }, getEncryptionKey())
 
     const clientId = process.env.YOUTUBE_CLIENT_ID
     if (!clientId) throw new Error('YOUTUBE_CLIENT_ID is required')
@@ -110,7 +99,9 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
 
       const payload = verifyJwt(state, getEncryptionKey())
       if (!payload || !payload.sub) {
-        reply.status(400).send({ error: { code: 'INVALID_OAUTH_STATE', message: 'Invalid or expired OAuth state parameter' } })
+        reply
+          .status(400)
+          .send({ error: { code: 'INVALID_OAUTH_STATE', message: 'Invalid or expired OAuth state parameter' } })
         return
       }
 
@@ -140,23 +131,26 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
       if (!tokenResponse.ok) {
-        reply.status(400).send({ error: { code: 'OAUTH_TOKEN_EXCHANGE_FAILED', message: 'Failed to exchange authorization code for tokens' } })
+        reply.status(400).send({
+          error: { code: 'OAUTH_TOKEN_EXCHANGE_FAILED', message: 'Failed to exchange authorization code for tokens' },
+        })
         return
       }
 
-      const tokens = await tokenResponse.json() as { access_token: string; refresh_token?: string }
+      const tokens = (await tokenResponse.json()) as { access_token: string; refresh_token?: string }
 
       // Fetch YouTube channel info
-      const channelResponse = await fetch(
-        'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
-        { headers: { Authorization: `Bearer ${tokens.access_token}` } },
-      )
+      const channelResponse = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      })
 
       let accountName = 'YouTube Channel'
       let accountId = ''
 
       if (channelResponse.ok) {
-        const channelData = await channelResponse.json() as { items?: Array<{ id: string; snippet: { title: string } }> }
+        const channelData = (await channelResponse.json()) as {
+          items?: Array<{ id: string; snippet: { title: string } }>
+        }
         if (channelData.items && channelData.items.length > 0) {
           accountName = channelData.items[0].snippet.title
           accountId = channelData.items[0].id
@@ -204,7 +198,9 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /auth/youtube/success — static success page for BrowserWindow detection
   fastify.get('/auth/youtube/success', async (_request, reply) => {
-    reply.type('text/html').send('<html><body><h1>YouTube connected successfully</h1><p>You can close this window.</p></body></html>')
+    reply
+      .type('text/html')
+      .send('<html><body><h1>YouTube connected successfully</h1><p>You can close this window.</p></body></html>')
   })
 
   // GET /api/auth/youtube/status
@@ -212,11 +208,7 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       return { connected: false, account: null }
@@ -247,36 +239,35 @@ const youtubeAuthRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // DELETE /api/auth/youtube/disconnect
-  fastify.delete<{ Reply: YouTubeDisconnectResponse | ApiError }>('/api/auth/youtube/disconnect', async (request, reply) => {
-    const db = getDb()
-    const { userId: clerkUserId } = request.clerk
+  fastify.delete<{ Reply: YouTubeDisconnectResponse | ApiError }>(
+    '/api/auth/youtube/disconnect',
+    async (request, reply) => {
+      const db = getDb()
+      const { userId: clerkUserId } = request.clerk
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+      const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
-    if (!user) {
-      reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
-      return
-    }
+      if (!user) {
+        reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
+        return
+      }
 
-    const [account] = await db
-      .select({ id: connectedAccounts.id })
-      .from(connectedAccounts)
-      .where(and(eq(connectedAccounts.userId, user.id), eq(connectedAccounts.platform, 'youtube')))
-      .limit(1)
+      const [account] = await db
+        .select({ id: connectedAccounts.id })
+        .from(connectedAccounts)
+        .where(and(eq(connectedAccounts.userId, user.id), eq(connectedAccounts.platform, 'youtube')))
+        .limit(1)
 
-    if (!account) {
-      reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected' } })
-      return
-    }
+      if (!account) {
+        reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected' } })
+        return
+      }
 
-    await db.delete(connectedAccounts).where(eq(connectedAccounts.id, account.id))
+      await db.delete(connectedAccounts).where(eq(connectedAccounts.id, account.id))
 
-    return { disconnected: true }
-  })
+      return { disconnected: true }
+    },
+  )
 }
 
 export default youtubeAuthRoutes

@@ -1,12 +1,5 @@
 import { Spinner } from '@/components/loaders/Spinner'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import React, { useEffect, useState } from 'react'
 import type { LapPreview } from '../../../../types/ipc'
 import type { SegmentConfig } from '../../../../types/project'
@@ -99,9 +92,7 @@ export function LapTimeVerifyTable({ segment, selectedDriver }: LapTimeVerifyTab
                 <TableCell className={`py-1 font-mono font-medium ${isBest ? 'text-primary' : ''}`}>
                   {formatLapTime(lap.lapTime)}
                 </TableCell>
-                <TableCell className="py-1">
-                  {lap.position !== undefined ? `P${lap.position}` : '—'}
-                </TableCell>
+                <TableCell className="py-1">{lap.position !== undefined ? `P${lap.position}` : '—'}</TableCell>
                 <TableCell className="py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
                   {isBest ? 'BEST' : ''}
                 </TableCell>

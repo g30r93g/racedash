@@ -19,9 +19,7 @@ const EXCLUDED_ROUTES: Array<{ method: string; path: string }> = [
 ]
 
 function isExcluded(method: string, url: string): boolean {
-  return EXCLUDED_ROUTES.some(
-    (route) => route.method === method && url.startsWith(route.path),
-  )
+  return EXCLUDED_ROUTES.some((route) => route.method === method && url.startsWith(route.path))
 }
 
 const clerkAuth: FastifyPluginAsync = async (fastify) => {

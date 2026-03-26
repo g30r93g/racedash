@@ -7,17 +7,29 @@ const chainMethods = ['from', 'where', 'orderBy']
 for (const m of chainMethods) mockDb[m] = vi.fn().mockReturnValue(mockDb)
 
 // update() starts an update chain (not iterable)
-mockDb.update = vi.fn().mockImplementation(() => { isSelectChain = false; return mockDb })
+mockDb.update = vi.fn().mockImplementation(() => {
+  isSelectChain = false
+  return mockDb
+})
 mockDb.set = vi.fn().mockReturnValue(mockDb)
 // select() starts a select chain (iterable result expected)
-mockDb.select = vi.fn().mockImplementation(() => { isSelectChain = true; return mockDb })
+mockDb.select = vi.fn().mockImplementation(() => {
+  isSelectChain = true
+  return mockDb
+})
 // limit() returns array when in select chain, mockDb otherwise
 mockDb.limit = vi.fn()
 
 const mockRenderMediaOnLambda = vi.fn().mockResolvedValue({ renderId: 'render-abc' })
 
 vi.mock('@racedash/db', () => ({
-  jobs: { id: 'id', config: 'config', renderTaskToken: 'renderTaskToken', remotionRenderId: 'remotionRenderId', updatedAt: 'updatedAt' },
+  jobs: {
+    id: 'id',
+    config: 'config',
+    renderTaskToken: 'renderTaskToken',
+    remotionRenderId: 'remotionRenderId',
+    updatedAt: 'updatedAt',
+  },
 }))
 
 vi.mock('drizzle-orm', () => ({
@@ -36,8 +48,6 @@ vi.mock('@remotion/lambda/client', () => ({
 vi.mock('@remotion/lambda-client', () => ({
   renderMediaOnLambda: (...args: any[]) => mockRenderMediaOnLambda(...args),
 }))
-
-
 
 import { handler } from '../../../../infra/lambdas/start-render-overlay/index'
 
@@ -95,9 +105,7 @@ describe('start-render-overlay handler', () => {
     await handler({ jobId: 'job-1', userId: 'user-1', taskToken: 'tok-1' })
 
     const callArgs = mockRenderMediaOnLambda.mock.calls[0][0]
-    expect(callArgs.webhook.customData).toEqual(
-      expect.objectContaining({ taskToken: 'tok-1' }),
-    )
+    expect(callArgs.webhook.customData).toEqual(expect.objectContaining({ taskToken: 'tok-1' }))
   })
 
   it('stores renderId on the job', async () => {

@@ -11,11 +11,18 @@ import { licenseExistsForSubscription, creditPackExistsForPaymentIntent } from '
 vi.mock('@racedash/db', () => ({
   users: { id: 'id', clerkId: 'clerkId', email: 'email', stripeCustomerId: 'stripeCustomerId' },
   licenses: {
-    id: 'id', userId: 'userId', status: 'status', expiresAt: 'expiresAt',
-    tier: 'tier', stripeSubscriptionId: 'stripeSubscriptionId', stripeCustomerId: 'stripeCustomerId',
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    tier: 'tier',
+    stripeSubscriptionId: 'stripeSubscriptionId',
+    stripeCustomerId: 'stripeCustomerId',
   },
   creditPacks: {
-    id: 'id', userId: 'userId', stripePaymentIntentId: 'stripePaymentIntentId',
+    id: 'id',
+    userId: 'userId',
+    stripePaymentIntentId: 'stripePaymentIntentId',
   },
   eq: vi.fn(),
   and: vi.fn(),
@@ -62,11 +69,13 @@ function makeSubscriptionEvent(
         customer: 'cus_123',
         status: 'active',
         items: {
-          data: [{
-            price: { id: 'price_test_pro' },
-            current_period_start: 1700000000,
-            current_period_end: 1731536000,
-          }],
+          data: [
+            {
+              price: { id: 'price_test_pro' },
+              current_period_start: 1700000000,
+              current_period_end: 1731536000,
+            },
+          ],
         },
         ...overrides,
       },
@@ -95,11 +104,13 @@ function makeCheckoutSessionEvent(overrides: Record<string, any> = {}) {
 }
 
 /** Creates a chainable mock DB query builder */
-function createMockDb(opts: {
-  selectResult?: any[]
-  insertFn?: vi.Mock
-  updateFn?: vi.Mock
-} = {}) {
+function createMockDb(
+  opts: {
+    selectResult?: any[]
+    insertFn?: vi.Mock
+    updateFn?: vi.Mock
+  } = {},
+) {
   const { selectResult = [], insertFn, updateFn } = opts
 
   const chainable = {
@@ -219,16 +230,18 @@ describe('POST /api/webhooks/stripe', () => {
     vi.mocked(tierFromPriceId).mockReturnValue('plus')
     mockConstructEvent.mockReturnValueOnce(
       makeSubscriptionEvent('customer.subscription.created', {
-        items: { data: [{ price: { id: 'price_test_plus' }, current_period_start: 1700000000, current_period_end: 1731536000 }] },
+        items: {
+          data: [
+            { price: { id: 'price_test_plus' }, current_period_start: 1700000000, current_period_end: 1731536000 },
+          ],
+        },
       }),
     )
 
     await injectWebhook(app)
 
     expect(tierFromPriceId).toHaveBeenCalledWith('price_test_plus')
-    expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({ tier: 'plus' }),
-    )
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ tier: 'plus' }))
   })
 
   it("Sets license status to 'active' on creation", async () => {
@@ -243,9 +256,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     await injectWebhook(app)
 
-    expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'active' }),
-    )
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ status: 'active' }))
   })
 
   it('Stores stripe_customer_id and stripe_subscription_id on license', async () => {
@@ -309,9 +320,7 @@ describe('POST /api/webhooks/stripe', () => {
     await injectWebhook(app)
 
     const setMock = mockDb.update.mock.results[0].value.set
-    expect(setMock).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'expired' }),
-    )
+    expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'expired' }))
   })
 
   it("Sets license status to 'cancelled' on customer.subscription.deleted", async () => {
@@ -327,9 +336,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     expect(response.statusCode).toBe(200)
     const setMock = mockDb.update.mock.results[0].value.set
-    expect(setMock).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'cancelled' }),
-    )
+    expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' }))
   })
 
   // ── Credit pack creation ─────────────────────────────────────────────
@@ -407,9 +414,7 @@ describe('POST /api/webhooks/stripe', () => {
     const insertValues = vi.fn()
     const mockDb = createMockDb({ insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
-    mockConstructEvent.mockReturnValueOnce(
-      makeCheckoutSessionEvent({ metadata: { type: 'subscription' } }),
-    )
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ metadata: { type: 'subscription' } }))
 
     const response = await injectWebhook(app)
 
@@ -541,9 +546,7 @@ describe('POST /api/webhooks/stripe', () => {
     const response = await injectWebhook(app)
 
     expect(response.statusCode).toBe(200)
-    expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({ stripeCustomerId: 'cus_obj_123' }),
-    )
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ stripeCustomerId: 'cus_obj_123' }))
   })
 
   // ── Edge cases: subscription.updated ───────────────────────────────
@@ -580,9 +583,7 @@ describe('POST /api/webhooks/stripe', () => {
     const insertValues = vi.fn()
     const mockDb = createMockDb({ insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
-    mockConstructEvent.mockReturnValueOnce(
-      makeCheckoutSessionEvent({ payment_status: 'unpaid' }),
-    )
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ payment_status: 'unpaid' }))
 
     const response = await injectWebhook(app)
 
@@ -594,9 +595,7 @@ describe('POST /api/webhooks/stripe', () => {
     const insertValues = vi.fn()
     const mockDb = createMockDb({ insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
-    mockConstructEvent.mockReturnValueOnce(
-      makeCheckoutSessionEvent({ customer: null }),
-    )
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ customer: null }))
 
     const response = await injectWebhook(app)
 
@@ -634,9 +633,7 @@ describe('POST /api/webhooks/stripe', () => {
     const insertValues = vi.fn()
     const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
-    mockConstructEvent.mockReturnValueOnce(
-      makeCheckoutSessionEvent({ payment_intent: null }),
-    )
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ payment_intent: null }))
 
     const response = await injectWebhook(app)
 
@@ -648,9 +645,7 @@ describe('POST /api/webhooks/stripe', () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
-    mockConstructEvent.mockReturnValueOnce(
-      makeCheckoutSessionEvent({ customer: { id: 'cus_obj_456' } }),
-    )
+    mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ customer: { id: 'cus_obj_456' } }))
 
     const response = await injectWebhook(app)
 

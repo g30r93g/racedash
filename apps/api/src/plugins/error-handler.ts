@@ -5,7 +5,7 @@ import type { ApiError } from '../types'
 const errorHandler: FastifyPluginAsync = async (fastify) => {
   fastify.setErrorHandler((error: FastifyError, _request, reply) => {
     const statusCode = error.statusCode ?? 500
-    const errorCode = statusCode === 500 ? 'INTERNAL_ERROR' : error.code ?? 'UNKNOWN_ERROR'
+    const errorCode = statusCode === 500 ? 'INTERNAL_ERROR' : (error.code ?? 'UNKNOWN_ERROR')
 
     const response: ApiError = {
       error: {

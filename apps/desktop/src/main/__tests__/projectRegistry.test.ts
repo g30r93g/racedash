@@ -82,11 +82,7 @@ describe('removeFromRegistry', () => {
   it('removes the path and writes the file', async () => {
     mockReadFile.mockResolvedValue(JSON.stringify(['/a/project.json', '/b/project.json']) as unknown as Buffer)
     await removeFromRegistry('/a/project.json')
-    expect(mockWriteFile).toHaveBeenCalledWith(
-      REGISTRY_PATH,
-      JSON.stringify(['/b/project.json']),
-      'utf-8',
-    )
+    expect(mockWriteFile).toHaveBeenCalledWith(REGISTRY_PATH, JSON.stringify(['/b/project.json']), 'utf-8')
   })
 
   it('is a no-op when the path is not in the registry', async () => {
@@ -98,9 +94,7 @@ describe('removeFromRegistry', () => {
 
 describe('replaceInRegistry', () => {
   it('replaces the old path with the new path in the same position', async () => {
-    mockReadFile.mockResolvedValue(
-      JSON.stringify(['/a/project.json', '/b/project.json']) as unknown as Buffer,
-    )
+    mockReadFile.mockResolvedValue(JSON.stringify(['/a/project.json', '/b/project.json']) as unknown as Buffer)
     await replaceInRegistry('/a/project.json', '/c/project.json')
     expect(mockWriteFile).toHaveBeenCalledWith(
       REGISTRY_PATH,

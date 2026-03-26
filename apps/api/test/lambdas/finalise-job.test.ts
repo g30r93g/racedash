@@ -11,7 +11,13 @@ const mockSendTaskSuccess = vi.fn()
 const mockDeleteObject = vi.fn()
 
 vi.mock('@racedash/db', () => ({
-  jobs: { id: 'id', status: 'status', outputS3Key: 'outputS3Key', downloadExpiresAt: 'downloadExpiresAt', updatedAt: 'updatedAt' },
+  jobs: {
+    id: 'id',
+    status: 'status',
+    outputS3Key: 'outputS3Key',
+    downloadExpiresAt: 'downloadExpiresAt',
+    updatedAt: 'updatedAt',
+  },
   consumeCredits: (...args: any[]) => mockConsumeCredits(...args),
   claimNextQueuedSlotToken: (...args: any[]) => mockClaimNextQueuedSlotToken(...args),
 }))
@@ -45,17 +51,13 @@ describe('finalise-job handler', () => {
   it('calls consumeCredits', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1' })
 
-    expect(mockConsumeCredits).toHaveBeenCalledWith(
-      expect.objectContaining({ jobId: 'job-1' }),
-    )
+    expect(mockConsumeCredits).toHaveBeenCalledWith(expect.objectContaining({ jobId: 'job-1' }))
   })
 
   it('sets status to complete', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1' })
 
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'complete' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ status: 'complete' }))
   })
 
   it('sets download_expires_at approximately 7 days from now', async () => {
@@ -73,9 +75,7 @@ describe('finalise-job handler', () => {
   it('sets outputS3Key to renders/{jobId}/output.mp4', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1' })
 
-    expect(mockDb.set).toHaveBeenCalledWith(
-      expect.objectContaining({ outputS3Key: 'renders/job-1/output.mp4' }),
-    )
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ outputS3Key: 'renders/job-1/output.mp4' }))
   })
 
   it('deletes the source upload from S3', async () => {
@@ -87,9 +87,7 @@ describe('finalise-job handler', () => {
   it('calls claimNextQueuedSlotToken', async () => {
     await handler({ jobId: 'job-1', userId: 'user-1' })
 
-    expect(mockClaimNextQueuedSlotToken).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'user-1' }),
-    )
+    expect(mockClaimNextQueuedSlotToken).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user-1' }))
   })
 
   it('sends SendTaskSuccess when a queued token is claimed', async () => {

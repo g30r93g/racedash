@@ -17,27 +17,15 @@ export interface BannerOverlayState {
   lapColors: LapColor[]
 }
 
-export function useBannerOverlayState({
-  segment,
-  currentTime,
-}: UseBannerOverlayStateArgs): BannerOverlayState {
+export function useBannerOverlayState({ segment, currentTime }: UseBannerOverlayStateArgs): BannerOverlayState {
   const { session, sessionAllLaps } = segment
 
-  const lapColors = useMemo(
-    () => computeLapColors(session.laps, sessionAllLaps),
-    [session.laps, sessionAllLaps],
-  )
+  const lapColors = useMemo(() => computeLapColors(session.laps, sessionAllLaps), [session.laps, sessionAllLaps])
 
   const livePosition = useLivePosition(segment, currentTime)
 
-  const currentLap = useMemo(
-    () => getLapAtTime(session.timestamps, currentTime),
-    [session.timestamps, currentTime],
-  )
-  const currentIdx = useMemo(
-    () => session.timestamps.indexOf(currentLap),
-    [session.timestamps, currentLap],
-  )
+  const currentLap = useMemo(() => getLapAtTime(session.timestamps, currentTime), [session.timestamps, currentTime])
+  const currentIdx = useMemo(() => session.timestamps.indexOf(currentLap), [session.timestamps, currentLap])
   const raceEnd = useMemo(() => {
     const lastTs = session.timestamps[session.timestamps.length - 1]
     return lastTs.ytSeconds + lastTs.lap.lapTime

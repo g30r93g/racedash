@@ -14,16 +14,22 @@ describe('NotificationsStack', () => {
   })
 
   test('stack exports SesFromAddress and SesIdentityArn', () => {
-    template.hasOutput('*', Match.objectLike({
-      Export: {
-        Name: Match.stringLikeRegexp('test-SesFromAddress'),
-      },
-    }))
+    template.hasOutput(
+      '*',
+      Match.objectLike({
+        Export: {
+          Name: Match.stringLikeRegexp('test-SesFromAddress'),
+        },
+      }),
+    )
 
-    template.hasOutput('*', Match.objectLike({
-      Export: {
-        Name: Match.stringLikeRegexp('test-SesIdentityArn'),
-      },
-    }))
+    template.hasOutput(
+      '*',
+      Match.objectLike({
+        Export: {
+          Name: Match.stringLikeRegexp('test-SesIdentityArn'),
+        },
+      }),
+    )
   })
 })

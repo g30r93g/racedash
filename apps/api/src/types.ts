@@ -67,8 +67,8 @@ export interface CreditPackResponse {
   packName: string
   rcTotal: number
   rcRemaining: number
-  purchasedAt: string  // ISO 8601
-  expiresAt: string    // ISO 8601
+  purchasedAt: string // ISO 8601
+  expiresAt: string // ISO 8601
 }
 
 export interface CreditBalanceResponse {
@@ -80,9 +80,9 @@ export interface CreditPurchaseResponse {
   id: string
   packName: string
   rcTotal: number
-  priceGbp: string     // decimal string
-  purchasedAt: string  // ISO 8601
-  expiresAt: string    // ISO 8601
+  priceGbp: string // decimal string
+  purchasedAt: string // ISO 8601
+  expiresAt: string // ISO 8601
 }
 
 export interface CreditHistoryResponse {
@@ -100,8 +100,8 @@ export interface LicenseDetail {
   tier: 'plus' | 'pro'
   status: 'active'
   stripeSubscriptionId: string
-  startsAt: string           // ISO 8601
-  expiresAt: string          // ISO 8601
+  startsAt: string // ISO 8601
+  expiresAt: string // ISO 8601
   maxConcurrentRenders: number
 }
 
@@ -260,7 +260,7 @@ export interface SocialUploadRequest {
 }
 
 export interface YouTubeUploadMetadata {
-  title: string       // 1-100 chars
+  title: string // 1-100 chars
   description: string // 0-5000 chars
   privacy: 'public' | 'unlisted' | 'private'
 }
@@ -296,7 +296,7 @@ export interface SocialUploadPayload {
   jobId: string
   userId: string
   platform: 'youtube'
-  outputS3Key: string   // `renders/${jobId}/output.mp4`
+  outputS3Key: string // `renders/${jobId}/output.mp4`
   metadata: YouTubeUploadMetadata
 }
 

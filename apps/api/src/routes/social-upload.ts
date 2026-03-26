@@ -1,13 +1,30 @@
 import { FastifyPluginAsync } from 'fastify'
 import { eq, and, gt, desc, inArray } from 'drizzle-orm'
-import { users, licenses, jobs, connectedAccounts, socialUploads, reserveCredits, releaseCredits, InsufficientCreditsError } from '@racedash/db'
+import {
+  users,
+  licenses,
+  jobs,
+  connectedAccounts,
+  socialUploads,
+  reserveCredits,
+  releaseCredits,
+  InsufficientCreditsError,
+} from '@racedash/db'
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
 import { getDb } from '../lib/db'
-import type { SocialUploadRequest, SocialUploadResponse, SocialUploadPayload, YouTubeUploadMetadata, ApiError } from '../types'
+import type {
+  SocialUploadRequest,
+  SocialUploadResponse,
+  SocialUploadPayload,
+  YouTubeUploadMetadata,
+  ApiError,
+} from '../types'
 
 const sqs = new SQSClient({})
 
-function validateMetadata(metadata: unknown): { valid: true; data: YouTubeUploadMetadata } | { valid: false; message: string } {
+function validateMetadata(
+  metadata: unknown,
+): { valid: true; data: YouTubeUploadMetadata } | { valid: false; message: string } {
   if (!metadata || typeof metadata !== 'object') {
     return { valid: false, message: 'metadata is required' }
   }
@@ -50,11 +67,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
     const jobId = request.params.id
 
     // Look up user
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
@@ -65,13 +78,7 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
     const [license] = await db
       .select({ id: licenses.id })
       .from(licenses)
-      .where(
-        and(
-          eq(licenses.userId, user.id),
-          eq(licenses.status, 'active'),
-          gt(licenses.expiresAt, new Date()),
-        ),
-      )
+      .where(and(eq(licenses.userId, user.id), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
       .orderBy(desc(licenses.expiresAt))
       .limit(1)
 
@@ -100,7 +107,9 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Validate job is complete
     if (job.status !== 'complete') {
-      reply.status(422).send({ error: { code: 'JOB_NOT_COMPLETE', message: 'Only completed jobs can be uploaded to YouTube' } })
+      reply
+        .status(422)
+        .send({ error: { code: 'JOB_NOT_COMPLETE', message: 'Only completed jobs can be uploaded to YouTube' } })
       return
     }
 
@@ -112,7 +121,12 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (!youtubeAccount) {
-      reply.status(404).send({ error: { code: 'YOUTUBE_NOT_CONNECTED', message: 'No YouTube account connected. Connect YouTube in the Account tab.' } })
+      reply.status(404).send({
+        error: {
+          code: 'YOUTUBE_NOT_CONNECTED',
+          message: 'No YouTube account connected. Connect YouTube in the Account tab.',
+        },
+      })
       return
     }
 
@@ -143,7 +157,12 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       .limit(1)
 
     if (existingUpload) {
-      reply.status(409).send({ error: { code: 'UPLOAD_ALREADY_EXISTS', message: 'An active or completed YouTube upload already exists for this job' } })
+      reply.status(409).send({
+        error: {
+          code: 'UPLOAD_ALREADY_EXISTS',
+          message: 'An active or completed YouTube upload already exists for this job',
+        },
+      })
       return
     }
 
@@ -182,7 +201,12 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
       })
     } catch (err) {
       if (err instanceof InsufficientCreditsError) {
-        reply.status(402).send({ error: { code: 'INSUFFICIENT_CREDITS', message: 'Insufficient credits. You need at least 10 RC to upload to YouTube.' } })
+        reply.status(402).send({
+          error: {
+            code: 'INSUFFICIENT_CREDITS',
+            message: 'Insufficient credits. You need at least 10 RC to upload to YouTube.',
+          },
+        })
         return
       }
       throw err
@@ -204,13 +228,16 @@ const socialUploadRoutes: FastifyPluginAsync = async (fastify) => {
     if (!queueUrl) throw new Error('SQS_SOCIAL_UPLOAD_QUEUE_URL is required')
 
     try {
-      await sqs.send(new SendMessageCommand({
-        QueueUrl: queueUrl,
-        MessageBody: JSON.stringify(sqsPayload),
-      }))
+      await sqs.send(
+        new SendMessageCommand({
+          QueueUrl: queueUrl,
+          MessageBody: JSON.stringify(sqsPayload),
+        }),
+      )
     } catch (sqsErr) {
       // Compensate: mark upload as failed and release credits
-      await db.update(socialUploads)
+      await db
+        .update(socialUploads)
         .set({ status: 'failed', errorMessage: 'Failed to dispatch upload job', updatedAt: new Date() })
         .where(eq(socialUploads.id, socialUploadId))
       await releaseCredits({ db, jobId: `su_${socialUploadId}` })

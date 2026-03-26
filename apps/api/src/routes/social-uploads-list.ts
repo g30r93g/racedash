@@ -14,22 +14,14 @@ const socialUploadsListRoutes: FastifyPluginAsync = async (fastify) => {
     const { userId: clerkUserId } = request.clerk
     const jobId = request.params.id
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       reply.status(404).send({ error: { code: 'USER_NOT_FOUND', message: 'User record not found' } })
       return
     }
 
-    const [job] = await db
-      .select({ id: jobs.id, userId: jobs.userId })
-      .from(jobs)
-      .where(eq(jobs.id, jobId))
-      .limit(1)
+    const [job] = await db.select({ id: jobs.id, userId: jobs.userId }).from(jobs).where(eq(jobs.id, jobId)).limit(1)
 
     if (!job) {
       reply.status(404).send({ error: { code: 'JOB_NOT_FOUND', message: 'Job not found' } })

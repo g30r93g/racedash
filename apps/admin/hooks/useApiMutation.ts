@@ -16,9 +16,7 @@ interface MutationReturn<T, B = unknown> {
   reset: () => void
 }
 
-export function useApiMutation<T = unknown, B = unknown>(
-  opts: MutationOptions<T>,
-): MutationReturn<T, B> {
+export function useApiMutation<T = unknown, B = unknown>(opts: MutationOptions<T>): MutationReturn<T, B> {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

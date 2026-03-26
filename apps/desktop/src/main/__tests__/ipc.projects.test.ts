@@ -97,9 +97,7 @@ describe('listProjectsHandler', () => {
 
   it('silently omits entries where project.json lacks a name field', async () => {
     mockGetRegistry.mockResolvedValue([PROJECT_PATH])
-    mockReadFile.mockResolvedValue(
-      JSON.stringify({ projectPath: PROJECT_PATH }) as unknown as Buffer,
-    )
+    mockReadFile.mockResolvedValue(JSON.stringify({ projectPath: PROJECT_PATH }) as unknown as Buffer)
 
     const result = await listProjectsHandler()
 
@@ -108,9 +106,7 @@ describe('listProjectsHandler', () => {
 
   it('strips a runtime missing field from a successfully parsed file', async () => {
     mockGetRegistry.mockResolvedValue([PROJECT_PATH])
-    mockReadFile.mockResolvedValue(
-      JSON.stringify({ ...SAMPLE_PROJECT, missing: true }) as unknown as Buffer,
-    )
+    mockReadFile.mockResolvedValue(JSON.stringify({ ...SAMPLE_PROJECT, missing: true }) as unknown as Buffer)
 
     const result = await listProjectsHandler()
 

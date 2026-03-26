@@ -1,5 +1,11 @@
 import type { ProjectData, CreateProjectOpts, SegmentConfig } from './project'
-import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
+import type {
+  BoxPosition,
+  CornerPosition,
+  OverlayComponentsConfig,
+  OverlayStyling,
+  SessionSegment,
+} from '@racedash/core'
 
 // File dialog options
 export interface OpenFileOptions {
@@ -36,7 +42,7 @@ export interface VideoInfo {
 // Timing (mirrors @racedash/engine — kept in sync manually)
 export interface LapPreview {
   number: number
-  lapTime: number  // seconds
+  lapTime: number // seconds
   position?: number
 }
 
@@ -56,7 +62,7 @@ export interface DriversResult {
 
 export interface TimestampsResultLap {
   number: number
-  lapTime: number    // seconds
+  lapTime: number // seconds
   cumulative: number // seconds
 }
 
@@ -83,8 +89,8 @@ export interface TimestampsResult {
     replayData?: TimestampsResultReplayEntry[][]
   }>
   offsets: number[]
-  sessionSegments: SessionSegment[]          // pre-built by main process
-  startingGridPosition?: number              // grid position for race-start display
+  sessionSegments: SessionSegment[] // pre-built by main process
+  startingGridPosition?: number // grid position for race-start display
 }
 
 // Render (populated by Export tab sub-plan)
@@ -113,8 +119,8 @@ export interface LicenseInfo {
   tier: 'plus' | 'pro'
   status: 'active'
   stripeSubscriptionId: string
-  startsAt: string   // ISO 8601
-  expiresAt: string  // ISO 8601
+  startsAt: string // ISO 8601
+  expiresAt: string // ISO 8601
   maxConcurrentRenders: number
 }
 
@@ -125,8 +131,8 @@ export interface CreditPack {
   packName: string
   rcTotal: number
   rcRemaining: number
-  purchasedAt: string  // ISO 8601
-  expiresAt: string    // ISO 8601
+  purchasedAt: string // ISO 8601
+  expiresAt: string // ISO 8601
 }
 
 export interface CreditBalance {
@@ -138,9 +144,9 @@ export interface CreditPurchase {
   id: string
   packName: string
   rcTotal: number
-  priceGbp: string     // decimal string, e.g. "9.99"
-  purchasedAt: string  // ISO 8601
-  expiresAt: string    // ISO 8601
+  priceGbp: string // decimal string, e.g. "9.99"
+  purchasedAt: string // ISO 8601
+  expiresAt: string // ISO 8601
 }
 
 export interface CreditHistory {
@@ -334,9 +340,16 @@ export interface RacedashAPI {
   deleteProject(projectPath: string): Promise<void>
   renameProject(projectPath: string, name: string): Promise<ProjectData>
   relocateProject(oldProjectPath: string): Promise<ProjectData>
-  updateProject(projectPath: string, segments: SegmentConfig[], selectedDrivers: Record<string, string>): Promise<ProjectData>
+  updateProject(
+    projectPath: string,
+    segments: SegmentConfig[],
+    selectedDrivers: Record<string, string>,
+  ): Promise<ProjectData>
   readProjectConfig(configPath: string): Promise<Record<string, unknown>>
-  updateProjectConfigOverrides(configPath: string, overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>): Promise<void>
+  updateProjectConfigOverrides(
+    configPath: string,
+    overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>,
+  ): Promise<void>
   saveStyleToConfig(
     configPath: string,
     overlayType: string,
@@ -350,7 +363,10 @@ export interface RacedashAPI {
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>
-  previewTimestamps(segments: SegmentConfig[], selectedDrivers: Record<string, string>): Promise<PreviewTimestampsSegment[]>
+  previewTimestamps(
+    segments: SegmentConfig[],
+    selectedDrivers: Record<string, string>,
+  ): Promise<PreviewTimestampsSegment[]>
   listDrivers(opts: { configPath: string; driverQuery?: string }): Promise<DriversResult>
   generateTimestamps(opts: { configPath: string; fps?: number }): Promise<TimestampsResult>
 
@@ -361,7 +377,9 @@ export interface RacedashAPI {
 
   // Render progress events — main → renderer push via ipcRenderer.on
   // Each returns a cleanup function that removes the listener.
-  onRenderProgress(cb: (event: { phase: string; progress: number; renderedFrames?: number; totalFrames?: number }) => void): () => void
+  onRenderProgress(
+    cb: (event: { phase: string; progress: number; renderedFrames?: number; totalFrames?: number }) => void,
+  ): () => void
   onRenderComplete(cb: (result: RenderCompleteResult) => void): () => void
   onRenderError(cb: (err: { message: string }) => void): () => void
 
@@ -406,7 +424,14 @@ export interface RacedashAPI {
   cloudRender: {
     createJob(opts: CreateCloudJobOpts): Promise<CreateCloudJobResult>
     startUpload(jobId: string, opts: StartUploadOpts): Promise<StartUploadResult>
-    uploadPart(jobId: string, url: string, filePath: string, partNumber: number, offset: number, size: number): Promise<UploadPartResult>
+    uploadPart(
+      jobId: string,
+      url: string,
+      filePath: string,
+      partNumber: number,
+      offset: number,
+      size: number,
+    ): Promise<UploadPartResult>
     getFileSize(filePath: string): Promise<number>
     completeUpload(jobId: string, parts: CompletedPart[]): Promise<CompleteUploadResult>
     cancelUpload(jobId: string): Promise<void>
@@ -430,7 +455,6 @@ export interface RacedashAPI {
   onCloudUploadProgress(cb: (event: CloudUploadProgressEvent) => void): () => void
   onCloudUploadComplete(cb: (event: { jobId: string }) => void): () => void
   onCloudUploadError(cb: (event: { jobId: string; message: string }) => void): () => void
-
 
   // Auth events — main → renderer push
   onAuthSessionExpired(cb: () => void): () => void

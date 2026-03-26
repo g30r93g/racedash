@@ -8,20 +8,22 @@ process.env.CLOUDFRONT_KEY_PAIR_ID = 'KTEST123'
 process.env.CLOUDFRONT_PRIVATE_KEY_PEM = '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----'
 
 // vi.hoisted ensures these are available in the vi.mock factory
-const {
-  mockReserveCredits, mockComputeCredits, mockCheckLicenseExpiry,
-  InsufficientCreditsErrorClass,
-} = vi.hoisted(() => {
-  const mockReserveCredits = vi.fn()
-  const mockComputeCredits = vi.fn().mockReturnValue(50)
-  const mockCheckLicenseExpiry = vi.fn()
-  const InsufficientCreditsErrorClass = class extends Error {
-    available = 10
-    required = 50
-    constructor() { super('Insufficient credits'); this.name = 'InsufficientCreditsError' }
-  }
-  return { mockReserveCredits, mockComputeCredits, mockCheckLicenseExpiry, InsufficientCreditsErrorClass }
-})
+const { mockReserveCredits, mockComputeCredits, mockCheckLicenseExpiry, InsufficientCreditsErrorClass } = vi.hoisted(
+  () => {
+    const mockReserveCredits = vi.fn()
+    const mockComputeCredits = vi.fn().mockReturnValue(50)
+    const mockCheckLicenseExpiry = vi.fn()
+    const InsufficientCreditsErrorClass = class extends Error {
+      available = 10
+      required = 50
+      constructor() {
+        super('Insufficient credits')
+        this.name = 'InsufficientCreditsError'
+      }
+    }
+    return { mockReserveCredits, mockComputeCredits, mockCheckLicenseExpiry, InsufficientCreditsErrorClass }
+  },
+)
 
 const { mockS3Send, mockSfnSend, mockGetSignedUrl, mockGetCloudFrontSignedUrl } = vi.hoisted(() => ({
   mockS3Send: vi.fn().mockResolvedValue({ UploadId: 'test-upload-id' }),
@@ -38,7 +40,10 @@ vi.mock('@racedash/db', () => ({
   computeCredits: (...args: unknown[]) => mockComputeCredits(...args),
   checkLicenseExpiry: (...args: unknown[]) => mockCheckLicenseExpiry(...args),
   InsufficientCreditsError: InsufficientCreditsErrorClass,
-  eq: vi.fn(), and: vi.fn(), desc: vi.fn(), sql: vi.fn(),
+  eq: vi.fn(),
+  and: vi.fn(),
+  desc: vi.fn(),
+  sql: vi.fn(),
 }))
 
 vi.mock('../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -50,9 +55,18 @@ vi.mock('../../src/lib/aws', () => ({
 
 vi.mock('@aws-sdk/client-s3', () => ({
   S3Client: vi.fn(),
-  CreateMultipartUploadCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'CreateMultipartUpload' }),
-  UploadPartCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'UploadPart' }),
-  CompleteMultipartUploadCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'CompleteMultipartUpload' }),
+  CreateMultipartUploadCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'CreateMultipartUpload'
+  }),
+  UploadPartCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'UploadPart'
+  }),
+  CompleteMultipartUploadCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'CompleteMultipartUpload'
+  }),
 }))
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
@@ -61,7 +75,10 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
 
 vi.mock('@aws-sdk/client-sfn', () => ({
   SFNClient: vi.fn(),
-  StartExecutionCommand: vi.fn().mockImplementation(function (input: unknown) { Object.assign(this, input); this._command = 'StartExecution' }),
+  StartExecutionCommand: vi.fn().mockImplementation(function (input: unknown) {
+    Object.assign(this, input)
+    this._command = 'StartExecution'
+  }),
 }))
 
 vi.mock('@aws-sdk/cloudfront-signer', () => ({
@@ -76,7 +93,20 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'returning', 'delete', 'transaction']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'returning',
+    'delete',
+    'transaction',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }
@@ -112,7 +142,9 @@ describe('POST /api/jobs', () => {
     app = await createTestApp(jobRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     mockDb = createMockDb()
@@ -266,7 +298,9 @@ describe('POST /api/jobs/:id/start-upload', () => {
     app = await createTestApp(jobRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     mockDb = createMockDb()
@@ -378,7 +412,9 @@ describe('POST /api/jobs/:id/complete-upload', () => {
     app = await createTestApp(jobRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     mockDb = createMockDb()
@@ -393,7 +429,9 @@ describe('POST /api/jobs/:id/complete-upload', () => {
 
   it('completes upload and starts SFN, returns queued status', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{ id: 'job-1', userId: 'user-1', status: 'uploading', uploadIds: { uploadId: 'upload-1' } }])
+    mockDb.limit.mockResolvedValueOnce([
+      { id: 'job-1', userId: 'user-1', status: 'uploading', uploadIds: { uploadId: 'upload-1' } },
+    ])
 
     const response = await app.inject({
       method: 'POST',
@@ -438,7 +476,9 @@ describe('POST /api/jobs/:id/complete-upload', () => {
 
   it('returns 409 when job status is not uploading', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{ id: 'job-1', userId: 'user-1', status: 'rendering', uploadIds: { uploadId: 'upload-1' } }])
+    mockDb.limit.mockResolvedValueOnce([
+      { id: 'job-1', userId: 'user-1', status: 'rendering', uploadIds: { uploadId: 'upload-1' } },
+    ])
 
     const response = await app.inject({
       method: 'POST',
@@ -452,7 +492,9 @@ describe('POST /api/jobs/:id/complete-upload', () => {
 
   it('stores sfn_execution_arn on the job row', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{ id: 'job-1', userId: 'user-1', status: 'uploading', uploadIds: { uploadId: 'upload-1' } }])
+    mockDb.limit.mockResolvedValueOnce([
+      { id: 'job-1', userId: 'user-1', status: 'uploading', uploadIds: { uploadId: 'upload-1' } },
+    ])
 
     await app.inject({
       method: 'POST',
@@ -469,7 +511,9 @@ describe('POST /api/jobs/:id/complete-upload', () => {
 
   it('passes jobId and userId in SFN input', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{ id: 'job-1', userId: 'user-1', status: 'uploading', uploadIds: { uploadId: 'upload-1' } }])
+    mockDb.limit.mockResolvedValueOnce([
+      { id: 'job-1', userId: 'user-1', status: 'uploading', uploadIds: { uploadId: 'upload-1' } },
+    ])
 
     await app.inject({
       method: 'POST',
@@ -495,7 +539,9 @@ describe('GET /api/jobs/:id/status', () => {
     app = await createTestApp(jobRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     mockDb = createMockDb()
@@ -507,15 +553,25 @@ describe('GET /api/jobs/:id/status', () => {
   it('returns text/event-stream content type', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
     // findOwnedJob
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'), errorMessage: null,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+        errorMessage: null,
+      },
+    ])
     // poll query
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'), errorMessage: null,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+        errorMessage: null,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -527,14 +583,24 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('sends initial status event as first SSE message', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'), errorMessage: null,
-    }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'), errorMessage: null,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+        errorMessage: null,
+      },
+    ])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+        errorMessage: null,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -575,14 +641,24 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('closes stream on complete status', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'), errorMessage: null,
-    }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'), errorMessage: null,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+        errorMessage: null,
+      },
+    ])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+        errorMessage: null,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -595,14 +671,24 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('closes stream on failed status', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'failed',
-      downloadExpiresAt: null, errorMessage: 'Render timeout',
-    }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'failed',
-      downloadExpiresAt: null, errorMessage: 'Render timeout',
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'failed',
+        downloadExpiresAt: null,
+        errorMessage: 'Render timeout',
+      },
+    ])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'failed',
+        downloadExpiresAt: null,
+        errorMessage: 'Render timeout',
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -617,26 +703,46 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('includes queuePosition for queued jobs', async () => {
     mockDb.limit
-      .mockResolvedValueOnce([{ id: 'user-1' }])              // resolveUser
-      .mockResolvedValueOnce([{                                // findOwnedJob
-        id: 'job-2', userId: 'user-1', status: 'queued',
-        downloadExpiresAt: null, errorMessage: null,
-      }])
-      .mockResolvedValueOnce([{                                // initial poll
-        id: 'job-2', userId: 'user-1', status: 'queued',
-        downloadExpiresAt: null, errorMessage: null, createdAt: new Date('2025-01-02'),
-      }])
-      .mockResolvedValueOnce([{                                // interval poll → terminal
-        id: 'job-2', userId: 'user-1', status: 'complete',
-        downloadExpiresAt: null, errorMessage: null,
-      }])
+      .mockResolvedValueOnce([{ id: 'user-1' }]) // resolveUser
+      .mockResolvedValueOnce([
+        {
+          // findOwnedJob
+          id: 'job-2',
+          userId: 'user-1',
+          status: 'queued',
+          downloadExpiresAt: null,
+          errorMessage: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          // initial poll
+          id: 'job-2',
+          userId: 'user-1',
+          status: 'queued',
+          downloadExpiresAt: null,
+          errorMessage: null,
+          createdAt: new Date('2025-01-02'),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          // interval poll → terminal
+          id: 'job-2',
+          userId: 'user-1',
+          status: 'complete',
+          downloadExpiresAt: null,
+          errorMessage: null,
+        },
+      ])
 
     // Skip .where() for resolveUser, findOwnedJob, and poll — keep chain intact
     mockDb.where
-      .mockReturnValueOnce(mockDb)   // resolveUser .where()
-      .mockReturnValueOnce(mockDb)   // findOwnedJob .where()
-      .mockReturnValueOnce(mockDb)   // poll .where()
-      .mockResolvedValueOnce([       // queued jobs .where() — terminates
+      .mockReturnValueOnce(mockDb) // resolveUser .where()
+      .mockReturnValueOnce(mockDb) // findOwnedJob .where()
+      .mockReturnValueOnce(mockDb) // poll .where()
+      .mockResolvedValueOnce([
+        // queued jobs .where() — terminates
         { id: 'job-1', createdAt: new Date('2025-01-01') },
         { id: 'job-2', createdAt: new Date('2025-01-02') },
       ])
@@ -654,14 +760,24 @@ describe('GET /api/jobs/:id/status', () => {
 
   it('includes errorMessage for failed jobs', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'failed',
-      downloadExpiresAt: null, errorMessage: 'Out of memory',
-    }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'failed',
-      downloadExpiresAt: null, errorMessage: 'Out of memory',
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'failed',
+        downloadExpiresAt: null,
+        errorMessage: 'Out of memory',
+      },
+    ])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'failed',
+        downloadExpiresAt: null,
+        errorMessage: 'Out of memory',
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -676,14 +792,24 @@ describe('GET /api/jobs/:id/status', () => {
   it('includes downloadExpiresAt for complete jobs', async () => {
     const expires = new Date('2030-06-15T12:00:00Z')
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: expires, errorMessage: null,
-    }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: expires, errorMessage: null,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: expires,
+        errorMessage: null,
+      },
+    ])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: expires,
+        errorMessage: null,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -706,7 +832,9 @@ describe('GET /api/jobs/:id/download', () => {
     app = await createTestApp(jobRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     mockDb = createMockDb()
@@ -718,10 +846,14 @@ describe('GET /api/jobs/:id/download', () => {
 
   it('returns signed download URL for complete job', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'),
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -762,10 +894,14 @@ describe('GET /api/jobs/:id/download', () => {
 
   it('returns 409 when job is not complete', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'rendering',
-      downloadExpiresAt: null,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'rendering',
+        downloadExpiresAt: null,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -778,10 +914,14 @@ describe('GET /api/jobs/:id/download', () => {
 
   it('returns 410 when download has expired', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2020-01-01'), // expired
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2020-01-01'), // expired
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -794,10 +934,14 @@ describe('GET /api/jobs/:id/download', () => {
 
   it('generates CloudFront signed URL', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', userId: 'user-1', status: 'complete',
-      downloadExpiresAt: new Date('2030-01-01'),
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        userId: 'user-1',
+        status: 'complete',
+        downloadExpiresAt: new Date('2030-01-01'),
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -824,7 +968,9 @@ describe('GET /api/jobs', () => {
     app = await createTestApp(jobRoutes)
   })
 
-  afterAll(async () => { await app.close() })
+  afterAll(async () => {
+    await app.close()
+  })
 
   beforeEach(() => {
     mockDb = createMockDb()
@@ -837,7 +983,16 @@ describe('GET /api/jobs', () => {
     id,
     userId: 'user-1',
     status,
-    config: { resolution: '1080p', frameRate: '60', renderMode: 'full', overlayStyle: 'standard', config: {}, sourceVideo: { width: 1920, height: 1080, fps: 60, durationSeconds: 60, fileSizeBytes: 100 }, projectName: 'Test', sessionType: 'race' },
+    config: {
+      resolution: '1080p',
+      frameRate: '60',
+      renderMode: 'full',
+      overlayStyle: 'standard',
+      config: {},
+      sourceVideo: { width: 1920, height: 1080, fps: 60, durationSeconds: 60, fileSizeBytes: 100 },
+      projectName: 'Test',
+      sessionType: 'race',
+    },
     rcCost: 50,
     downloadExpiresAt: null,
     errorMessage: null,
@@ -923,9 +1078,10 @@ describe('GET /api/jobs', () => {
     mockDb.limit.mockResolvedValueOnce([makeJob('job-1', 'queued')])
     // Skip .where() for resolveUser and main query — keep chain intact
     mockDb.where
-      .mockReturnValueOnce(mockDb)   // resolveUser .where()
-      .mockReturnValueOnce(mockDb)   // main query .where()
-      .mockResolvedValueOnce([       // queued jobs .where() — terminates
+      .mockReturnValueOnce(mockDb) // resolveUser .where()
+      .mockReturnValueOnce(mockDb) // main query .where()
+      .mockResolvedValueOnce([
+        // queued jobs .where() — terminates
         { id: 'job-1', createdAt: new Date('2025-01-01') },
       ])
 

@@ -3,11 +3,7 @@ import type { SessionSegment } from '@racedash/core'
 import { resolveActiveSegment } from './activeSegment'
 
 // Helper: minimal SessionSegment with a given offset and optional single lap
-function seg(
-  offset: number,
-  lapTime: number,
-  label?: string,
-): SessionSegment {
+function seg(offset: number, lapTime: number, label?: string): SessionSegment {
   const ts = { lap: { number: 1, lapTime, cumulative: lapTime }, ytSeconds: offset }
   return {
     mode: 'practice',

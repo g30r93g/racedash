@@ -9,11 +9,7 @@ const licenseRoutes: FastifyPluginAsync = async (fastify) => {
     const db = getDb()
     const { userId: clerkUserId } = request.clerk
 
-    const [user] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkId, clerkUserId))
-      .limit(1)
+    const [user] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
 
     if (!user) {
       reply.status(404).send({
@@ -25,13 +21,7 @@ const licenseRoutes: FastifyPluginAsync = async (fastify) => {
     const [license] = await db
       .select()
       .from(licenses)
-      .where(
-        and(
-          eq(licenses.userId, user.id),
-          eq(licenses.status, 'active'),
-          gt(licenses.expiresAt, new Date()),
-        ),
-      )
+      .where(and(eq(licenses.userId, user.id), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
       .orderBy(desc(licenses.expiresAt))
       .limit(1)
 

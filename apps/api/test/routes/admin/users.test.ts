@@ -2,11 +2,51 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vites
 import type { FastifyInstance } from 'fastify'
 
 vi.mock('@racedash/db', () => ({
-  users: { id: 'id', clerkId: 'clerkId', email: 'email', createdAt: 'createdAt', billingCountry: 'billingCountry', stripeCustomerId: 'stripeCustomerId' },
-  licenses: { id: 'id', userId: 'userId', status: 'status', tier: 'tier', expiresAt: 'expiresAt', createdAt: 'createdAt', updatedAt: 'updatedAt', stripeSubscriptionId: 'stripeSubscriptionId', startsAt: 'startsAt', stripeCustomerId: 'stripeCustomerId' },
-  creditPacks: { id: 'id', userId: 'userId', packName: 'packName', rcTotal: 'rcTotal', rcRemaining: 'rcRemaining', priceGbp: 'priceGbp', purchasedAt: 'purchasedAt', expiresAt: 'expiresAt' },
-  jobs: { id: 'id', userId: 'userId', status: 'status', rcCost: 'rcCost', createdAt: 'createdAt', updatedAt: 'updatedAt' },
-  eq: vi.fn(), and: vi.fn(), gt: vi.fn(), asc: vi.fn(), desc: vi.fn(), sql: vi.fn(), ilike: vi.fn(),
+  users: {
+    id: 'id',
+    clerkId: 'clerkId',
+    email: 'email',
+    createdAt: 'createdAt',
+    billingCountry: 'billingCountry',
+    stripeCustomerId: 'stripeCustomerId',
+  },
+  licenses: {
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    tier: 'tier',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    stripeSubscriptionId: 'stripeSubscriptionId',
+    startsAt: 'startsAt',
+    stripeCustomerId: 'stripeCustomerId',
+  },
+  creditPacks: {
+    id: 'id',
+    userId: 'userId',
+    packName: 'packName',
+    rcTotal: 'rcTotal',
+    rcRemaining: 'rcRemaining',
+    priceGbp: 'priceGbp',
+    purchasedAt: 'purchasedAt',
+    expiresAt: 'expiresAt',
+  },
+  jobs: {
+    id: 'id',
+    userId: 'userId',
+    status: 'status',
+    rcCost: 'rcCost',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+  },
+  eq: vi.fn(),
+  and: vi.fn(),
+  gt: vi.fn(),
+  asc: vi.fn(),
+  desc: vi.fn(),
+  sql: vi.fn(),
+  ilike: vi.fn(),
 }))
 
 vi.mock('../../../src/lib/db', () => ({ getDb: vi.fn() }))
@@ -19,7 +59,21 @@ const mockedGetDb = vi.mocked(getDb)
 
 function createMockDb() {
   const mockDb: any = {}
-  const methods = ['select', 'from', 'where', 'limit', 'orderBy', 'insert', 'values', 'update', 'set', 'returning', 'transaction', 'innerJoin', 'groupBy']
+  const methods = [
+    'select',
+    'from',
+    'where',
+    'limit',
+    'orderBy',
+    'insert',
+    'values',
+    'update',
+    'set',
+    'returning',
+    'transaction',
+    'innerJoin',
+    'groupBy',
+  ]
   for (const m of methods) {
     mockDb[m] = vi.fn().mockReturnValue(mockDb)
   }
@@ -147,26 +201,51 @@ describe('GET /api/admin/users/:id', () => {
 
   it('returns full user data for existing user', async () => {
     // User query
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'u-1', clerkId: 'clerk_1', email: 'user@test.com',
-      billingCountry: 'GB', stripeCustomerId: 'cus_123', createdAt: now,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'u-1',
+        clerkId: 'clerk_1',
+        email: 'user@test.com',
+        billingCountry: 'GB',
+        stripeCustomerId: 'cus_123',
+        createdAt: now,
+      },
+    ])
     // Licenses
-    mockDb.orderBy.mockResolvedValueOnce([{
-      id: 'lic-1', tier: 'pro', status: 'active',
-      stripeSubscriptionId: 'sub_1', startsAt: now, expiresAt: now,
-      createdAt: now, updatedAt: now,
-    }])
+    mockDb.orderBy.mockResolvedValueOnce([
+      {
+        id: 'lic-1',
+        tier: 'pro',
+        status: 'active',
+        stripeSubscriptionId: 'sub_1',
+        startsAt: now,
+        expiresAt: now,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ])
     // Credit packs
-    mockDb.orderBy.mockResolvedValueOnce([{
-      id: 'cp-1', packName: 'Starter', rcTotal: 100, rcRemaining: 50,
-      priceGbp: '9.99', purchasedAt: now, expiresAt: now,
-    }])
+    mockDb.orderBy.mockResolvedValueOnce([
+      {
+        id: 'cp-1',
+        packName: 'Starter',
+        rcTotal: 100,
+        rcRemaining: 50,
+        priceGbp: '9.99',
+        purchasedAt: now,
+        expiresAt: now,
+      },
+    ])
     // Recent jobs
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'job-1', status: 'complete', rcCost: 10,
-      createdAt: now, updatedAt: now,
-    }])
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'job-1',
+        status: 'complete',
+        rcCost: 10,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ])
 
     const response = await app.inject({
       method: 'GET',
@@ -192,16 +271,48 @@ describe('GET /api/admin/users/:id', () => {
   })
 
   it('includes licenses, credit packs, and recent jobs', async () => {
-    mockDb.limit.mockResolvedValueOnce([{
-      id: 'u-1', clerkId: 'clerk_1', email: 'user@test.com',
-      billingCountry: 'GB', stripeCustomerId: 'cus_123', createdAt: now,
-    }])
-    mockDb.orderBy.mockResolvedValueOnce([
-      { id: 'lic-1', tier: 'pro', status: 'active', stripeSubscriptionId: 'sub_1', startsAt: now, expiresAt: now, createdAt: now, updatedAt: now },
-      { id: 'lic-2', tier: 'plus', status: 'cancelled', stripeSubscriptionId: null, startsAt: now, expiresAt: now, createdAt: now, updatedAt: now },
+    mockDb.limit.mockResolvedValueOnce([
+      {
+        id: 'u-1',
+        clerkId: 'clerk_1',
+        email: 'user@test.com',
+        billingCountry: 'GB',
+        stripeCustomerId: 'cus_123',
+        createdAt: now,
+      },
     ])
     mockDb.orderBy.mockResolvedValueOnce([
-      { id: 'cp-1', packName: 'Starter', rcTotal: 100, rcRemaining: 50, priceGbp: '9.99', purchasedAt: now, expiresAt: now },
+      {
+        id: 'lic-1',
+        tier: 'pro',
+        status: 'active',
+        stripeSubscriptionId: 'sub_1',
+        startsAt: now,
+        expiresAt: now,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'lic-2',
+        tier: 'plus',
+        status: 'cancelled',
+        stripeSubscriptionId: null,
+        startsAt: now,
+        expiresAt: now,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ])
+    mockDb.orderBy.mockResolvedValueOnce([
+      {
+        id: 'cp-1',
+        packName: 'Starter',
+        rcTotal: 100,
+        rcRemaining: 50,
+        priceGbp: '9.99',
+        purchasedAt: now,
+        expiresAt: now,
+      },
     ])
     mockDb.limit.mockResolvedValueOnce([
       { id: 'job-1', status: 'complete', rcCost: 10, createdAt: now, updatedAt: now },

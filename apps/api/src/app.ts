@@ -24,19 +24,15 @@ export async function createApp(): Promise<FastifyInstance> {
   })
 
   // Register raw body parsing for webhook signature verification
-  app.addContentTypeParser(
-    'application/json',
-    { parseAs: 'string' },
-    (req, body, done) => {
-      try {
-        const parsed = JSON.parse(body as string)
-        req.rawBody = body as string
-        done(null, parsed)
-      } catch (err) {
-        done(err as Error, undefined)
-      }
-    },
-  )
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      const parsed = JSON.parse(body as string)
+      req.rawBody = body as string
+      done(null, parsed)
+    } catch (err) {
+      done(err as Error, undefined)
+    }
+  })
 
   // Plugins
   await app.register(cors, {

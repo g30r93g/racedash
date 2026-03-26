@@ -20,9 +20,14 @@ interface Props {
 }
 
 export const PositionCounter: React.FC<Props> = ({
-  timestamps, currentLaps, sessionAllLaps,
-  currentIdx, currentTime,
-  mode, startingGridPosition, textColor = 'white',
+  timestamps,
+  currentLaps,
+  sessionAllLaps,
+  currentIdx,
+  currentTime,
+  mode,
+  startingGridPosition,
+  textColor = 'white',
   livePosition,
   positionOverrides,
   placeholderText,
@@ -42,37 +47,46 @@ export const PositionCounter: React.FC<Props> = ({
     positionOverrides,
   })
 
-  const containerStyle = useMemo<React.CSSProperties>(() => ({
-    width: 180 * scale,
-    height: 80 * scale,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 11 * scale,
-    paddingLeft: 16 * scale,
-    gap: 2 * scale,
-  }), [scale])
+  const containerStyle = useMemo<React.CSSProperties>(
+    () => ({
+      width: 180 * scale,
+      height: 80 * scale,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      paddingTop: 11 * scale,
+      paddingLeft: 16 * scale,
+      gap: 2 * scale,
+    }),
+    [scale],
+  )
 
-  const labelStyle = useMemo<React.CSSProperties>(() => ({
-    fontFamily,
-    fontSize: 13 * scale,
-    fontWeight: 700,
-    color: textColor,
-    opacity: 0.75,
-    letterSpacing: 2 * scale,
-    userSelect: 'none',
-  }), [scale, textColor])
+  const labelStyle = useMemo<React.CSSProperties>(
+    () => ({
+      fontFamily,
+      fontSize: 13 * scale,
+      fontWeight: 700,
+      color: textColor,
+      opacity: 0.75,
+      letterSpacing: 2 * scale,
+      userSelect: 'none',
+    }),
+    [scale, textColor],
+  )
 
-  const valueStyle = useMemo<React.CSSProperties>(() => ({
-    fontFamily,
-    fontSize: 44 * scale,
-    fontWeight: 700,
-    lineHeight: 1,
-    color: textColor,
-    letterSpacing: 1 * scale,
-    userSelect: 'none',
-  }), [scale, textColor])
+  const valueStyle = useMemo<React.CSSProperties>(
+    () => ({
+      fontFamily,
+      fontSize: 44 * scale,
+      fontWeight: 700,
+      lineHeight: 1,
+      color: textColor,
+      letterSpacing: 1 * scale,
+      userSelect: 'none',
+    }),
+    [scale, textColor],
+  )
 
   const displayText = position != null ? `P${position}` : placeholderText
 

@@ -24,7 +24,7 @@ export function parseOffset(offsetStr: string, fps?: number): number {
 }
 
 export function calculateTimestamps(laps: Lap[], offsetSeconds: number): LapTimestamp[] {
-  return laps.map(lap => ({
+  return laps.map((lap) => ({
     lap,
     ytSeconds: Math.round((lap.cumulative - lap.lapTime + offsetSeconds) * 1000) / 1000,
   }))
@@ -50,8 +50,8 @@ export function formatLapTime(seconds: number): string {
 
 export function formatChapters(timestamps: LapTimestamp[]): string {
   if (!timestamps.length) return ''
-  const ytStrs = timestamps.map(ts => formatYtTimestamp(ts.ytSeconds))
-  const width = Math.max(...ytStrs.map(s => s.length))
+  const ytStrs = timestamps.map((ts) => formatYtTimestamp(ts.ytSeconds))
+  const width = Math.max(...ytStrs.map((s) => s.length))
   return timestamps
     .map(
       (ts, i) =>

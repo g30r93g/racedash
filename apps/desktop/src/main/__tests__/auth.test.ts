@@ -12,15 +12,17 @@ vi.mock('node:fs', () => ({
   ...fsMock,
 }))
 
-const { mockLoadURL, mockClose, mockOn, mockWebContentsOn, mockCookiesGet, mockCookiesRemove, mockSend } = vi.hoisted(() => ({
-  mockLoadURL: vi.fn().mockResolvedValue(undefined),
-  mockClose: vi.fn(),
-  mockOn: vi.fn(),
-  mockWebContentsOn: vi.fn(),
-  mockCookiesGet: vi.fn().mockResolvedValue([]),
-  mockCookiesRemove: vi.fn().mockResolvedValue(undefined),
-  mockSend: vi.fn(),
-}))
+const { mockLoadURL, mockClose, mockOn, mockWebContentsOn, mockCookiesGet, mockCookiesRemove, mockSend } = vi.hoisted(
+  () => ({
+    mockLoadURL: vi.fn().mockResolvedValue(undefined),
+    mockClose: vi.fn(),
+    mockOn: vi.fn(),
+    mockWebContentsOn: vi.fn(),
+    mockCookiesGet: vi.fn().mockResolvedValue([]),
+    mockCookiesRemove: vi.fn().mockResolvedValue(undefined),
+    mockSend: vi.fn(),
+  }),
+)
 
 vi.mock('electron', async () => {
   return {
@@ -104,7 +106,9 @@ describe('registerAuthHandlers', () => {
 
     it('returns null and clears corrupted session', async () => {
       fsMock.existsSync.mockReturnValue(true)
-      fsMock.readFileSync.mockImplementation(() => { throw new Error('corrupted') })
+      fsMock.readFileSync.mockImplementation(() => {
+        throw new Error('corrupted')
+      })
 
       const result = await handlers.get('racedash:auth:getSession')!()
       expect(result).toBeNull()

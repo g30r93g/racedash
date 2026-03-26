@@ -95,21 +95,14 @@ describe('Mutation Tests', () => {
 
     // Find the MediaConvert IAM role's inline policy
     const resources: Record<string, any> = templateJson.Resources
-    const policyKeys = Object.keys(resources).filter(
-      (key) => resources[key].Type === 'AWS::IAM::Policy',
-    )
+    const policyKeys = Object.keys(resources).filter((key) => resources[key].Type === 'AWS::IAM::Policy')
 
     let mutated = false
     for (const policyKey of policyKeys) {
-      const statements: any[] =
-        resources[policyKey].Properties?.PolicyDocument?.Statement ?? []
+      const statements: any[] = resources[policyKey].Properties?.PolicyDocument?.Statement ?? []
       for (const stmt of statements) {
-        const actions: string[] = Array.isArray(stmt.Action)
-          ? stmt.Action
-          : [stmt.Action]
-        const hasS3Actions = actions.some(
-          (a) => typeof a === 'string' && a.startsWith('s3:') && a !== 's3:*',
-        )
+        const actions: string[] = Array.isArray(stmt.Action) ? stmt.Action : [stmt.Action]
+        const hasS3Actions = actions.some((a) => typeof a === 'string' && a.startsWith('s3:') && a !== 's3:*')
         if (hasS3Actions) {
           stmt.Action = 's3:*'
           mutated = true
@@ -164,17 +157,13 @@ describe('Mutation Tests', () => {
     const templateJson = JSON.parse(JSON.stringify(pipelineTemplateJson))
 
     const resources: Record<string, any> = templateJson.Resources
-    const smKey = Object.keys(resources).find(
-      (key) => resources[key].Type === 'AWS::StepFunctions::StateMachine',
-    )
+    const smKey = Object.keys(resources).find((key) => resources[key].Type === 'AWS::StepFunctions::StateMachine')
     expect(smKey).toBeDefined()
 
     const def = resources[smKey!].Properties.DefinitionString
     let defStr: string
     if (typeof def === 'object' && def['Fn::Join']) {
-      defStr = def['Fn::Join'][1]
-        .map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__'))
-        .join('')
+      defStr = def['Fn::Join'][1].map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__')).join('')
     } else {
       defStr = typeof def === 'string' ? def : JSON.stringify(def)
     }
@@ -188,13 +177,10 @@ describe('Mutation Tests', () => {
     const mutatedTemplate = Template.fromJSON(templateJson)
 
     expect(() => {
-      const smResources = mutatedTemplate.findResources(
-        'AWS::StepFunctions::StateMachine',
-      )
+      const smResources = mutatedTemplate.findResources('AWS::StepFunctions::StateMachine')
       const sm = Object.values(smResources)[0] as any
       const rawDef = sm.Properties.DefinitionString
-      const resultStr =
-        typeof rawDef === 'string' ? rawDef : JSON.stringify(rawDef)
+      const resultStr = typeof rawDef === 'string' ? rawDef : JSON.stringify(rawDef)
       if (!resultStr.includes('"HeartbeatSeconds":21600')) {
         throw new Error('HeartbeatSeconds:21600 not found in WaitForSlot state')
       }
@@ -205,9 +191,7 @@ describe('Mutation Tests', () => {
     const templateJson = JSON.parse(JSON.stringify(pipelineTemplateJson))
 
     const resources: Record<string, any> = templateJson.Resources
-    const smKey = Object.keys(resources).find(
-      (key) => resources[key].Type === 'AWS::StepFunctions::StateMachine',
-    )
+    const smKey = Object.keys(resources).find((key) => resources[key].Type === 'AWS::StepFunctions::StateMachine')
     expect(smKey).toBeDefined()
 
     // CDK embeds timeout in the DefinitionString, not as a top-level property.
@@ -215,9 +199,7 @@ describe('Mutation Tests', () => {
     const def = resources[smKey!].Properties.DefinitionString
     let defStr: string
     if (typeof def === 'object' && def['Fn::Join']) {
-      defStr = def['Fn::Join'][1]
-        .map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__'))
-        .join('')
+      defStr = def['Fn::Join'][1].map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__')).join('')
     } else {
       defStr = typeof def === 'string' ? def : JSON.stringify(def)
     }
@@ -239,23 +221,18 @@ describe('Mutation Tests', () => {
     const distKey = findResourceKeyByProperty(
       templateJson,
       'AWS::CloudFront::Distribution',
-      (props) =>
-        props.DistributionConfig?.DefaultCacheBehavior?.TrustedKeyGroups !== undefined,
+      (props) => props.DistributionConfig?.DefaultCacheBehavior?.TrustedKeyGroups !== undefined,
     )
     expect(distKey).toBeDefined()
 
-    delete templateJson.Resources[distKey!].Properties.DistributionConfig
-      .DefaultCacheBehavior.TrustedKeyGroups
+    delete templateJson.Resources[distKey!].Properties.DistributionConfig.DefaultCacheBehavior.TrustedKeyGroups
 
     const mutatedTemplate = Template.fromJSON(templateJson)
 
     expect(() => {
-      const distributions = mutatedTemplate.findResources(
-        'AWS::CloudFront::Distribution',
-      )
+      const distributions = mutatedTemplate.findResources('AWS::CloudFront::Distribution')
       const dist = Object.values(distributions)[0] as any
-      const keyGroups =
-        dist.Properties.DistributionConfig.DefaultCacheBehavior.TrustedKeyGroups
+      const keyGroups = dist.Properties.DistributionConfig.DefaultCacheBehavior.TrustedKeyGroups
       if (!keyGroups || keyGroups.length === 0) {
         throw new Error('TrustedKeyGroups is missing or empty')
       }
@@ -266,17 +243,13 @@ describe('Mutation Tests', () => {
     const templateJson = JSON.parse(JSON.stringify(pipelineTemplateJson))
 
     const resources: Record<string, any> = templateJson.Resources
-    const smKey = Object.keys(resources).find(
-      (key) => resources[key].Type === 'AWS::StepFunctions::StateMachine',
-    )
+    const smKey = Object.keys(resources).find((key) => resources[key].Type === 'AWS::StepFunctions::StateMachine')
     expect(smKey).toBeDefined()
 
     const def = resources[smKey!].Properties.DefinitionString
     let defStr: string
     if (typeof def === 'object' && def['Fn::Join']) {
-      defStr = def['Fn::Join'][1]
-        .map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__'))
-        .join('')
+      defStr = def['Fn::Join'][1].map((part: any) => (typeof part === 'string' ? part : '__CDK_TOKEN__')).join('')
     } else {
       defStr = typeof def === 'string' ? def : JSON.stringify(def)
     }
@@ -316,21 +289,14 @@ describe('Mutation Tests', () => {
     const templateJson = JSON.parse(JSON.stringify(pipelineTemplateJson))
 
     const resources: Record<string, any> = templateJson.Resources
-    const policyKeys = Object.keys(resources).filter(
-      (key) => resources[key].Type === 'AWS::IAM::Policy',
-    )
+    const policyKeys = Object.keys(resources).filter((key) => resources[key].Type === 'AWS::IAM::Policy')
 
     let mutated = false
     for (const policyKey of policyKeys) {
-      const statements: any[] =
-        resources[policyKey].Properties?.PolicyDocument?.Statement ?? []
+      const statements: any[] = resources[policyKey].Properties?.PolicyDocument?.Statement ?? []
       for (const stmt of statements) {
-        const actions: string[] = Array.isArray(stmt.Action)
-          ? stmt.Action
-          : [stmt.Action]
-        const hasS3Action = actions.some(
-          (a) => typeof a === 'string' && a.startsWith('s3:'),
-        )
+        const actions: string[] = Array.isArray(stmt.Action) ? stmt.Action : [stmt.Action]
+        const hasS3Action = actions.some((a) => typeof a === 'string' && a.startsWith('s3:'))
         if (hasS3Action) {
           stmt.Resource = '*'
           mutated = true
@@ -344,9 +310,7 @@ describe('Mutation Tests', () => {
     // After mutation, verify that the no-wildcard-resources property check catches it
     const mutatedTemplate = Template.fromJSON(templateJson)
     const allPolicies = mutatedTemplate.findResources('AWS::IAM::Policy')
-    const allStatements = Object.values(allPolicies).flatMap(
-      (p: any) => p.Properties?.PolicyDocument?.Statement ?? [],
-    )
+    const allStatements = Object.values(allPolicies).flatMap((p: any) => p.Properties?.PolicyDocument?.Statement ?? [])
 
     const wildcardS3Statements = allStatements.filter((s: any) => {
       const actions: string[] = Array.isArray(s.Action) ? s.Action : [s.Action]

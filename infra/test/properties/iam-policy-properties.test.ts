@@ -15,9 +15,7 @@ beforeAll(() => {
 
 function getAllStatements(template: Template): any[] {
   const policies = template.findResources('AWS::IAM::Policy')
-  return Object.values(policies).flatMap(
-    (p: any) => p.Properties?.PolicyDocument?.Statement ?? [],
-  )
+  return Object.values(policies).flatMap((p: any) => p.Properties?.PolicyDocument?.Statement ?? [])
 }
 
 describe('IAM Policy Properties', () => {
@@ -29,9 +27,7 @@ describe('IAM Policy Properties', () => {
       const statements = getAllStatements(template)
 
       for (const statement of statements) {
-        const actions: string[] = Array.isArray(statement.Action)
-          ? statement.Action
-          : [statement.Action]
+        const actions: string[] = Array.isArray(statement.Action) ? statement.Action : [statement.Action]
 
         for (const action of actions) {
           if (typeof action !== 'string') continue
@@ -41,9 +37,7 @@ describe('IAM Policy Properties', () => {
           const isDangerous = dangerousPrefixes.some((prefix) => action.startsWith(prefix))
           if (!isDangerous) continue
 
-          const resources: any[] = Array.isArray(statement.Resource)
-            ? statement.Resource
-            : [statement.Resource]
+          const resources: any[] = Array.isArray(statement.Resource) ? statement.Resource : [statement.Resource]
 
           for (const resource of resources) {
             if (typeof resource === 'string') {
@@ -56,11 +50,7 @@ describe('IAM Policy Properties', () => {
   })
 
   test('all Lambda functions have log permissions', () => {
-    const requiredLogActions = [
-      'logs:CreateLogGroup',
-      'logs:CreateLogStream',
-      'logs:PutLogEvents',
-    ]
+    const requiredLogActions = ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents']
 
     for (const [stackName, template] of Object.entries(templates)) {
       const lambdaFunctions = template.findResources('AWS::Lambda::Function')
@@ -68,9 +58,7 @@ describe('IAM Policy Properties', () => {
 
       // Check inline policies
       const statements = getAllStatements(template)
-      const allActions = statements.flatMap((s: any) =>
-        Array.isArray(s.Action) ? s.Action : [s.Action],
-      )
+      const allActions = statements.flatMap((s: any) => (Array.isArray(s.Action) ? s.Action : [s.Action]))
 
       // Also check role inline policies (Policies on AWS::IAM::Role)
       const roles = template.findResources('AWS::IAM::Role')
@@ -104,9 +92,7 @@ describe('IAM Policy Properties', () => {
       const statements = getAllStatements(template)
 
       for (const statement of statements) {
-        const actions: string[] = Array.isArray(statement.Action)
-          ? statement.Action
-          : [statement.Action]
+        const actions: string[] = Array.isArray(statement.Action) ? statement.Action : [statement.Action]
 
         for (const action of actions) {
           if (typeof action === 'string') {
@@ -124,18 +110,12 @@ describe('IAM Policy Properties', () => {
       const statements = getAllStatements(template)
 
       for (const statement of statements) {
-        const actions: string[] = Array.isArray(statement.Action)
-          ? statement.Action
-          : [statement.Action]
+        const actions: string[] = Array.isArray(statement.Action) ? statement.Action : [statement.Action]
 
-        const hasS3Write = actions.some(
-          (a) => typeof a === 'string' && s3WriteActions.includes(a),
-        )
+        const hasS3Write = actions.some((a) => typeof a === 'string' && s3WriteActions.includes(a))
         if (!hasS3Write) continue
 
-        const resources: any[] = Array.isArray(statement.Resource)
-          ? statement.Resource
-          : [statement.Resource]
+        const resources: any[] = Array.isArray(statement.Resource) ? statement.Resource : [statement.Resource]
 
         for (const resource of resources) {
           if (typeof resource === 'string') {
@@ -152,15 +132,12 @@ describe('IAM Policy Properties', () => {
     const roles = template.findResources('AWS::IAM::Role')
 
     const mediaConvertRoles = Object.entries(roles).filter(([, role]: [string, any]) => {
-      const statements: any[] =
-        role.Properties?.AssumeRolePolicyDocument?.Statement ?? []
+      const statements: any[] = role.Properties?.AssumeRolePolicyDocument?.Statement ?? []
       return statements.some((s: any) => {
         const principals = s.Principal
         if (!principals) return false
         if (principals.Service) {
-          const services = Array.isArray(principals.Service)
-            ? principals.Service
-            : [principals.Service]
+          const services = Array.isArray(principals.Service) ? principals.Service : [principals.Service]
           return services.includes('mediaconvert.amazonaws.com')
         }
         return false
@@ -170,8 +147,7 @@ describe('IAM Policy Properties', () => {
     expect(mediaConvertRoles.length).toBeGreaterThan(0)
 
     for (const [, role] of mediaConvertRoles) {
-      const assumeStatements: any[] =
-        (role as any).Properties?.AssumeRolePolicyDocument?.Statement ?? []
+      const assumeStatements: any[] = (role as any).Properties?.AssumeRolePolicyDocument?.Statement ?? []
       expect(assumeStatements).toHaveLength(1)
     }
   })

@@ -18,13 +18,18 @@ export function VideoFileList({ paths, onChange }: VideoFileListProps): React.Re
     let cancelled = false
     for (const path of paths) {
       if (fpsMap[path] !== undefined) continue
-      window.racedash.getVideoInfo(path).then((info) => {
-        if (!cancelled) setFpsMap((prev) => ({ ...prev, [path]: info.fps }))
-      }).catch((err: unknown) => {
-        console.error('[VideoFileList] getVideoInfo failed for', path, err)
-      })
+      window.racedash
+        .getVideoInfo(path)
+        .then((info) => {
+          if (!cancelled) setFpsMap((prev) => ({ ...prev, [path]: info.fps }))
+        })
+        .catch((err: unknown) => {
+          console.error('[VideoFileList] getVideoInfo failed for', path, err)
+        })
     }
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [paths, fpsMap])
 
   if (paths.length === 0) return null
@@ -43,24 +48,19 @@ export function VideoFileList({ paths, onChange }: VideoFileListProps): React.Re
   return (
     <div className="flex flex-col gap-1.5">
       <p className="text-xs text-muted-foreground">
-        <span className="font-medium">{paths.length} file{paths.length !== 1 ? 's' : ''} selected</span>
+        <span className="font-medium">
+          {paths.length} file{paths.length !== 1 ? 's' : ''} selected
+        </span>
         {paths.length > 1 && ' — files will be joined in this order'}
       </p>
       {paths.map((path, index) => {
         const name = path.split(/[\\/]/).pop() ?? path
         return (
-          <div
-            key={path}
-            className="flex items-center gap-2 rounded-md border border-border bg-accent/40 px-3 py-2"
-          >
-            <span className="w-4 shrink-0 text-center text-xs text-muted-foreground">
-              {index + 1}
-            </span>
+          <div key={path} className="flex items-center gap-2 rounded-md border border-border bg-accent/40 px-3 py-2">
+            <span className="w-4 shrink-0 text-center text-xs text-muted-foreground">{index + 1}</span>
             <span className="flex-1 truncate font-mono text-xs text-foreground">{name}</span>
             {fpsMap[path] !== undefined && (
-              <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                {formatFps(fpsMap[path])}
-              </span>
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">{formatFps(fpsMap[path])}</span>
             )}
             <div className="flex shrink-0 items-center">
               <Button

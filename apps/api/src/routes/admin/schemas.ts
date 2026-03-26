@@ -1,9 +1,8 @@
 import { z } from 'zod'
 
-const isoDateString = z.string().refine(
-  (val) => !isNaN(new Date(val).getTime()),
-  { message: 'Must be a valid ISO 8601 date string' },
-)
+const isoDateString = z
+  .string()
+  .refine((val) => !isNaN(new Date(val).getTime()), { message: 'Must be a valid ISO 8601 date string' })
 
 export const issueLicenseSchema = z
   .object({
@@ -29,9 +28,12 @@ export const updateLicenseSchema = z
   })
 
 export const creditAdjustmentSchema = z.object({
-  rcAmount: z.number().int().refine((val) => val !== 0, {
-    message: 'rcAmount must be a non-zero integer',
-  }),
+  rcAmount: z
+    .number()
+    .int()
+    .refine((val) => val !== 0, {
+      message: 'rcAmount must be a non-zero integer',
+    }),
   reason: z.string().min(1, 'reason is required').max(500, 'reason must not exceed 500 characters'),
 })
 

@@ -79,36 +79,48 @@ export class ApiStack extends cdk.Stack {
     })
 
     // IAM: S3 uploads bucket (CRUD + multipart)
-    apiFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
-      resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
-    }))
-    apiFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:ListMultipartUploadParts', 's3:AbortMultipartUpload'],
-      resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
-    }))
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
+        resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
+      }),
+    )
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:ListMultipartUploadParts', 's3:AbortMultipartUpload'],
+        resources: [`${props.uploadsBucket.bucketArn}/uploads/*`],
+      }),
+    )
 
     // IAM: S3 renders bucket (read only)
-    apiFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:GetObject'],
-      resources: [`${props.rendersBucket.bucketArn}/renders/*`],
-    }))
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject'],
+        resources: [`${props.rendersBucket.bucketArn}/renders/*`],
+      }),
+    )
 
     // IAM: Step Functions
-    apiFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['states:StartExecution'],
-      resources: [props.stateMachineArn],
-    }))
-    apiFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['states:SendTaskSuccess', 'states:SendTaskFailure'],
-      resources: [props.stateMachineArn],
-    }))
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['states:StartExecution'],
+        resources: [props.stateMachineArn],
+      }),
+    )
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['states:SendTaskSuccess', 'states:SendTaskFailure'],
+        resources: [props.stateMachineArn],
+      }),
+    )
 
     // IAM: SQS
-    apiFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['sqs:SendMessage'],
-      resources: [props.socialUploadQueueArn],
-    }))
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['sqs:SendMessage'],
+        resources: [props.socialUploadQueueArn],
+      }),
+    )
 
     // Stack outputs
     new cdk.CfnOutput(this, 'ApiFunctionArn', {

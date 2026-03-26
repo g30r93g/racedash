@@ -11,12 +11,7 @@ import type { Lap, SessionMode } from '@racedash/core'
  * @param currentLaps - Must be the same array reference that appears in `sessionAllLaps`.
  *   The function skips it by reference equality to avoid double-counting the current driver.
  */
-export function getPosition(
-  mode: SessionMode,
-  lapNumber: number,
-  currentLaps: Lap[],
-  sessionAllLaps: Lap[][],
-): number {
+export function getPosition(mode: SessionMode, lapNumber: number, currentLaps: Lap[], sessionAllLaps: Lap[][]): number {
   const score = computeScore(mode, lapNumber, currentLaps)
   if (score === null) return 1
 

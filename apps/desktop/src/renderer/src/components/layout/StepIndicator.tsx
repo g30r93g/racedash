@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 
 interface StepIndicatorProps {
   steps: readonly string[]
-  currentStep: number  // 1-based
+  currentStep: number // 1-based
 }
 
 export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React.ReactElement {
@@ -24,7 +24,7 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
                   aria-hidden="true"
                   className={cn(
                     'absolute left-0 top-1/2 h-px -translate-y-1/2',
-                    stepNumber <= currentStep ? 'bg-green-500' : 'bg-border'
+                    stepNumber <= currentStep ? 'bg-green-500' : 'bg-border',
                   )}
                   style={{ right: `calc(50% + ${indicatorSize / 2}px)` }}
                 />
@@ -34,7 +34,7 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
                   aria-hidden="true"
                   className={cn(
                     'absolute right-0 top-1/2 h-px -translate-y-1/2',
-                    isComplete ? 'bg-green-500' : 'bg-border'
+                    isComplete ? 'bg-green-500' : 'bg-border',
                   )}
                   style={{ left: `calc(50% + ${indicatorSize / 2}px)` }}
                 />
@@ -45,7 +45,7 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
                   'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold',
                   isComplete && 'border-green-500 bg-green-500 text-white',
                   isCurrent && 'border-primary bg-primary text-primary-foreground',
-                  !isComplete && !isCurrent && 'border-border bg-transparent text-muted-foreground'
+                  !isComplete && !isCurrent && 'border-border bg-transparent text-muted-foreground',
                 )}
               >
                 {isComplete ? (
@@ -67,12 +67,7 @@ export function StepIndicator({ currentStep, steps }: StepIndicatorProps): React
                 )}
               </div>
             </div>
-            <span
-              className={cn(
-                'text-center text-[11px]',
-                isCurrent ? 'text-foreground' : 'text-muted-foreground'
-              )}
-            >
+            <span className={cn('text-center text-[11px]', isCurrent ? 'text-foreground' : 'text-muted-foreground')}>
               {label}
             </span>
           </div>

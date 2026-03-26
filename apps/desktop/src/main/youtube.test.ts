@@ -58,9 +58,9 @@ describe('youtube handlers', () => {
 
     it('upload throws a configuration error for valid jobId', async () => {
       const handler = handlers.get('racedash:youtube:upload')!
-      await expect(
-        handler({}, '12345678-1234-1234-1234-123456789abc', { title: 'test' })
-      ).rejects.toThrow('API server is not configured')
+      await expect(handler({}, '12345678-1234-1234-1234-123456789abc', { title: 'test' })).rejects.toThrow(
+        'API server is not configured',
+      )
     })
   })
 
@@ -86,7 +86,7 @@ describe('youtube handlers', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://api.example.com/api/auth/youtube/status',
-        expect.objectContaining({ method: 'GET' })
+        expect.objectContaining({ method: 'GET' }),
       )
       expect(result).toEqual({ connected: true, account: { name: 'Test' } })
     })
@@ -111,7 +111,7 @@ describe('youtube handlers', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://api.example.com/api/jobs/12345678-1234-1234-1234-123456789abc/social-uploads',
-        expect.objectContaining({ method: 'GET' })
+        expect.objectContaining({ method: 'GET' }),
       )
       expect(result).toEqual([{ id: '1', status: 'complete' }])
     })
@@ -131,15 +131,13 @@ describe('youtube handlers', () => {
           headers: expect.objectContaining({
             Authorization: 'Bearer test-token',
           }),
-        })
+        }),
       )
     })
 
     it('upload rejects invalid jobId format', async () => {
       const handler = handlers.get('racedash:youtube:upload')!
-      await expect(
-        handler({}, 'not-a-uuid', { title: 'test' })
-      ).rejects.toThrow('Invalid job ID format')
+      await expect(handler({}, 'not-a-uuid', { title: 'test' })).rejects.toThrow('Invalid job ID format')
       expect(fetchSpy).not.toHaveBeenCalled()
     })
 
@@ -167,9 +165,9 @@ describe('youtube handlers', () => {
       })
 
       const handler = handlers.get('racedash:youtube:upload')!
-      await expect(
-        handler({}, '12345678-1234-1234-1234-123456789abc', { title: 'test' }),
-      ).rejects.toThrow('Bad request')
+      await expect(handler({}, '12345678-1234-1234-1234-123456789abc', { title: 'test' })).rejects.toThrow(
+        'Bad request',
+      )
     })
 
     it('disconnect calls DELETE on the API', async () => {

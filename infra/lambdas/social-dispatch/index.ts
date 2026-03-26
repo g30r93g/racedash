@@ -29,27 +29,33 @@ export const handler = async (event: SQSEvent): Promise<void> => {
     const subnets = process.env.TASK_SUBNETS!.split(',').map((s) => s.trim())
     const securityGroup = process.env.TASK_SECURITY_GROUP!
 
-    await ecs.send(new RunTaskCommand({
-      taskDefinition: taskDefinitionArn,
-      cluster: clusterArn,
-      launchType: 'FARGATE',
-      networkConfiguration: {
-        awsvpcConfiguration: {
-          subnets,
-          securityGroups: [securityGroup],
-          assignPublicIp: 'ENABLED',
+    await ecs.send(
+      new RunTaskCommand({
+        taskDefinition: taskDefinitionArn,
+        cluster: clusterArn,
+        launchType: 'FARGATE',
+        networkConfiguration: {
+          awsvpcConfiguration: {
+            subnets,
+            securityGroups: [securityGroup],
+            assignPublicIp: 'ENABLED',
+          },
         },
-      },
-      overrides: {
-        containerOverrides: [{
-          name: 'YouTubeUploadContainer',
-          environment: [{
-            name: 'UPLOAD_PAYLOAD',
-            value: record.body,
-          }],
-        }],
-      },
-    }))
+        overrides: {
+          containerOverrides: [
+            {
+              name: 'YouTubeUploadContainer',
+              environment: [
+                {
+                  name: 'UPLOAD_PAYLOAD',
+                  value: record.body,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    )
 
     // Update status to uploading
     const databaseUrl = process.env.DATABASE_URL

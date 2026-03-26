@@ -13,7 +13,6 @@ interface FrameScrubberProps {
   onMetadataLoaded?: (totalFrames: number) => void
 }
 
-
 const MAX_RETRIES = 3
 
 export function FrameScrubber({
