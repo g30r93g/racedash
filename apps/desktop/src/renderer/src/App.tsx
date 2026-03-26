@@ -2,13 +2,16 @@ import { ProjectLibrary } from '@/screens/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
 import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
 import { UpdateBanner } from '@/components/UpdateBanner'
-import { AuthGuard } from '@/components/auth/AuthGuard'
-import React, { useState } from 'react'
+import { AuthModal } from '@/components/auth/AuthModal'
+import { AuthModalContext } from '@/hooks/useAuth'
+import React, { useState, useMemo } from 'react'
 import type { ProjectData } from '../../types/project'
 
 export function App(): React.ReactElement {
   const [project, setProject] = useState<ProjectData | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const authModalValue = useMemo(() => ({ open: authModalOpen, setOpen: setAuthModalOpen }), [authModalOpen])
 
   function handleProjectCreated(created: ProjectData) {
     setWizardOpen(false)
@@ -16,6 +19,7 @@ export function App(): React.ReactElement {
   }
 
   return (
+    <AuthModalContext.Provider value={authModalValue}>
     <div className="flex h-screen flex-col overflow-hidden">
       {/* macOS traffic light clearance + window drag region.
           36px matches the hiddenInset inset on macOS.
@@ -31,23 +35,21 @@ export function App(): React.ReactElement {
 
       {/* Screen content — fills remaining height */}
       <div className="relative flex flex-1 overflow-hidden">
-        <AuthGuard>
-          {project ? (
-            <Editor project={project} onClose={() => setProject(null)} />
-          ) : (
-            <>
-              {/* Editor skeleton visible behind the library overlay */}
-              <EditorSkeleton />
-              {/* Project library floats over the skeleton */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
-                <ProjectLibrary
-                  onOpen={setProject}
-                  onNew={() => setWizardOpen(true)}
-                />
-              </div>
-            </>
-          )}
-        </AuthGuard>
+        {project ? (
+          <Editor project={project} onClose={() => setProject(null)} />
+        ) : (
+          <>
+            {/* Editor skeleton visible behind the library overlay */}
+            <EditorSkeleton />
+            {/* Project library floats over the skeleton */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
+              <ProjectLibrary
+                onOpen={setProject}
+                onNew={() => setWizardOpen(true)}
+              />
+            </div>
+          </>
+        )}
       </div>
       {wizardOpen && (
         <ProjectCreationWizard
@@ -55,7 +57,9 @@ export function App(): React.ReactElement {
           onCancel={() => setWizardOpen(false)}
         />
       )}
+      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
+    </AuthModalContext.Provider>
   )
 }
 

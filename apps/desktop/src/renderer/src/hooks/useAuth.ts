@@ -1,6 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { useUser, useSession, useClerk } from '@clerk/react'
 import type { AuthUser, AuthLicense, FetchWithAuthResponse } from '../../../types/ipc'
+
+// Context for controlling the auth modal from useAuth().signIn()
+const AuthModalContext = createContext<{
+  open: boolean
+  setOpen: (open: boolean) => void
+}>({ open: false, setOpen: () => {} })
+
+export { AuthModalContext }
 
 interface UseAuthReturn {
   user: AuthUser | null
@@ -88,10 +96,11 @@ export function useAuth(): UseAuthReturn {
     return () => { cancelled = true }
   }, [isSignedIn, session, clerkUser?.id])
 
+  const authModal = useContext(AuthModalContext)
+
   const signIn = useCallback(() => {
-    // AuthGuard handles showing the sign-in form — this is a no-op
-    // Kept for interface compatibility with components that call signIn()
-  }, [])
+    authModal.setOpen(true)
+  }, [authModal])
 
   const signOut = useCallback(async () => {
     await clerk.signOut()
