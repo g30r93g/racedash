@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSignUp, useClerk } from '@clerk/react'
+import { formatClerkError } from './clerk-errors'
 
 interface SignUpFormProps {
   onToggleSignIn: () => void
@@ -33,16 +34,14 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
       })
 
       if (signUpError) {
-        setError(signUpError.longMessage ?? signUpError.message ?? 'Sign-up failed')
+        setError(formatClerkError(signUpError))
         return
       }
 
       await signUp.verifications.sendEmailCode()
       setPendingVerification(true)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Sign-up failed'
-      const clerkErr = err as { errors?: { longMessage?: string }[] }
-      setError(clerkErr.errors?.[0]?.longMessage ?? message)
+      setError(formatClerkError(err))
     } finally {
       setIsSubmitting(false)
     }
@@ -59,15 +58,12 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
       await signUp.verifications.verifyEmailCode({ code })
 
       if (signUp.status === 'complete') {
-        // Activate the session — this triggers useUser() to update isSignedIn
         await clerk.setActive({ session: signUp.createdSessionId })
       } else {
         setError('Verification could not be completed. Please try again.')
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Verification failed'
-      const clerkErr = err as { errors?: { longMessage?: string }[] }
-      setError(clerkErr.errors?.[0]?.longMessage ?? message)
+      setError(formatClerkError(err))
     } finally {
       setIsSubmitting(false)
     }

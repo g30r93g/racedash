@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSignIn, useClerk } from '@clerk/react'
+import { formatClerkError } from './clerk-errors'
 
 interface SignInFormProps {
   onToggleSignUp: () => void
@@ -27,20 +28,17 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
       })
 
       if (signInError) {
-        setError(signInError.longMessage ?? signInError.message ?? 'Sign-in failed')
+        setError(formatClerkError(signInError))
         return
       }
 
       if (signIn.status === 'complete') {
-        // Activate the session — this triggers useUser() to update isSignedIn
         await clerk.setActive({ session: signIn.createdSessionId })
       } else {
         setError('Sign-in could not be completed. Please try again.')
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Sign-in failed'
-      const clerkErr = err as { errors?: { longMessage?: string }[] }
-      setError(clerkErr.errors?.[0]?.longMessage ?? message)
+      setError(formatClerkError(err))
     } finally {
       setIsSubmitting(false)
     }
