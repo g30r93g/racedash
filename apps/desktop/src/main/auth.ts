@@ -4,9 +4,9 @@ import * as fs from 'node:fs'
 import type { AuthSession } from '../types/ipc'
 
 const SESSION_FILE = 'cloud-session.enc'
-const API_URL = process.env.VITE_API_URL ?? ''
-const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''
-const CLERK_ACCOUNTS_URL = process.env.VITE_CLERK_ACCOUNTS_URL ?? 'https://accounts.racedash.io'
+const API_URL = import.meta.env.VITE_API_URL ?? ''
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''
+const CLERK_ACCOUNTS_URL = import.meta.env.VITE_CLERK_ACCOUNTS_URL ?? 'https://accounts.racedash.io'
 
 function getSessionPath(): string {
   return path.join(app.getPath('userData'), SESSION_FILE)

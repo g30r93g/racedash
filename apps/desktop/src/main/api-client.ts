@@ -1,6 +1,6 @@
 import { loadSessionToken } from './auth-helpers'
 
-const API_URL = process.env.VITE_API_URL ?? ''
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 export async function fetchWithAuth<T>(path: string, opts?: { method?: string; body?: string }): Promise<T> {
   const token = loadSessionToken()

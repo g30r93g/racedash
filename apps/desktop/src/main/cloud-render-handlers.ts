@@ -13,7 +13,7 @@ import type {
   VideoInfo,
 } from '../types/ipc'
 
-const API_URL = process.env.VITE_API_URL ?? ''
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 // Track active uploads for cancellation
 const activeUploads = new Map<string, AbortController>()

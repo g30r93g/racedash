@@ -2,7 +2,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import { loadSessionToken } from './auth-helpers'
 import type { YouTubeConnectionStatus, YouTubeUploadMetadata, YouTubeUploadResult, SocialUploadStatus } from '../types/ipc'
 
-const API_URL = process.env.VITE_API_URL ?? ''
+const API_URL = import.meta.env.VITE_API_URL ?? ''
 
 function fetchWithSession(url: string, opts?: { method?: string; body?: string }): Promise<Response> {
   if (!API_URL) {
