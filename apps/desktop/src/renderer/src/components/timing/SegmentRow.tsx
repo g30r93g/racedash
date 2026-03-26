@@ -1,7 +1,6 @@
-import React from 'react'
-import type { SegmentConfig } from '../../../../types/project'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronRight, Trash2 } from 'lucide-react'
+import type { SegmentConfig } from '../../../../types/project'
 
 const SOURCE_COLORS: Record<string, string> = {
   alphaTiming: '#3b82f6',
@@ -43,7 +42,7 @@ export function SegmentRow({ segment, index, onEdit, onDelete }: SegmentRowProps
         className="hover:text-destructive"
         aria-label={`Delete ${segment.label}`}
       >
-        <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        <Trash2 className="h-4 w-4" aria-hidden="true" />
       </Button>
     </div>
   )
