@@ -75,7 +75,7 @@ export function AccountDetails({
   const planName = license?.tier === 'pro' ? 'RaceDash Cloud Pro' : license?.tier === 'plus' ? 'RaceDash Cloud Plus' : null
 
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
           <AvatarFallback className="bg-blue-700 text-sm font-bold text-white">
