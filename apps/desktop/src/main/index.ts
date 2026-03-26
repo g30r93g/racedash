@@ -80,11 +80,19 @@ export async function cleanupEmptyRacedashTempDirs(
     }))
 }
 
-// Disable third-party cookie restrictions — Clerk requires cross-origin cookies
-// (.clerk.accounts.dev cookies set from localhost origin)
-app.commandLine.appendSwitch('disable-features', 'ThirdPartyCookieBlocking,TrackingProtection3pcd')
+app.whenReady().then(async () => {
+  // Clerk dev instances require third-party cookies (.clerk.accounts.dev
+  // from localhost origin). Explicitly allow them in the default session.
+  const { session: electronSession } = require('electron')
+  const ses = electronSession.defaultSession
+  await ses.cookies.flushStore()
+  // Remove stale Clerk dev browser cookies that block re-authentication
+  const clerkCookies = await ses.cookies.get({ domain: '.clerk.accounts.dev' })
+  for (const cookie of clerkCookies) {
+    const url = `https://${cookie.domain?.replace(/^\./, '')}${cookie.path || '/'}`
+    await ses.cookies.remove(url, cookie.name).catch(() => {})
+  }
 
-app.whenReady().then(() => {
   configureBundledFfmpegPath()
 
   const devIconPath = getDevIconPath()
