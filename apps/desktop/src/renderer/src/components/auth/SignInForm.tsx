@@ -3,6 +3,8 @@ import { useSignIn, useClerk } from '@clerk/react'
 import { formatClerkError } from './clerk-errors'
 import { VerifyCodeForm } from './VerifyCodeForm'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface SignInFormProps {
   onToggleSignUp: () => void
@@ -82,28 +84,28 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-sm font-medium text-white/70">Email</label>
-          <input
+          <Label htmlFor="email" className="text-sm font-medium text-white/70">Email</Label>
+          <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoFocus
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-white/20"
             placeholder="you@example.com"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-sm font-medium text-white/70">Password</label>
-          <input
+          <Label htmlFor="password" className="text-sm font-medium text-white/70">Password</Label>
+          <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-white/20"
             placeholder="Your password"
           />
         </div>

@@ -3,6 +3,8 @@ import { useSignUp, useClerk } from '@clerk/react'
 import { formatClerkError } from './clerk-errors'
 import { VerifyCodeForm } from './VerifyCodeForm'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface SignUpFormProps {
   onToggleSignIn: () => void
@@ -81,54 +83,54 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <label htmlFor="signup-first-name" className="text-sm font-medium text-white/70">First name</label>
-            <input
+            <Label htmlFor="signup-first-name" className="text-sm font-medium text-white/70">First name</Label>
+            <Input
               id="signup-first-name"
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
               autoFocus
-              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-white/20"
               placeholder="George"
             />
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
-            <label htmlFor="signup-last-name" className="text-sm font-medium text-white/70">Last name</label>
-            <input
+            <Label htmlFor="signup-last-name" className="text-sm font-medium text-white/70">Last name</Label>
+            <Input
               id="signup-last-name"
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-white/20"
               placeholder="Gorzynski"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="signup-email" className="text-sm font-medium text-white/70">Email</label>
-          <input
+          <Label htmlFor="signup-email" className="text-sm font-medium text-white/70">Email</Label>
+          <Input
             id="signup-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-white/20"
             placeholder="you@example.com"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="signup-password" className="text-sm font-medium text-white/70">Password</label>
-          <input
+          <Label htmlFor="signup-password" className="text-sm font-medium text-white/70">Password</Label>
+          <Input
             id="signup-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-white/20"
             placeholder="Choose a password"
           />
         </div>

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { formatClerkError } from './clerk-errors'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface VerifyCodeFormProps {
   title: string
@@ -44,8 +46,8 @@ export function VerifyCodeForm({
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="verify-code" className="text-sm font-medium text-white/70">Verification code</label>
-          <input
+          <Label htmlFor="verify-code" className="text-sm font-medium text-white/70">Verification code</Label>
+          <Input
             id="verify-code"
             type="text"
             inputMode="numeric"
@@ -53,7 +55,7 @@ export function VerifyCodeForm({
             onChange={(e) => setCode(e.target.value)}
             required
             autoFocus
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-center text-lg tracking-widest text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="border-white/10 bg-white/5 text-center text-lg tracking-widest text-white placeholder:text-white/30 focus-visible:ring-white/20"
             placeholder="000000"
             maxLength={6}
           />
