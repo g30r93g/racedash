@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { OptionGroup } from '@/components/ui/option-group'
 import { Progress } from '@/components/ui/progress'
+import { hasCloudLicense } from '@/lib/license'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   OutputFrameRate,
@@ -79,7 +80,7 @@ interface LastRender {
 }
 
 export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, authUser, licenseTier, onSignIn }: ExportTabProps): React.ReactElement {
-  const hasCloudLicense = licenseTier === 'plus' || licenseTier === 'pro'
+  const licensed = hasCloudLicense(licenseTier)
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -93,7 +94,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
 
   // Cloud render state
-  const [renderDestination, setRenderDestination] = useState<RenderDestination>(hasCloudLicense ? 'cloud' : 'local')
+  const [renderDestination, setRenderDestination] = useState<RenderDestination>(licensed ? 'cloud' : 'local')
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const [cloudUploading, setCloudUploading] = useState(false)
@@ -292,13 +293,13 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
     { value: 'source', label: 'Source' },
     { value: '1080p', label: '1080p' },
     { value: '1440p', label: '1440p' },
-    { value: '2160p', label: hasCloudLicense ? '4K' : '4K ⚡', disabled: !hasCloudLicense },
+    { value: '2160p', label: licensed ? '4K' : '4K ⚡', disabled: !licensed },
   ]
   const frameRateOptions: Array<{ value: OutputFrameRate; label: string; disabled?: boolean }> = [
     { value: 'source', label: 'Source' },
     { value: '30', label: '30 fps' },
     { value: '60', label: '60 fps' },
-    { value: '120', label: hasCloudLicense ? '120 fps' : '120 fps ⚡', disabled: !hasCloudLicense },
+    { value: '120', label: licensed ? '120 fps' : '120 fps ⚡', disabled: !licensed },
   ]
   const renderModeOptions: Array<{ value: RenderMode; label: string }> = [
     { value: 'overlay+footage', label: 'Overlay + Footage' },
