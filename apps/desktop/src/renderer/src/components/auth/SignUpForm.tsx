@@ -18,7 +18,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault()
-    if (!isLoaded || !signUp) return
+    if (!signUp) return
 
     setError('')
     setIsSubmitting(true)
@@ -44,7 +44,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
 
   async function handleVerify(e: React.FormEvent): Promise<void> {
     e.preventDefault()
-    if (!isLoaded || !signUp) return
+    if (!signUp) return
 
     setError('')
     setIsSubmitting(true)
@@ -97,7 +97,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
 
           <button
             type="submit"
-            disabled={isSubmitting || !isLoaded}
+            disabled={isSubmitting || !signUp}
             className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isSubmitting ? 'Verifying...' : 'Verify email'}
@@ -175,7 +175,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
 
         <button
           type="submit"
-          disabled={isSubmitting || !isLoaded}
+          disabled={isSubmitting || !signUp}
           className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isSubmitting ? 'Creating account...' : 'Create account'}

@@ -7,6 +7,8 @@ interface SignInFormProps {
 
 export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElement {
   const { signIn, setActive, isLoaded } = useSignIn()
+  const clerkReady = isLoaded !== false
+  console.log('[SignInForm] isLoaded:', isLoaded, 'signIn:', !!signIn, 'clerkReady:', clerkReady)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -14,7 +16,7 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault()
-    if (!isLoaded || !signIn) return
+    if (!signIn) return
 
     setError('')
     setIsSubmitting(true)
@@ -80,7 +82,7 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
 
         <button
           type="submit"
-          disabled={isSubmitting || !isLoaded}
+          disabled={isSubmitting || !signIn}
           className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isSubmitting ? 'Signing in...' : 'Sign in'}
