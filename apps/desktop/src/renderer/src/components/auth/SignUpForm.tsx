@@ -125,7 +125,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
               onChange={(e) => setFirstName(e.target.value)}
               required
               autoFocus
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
               placeholder="George"
             />
           </div>
@@ -137,7 +137,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
               placeholder="Gorzynski"
             />
           </div>
@@ -151,7 +151,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
             placeholder="you@example.com"
           />
         </div>
@@ -164,7 +164,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
             placeholder="Choose a password"
           />
         </div>
