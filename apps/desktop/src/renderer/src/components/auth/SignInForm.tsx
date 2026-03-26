@@ -11,8 +11,10 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
   const clerk = useClerk()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [needsVerification, setNeedsVerification] = useState(false)
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault()
@@ -32,18 +34,98 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
         return
       }
 
-      console.log('[SignInForm] signIn.status:', signIn.status, 'createdSessionId:', signIn.createdSessionId)
-
       if (signIn.status === 'complete') {
         await clerk.setActive({ session: signIn.createdSessionId })
+      } else if (signIn.status === 'needs_second_factor' || signIn.status === 'needs_client_trust') {
+        // New device or MFA required — send email verification code
+        await signIn.mfa.sendEmailCode()
+        setNeedsVerification(true)
       } else {
-        setError(`Sign-in requires additional steps (status: ${signIn.status ?? 'unknown'}). Please try again.`)
+        setError(`Unexpected sign-in status: ${signIn.status}`)
       }
     } catch (err: unknown) {
       setError(formatClerkError(err))
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleVerify(e: React.FormEvent): Promise<void> {
+    e.preventDefault()
+    if (!signIn) return
+
+    setError('')
+    setIsSubmitting(true)
+
+    try {
+      await signIn.mfa.verifyEmailCode({ code })
+
+      if (signIn.status === 'complete') {
+        await clerk.setActive({ session: signIn.createdSessionId })
+      } else {
+        setError('Verification could not be completed. Please try again.')
+      }
+    } catch (err: unknown) {
+      setError(formatClerkError(err))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (needsVerification) {
+    return (
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white">Verify your identity</h1>
+          <p className="mt-1 text-sm text-white/50">We sent a code to {email}</p>
+        </div>
+
+        <form onSubmit={handleVerify} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="signin-code" className="text-sm font-medium text-white/70">Verification code</label>
+            <input
+              id="signin-code"
+              type="text"
+              inputMode="numeric"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              autoFocus
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-center text-lg tracking-widest text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              placeholder="000000"
+              maxLength={6}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-400">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !signIn}
+            className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {isSubmitting ? 'Verifying...' : 'Verify'}
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await signIn.mfa.sendEmailCode()
+                setError('')
+              } catch (err: unknown) {
+                setError(formatClerkError(err))
+              }
+            }}
+            className="text-sm text-white/50 underline underline-offset-2 hover:text-white/70"
+          >
+            Resend code
+          </button>
+        </form>
+      </div>
+    )
   }
 
   return (
