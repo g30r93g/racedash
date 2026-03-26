@@ -61,7 +61,8 @@ const clerkAuth: FastifyPluginAsync = async (fastify) => {
       }
 
       request.clerk = { userId: payload.sub, sessionId: (payload.sid as string) ?? '' }
-    } catch {
+    } catch (err) {
+      console.error('[clerk-auth] Token verification failed:', err)
       reply.status(401).send({
         error: { code: 'SESSION_EXPIRED', message: 'Session token has expired' },
       })
