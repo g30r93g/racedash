@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSignUp, useClerk } from '@clerk/react'
 import { formatClerkError } from './clerk-errors'
+import { VerifyCodeForm } from './VerifyCodeForm'
 
 interface SignUpFormProps {
   onToggleSignIn: () => void
@@ -13,7 +14,6 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pendingVerification, setPendingVerification] = useState(false)
@@ -47,66 +47,26 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
     }
   }
 
-  async function handleVerify(e: React.FormEvent): Promise<void> {
-    e.preventDefault()
-    if (!signUp) return
-
-    setError('')
-    setIsSubmitting(true)
-
-    try {
-      await signUp.verifications.verifyEmailCode({ code })
-
-      if (signUp.status === 'complete') {
-        await clerk.setActive({ session: signUp.createdSessionId })
-      } else {
-        setError('Verification could not be completed. Please try again.')
-      }
-    } catch (err: unknown) {
-      setError(formatClerkError(err))
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   if (pendingVerification) {
     return (
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">Verify your email</h1>
-          <p className="mt-1 text-sm text-white/50">We sent a code to {email}</p>
-        </div>
-
-        <form onSubmit={handleVerify} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="code" className="text-sm font-medium text-white/70">Verification code</label>
-            <input
-              id="code"
-              type="text"
-              inputMode="numeric"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              required
-              autoFocus
-              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-center text-lg tracking-widest text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
-              placeholder="000000"
-              maxLength={6}
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting || !signUp}
-            className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Verifying...' : 'Verify email'}
-          </button>
-        </form>
-      </div>
+      <VerifyCodeForm
+        title="Verify your email"
+        subtitle={`We sent a code to ${email}`}
+        submitLabel="Verify email"
+        onVerify={async (code) => {
+          if (!signUp) return
+          await signUp.verifications.verifyEmailCode({ code })
+          if (signUp.status === 'complete') {
+            await clerk.setActive({ session: signUp.createdSessionId })
+          } else {
+            throw new Error('Verification could not be completed. Please try again.')
+          }
+        }}
+        onResend={async () => {
+          if (!signUp) return
+          await signUp.verifications.sendEmailCode()
+        }}
+      />
     )
   }
 
