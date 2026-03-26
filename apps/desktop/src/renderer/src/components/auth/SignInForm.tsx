@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSignIn } from '@clerk/react'
+import { useSignIn, useClerk } from '@clerk/react'
 
 interface SignInFormProps {
   onToggleSignUp: () => void
@@ -7,6 +7,7 @@ interface SignInFormProps {
 
 export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElement {
   const { signIn } = useSignIn()
+  const clerk = useClerk()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -31,11 +32,8 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
       }
 
       if (signIn.status === 'complete') {
-        await signIn.finalize({
-          navigate: () => {
-            // No-op — Clerk context update triggers AuthModal auto-close
-          },
-        })
+        // Activate the session — this triggers useUser() to update isSignedIn
+        await clerk.setActive({ session: signIn.createdSessionId })
       } else {
         setError('Sign-in could not be completed. Please try again.')
       }
