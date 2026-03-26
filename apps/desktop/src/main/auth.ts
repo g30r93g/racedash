@@ -1,4 +1,5 @@
 import { BrowserWindow, safeStorage, ipcMain, app } from 'electron'
+import * as http from 'node:http'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import type { AuthSession } from '../types/ipc'
@@ -7,6 +8,7 @@ const SESSION_FILE = 'cloud-session.enc'
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? ''
 const CLERK_ACCOUNTS_URL = import.meta.env.VITE_CLERK_ACCOUNTS_URL ?? 'https://accounts.racedash.io'
+const AUTH_CALLBACK_PORT = 19873
 
 function getSessionPath(): string {
   return path.join(app.getPath('userData'), SESSION_FILE)
@@ -59,6 +61,55 @@ async function fetchProfile(token: string): Promise<AuthSession | null> {
 export function registerAuthHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('racedash:auth:signIn', async () => {
     return new Promise<AuthSession>((resolve, reject) => {
+      let settled = false
+      let server: http.Server | null = null
+
+      const cleanup = (): void => {
+        if (server) {
+          server.close()
+          server = null
+        }
+      }
+
+      // Start a tiny HTTP server to catch the OAuth callback
+      server = http.createServer(async (req, res) => {
+        if (settled) return
+        const url = new URL(req.url ?? '/', `http://localhost:${AUTH_CALLBACK_PORT}`)
+
+        // Clerk redirects here after sign-in with a __clerk_status or session info
+        // Extract the session token from the BrowserWindow cookies
+        try {
+          const cookies = await authWindow.webContents.session.cookies.get({})
+          const sessionCookie = cookies.find(
+            (c) => c.name === '__session' || c.name === '__clerk_db_jwt',
+          )
+
+          if (sessionCookie?.value) {
+            const session = await fetchProfile(sessionCookie.value)
+            if (session) {
+              settled = true
+              saveSession(session)
+              res.writeHead(200, { 'Content-Type': 'text/html' })
+              res.end('<html><body><h2>Signed in! You can close this window.</h2><script>window.close()</script></body></html>')
+              authWindow.close()
+              cleanup()
+              resolve(session)
+              return
+            }
+          }
+
+          res.writeHead(400, { 'Content-Type': 'text/html' })
+          res.end('<html><body><h2>Sign-in failed. Please try again.</h2></body></html>')
+        } catch {
+          res.writeHead(500, { 'Content-Type': 'text/html' })
+          res.end('<html><body><h2>An error occurred. Please try again.</h2></body></html>')
+        }
+      })
+
+      server.listen(AUTH_CALLBACK_PORT)
+
+      const callbackUrl = `http://localhost:${AUTH_CALLBACK_PORT}/callback`
+
       const authWindow = new BrowserWindow({
         width: 500,
         height: 700,
@@ -72,33 +123,15 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
         },
       })
 
-      // Build the Clerk sign-in URL
-      const signInUrl = `${CLERK_ACCOUNTS_URL}/sign-in?redirect_url=racedash://auth/callback`
+      // Build the Clerk sign-in URL with localhost callback
+      const signInUrl = `${CLERK_ACCOUNTS_URL}/sign-in?redirect_url=${encodeURIComponent(callbackUrl)}`
       authWindow.loadURL(signInUrl)
 
-      // Listen for the redirect back to racedash://
-      authWindow.webContents.on('will-navigate', async (_event, url) => {
-        if (url.startsWith('racedash://auth/callback')) {
-          const hashParams = new URLSearchParams(url.split('#')[1] ?? '')
-          const token = hashParams.get('session_token')
-
-          if (token) {
-            const session = await fetchProfile(token)
-            if (session) {
-              saveSession(session)
-              authWindow.close()
-              resolve(session)
-              return
-            }
-          }
-
-          authWindow.close()
-          reject(new Error('Failed to obtain session'))
-        }
-      })
-
       authWindow.on('closed', () => {
-        reject(new Error('Sign-in window was closed'))
+        cleanup()
+        if (!settled) {
+          reject(new Error('Sign-in window was closed'))
+        }
       })
     })
   })
