@@ -7,6 +7,8 @@ interface SignUpFormProps {
 
 export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElement {
   const { signUp, setActive, isLoaded } = useSignUp()
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -23,6 +25,8 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
 
     try {
       await signUp.create({
+        firstName,
+        lastName,
         emailAddress: email,
         password,
       })
@@ -111,6 +115,34 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex gap-3">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label htmlFor="signup-first-name" className="text-sm font-medium text-white/70">First name</label>
+            <input
+              id="signup-first-name"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              autoFocus
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              placeholder="George"
+            />
+          </div>
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label htmlFor="signup-last-name" className="text-sm font-medium text-white/70">Last name</label>
+            <input
+              id="signup-last-name"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              placeholder="Gorzynski"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="signup-email" className="text-sm font-medium text-white/70">Email</label>
           <input
@@ -119,7 +151,6 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            autoFocus
             className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
             placeholder="you@example.com"
           />

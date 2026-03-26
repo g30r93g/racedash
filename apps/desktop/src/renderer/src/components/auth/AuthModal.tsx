@@ -22,7 +22,10 @@ export function AuthModal({ open, onClose }: AuthModalProps): React.ReactElement
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+    >
       <div className="relative rounded-xl border border-white/10 bg-[#1a1a1a] p-8 shadow-2xl">
         <button
           onClick={onClose}
