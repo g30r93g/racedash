@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/loaders/Spinner'
 import { ExternalLink, Check } from 'lucide-react'
 
-interface Step3DriverProps {
+interface DriverStepProps {
   segments: SegmentConfig[]
   selectedDrivers: Record<string, string>
   onChange: (drivers: Record<string, string>) => void
@@ -26,7 +26,7 @@ const PLACEHOLDER_DRIVERS: DriverEntry[] = [
   { kart: '5', name: 'D. Brown' },
 ]
 
-export function Step3Driver({ segments, selectedDrivers, onChange }: Step3DriverProps) {
+export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepProps) {
   const [driversBySegment, setDriversBySegment] = useState<Record<string, DriverEntry[]>>({})
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')

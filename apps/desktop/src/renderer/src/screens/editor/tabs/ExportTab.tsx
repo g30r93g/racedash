@@ -1,12 +1,12 @@
+import { CloudRenderControls } from '@/components/export/CloudRenderControls'
+import { LocalRenderControls } from '@/components/export/LocalRenderControls'
+import { RenderSettings } from '@/components/export/RenderSettings'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { OptionGroup } from '@/components/ui/option-group'
-import { Progress } from '@/components/ui/progress'
 import { hasCloudLicense } from '@/lib/license'
 import React, { useEffect, useRef, useState } from 'react'
-import { Play, Loader2, CloudUpload } from 'lucide-react'
 import type {
   CloudUploadProgressEvent,
   OutputFrameRate,
@@ -37,20 +37,6 @@ function formatTime(date: Date): string {
   return isToday
     ? `Today, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
     : date.toLocaleDateString()
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.ceil(seconds)}s`
-  const m = Math.floor(seconds / 60)
-  const s = Math.ceil(seconds % 60)
-  return s > 0 ? `${m}m ${s}s` : `${m}m`
 }
 
 /** Extract directory from an absolute path without node:path (renderer-safe). */
@@ -289,35 +275,10 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
     cleanupError()
   }
 
-  const resolutionOptions: Array<{ value: OutputResolution; label: string; disabled?: boolean }> = [
-    { value: 'source', label: 'Source' },
-    { value: '1080p', label: '1080p' },
-    { value: '1440p', label: '1440p' },
-    { value: '2160p', label: licensed ? '4K' : '4K ⚡', disabled: !licensed },
-  ]
-  const frameRateOptions: Array<{ value: OutputFrameRate; label: string; disabled?: boolean }> = [
-    { value: 'source', label: 'Source' },
-    { value: '30', label: '30 fps' },
-    { value: '60', label: '60 fps' },
-    { value: '120', label: licensed ? '120 fps' : '120 fps ⚡', disabled: !licensed },
-  ]
-  const renderModeOptions: Array<{ value: RenderMode; label: string }> = [
-    { value: 'overlay+footage', label: 'Overlay + Footage' },
-    { value: 'overlay-only', label: 'Overlay Only' },
-  ]
   const destinationOptions: Array<{ value: RenderDestination; label: string }> = [
     { value: 'local', label: 'Local' },
     { value: 'cloud', label: 'Cloud' },
   ]
-
-  const shimmerStyle: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #6e6e6e 0%, #6e6e6e 25%, #e8e8e8 45%, #ffffff 50%, #e8e8e8 55%, #6e6e6e 75%, #6e6e6e 100%)',
-    backgroundSize: '400% 100%',
-    backgroundClip: 'text',
-    WebkitBackgroundClip: 'text',
-    color: 'transparent',
-    animation: 'shimmer 3.5s linear infinite',
-  }
 
   const isCloudDisabled = !authUser || !licenseTier || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
   const isBusy = rendering || cloudUploading
@@ -343,159 +304,46 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
         <OptionGroup options={destinationOptions} value={renderDestination} onValueChange={setRenderDestination as (v: string) => void} disabled={isBusy} />
       </section>
 
-      {/* OUTPUT RESOLUTION */}
-      <section>
-        <SectionLabel>Output Resolution</SectionLabel>
-        <OptionGroup options={resolutionOptions} value={outputResolution} onValueChange={setOutputResolution} disabled={isBusy} />
-      </section>
+      {/* RENDER SETTINGS */}
+      <RenderSettings
+        outputResolution={outputResolution}
+        setOutputResolution={setOutputResolution}
+        outputFrameRate={outputFrameRate}
+        setOutputFrameRate={setOutputFrameRate}
+        renderMode={renderMode}
+        setRenderMode={setRenderMode}
+        licenseTier={licenseTier}
+        disabled={isBusy}
+      />
 
-      {/* OUTPUT FRAME RATE */}
-      <section>
-        <SectionLabel>Output Frame Rate</SectionLabel>
-        <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} disabled={isBusy} />
-      </section>
-
-      {/* RENDER MODE */}
-      <section>
-        <SectionLabel>Render Mode</SectionLabel>
-        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} disabled={isBusy} />
-      </section>
-
-      {/* OUTPUT PATH (local only) */}
-      {renderDestination === 'local' && (
-        <section>
-          <SectionLabel>Output Path</SectionLabel>
-          <div className="flex items-center gap-2">
-            <Input
-              value={outputPath}
-              onChange={(e) => setOutputPath(e.target.value)}
-              className="min-w-0 flex-1 font-mono text-xs"
-              disabled={isBusy}
-            />
-            <Button variant="outline" size="sm" onClick={handleBrowse} disabled={isBusy}>Browse</Button>
-          </div>
-        </section>
+      {/* DESTINATION-SPECIFIC CONTROLS */}
+      {renderDestination === 'local' ? (
+        <LocalRenderControls
+          outputPath={outputPath}
+          setOutputPath={setOutputPath}
+          onBrowse={handleBrowse}
+          onRender={handleRender}
+          isBusy={isBusy}
+          rendering={rendering}
+          renderPhase={renderPhase}
+          renderProgress={renderProgress}
+          renderFrames={renderFrames}
+          etaSeconds={etaSeconds}
+        />
+      ) : (
+        <CloudRenderControls
+          authUser={authUser}
+          licenseTier={licenseTier}
+          onSignIn={onSignIn}
+          estimatedCost={estimatedCost}
+          creditBalance={creditBalance}
+          isCloudDisabled={isCloudDisabled}
+          onCloudRender={handleCloudRender}
+          cloudUploading={cloudUploading}
+          uploadProgress={uploadProgress}
+          videoInfo={videoInfo}
+        />
       )}
-
-      {/* CLOUD RENDER INFO */}
-      {renderDestination === 'cloud' && (
-        <section>
-          <SectionLabel>Cloud Render</SectionLabel>
-          {!authUser ? (
-            <div className="rounded-md border border-border bg-accent px-3 py-3">
-              <p className="text-xs text-muted-foreground">Sign in to use cloud rendering</p>
-              <Button variant="outline" size="sm" className="mt-2" onClick={onSignIn}>Sign in</Button>
-            </div>
-          ) : !licenseTier ? (
-            <div className="rounded-md border border-border bg-accent px-3 py-3">
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Subscription required:</span> Cloud rendering requires a RaceDash Cloud subscription
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 rounded-md border border-border bg-accent px-3 py-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Estimated cost</span>
-                <span className="text-xs font-medium">{estimatedCost ?? '—'} RC</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Credit balance</span>
-                <span className="text-xs font-medium">{creditBalance ?? '—'} RC remaining</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Concurrent slots</span>
-                <span className="text-xs font-medium">{licenseTier === 'pro' ? 3 : 1}</span>
-              </div>
-              {videoInfo && videoInfo.durationSeconds * 2_500_000 > 500 * 1024 * 1024 && (
-                <p className="text-[10px] text-amber-600">
-                  Large file — upload may take several minutes on a typical connection
-                </p>
-              )}
-              {licenseTier === 'plus' && (
-                <p className="text-[10px] text-muted-foreground">
-                  Upgrade to Pro for 3 concurrent render slots
-                </p>
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* RENDER / SUBMIT BUTTON */}
-      <section>
-        {renderDestination === 'local' ? (
-          <>
-            {!rendering ? (
-              <Button onClick={handleRender} className="w-full gap-2">
-                <Play size={14} aria-hidden="true" />
-                Render
-              </Button>
-            ) : renderProgress === 0 ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="animate-spin h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span>Starting render job</span>
-                </div>
-                <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span style={shimmerStyle}>{renderPhase}</span>
-                  <span>{Math.round(renderProgress * 100)}%</span>
-                </div>
-                <Progress value={Math.round(renderProgress * 100)} />
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  {renderFrames && (
-                    <span>Frame {renderFrames.rendered} of {renderFrames.total}</span>
-                  )}
-                  {etaSeconds != null && (
-                    <span className={renderFrames ? '' : 'ml-auto'}>{formatDuration(etaSeconds)} remaining</span>
-                  )}
-                </div>
-                <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {!cloudUploading ? (
-              <Button onClick={handleCloudRender} className="w-full gap-2" disabled={isCloudDisabled}>
-                <CloudUpload size={14} aria-hidden="true" />
-                Submit cloud render
-              </Button>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {uploadProgress ? (
-                  <>
-                    <div className="flex items-center justify-between text-xs">
-                      <span>Uploading</span>
-                      <span>{Math.round((uploadProgress.bytesUploaded / uploadProgress.bytesTotal) * 100)}%</span>
-                    </div>
-                    <Progress value={Math.round((uploadProgress.bytesUploaded / uploadProgress.bytesTotal) * 100)} />
-                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                      <span>{formatBytes(uploadProgress.uploadSpeed)}/s</span>
-                      <span>{formatBytes(uploadProgress.bytesUploaded)} / {formatBytes(uploadProgress.bytesTotal)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="animate-spin h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    <span>Preparing upload…</span>
-                  </div>
-                )}
-                <Button variant="outline" onClick={() => uploadProgress && window.racedash.cloudRender.cancelUpload(uploadProgress.jobId)}>
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </section>
 
       {/* LAST RENDER */}
       {lastRender && (

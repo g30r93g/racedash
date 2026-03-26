@@ -2,12 +2,12 @@ import type { SegmentConfig } from '../../../../../types/project'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { LapTimeVerifyTable } from '@/components/timing/LapTimeVerifyTable'
 
-interface Step4VerifyProps {
+interface VerifyStepProps {
   segments: SegmentConfig[]
   selectedDrivers: Record<string, string>
 }
 
-export function Step4Verify({ segments, selectedDrivers }: Step4VerifyProps) {
+export function VerifyStep({ segments, selectedDrivers }: VerifyStepProps) {
   if (segments.length === 0) {
     return (
       <div className="flex flex-col gap-5">

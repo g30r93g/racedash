@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import type { SegmentConfig, TimingSource, SessionMode } from '../../../../types/project'
-import { Step2OffsetPicker } from '@/screens/wizard/steps/Step2OffsetPicker'
+import { OffsetPickerStep } from '@/screens/wizard/steps/OffsetPickerStep'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/form-field'
@@ -192,7 +192,7 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
 
   return (
     <>
-      <Step2OffsetPicker
+      <OffsetPickerStep
         open={showOffsetPicker && videoPaths.length > 0}
         onOpenChange={setShowOffsetPicker}
         segmentLabel={label || 'Segment'}

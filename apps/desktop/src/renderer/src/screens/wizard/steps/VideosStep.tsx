@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button'
 import { VideoFileList } from '@/components/video/VideoFileList'
 import { Spinner } from '@/components/loaders/Spinner'
 
-interface Step1VideosProps {
+interface VideosStepProps {
   videoPaths: string[]
   onChange: (paths: string[]) => void
   joining?: boolean
   joinError?: string
 }
 
-export function Step1Videos({ videoPaths, onChange, joining, joinError }: Step1VideosProps) {
+export function VideosStep({ videoPaths, onChange, joining, joinError }: VideosStepProps) {
   async function handleBrowse() {
     const paths = await window.racedash.openFiles({
       title: 'Select video files',

@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import type { ProjectData } from '../../../../../types/project'
 import type { WizardState } from '../ProjectCreationWizard'
 
-interface Step5ConfirmProps {
+interface ConfirmStepProps {
   state: WizardState
   onNameChange: (name: string) => void
   onSaveDirChange: (saveDir: string) => void
@@ -30,7 +30,7 @@ function suggestProjectName(videoPaths: string[]): string {
   return filename.replace(/\.[^.]+$/, '').replace(/_?\d{4}$/, '')
 }
 
-export function Step5Confirm({ state, onNameChange, onSaveDirChange, onComplete }: Step5ConfirmProps) {
+export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }: ConfirmStepProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

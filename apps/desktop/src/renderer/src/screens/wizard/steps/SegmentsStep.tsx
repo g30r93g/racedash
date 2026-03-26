@@ -5,7 +5,7 @@ import { SegmentRow } from '@/components/timing/SegmentRow'
 import { SegmentEmptyState } from '@/components/timing/SegmentEmptyState'
 import { Button } from '@/components/ui/button'
 
-interface Step2SegmentsProps {
+interface SegmentsStepProps {
   videoPaths: string[]
   joinedVideoPath?: string
   segments: SegmentConfig[]
@@ -15,7 +15,7 @@ interface Step2SegmentsProps {
 
 type FormMode = { mode: 'add' } | { mode: 'edit'; index: number }
 
-export function Step2Segments({ videoPaths, joinedVideoPath, segments, onChange, onSubFormChange }: Step2SegmentsProps) {
+export function SegmentsStep({ videoPaths, joinedVideoPath, segments, onChange, onSubFormChange }: SegmentsStepProps) {
   const [formMode, setFormMode] = useState<FormMode | null>(null)
 
   function openForm(mode: FormMode) {

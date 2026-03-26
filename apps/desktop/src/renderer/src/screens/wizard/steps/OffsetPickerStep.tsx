@@ -8,7 +8,7 @@ import {
 import { FrameScrubber } from '@/components/video/FrameScrubber'
 import { useEffect, useState } from 'react'
 
-interface Step2OffsetPickerProps {
+interface OffsetPickerStepProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   segmentLabel: string
@@ -19,14 +19,14 @@ interface Step2OffsetPickerProps {
 
 const DEFAULT_FPS = 30
 
-export function Step2OffsetPicker({
+export function OffsetPickerStep({
   open,
   onOpenChange,
   segmentLabel,
   videoPath,
   initialFrame,
   onConfirm,
-}: Step2OffsetPickerProps) {
+}: OffsetPickerStepProps) {
   const [fps, setFps] = useState(DEFAULT_FPS)
   const [totalFrames, setTotalFrames] = useState(0)
   const [currentFrame, setCurrentFrame] = useState(initialFrame)

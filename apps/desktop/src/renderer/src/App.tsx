@@ -1,4 +1,4 @@
-import { ProjectLibrary } from '@/screens/ProjectLibrary'
+import { ProjectLibrary } from '@/screens/project-library/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
 import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
 import { UpdateBanner } from '@/components/layout/UpdateBanner'
