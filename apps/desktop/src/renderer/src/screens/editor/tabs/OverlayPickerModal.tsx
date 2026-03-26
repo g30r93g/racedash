@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { Check } from 'lucide-react'
 
 export type OverlayType = 'banner' | 'geometric-banner' | 'esports' | 'minimal' | 'modern'
 
@@ -159,9 +160,7 @@ function OverlayCard({
       </div>
       {isSelected && (
         <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+          <Check size={10} strokeWidth={3} />
         </div>
       )}
     </button>

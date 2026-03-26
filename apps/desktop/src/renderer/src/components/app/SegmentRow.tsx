@@ -1,6 +1,7 @@
 import React from 'react'
 import type { SegmentConfig } from '../../../../types/project'
 import { Button } from '@/components/ui/button'
+import { ChevronRight, ChevronDown } from 'lucide-react'
 
 const SOURCE_COLORS: Record<string, string> = {
   alphaTiming: '#3b82f6',
@@ -38,9 +39,7 @@ export function SegmentRow({ segment, index, onEdit, onDelete }: SegmentRowProps
         onClick={() => onEdit(index)}
         aria-label={`Edit ${segment.label}`}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.5 19.213l-4 1 1-4L16.862 3.487z" />
-        </svg>
+        <ChevronRight className="h-4 w-4" aria-hidden="true" />
       </Button>
       <Button
         variant="ghost"
@@ -49,9 +48,7 @@ export function SegmentRow({ segment, index, onEdit, onDelete }: SegmentRowProps
         className="hover:text-destructive"
         aria-label={`Delete ${segment.label}`}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <ChevronDown className="h-4 w-4" aria-hidden="true" />
       </Button>
     </div>
   )

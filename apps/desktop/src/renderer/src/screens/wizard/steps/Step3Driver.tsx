@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/loaders/Spinner'
+import { ExternalLink, Check } from 'lucide-react'
 
 interface Step3DriverProps {
   segments: SegmentConfig[]
@@ -80,9 +81,7 @@ export function Step3Driver({ segments, selectedDrivers, onChange }: Step3Driver
             >
               {seg.label}
               {selectedDrivers[seg.label] && (
-                <svg xmlns="http://www.w3.org/2000/svg" className="ml-1.5 h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <ExternalLink className="ml-1.5 h-3 w-3 text-primary" aria-hidden="true" />
               )}
             </TabsTrigger>
           ))}
@@ -136,9 +135,7 @@ export function Step3Driver({ segments, selectedDrivers, onChange }: Step3Driver
                         {driver.kart}
                       </span>
                       <span className="flex-1 text-sm">{driver.name}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 shrink-0 text-primary transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                      <Check className="h-4 w-4 shrink-0 text-primary" style={{ opacity: isSelected ? 1 : 0 }} aria-hidden="true" />
                     </Button>
                   )
                 })}

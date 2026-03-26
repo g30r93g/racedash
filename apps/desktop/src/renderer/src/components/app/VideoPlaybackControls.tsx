@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { JumpToDialog } from './JumpToDialog'
+import { SkipBack, SkipForward, Play, Pause } from 'lucide-react'
 
 interface VideoPlaybackControlsProps {
   duration: number
@@ -51,14 +52,9 @@ export function VideoPlaybackControls({
               className="h-7 w-7 shrink-0"
             >
               {playing ? (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-                  <rect x="2" y="1" width="3" height="10" />
-                  <rect x="7" y="1" width="3" height="10" />
-                </svg>
+                <SkipBack size={12} />
               ) : (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-                  <polygon points="2,1 11,6 2,11" />
-                </svg>
+                <SkipForward size={12} />
               )}
             </Button>
           </TooltipTrigger>
@@ -85,17 +81,9 @@ export function VideoPlaybackControls({
               className="h-7 w-7 shrink-0"
             >
               {muted ? (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-                  <path d="M2 4.5h2l3-3v11l-3-3H2z" />
-                  <line x1="9" y1="5" x2="13" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <line x1="13" y1="5" x2="9" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                <Play size={14} />
               ) : (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
-                  <path d="M2 4.5h2l3-3v11l-3-3H2z" />
-                  <path d="M9 4.5a3.5 3.5 0 0 1 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M10.5 2.5a6 6 0 0 1 0 9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                <Pause size={14} />
               )}
             </Button>
           </TooltipTrigger>

@@ -6,6 +6,7 @@ import { AuthModal } from '@/components/auth/AuthModal'
 import { AuthModalContext } from '@/hooks/useAuth'
 import React, { useState, useMemo } from 'react'
 import type { ProjectData } from '../../types/project'
+import { Play } from 'lucide-react'
 
 export function App(): React.ReactElement {
   const [project, setProject] = useState<ProjectData | null>(null)
@@ -70,9 +71,7 @@ function EditorSkeleton(): React.ReactElement {
       <div className="flex flex-1 flex-col overflow-hidden border-r border-border">
         <div className="flex flex-1 items-center justify-center bg-[#0a0a0a]">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M7 4.5L16 10L7 15.5V4.5Z" fill="white" fillOpacity="0.15" />
-            </svg>
+            <Play size={20} className="text-white/15" aria-hidden="true" />
           </div>
         </div>
         <div className="h-[140px] shrink-0 border-t border-border bg-[#111111]" />

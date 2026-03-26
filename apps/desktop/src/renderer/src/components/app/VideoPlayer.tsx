@@ -3,6 +3,7 @@ import { Player, type PlayerRef } from '@remotion/player'
 import type { OverlayProps } from '@racedash/core'
 import type { OverlayType } from '@/screens/editor/tabs/OverlayPickerModal'
 import { registry } from '@renderer/registry'
+import { Play } from 'lucide-react'
 
 interface VideoPlayerProps {
   videoPath?: string
@@ -108,9 +109,7 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
           />
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-              <polygon points="14,10 38,24 14,38" fill="#3a3a3a" />
-            </svg>
+            <Play size={48} className="text-white" aria-hidden="true" />
             <span className="text-xs tracking-widest text-muted-foreground">NO VIDEO LOADED</span>
           </div>
         )}
