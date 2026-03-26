@@ -374,11 +374,12 @@ export interface RacedashAPI {
   // Trigger install — renderer → main
   installUpdate(): Promise<void>
 
-  // Auth
+  // Auth — token sync between renderer (Clerk) and main (API calls)
   auth: {
-    signIn(): Promise<AuthSession>
-    signOut(): Promise<void>
-    getSession(): Promise<AuthSession | null>
+    saveSessionToken(token: string): void
+    saveClientToken(token: string): void
+    getClientToken(): Promise<string | null>
+    clearToken(): void
     fetchWithAuth(url: string, init?: FetchWithAuthOptions): Promise<FetchWithAuthResponse>
   }
 

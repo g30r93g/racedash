@@ -102,14 +102,16 @@ const api: RacedashAPI = {
   installUpdate: () =>
     ipcRenderer.invoke('racedash:update-install'),
 
-  // Auth
+  // Auth — token sync between renderer (Clerk) and main (API calls)
   auth: {
-    signIn: () =>
-      ipcRenderer.invoke('racedash:auth:signIn'),
-    signOut: () =>
-      ipcRenderer.invoke('racedash:auth:signOut'),
-    getSession: () =>
-      ipcRenderer.invoke('racedash:auth:getSession'),
+    saveSessionToken: (token: string) =>
+      ipcRenderer.send('racedash:auth:token:save:session', token),
+    saveClientToken: (token: string) =>
+      ipcRenderer.send('racedash:auth:token:save:client', token),
+    getClientToken: () =>
+      ipcRenderer.invoke('racedash:auth:token:get') as Promise<string | null>,
+    clearToken: () =>
+      ipcRenderer.send('racedash:auth:token:clear'),
     fetchWithAuth: (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) =>
       ipcRenderer.invoke('racedash:auth:fetchWithAuth', url, init),
   },
