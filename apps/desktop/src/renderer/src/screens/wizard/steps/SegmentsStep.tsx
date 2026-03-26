@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import React, { useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 import { SegmentForm } from '@/components/timing/SegmentForm'
@@ -74,7 +75,7 @@ export function SegmentsStep({ videoPaths, joinedVideoPath, segments, onChange, 
               />
             ))}
             <Button variant="outline" className="mt-2 w-full border-dashed" onClick={() => openForm({ mode: 'add' })}>
-              + Add another segment
+              <Plus size={14} /> Add another segment
             </Button>
           </>
         )}
@@ -82,7 +83,7 @@ export function SegmentsStep({ videoPaths, joinedVideoPath, segments, onChange, 
 
       {segments.length === 0 && (
         <Button className="self-start" onClick={() => openForm({ mode: 'add' })}>
-          + Add segment
+          <Plus size={14} /> Add segment
         </Button>
       )}
     </div>

@@ -6,7 +6,7 @@ import { ProjectCard } from '@/components/project/ProjectCard'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SpinnerInline } from '@/components/loaders/Spinner'
-import { LayoutGrid, Rows4 } from 'lucide-react'
+import { LayoutGrid, Plus, Rows4 } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import { useAuth } from '../../hooks/useAuth'
@@ -107,7 +107,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                   </Button>
                 </div>
                 <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
-                  + New RaceDash Project
+                  <Plus size={14} /> New RaceDash Project
                 </Button>
               </div>
             </div>
@@ -122,7 +122,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-4 text-center">
                   <p className="text-sm text-white/40">No projects yet. Create your first project.</p>
                   <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
-                    + New RaceDash Project
+                    <Plus size={14} /> New RaceDash Project
                   </Button>
                 </div>
               ) : (

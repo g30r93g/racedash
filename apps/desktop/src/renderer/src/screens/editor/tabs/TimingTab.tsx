@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
@@ -292,7 +293,7 @@ export function TimingTab({
               setShowOverrideForm((v) => !v)
             }}
           >
-            + Add
+            <Plus size={14} /> Add
           </Button>
         </div>
 
