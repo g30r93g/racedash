@@ -43,17 +43,24 @@ function clearSession(): void {
 
 async function fetchProfile(token: string): Promise<AuthSession | null> {
   try {
+    console.log(`[auth] fetchProfile: POST ${API_URL}/api/auth/me (token: ${token.slice(0, 30)}...)`)
     const response = await fetch(`${API_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    if (!response.ok) return null
+    console.log(`[auth] fetchProfile: status=${response.status}`)
+    if (!response.ok) {
+      const body = await response.text()
+      console.log(`[auth] fetchProfile: error body=${body}`)
+      return null
+    }
     const data = await response.json()
     return {
       user: data.user,
       license: data.license,
       token,
     }
-  } catch {
+  } catch (err) {
+    console.log(`[auth] fetchProfile: exception=${err}`)
     return null
   }
 }
@@ -82,9 +89,14 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
           const cookies = await authWindow.webContents.session.cookies.get({})
           console.log('[auth] Cookies after sign-in:', cookies.map((c) => `${c.name}=${c.value.slice(0, 20)}... (domain: ${c.domain})`))
 
-          const sessionCookie = cookies.find(
-            (c) => c.name === '__session' || c.name === '__clerk_db_jwt',
-          )
+          // Prefer __session from the Clerk accounts domain (the actual JWT)
+          const accountsDomain = new URL(CLERK_ACCOUNTS_URL).hostname
+          const sessionCookie =
+            cookies.find((c) => c.name === '__session' && c.domain?.includes(accountsDomain)) ??
+            cookies.find((c) => c.name === '__session') ??
+            cookies.find((c) => c.name === '__clerk_db_jwt')
+
+          console.log(`[auth] Selected cookie: ${sessionCookie?.name} (domain: ${sessionCookie?.domain})`)
 
           if (sessionCookie?.value) {
             const session = await fetchProfile(sessionCookie.value)
