@@ -34,7 +34,8 @@ export function getClerkInstance(): Clerk {
 
   // Intercept outgoing requests: strip cookies (not in a browser context),
   // append _is_native flag, and attach the cached JWT
-  clerkInstance.__unstable__onBeforeRequest(async (requestInit: FapiRequestInit) => {
+  // Renamed from __unstable__ to __internal__ in @clerk/clerk-js v6
+  clerkInstance.__internal_onBeforeRequest(async (requestInit: FapiRequestInit) => {
     requestInit.credentials = 'omit'
     requestInit.url?.searchParams.append('_is_native', '1')
 
@@ -44,8 +45,7 @@ export function getClerkInstance(): Clerk {
 
   // Intercept responses: capture the refreshed JWT from Clerk's API
   // and sync it to the main process for storage
-  // @ts-expect-error __unstable__onAfterResponse is an internal API
-  clerkInstance.__unstable__onAfterResponse(async (_: FapiRequestInit, response: FapiResponse<unknown>) => {
+  clerkInstance.__internal_onAfterResponse(async (_: FapiRequestInit, response: FapiResponse<unknown>) => {
     const authHeader = response.headers.get('authorization')
     if (authHeader) {
       IpcTokenCache.saveToken(CLIENT_TOKEN_KEY, authHeader)
