@@ -1,5 +1,5 @@
 import type { FapiRequestInit, FapiResponse } from '@clerk/clerk-js/dist/types/core/fapiClient'
-import { Clerk } from '@clerk/clerk-js/headless'
+import { Clerk } from '@clerk/clerk-js'
 
 const CLIENT_TOKEN_KEY = '__clerk_client_jwt'
 
