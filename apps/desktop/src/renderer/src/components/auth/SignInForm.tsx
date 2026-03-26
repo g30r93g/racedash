@@ -32,10 +32,12 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
         return
       }
 
+      console.log('[SignInForm] signIn.status:', signIn.status, 'createdSessionId:', signIn.createdSessionId)
+
       if (signIn.status === 'complete') {
         await clerk.setActive({ session: signIn.createdSessionId })
       } else {
-        setError('Sign-in could not be completed. Please try again.')
+        setError(`Sign-in requires additional steps (status: ${signIn.status ?? 'unknown'}). Please try again.`)
       }
     } catch (err: unknown) {
       setError(formatClerkError(err))
