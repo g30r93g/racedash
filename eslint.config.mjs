@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 
 export default tseslint.config(
   // Ignore build artefacts and generated files
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/out/**'] },
+  { ignores: ['**/dist/**', '**/node_modules/**', '**/out/**', '**/.next/**', '**/coverage/**'] },
 
   // Base TypeScript rules for all source files
   ...tseslint.configs.recommended,
