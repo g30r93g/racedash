@@ -8,6 +8,7 @@ import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayProps } from '@racedash/core'
 import { useAuth } from '../../hooks/useAuth'
+import { useLicense } from '../../hooks/useLicense'
 
 function parsePositionString(pos: string): number {
   return parseInt(pos.replace(/^P/i, ''), 10)
@@ -55,6 +56,8 @@ interface EditorProps {
 
 export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const { user, license: authLicense, isSignedIn, signIn } = useAuth()
+  const { license: liveLicense } = useLicense(isSignedIn)
+  const displayLicense = liveLicense ?? authLicense
   const [projectState, setProjectState] = useState(project)
   const [configRevision, setConfigRevision] = useState(0)
   const [timingRevision, setTimingRevision] = useState(0)
@@ -291,7 +294,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           timingError={timingError}
           onProjectUpdate={handleProjectUpdate}
           authUser={user ? { name: user.name } : null}
-          licenseTier={authLicense?.tier ?? null}
+          licenseTier={displayLicense?.tier ?? null}
           onSignIn={signIn}
         />
       </div>

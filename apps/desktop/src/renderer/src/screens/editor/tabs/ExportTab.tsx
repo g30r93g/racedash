@@ -79,6 +79,7 @@ interface LastRender {
 }
 
 export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, authUser, licenseTier, onSignIn }: ExportTabProps): React.ReactElement {
+  const hasCloudLicense = licenseTier === 'plus' || licenseTier === 'pro'
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -92,7 +93,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
 
   // Cloud render state
-  const [renderDestination, setRenderDestination] = useState<RenderDestination>('local')
+  const [renderDestination, setRenderDestination] = useState<RenderDestination>(hasCloudLicense ? 'cloud' : 'local')
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const [cloudUploading, setCloudUploading] = useState(false)
@@ -291,13 +292,13 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
     { value: 'source', label: 'Source' },
     { value: '1080p', label: '1080p' },
     { value: '1440p', label: '1440p' },
-    { value: '2160p', label: '4K ⚡', disabled: true },
+    { value: '2160p', label: hasCloudLicense ? '4K' : '4K ⚡', disabled: !hasCloudLicense },
   ]
   const frameRateOptions: Array<{ value: OutputFrameRate; label: string; disabled?: boolean }> = [
     { value: 'source', label: 'Source' },
     { value: '30', label: '30 fps' },
     { value: '60', label: '60 fps' },
-    { value: '120', label: '120 fps ⚡', disabled: true },
+    { value: '120', label: hasCloudLicense ? '120 fps' : '120 fps ⚡', disabled: !hasCloudLicense },
   ]
   const renderModeOptions: Array<{ value: RenderMode; label: string }> = [
     { value: 'overlay+footage', label: 'Overlay + Footage' },
