@@ -80,6 +80,8 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
         // Extract the session token from the BrowserWindow cookies
         try {
           const cookies = await authWindow.webContents.session.cookies.get({})
+          console.log('[auth] Cookies after sign-in:', cookies.map((c) => `${c.name}=${c.value.slice(0, 20)}... (domain: ${c.domain})`))
+
           const sessionCookie = cookies.find(
             (c) => c.name === '__session' || c.name === '__clerk_db_jwt',
           )
@@ -98,6 +100,7 @@ export function registerAuthHandlers(mainWindow: BrowserWindow): void {
             }
           }
 
+          console.log('[auth] No session cookie found. Available cookie names:', cookies.map((c) => c.name))
           res.writeHead(400, { 'Content-Type': 'text/html' })
           res.end('<html><body><h2>Sign-in failed. Please try again.</h2></body></html>')
         } catch {
