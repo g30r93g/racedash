@@ -32,19 +32,9 @@ export function getClerkInstance(): Clerk {
 
   clerkInstance = new Clerk(publishableKey)
 
-  // Intercept outgoing requests: strip cookies (not in a browser context),
-  // append _is_native flag, and attach the cached JWT
-  // Renamed from __unstable__ to __internal__ in @clerk/clerk-js v6
-  clerkInstance.__internal_onBeforeRequest(async (requestInit: FapiRequestInit) => {
-    requestInit.credentials = 'omit'
-    requestInit.url?.searchParams.append('_is_native', '1')
-
-    const jwt = await IpcTokenCache.getToken(CLIENT_TOKEN_KEY)
-    ;(requestInit.headers as Headers).set('authorization', jwt || '')
-  })
-
-  // Intercept responses: capture the refreshed JWT from Clerk's API
-  // and sync it to the main process for storage
+  // Electron's renderer is a browser context — Clerk handles auth via
+  // cookies and Origin header natively. We only intercept responses to
+  // capture the client JWT for persistence across app restarts via IPC.
   clerkInstance.__internal_onAfterResponse(async (_: FapiRequestInit, response: FapiResponse<unknown>) => {
     const authHeader = response.headers.get('authorization')
     if (authHeader) {
