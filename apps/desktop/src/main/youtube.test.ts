@@ -142,5 +142,68 @@ describe('youtube handlers', () => {
       ).rejects.toThrow('Invalid job ID format')
       expect(fetchSpy).not.toHaveBeenCalled()
     })
+
+    it('upload sends POST request and returns result', async () => {
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ socialUploadId: 'su-1', status: 'queued', rcCost: 5 }),
+      })
+
+      const handler = handlers.get('racedash:youtube:upload')!
+      const result = await handler({}, '12345678-1234-1234-1234-123456789abc', { title: 'My Video' })
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.example.com/api/jobs/12345678-1234-1234-1234-123456789abc/social-upload',
+        expect.objectContaining({ method: 'POST' }),
+      )
+      expect(result).toEqual({ socialUploadId: 'su-1', status: 'queued', rcCost: 5 })
+    })
+
+    it('upload throws on non-ok response', async () => {
+      fetchSpy.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { code: 'INVALID', message: 'Bad request' } }),
+      })
+
+      const handler = handlers.get('racedash:youtube:upload')!
+      await expect(
+        handler({}, '12345678-1234-1234-1234-123456789abc', { title: 'test' }),
+      ).rejects.toThrow('Bad request')
+    })
+
+    it('disconnect calls DELETE on the API', async () => {
+      fetchSpy.mockResolvedValueOnce({ ok: true })
+
+      const handler = handlers.get('racedash:youtube:disconnect')!
+      await handler()
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.example.com/api/auth/youtube/disconnect',
+        expect.objectContaining({ method: 'DELETE' }),
+      )
+    })
+
+    // NOTE: connect flow with BrowserWindow OAuth requires Electron runtime.
+    // The connect handler's window lifecycle is tested in integration tests.
+
+    it('connect throws when API returns error', async () => {
+      fetchSpy.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: { message: 'License required' } }),
+      })
+
+      const handler = handlers.get('racedash:youtube:connect')!
+      await expect(handler()).rejects.toThrow('License required')
+    })
+
+    it('getUploads returns empty on non-ok response', async () => {
+      fetchSpy.mockResolvedValue({ ok: false })
+
+      const handler = handlers.get('racedash:youtube:getUploads')!
+      const result = await handler({}, 'some-job-id')
+      expect(result).toEqual([])
+    })
   })
 })
