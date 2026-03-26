@@ -80,6 +80,10 @@ export async function cleanupEmptyRacedashTempDirs(
     }))
 }
 
+// Disable third-party cookie blocking — Clerk requires cross-origin cookies
+// (.clerk.accounts.dev cookies set from localhost origin)
+app.commandLine.appendSwitch('disable-features', 'ThirdPartyCookieBlocking')
+
 app.whenReady().then(() => {
   configureBundledFfmpegPath()
 
