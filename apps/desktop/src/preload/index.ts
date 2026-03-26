@@ -105,7 +105,7 @@ const api: RacedashAPI = {
   // Auth — token sync between renderer (Clerk) and main (API calls)
   auth: {
     saveSessionToken: (token: string) =>
-      ipcRenderer.send('racedash:auth:token:save:session', token),
+      ipcRenderer.invoke('racedash:auth:token:save:session', token),
     saveClientToken: (token: string) =>
       ipcRenderer.send('racedash:auth:token:save:client', token),
     getClientToken: () =>

@@ -376,7 +376,7 @@ export interface RacedashAPI {
 
   // Auth — token sync between renderer (Clerk) and main (API calls)
   auth: {
-    saveSessionToken(token: string): void
+    saveSessionToken(token: string): Promise<void>
     saveClientToken(token: string): void
     getClientToken(): Promise<string | null>
     clearToken(): void

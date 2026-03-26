@@ -40,8 +40,8 @@ export function getSessionToken(): string | null {
 }
 
 export function registerTokenHandlers(mainWindow: BrowserWindow): void {
-  // Renderer pushes session JWT (for API calls)
-  ipcMain.on('racedash:auth:token:save:session', (_event, token: string) => {
+  // Renderer pushes session JWT (for API calls) — uses handle so renderer can await
+  ipcMain.handle('racedash:auth:token:save:session', (_event, token: string) => {
     sessionToken = token
   })
 

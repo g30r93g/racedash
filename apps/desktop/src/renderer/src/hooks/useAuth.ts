@@ -38,7 +38,7 @@ export function useAuth(): UseAuthReturn {
         if (token && !cancelled) {
           // The client token is synced by the Clerk interceptors in lib/clerk.ts
           // Here we sync the session JWT that main process uses for API calls
-          window.racedash.auth.saveSessionToken(token)
+          await window.racedash.auth.saveSessionToken(token)
         }
       } catch {
         // Token fetch failed — will retry on next render
@@ -71,7 +71,7 @@ export function useAuth(): UseAuthReturn {
         if (!token || cancelled) return
 
         // Ensure main process has the token before making the API call
-        window.racedash.auth.saveSessionToken(token)
+        await window.racedash.auth.saveSessionToken(token)
 
         console.log('[useAuth] fetching profile from /api/auth/me')
         const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth(
