@@ -156,7 +156,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 </div>
                 <AccountDetails
                   user={user}
-                  license={authLicense}
+                  license={license ?? authLicense}
                   isLoading={authLoading}
                   creditBalance={balance}
                   youtubeStatus={youtubeStatus}
