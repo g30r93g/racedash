@@ -73,9 +73,12 @@ export function useAuth(): UseAuthReturn {
         // Ensure main process has the token before making the API call
         window.racedash.auth.saveSessionToken(token)
 
+        console.log('[useAuth] fetching profile from /api/auth/me')
         const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth(
           '/api/auth/me',
         )
+
+        console.log('[useAuth] profile response:', response.status, response.body.slice(0, 200))
 
         if (cancelled) return
 
@@ -83,9 +86,13 @@ export function useAuth(): UseAuthReturn {
           const data = JSON.parse(response.body)
           setProfile({ user: data.user, license: data.license })
         } else {
+          // API returned non-200 — user may not exist in DB yet (webhook pending)
+          // Still show as signed in via Clerk, just without profile data
+          console.warn('[useAuth] /api/auth/me returned', response.status)
           setProfile(null)
         }
-      } catch {
+      } catch (err) {
+        console.error('[useAuth] fetchProfile error:', err)
         if (!cancelled) setProfile(null)
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -111,7 +118,7 @@ export function useAuth(): UseAuthReturn {
   return {
     user: profile?.user ?? null,
     license: profile?.license ?? null,
-    isSignedIn: isSignedIn === true && profile !== null,
+    isSignedIn: isSignedIn === true,
     isLoading: isLoading || !userLoaded,
     signIn,
     signOut,
