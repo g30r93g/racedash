@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Pause, Play } from 'lucide-react'
+import React, { useState } from 'react'
 import { JumpToDialog } from '../timing/JumpToDialog'
-import { SkipBack, SkipForward, Play, Pause } from 'lucide-react'
 
 interface VideoPlaybackControlsProps {
   duration: number
@@ -52,9 +52,9 @@ export function VideoPlaybackControls({
               className="h-7 w-7 shrink-0"
             >
               {playing ? (
-                <SkipBack size={12} />
+                <Pause size={12} />
               ) : (
-                <SkipForward size={12} />
+                <Play size={12} />
               )}
             </Button>
           </TooltipTrigger>
