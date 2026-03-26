@@ -2,6 +2,7 @@ import { ProjectLibrary } from '@/screens/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
 import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
 import { UpdateBanner } from '@/components/UpdateBanner'
+import { AuthGuard } from '@/components/auth/AuthGuard'
 import React, { useState } from 'react'
 import type { ProjectData } from '../../types/project'
 
@@ -30,21 +31,23 @@ export function App(): React.ReactElement {
 
       {/* Screen content — fills remaining height */}
       <div className="relative flex flex-1 overflow-hidden">
-        {project ? (
-          <Editor project={project} onClose={() => setProject(null)} />
-        ) : (
-          <>
-            {/* Editor skeleton visible behind the library overlay */}
-            <EditorSkeleton />
-            {/* Project library floats over the skeleton */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
-              <ProjectLibrary
-                onOpen={setProject}
-                onNew={() => setWizardOpen(true)}
-              />
-            </div>
-          </>
-        )}
+        <AuthGuard>
+          {project ? (
+            <Editor project={project} onClose={() => setProject(null)} />
+          ) : (
+            <>
+              {/* Editor skeleton visible behind the library overlay */}
+              <EditorSkeleton />
+              {/* Project library floats over the skeleton */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 p-8 backdrop-blur-sm">
+                <ProjectLibrary
+                  onOpen={setProject}
+                  onNew={() => setWizardOpen(true)}
+                />
+              </div>
+            </>
+          )}
+        </AuthGuard>
       </div>
       {wizardOpen && (
         <ProjectCreationWizard
