@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useSession } from '@clerk/react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +38,7 @@ interface CloudRendersListProps {
 }
 
 export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: CloudRendersListProps): React.ReactElement {
+  const { session } = useSession()
   const [jobs, setJobs] = useState<CloudRenderJob[]>([])
   const [loading, setLoading] = useState(true)
   const sseRefs = useRef<Map<string, EventSource>>(new Map())
@@ -82,9 +84,9 @@ export function CloudRendersList({ authUser, youtubeConnected, creditBalance }: 
 
       window.racedash.cloudRender.getStatusUrl(job.id).then((url) => {
         // Get auth token for SSE — use fetchWithAuth to construct the URL
-        window.racedash.auth.getSession().then((session) => {
-          if (!session) return
-          const sseUrl = `${url}?token=${encodeURIComponent(session.token)}`
+        session?.getToken().then((token) => {
+          if (!token) return
+          const sseUrl = `${url}?token=${encodeURIComponent(token)}`
           const source = new EventSource(sseUrl)
 
           source.onmessage = (event) => {

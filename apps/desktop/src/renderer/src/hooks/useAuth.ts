@@ -1,55 +1,109 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { AuthSession, AuthUser, AuthLicense } from '../../../types/ipc'
+import { useUser, useSession, useClerk } from '@clerk/react'
+import type { AuthUser, AuthLicense, FetchWithAuthResponse } from '../../../types/ipc'
 
 interface UseAuthReturn {
   user: AuthUser | null
   license: AuthLicense | null
   isSignedIn: boolean
   isLoading: boolean
-  signIn: () => Promise<void>
+  signIn: () => void
   signOut: () => Promise<void>
 }
 
 export function useAuth(): UseAuthReturn {
-  const [session, setSession] = useState<AuthSession | null>(null)
+  const { user: clerkUser, isSignedIn, isLoaded: userLoaded } = useUser()
+  const { session } = useSession()
+  const clerk = useClerk()
+  const [profile, setProfile] = useState<{ user: AuthUser; license: AuthLicense | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Restore session on mount
+  // Sync session token to main process whenever it changes
   useEffect(() => {
-    window.racedash.auth.getSession().then((restored) => {
-      setSession(restored)
-      setIsLoading(false)
-    }).catch(() => {
-      setIsLoading(false)
-    })
+    if (!session) return
 
-    // Listen for session expiry
-    const cleanup = window.racedash.onAuthSessionExpired(() => {
-      setSession(null)
-    })
+    let cancelled = false
 
-    return cleanup
-  }, [])
-
-  const signIn = useCallback(async () => {
-    try {
-      const newSession = await window.racedash.auth.signIn()
-      setSession(newSession)
-    } catch {
-      // User closed the window or auth failed — do nothing
+    async function syncToken(): Promise<void> {
+      try {
+        const token = await session!.getToken()
+        if (token && !cancelled) {
+          // The client token is synced by the Clerk interceptors in lib/clerk.ts
+          // Here we sync the session JWT that main process uses for API calls
+          window.racedash.auth.saveSessionToken(token)
+        }
+      } catch {
+        // Token fetch failed — will retry on next render
+      }
     }
+
+    syncToken()
+
+    // Re-sync every 50 seconds (session JWTs expire in ~60s)
+    const interval = setInterval(syncToken, 50_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [session])
+
+  // Fetch user profile + license from API after sign-in
+  useEffect(() => {
+    if (!isSignedIn || !session) {
+      setProfile(null)
+      setIsLoading(!userLoaded)
+      return
+    }
+
+    let cancelled = false
+
+    async function fetchProfile(): Promise<void> {
+      try {
+        const token = await session!.getToken()
+        if (!token || cancelled) return
+
+        // Ensure main process has the token before making the API call
+        window.racedash.auth.saveSessionToken(token)
+
+        const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth(
+          '/api/auth/me',
+        )
+
+        if (cancelled) return
+
+        if (response.status === 200) {
+          const data = JSON.parse(response.body)
+          setProfile({ user: data.user, license: data.license })
+        } else {
+          setProfile(null)
+        }
+      } catch {
+        if (!cancelled) setProfile(null)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    fetchProfile()
+    return () => { cancelled = true }
+  }, [isSignedIn, session, clerkUser?.id])
+
+  const signIn = useCallback(() => {
+    // AuthGuard handles showing the sign-in form — this is a no-op
+    // Kept for interface compatibility with components that call signIn()
   }, [])
 
   const signOut = useCallback(async () => {
-    await window.racedash.auth.signOut()
-    setSession(null)
-  }, [])
+    await clerk.signOut()
+    window.racedash.auth.clearToken()
+    setProfile(null)
+  }, [clerk])
 
   return {
-    user: session?.user ?? null,
-    license: session?.license ?? null,
-    isSignedIn: session !== null,
-    isLoading,
+    user: profile?.user ?? null,
+    license: profile?.license ?? null,
+    isSignedIn: isSignedIn === true && profile !== null,
+    isLoading: isLoading || !userLoaded,
     signIn,
     signOut,
   }
