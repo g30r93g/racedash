@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/react'
+import { X } from 'lucide-react'
 import { SignInForm } from './SignInForm'
 import { SignUpForm } from './SignUpForm'
 
@@ -32,9 +33,7 @@ export function AuthModal({ open, onClose }: AuthModalProps): React.ReactElement
           className="absolute right-3 top-3 text-white/40 hover:text-white/70"
           aria-label="Close"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <X size={16} />
         </button>
         {showSignUp ? (
           <SignUpForm onToggleSignIn={() => setShowSignUp(false)} />
