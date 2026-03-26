@@ -27,7 +27,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   const [activeTab, setActiveTab] = useState<LibraryTab>('projects')
   const [view, setView] = useState<ProjectView>('tile')
 
-  const { user, license: authLicense, isSignedIn, signIn, signOut } = useAuth()
+  const { user, license: authLicense, isSignedIn, isLoading: authLoading, signIn, signOut } = useAuth()
   const { license } = useLicense(isSignedIn)
   const { balance, fetchHistory } = useCredits(isSignedIn)
   const { status: youtubeStatus, connect: youtubeConnect, disconnect: youtubeDisconnect } = useYouTube()
@@ -157,6 +157,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                 <AccountDetails
                   user={user}
                   license={authLicense}
+                  isLoading={authLoading}
                   creditBalance={balance}
                   youtubeStatus={youtubeStatus}
                   onSignIn={signIn}

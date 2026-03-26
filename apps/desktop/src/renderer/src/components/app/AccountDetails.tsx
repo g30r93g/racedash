@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/loaders/Spinner'
 import React, { useState } from 'react'
 import { InfoRow } from './InfoRow'
 import { SectionLabel } from './SectionLabel'
@@ -20,6 +21,7 @@ function formatDate(iso: string): string {
 interface AccountDetailsProps {
   user: AuthUser | null
   license: AuthLicense | null
+  isLoading: boolean
   creditBalance: CreditBalanceType | null
   youtubeStatus: YouTubeConnectionStatus
   onSignIn: () => void
@@ -35,6 +37,7 @@ interface AccountDetailsProps {
 export function AccountDetails({
   user,
   license,
+  isLoading,
   creditBalance,
   youtubeStatus,
   onSignIn,
@@ -47,6 +50,16 @@ export function AccountDetails({
   fetchCreditHistory,
 }: AccountDetailsProps): React.ReactElement {
   const [showHistory, setShowHistory] = useState(false)
+
+  // Loading state — Clerk session exists, waiting for profile from API
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <Spinner size="1.5rem" label="Loading account" />
+        <p className="text-sm text-muted-foreground">Loading account...</p>
+      </div>
+    )
+  }
 
   // Signed-out state
   if (!user) {
