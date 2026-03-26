@@ -43,7 +43,7 @@ async function waitForRateLimit(): Promise<void> {
     // Wait with exponential backoff: 1s, 2s, 4s, 8s... capped at 30s
     const delay = Math.min(1000 * 2 ** backoffAttempt, 30_000)
     backoffAttempt++
-    console.debug(`Rate limit hit, waiting ${delay}ms before retrying...`)
+    console.debug(`[scraper] Rate limit hit, waiting ${delay}ms before retrying...`)
     await new Promise(r => setTimeout(r, delay))
   }
 }
