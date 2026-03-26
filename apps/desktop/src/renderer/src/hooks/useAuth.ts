@@ -34,7 +34,7 @@ export function useAuth(): UseAuthReturn {
 
     async function syncToken(): Promise<void> {
       try {
-        const token = await session!.getToken()
+        const token = await session!.getToken({ skipCache: true })
         if (token && !cancelled) {
           // The client token is synced by the Clerk interceptors in lib/clerk.ts
           // Here we sync the session JWT that main process uses for API calls
@@ -67,7 +67,7 @@ export function useAuth(): UseAuthReturn {
 
     async function fetchProfile(): Promise<void> {
       try {
-        const token = await session!.getToken()
+        const token = await session!.getToken({ skipCache: true })
         if (!token || cancelled) return
 
         // Ensure main process has the token before making the API call
