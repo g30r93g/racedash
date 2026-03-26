@@ -97,7 +97,7 @@ function ask(rl: readline.Interface, question: string): Promise<string> {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const envPath = path.join(ROOT, 'apps', 'api', '.env.local')
+  const envPath = path.join(ROOT, 'apps', 'api', '.env')
   const existing = loadExistingEnv(envPath)
   const result: Record<string, string> = {}
 
