@@ -26,18 +26,31 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
+    "@vitest/coverage-v8": "^4.1.1",
     "eslint": "^10.0.3",
     "eslint-plugin-react-hooks": "^7.0.1",
     "tsx": "^4.7.0",
     "turbo": "^2.3.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.57.0",
-    "@vitest/coverage-v8": "^4.1.1",
     "vitest": "^4.1.1"
   },
   "pnpm": {
     "overrides": {
       "vitest": "^4.1.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@clerk/shared",
+      "browser-tabs-lock",
+      "bufferutil",
+      "core-js",
+      "electron",
+      "esbuild",
+      "ffmpeg-static",
+      "msw",
+      "sharp",
+      "unicode-animations",
+      "utf-8-validate"
+    ]
   }
 }
