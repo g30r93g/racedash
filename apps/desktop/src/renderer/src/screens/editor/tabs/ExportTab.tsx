@@ -373,18 +373,6 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType, 
           </div>
         </section>
       )}
-
-      {/* RaceDash Cloud footer */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
-        <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
-        {authUser ? (
-          <span className="text-xs text-foreground">{authUser.name}</span>
-        ) : (
-          <Button variant="ghost" size="sm" onClick={onSignIn}>
-            Sign in
-          </Button>
-        )}
-      </div>
     </div>
   )
 }
