@@ -21,29 +21,35 @@ const USER_AGENT =
 
 export const MAX_REQUESTS_PER_WINDOW = 10
 export const WINDOW_MS = 60_000 // 1 minute
-const requestTimestamps: number[] = []
+const requestTimestamps = new Map<string, number[]>()
 
 /** @internal Clear rate-limit state between tests. */
 export function _resetRateLimit(): void {
-  requestTimestamps.length = 0
+  requestTimestamps.clear()
 }
 
-async function waitForRateLimit(): Promise<void> {
+async function waitForRateLimit(url: string): Promise<void> {
   let backoffAttempt = 0
+  let timestamps = requestTimestamps.get(url)
+  if (!timestamps) {
+    timestamps = []
+    requestTimestamps.set(url, timestamps)
+  }
+
   while (true) {
     const now = Date.now()
     // Purge timestamps outside the current window
-    while (requestTimestamps.length > 0 && requestTimestamps[0] <= now - WINDOW_MS) {
-      requestTimestamps.shift()
+    while (timestamps.length > 0 && timestamps[0] <= now - WINDOW_MS) {
+      timestamps.shift()
     }
-    if (requestTimestamps.length < MAX_REQUESTS_PER_WINDOW) {
-      requestTimestamps.push(now)
+    if (timestamps.length < MAX_REQUESTS_PER_WINDOW) {
+      timestamps.push(now)
       return
     }
     // Wait with exponential backoff: 1s, 2s, 4s, 8s... capped at 30s
     const delay = Math.min(1000 * 2 ** backoffAttempt, 30_000)
     backoffAttempt++
-    console.debug(`[scraper] Rate limit hit, waiting ${delay}ms before retrying...`)
+    console.debug(`[scraper] Rate limit hit for ${url}, waiting ${delay}ms before retrying...`)
     await new Promise(r => setTimeout(r, delay))
   }
 }
@@ -66,7 +72,7 @@ async function fetchTab(
   let lastError: unknown
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      await waitForRateLimit()
+      await waitForRateLimit(resolved)
       const res = await fetch(resolved, {
         headers: { 'User-Agent': USER_AGENT },
         signal: AbortSignal.timeout(timeoutMs),
