@@ -6,9 +6,7 @@ interface SignInFormProps {
 }
 
 export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElement {
-  const { signIn, setActive, isLoaded } = useSignIn()
-  const clerkReady = isLoaded !== false
-  console.log('[SignInForm] isLoaded:', isLoaded, 'signIn:', !!signIn, 'clerkReady:', clerkReady)
+  const { signIn } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,13 +20,22 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
     setIsSubmitting(true)
 
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const { error: signInError } = await signIn.password({
+        emailAddress: email,
         password,
       })
 
-      if (result.status === 'complete' && result.createdSessionId) {
-        await setActive({ session: result.createdSessionId })
+      if (signInError) {
+        setError(signInError.longMessage ?? signInError.message ?? 'Sign-in failed')
+        return
+      }
+
+      if (signIn.status === 'complete') {
+        await signIn.finalize({
+          navigate: () => {
+            // No-op — Clerk context update triggers AuthModal auto-close
+          },
+        })
       } else {
         setError('Sign-in could not be completed. Please try again.')
       }
@@ -58,7 +65,7 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
             onChange={(e) => setEmail(e.target.value)}
             required
             autoFocus
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
             placeholder="you@example.com"
           />
         </div>
@@ -71,7 +78,7 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
             placeholder="Your password"
           />
         </div>

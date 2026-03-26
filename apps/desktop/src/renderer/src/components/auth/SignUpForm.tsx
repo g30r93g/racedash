@@ -6,7 +6,7 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElement {
-  const { signUp, setActive, isLoaded } = useSignUp()
+  const { signUp } = useSignUp()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -24,14 +24,19 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
     setIsSubmitting(true)
 
     try {
-      await signUp.create({
+      const { error: signUpError } = await signUp.password({
         firstName,
         lastName,
         emailAddress: email,
         password,
       })
 
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+      if (signUpError) {
+        setError(signUpError.longMessage ?? signUpError.message ?? 'Sign-up failed')
+        return
+      }
+
+      await signUp.verifications.sendEmailCode()
       setPendingVerification(true)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sign-up failed'
@@ -50,10 +55,14 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
     setIsSubmitting(true)
 
     try {
-      const result = await signUp.attemptEmailAddressVerification({ code })
+      await signUp.verifications.verifyEmailCode({ code })
 
-      if (result.status === 'complete' && result.createdSessionId) {
-        await setActive({ session: result.createdSessionId })
+      if (signUp.status === 'complete') {
+        await signUp.finalize({
+          navigate: () => {
+            // No-op — Clerk context update triggers AuthModal auto-close
+          },
+        })
       } else {
         setError('Verification could not be completed. Please try again.')
       }
@@ -85,7 +94,7 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
               onChange={(e) => setCode(e.target.value)}
               required
               autoFocus
-              className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-center text-lg tracking-widest text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-center text-lg tracking-widest text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
               placeholder="000000"
               maxLength={6}
             />
@@ -172,6 +181,9 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
         {error && (
           <p className="text-sm text-red-400">{error}</p>
         )}
+
+        {/* CAPTCHA placeholder — Clerk renders Cloudflare Turnstile here */}
+        <div id="clerk-captcha" data-cl-theme="dark" data-cl-size="compact" />
 
         <button
           type="submit"
