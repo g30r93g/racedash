@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatClerkError } from './clerk-errors'
+import { Button } from '@/components/ui/button'
 
 interface VerifyCodeFormProps {
   title: string
@@ -62,17 +63,18 @@ export function VerifyCodeForm({
           <p className="text-sm text-red-400">{error}</p>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+          variant="default"
         >
           {isSubmitting ? 'Verifying...' : submitLabel}
-        </button>
+        </Button>
 
         {onResend && (
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={async () => {
               try {
                 await onResend()
@@ -81,10 +83,10 @@ export function VerifyCodeForm({
                 setError(formatClerkError(err))
               }
             }}
-            className="text-sm text-white/50 underline underline-offset-2 hover:text-white/70"
+            className="h-auto p-0 text-sm text-white/50 hover:text-white/70"
           >
             Resend code
-          </button>
+          </Button>
         )}
       </form>
     </div>

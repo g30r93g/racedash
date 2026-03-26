@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSignIn, useClerk } from '@clerk/react'
 import { formatClerkError } from './clerk-errors'
 import { VerifyCodeForm } from './VerifyCodeForm'
+import { Button } from '@/components/ui/button'
 
 interface SignInFormProps {
   onToggleSignUp: () => void
@@ -111,20 +112,20 @@ export function SignInForm({ onToggleSignUp }: SignInFormProps): React.ReactElem
           <p className="text-sm text-red-400">{error}</p>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || !signIn}
-          className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+          variant="default"
         >
           {isSubmitting ? 'Signing in...' : 'Sign in'}
-        </button>
+        </Button>
       </form>
 
       <p className="text-center text-sm text-white/50">
         Don&apos;t have an account?{' '}
-        <button onClick={onToggleSignUp} className="text-white underline underline-offset-2 hover:text-white/80">
+        <Button variant="link" onClick={onToggleSignUp} className="h-auto p-0 text-white hover:text-white/80">
           Sign up
-        </button>
+        </Button>
       </p>
     </div>
   )

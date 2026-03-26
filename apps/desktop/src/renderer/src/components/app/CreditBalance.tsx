@@ -83,12 +83,13 @@ export function CreditBalance({ balance, onTopUp, onViewHistory }: CreditBalance
         </Button>
       </div>
 
-      <button
-        className="mt-2 w-full text-center text-xs text-primary hover:underline"
+      <Button
+        variant="link"
         onClick={onViewHistory}
+        className="mt-2 h-auto w-full p-0 text-xs text-primary"
       >
         Purchase history
-      </button>
+      </Button>
     </section>
   )
 }

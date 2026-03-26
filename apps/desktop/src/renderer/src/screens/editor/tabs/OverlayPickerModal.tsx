@@ -146,10 +146,11 @@ function OverlayCard({
   onSelect: () => void
 }): React.ReactElement {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onSelect}
       className={cn(
-        'relative flex flex-col overflow-hidden rounded-lg border-2 bg-accent text-left transition-colors',
+        'relative flex h-auto flex-col overflow-hidden rounded-lg border-2 bg-accent p-0 text-left transition-colors',
         isSelected ? 'border-primary' : 'border-transparent hover:border-border'
       )}
     >
@@ -163,6 +164,6 @@ function OverlayCard({
           <Check size={10} strokeWidth={3} />
         </div>
       )}
-    </button>
+    </Button>
   )
 }

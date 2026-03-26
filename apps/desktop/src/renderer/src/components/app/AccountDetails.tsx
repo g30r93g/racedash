@@ -176,9 +176,9 @@ export function AccountDetails({
 
       <section>
         <SectionLabel>Security</SectionLabel>
-        <button className="w-full rounded-md border border-border bg-accent px-3 py-2 text-left text-sm text-foreground hover:bg-accent/80">
+        <Button variant="outline" className="w-full justify-start text-sm">
           Change password ›
-        </button>
+        </Button>
       </section>
 
       <Separator />

@@ -105,14 +105,15 @@ export function Step5Confirm({ state, onNameChange, onSaveDirChange, onComplete 
             <span className="max-w-60 truncate text-right text-xs text-foreground" title={saveDirectory}>
               {saveDirectory}
             </span>
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={handleChooseDirectory}
               disabled={loading}
-              className="text-xs text-primary hover:underline disabled:opacity-50"
+              className="h-auto p-0 text-xs text-primary"
             >
               Change
-            </button>
+            </Button>
           </div>
         </div>
 

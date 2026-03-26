@@ -3,6 +3,7 @@ import { useUser } from '@clerk/react'
 import { X } from 'lucide-react'
 import { SignInForm } from './SignInForm'
 import { SignUpForm } from './SignUpForm'
+import { Button } from '@/components/ui/button'
 
 interface AuthModalProps {
   open: boolean
@@ -28,13 +29,15 @@ export function AuthModal({ open, onClose }: AuthModalProps): React.ReactElement
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       <div className="relative rounded-xl border border-white/10 bg-[#1a1a1a] p-8 shadow-2xl">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="absolute right-3 top-3 text-white/40 hover:text-white/70"
+          className="absolute right-3 top-3 h-7 w-7 text-white/40 hover:text-white/70"
           aria-label="Close"
         >
           <X size={16} />
-        </button>
+        </Button>
         {showSignUp ? (
           <SignUpForm onToggleSignIn={() => setShowSignUp(false)} />
         ) : (

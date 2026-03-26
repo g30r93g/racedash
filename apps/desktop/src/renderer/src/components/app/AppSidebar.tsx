@@ -1,8 +1,10 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import logoPath from '../../../../assets/logo.png'
+import { CloudIcon, FolderIcon, UserRound } from 'lucide-react'
 import React from 'react'
+import logoPath from '../../../../assets/logo.png'
 
 export type LibraryTab = 'projects' | 'cloud-renders' | 'account'
 
@@ -55,7 +57,7 @@ export function AppSidebar({
         />
         <NavItem
           label="Account"
-          icon={<AccountIcon />}
+          icon={<UserRound />}
           active={activeTab === 'account'}
           onClick={() => onTabChange('account')}
         />
@@ -100,12 +102,13 @@ function NavItem({
   badge?: string
 }): React.ReactElement {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+        'w-full justify-start gap-2.5 px-3 py-2 text-sm',
         active
-          ? 'bg-white/10 text-white'
+          ? 'bg-white/10 text-white hover:bg-white/10'
           : 'text-white/50 hover:bg-white/5 hover:text-white/80'
       )}
     >
@@ -116,47 +119,6 @@ function NavItem({
           {badge}
         </Badge>
       )}
-    </button>
-  )
-}
-
-function FolderIcon(): React.ReactElement {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" className="shrink-0">
-      <path
-        d="M1.5 3.5C1.5 2.948 1.948 2.5 2.5 2.5H5.879C6.144 2.5 6.398 2.605 6.586 2.793L7.207 3.414C7.395 3.602 7.649 3.707 7.914 3.707H12.5C13.052 3.707 13.5 4.155 13.5 4.707V11.5C13.5 12.052 13.052 12.5 12.5 12.5H2.5C1.948 12.5 1.5 12.052 1.5 11.5V3.5Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        fill="none"
-      />
-    </svg>
-  )
-}
-
-function CloudIcon(): React.ReactElement {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" className="shrink-0">
-      <path
-        d="M4.5 10.5C3.119 10.5 2 9.381 2 8C2 6.753 2.887 5.713 4.07 5.53C4.285 3.83 5.737 2.5 7.5 2.5C9.157 2.5 10.539 3.679 10.893 5.235C12.1 5.416 13 6.454 13 7.5C13 8.881 11.881 10.5 10.5 10.5H4.5Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        fill="none"
-      />
-    </svg>
-  )
-}
-
-function AccountIcon(): React.ReactElement {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" className="shrink-0">
-      <circle cx="7.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
-      <path
-        d="M2 13C2 10.791 4.462 9 7.5 9C10.538 9 13 10.791 13 13"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
+    </Button>
   )
 }

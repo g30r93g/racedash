@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 // Parse hex (#rrggbb) or rgba(r, g, b, a) → { hex, alpha 0-100 }
 function parseColour(value: string): { hex: string; alpha: number } {
@@ -90,9 +91,11 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
           className="sr-only"
           tabIndex={-1}
         />
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => inputRef.current?.click()}
-          className="h-5 w-5 rounded border border-border"
+          className="h-5 w-5 rounded border border-border p-0"
           style={{ backgroundColor: isValidHex(hex) ? hex : '#000000', opacity: alpha / 100 }}
           aria-label={`Pick colour for ${label}`}
         />

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 export function UpdateBanner(): React.ReactElement | null {
   const [ready, setReady] = useState(false)
@@ -18,19 +19,22 @@ export function UpdateBanner(): React.ReactElement | null {
     >
       <span>A new version is ready.</span>
       <div className="flex items-center gap-3">
-        <button
-          className="font-medium underline hover:no-underline"
+        <Button
+          variant="link"
           onClick={() => window.racedash.installUpdate()}
+          className="h-auto p-0 font-medium text-white"
         >
           Restart to update
-        </button>
-        <button
-          className="opacity-60 hover:opacity-100"
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss"
+          className="h-5 w-5 opacity-60 hover:opacity-100"
         >
           ✕
-        </button>
+        </Button>
       </div>
     </div>
   )

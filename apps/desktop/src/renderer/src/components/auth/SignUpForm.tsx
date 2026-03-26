@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSignUp, useClerk } from '@clerk/react'
 import { formatClerkError } from './clerk-errors'
 import { VerifyCodeForm } from './VerifyCodeForm'
+import { Button } from '@/components/ui/button'
 
 interface SignUpFormProps {
   onToggleSignIn: () => void
@@ -139,20 +140,20 @@ export function SignUpForm({ onToggleSignIn }: SignUpFormProps): React.ReactElem
         {/* CAPTCHA placeholder — Clerk renders Cloudflare Turnstile here */}
         <div id="clerk-captcha" data-cl-theme="dark" data-cl-size="compact" />
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || !signUp}
-          className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+          variant="default"
         >
           {isSubmitting ? 'Creating account...' : 'Create account'}
-        </button>
+        </Button>
       </form>
 
       <p className="text-center text-sm text-white/50">
         Already have an account?{' '}
-        <button onClick={onToggleSignIn} className="text-white underline underline-offset-2 hover:text-white/80">
+        <Button variant="link" onClick={onToggleSignIn} className="h-auto p-0 text-white hover:text-white/80">
           Sign in
-        </button>
+        </Button>
       </p>
     </div>
   )

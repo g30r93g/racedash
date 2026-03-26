@@ -87,20 +87,24 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
                   <h1 className="text-lg font-semibold text-white">Projects</h1>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center rounded-md border border-white/10 p-0.5">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setView('tile')}
-                        className={`rounded p-1.5 transition-colors ${view === 'tile' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                        className={`h-7 w-7 ${view === 'tile' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
                         aria-label="Tile view"
                       >
                         <LayoutGrid size={14} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setView('list')}
-                        className={`rounded p-1.5 transition-colors ${view === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                        className={`h-7 w-7 ${view === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
                         aria-label="List view"
                       >
                         <Rows4 size={14} />
-                      </button>
+                      </Button>
                     </div>
                     <Button onClick={onNew} className="bg-blue-600 hover:bg-blue-500">
                       + New RaceDash Project

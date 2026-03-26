@@ -37,12 +37,13 @@ export function CreditHistory({ fetchHistory, onBack }: CreditHistoryProps): Rea
   return (
     <section>
       <div className="mb-2 flex items-center gap-2">
-        <button
-          className="text-xs text-primary hover:underline"
+        <Button
+          variant="link"
           onClick={onBack}
+          className="h-auto p-0 text-xs text-primary"
         >
           ← Back
-        </button>
+        </Button>
         <SectionLabel>Purchase History</SectionLabel>
       </div>
 
