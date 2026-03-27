@@ -26,7 +26,7 @@ export interface AuthMeUser {
 
 export interface AuthMeLicense {
   tier: 'plus' | 'pro'
-  status: 'active'
+  status: 'active' | 'cancelled' | 'expired'
   expiresAt: string // ISO 8601
 }
 
@@ -98,7 +98,7 @@ export interface LicenseResponse {
 
 export interface LicenseDetail {
   tier: 'plus' | 'pro'
-  status: 'active'
+  status: 'active' | 'cancelled' | 'expired'
   stripeSubscriptionId: string
   startsAt: string // ISO 8601
   expiresAt: string // ISO 8601

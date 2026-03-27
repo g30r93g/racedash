@@ -104,17 +104,35 @@ export function AccountDetails({
 
       <Separator />
 
-      {license ? (
+      {license && license.status !== 'expired' ? (
         <section>
           <SectionLabel>Subscription</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
             <InfoRow label="Plan" value={planName ?? '—'} />
             <div className="border-t border-border" />
-            <InfoRow label="Renews" value={formatDate(license.expiresAt)} />
+            <InfoRow label={license.status === 'cancelled' ? 'Expires' : 'Renews'} value={formatDate(license.expiresAt)} />
           </div>
           <Button variant="outline" className="mt-3 w-full" size="sm" onClick={onManageSubscription}>
             Manage subscription ↗
           </Button>
+        </section>
+      ) : license && license.status === 'expired' ? (
+        <section>
+          <SectionLabel>Subscription</SectionLabel>
+          <div className="rounded-md border border-border bg-accent px-3">
+            <InfoRow label="Plan" value={planName ?? '—'} />
+            <div className="border-t border-border" />
+            <InfoRow label="Expired" value={formatDate(license.expiresAt)} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Your subscription has expired. Renew to regain access.</p>
+          <div className="mt-3 flex gap-2">
+            <Button variant="outline" className="flex-1" size="sm" onClick={() => onSubscribe('plus')}>
+              Renew Plus
+            </Button>
+            <Button className="flex-1" size="sm" onClick={() => onSubscribe('pro')}>
+              Renew Pro
+            </Button>
+          </div>
         </section>
       ) : (
         <section>

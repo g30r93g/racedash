@@ -117,7 +117,7 @@ export interface RenderCompleteResult {
 
 export interface LicenseInfo {
   tier: 'plus' | 'pro'
-  status: 'active'
+  status: 'active' | 'cancelled' | 'expired'
   stripeSubscriptionId: string
   startsAt: string // ISO 8601
   expiresAt: string // ISO 8601
@@ -261,7 +261,7 @@ export interface AuthUser {
 
 export interface AuthLicense {
   tier: 'plus' | 'pro'
-  status: 'active'
+  status: 'active' | 'cancelled' | 'expired'
   expiresAt: string
 }
 

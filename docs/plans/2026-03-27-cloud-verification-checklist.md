@@ -34,7 +34,7 @@
 ### Billing
 - [x] Pro subscription purchase
 - [x] Credit pack purchase (50 / 100 / 250 / 500 RC)
-- [ ] Stripe customer portal (manage subscription)
+- [x] Stripe customer portal (manage subscription)
 - [ ] Subscription cancellation flow
 - [x] Credit balance display in desktop app
 - [x] Credit history display in desktop app
@@ -55,8 +55,8 @@
 - [ ] YouTube disconnect
 
 ### Admin Dashboard
-- [ ] Overview page — stats render correctly
-- [ ] Jobs list with filters (status, date range)
+- [x] Overview page — stats render correctly
+- [x] Jobs list with filters (status, date range)
 - [ ] Job detail page
 - [ ] User list with search
 - [ ] User detail page — license, credits, jobs
