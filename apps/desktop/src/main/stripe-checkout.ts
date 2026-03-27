@@ -105,7 +105,7 @@ export function registerStripeHandlers(mainWindow: BrowserWindow): void {
   )
 
   ipcMain.handle('racedash:stripe:portal', async (): Promise<{ portalUrl: string }> => {
-    const { portalUrl } = await fetchWithAuth<{ portalUrl: string }>('/api/stripe/portal', { method: 'POST' })
+    const { portalUrl } = await fetchWithAuth<{ portalUrl: string }>('/api/stripe/portal', { method: 'POST', body: '{}' })
     shell.openExternal(portalUrl)
     return { portalUrl }
   })
