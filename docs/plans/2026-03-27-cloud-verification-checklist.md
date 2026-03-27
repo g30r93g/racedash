@@ -33,7 +33,7 @@
 
 ### Billing
 - [ ] Pro subscription purchase
-- [ ] Credit pack purchase (50 / 100 / 250 / 500 RC)
+- [x] Credit pack purchase (50 / 100 / 250 / 500 RC)
 - [ ] Stripe customer portal (manage subscription)
 - [ ] Subscription cancellation flow
 - [ ] Credit balance display in desktop app
