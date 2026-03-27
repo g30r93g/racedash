@@ -84,15 +84,10 @@ export async function cleanupEmptyRacedashTempDirs(
 
 app.whenReady().then(async () => {
   // Clerk dev instances require third-party cookies (.clerk.accounts.dev
-  // from localhost origin). Explicitly allow them in the default session.
+  // from localhost origin). Flush in-memory cookies to disk so they survive
+  // between sessions.
   const ses = electronSession.defaultSession
   await ses.cookies.flushStore()
-  // Remove stale Clerk dev browser cookies that block re-authentication
-  const clerkCookies = await ses.cookies.get({ domain: '.clerk.accounts.dev' })
-  for (const cookie of clerkCookies) {
-    const url = `https://${cookie.domain?.replace(/^\./, '')}${cookie.path || '/'}`
-    await ses.cookies.remove(url, cookie.name).catch(() => {})
-  }
 
   configureBundledFfmpegPath()
 

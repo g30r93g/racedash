@@ -26,7 +26,7 @@
 ## What Needs Testing
 
 ### Auth - Desktop
-- [ ] Session persistence across app restart (close desktop, reopen → still signed in)
+- [x] Session persistence across app restart (close desktop, reopen → still signed in)
 - [x] Sign-in from cleared cookies (client trust challenge flow end-to-end)
 - [x] Sign-out → sign-in with same account (full cycle)
 - [ ] Token refresh during long session (leave app open >60s, make API call)
@@ -92,6 +92,5 @@ These are features/tasks to track in Linear after merging the epic branch:
 - Production deployment pipeline (CI/CD)
 - Custom Clerk domain setup (accounts.racedash.io)
 - Monitoring/alerting (CloudWatch, error tracking)
-- Rate limiting on API endpoints
 - Email templates for SES notifications
 - Fade configuration in CLI (the 3 TODOs)
