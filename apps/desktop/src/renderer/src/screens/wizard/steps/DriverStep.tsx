@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { Check } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Check, RotateCw } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import type { SegmentConfig } from '../../../../../types/project'
 
 interface DriverStepProps {
@@ -21,26 +21,30 @@ interface DriverEntry {
 export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepProps) {
   const [driversBySegment, setDriversBySegment] = useState<Record<string, DriverEntry[]>>({})
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      try {
-        const result = await window.racedash.previewDrivers(segments)
-        const bySegment: Record<string, DriverEntry[]> = {}
-        result.segments.forEach((seg: { config: { label?: string; source: string }; drivers: DriverEntry[] }) => {
-          bySegment[seg.config.label ?? seg.config.source] = seg.drivers
-        })
-        setDriversBySegment(bySegment)
-      } catch {
-        // fixme: handle error
-      } finally {
-        setLoading(false)
-      }
+  const fetchDrivers = useCallback(async () => {
+    if (segments.length === 0) return
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await window.racedash.previewDrivers(segments)
+      const bySegment: Record<string, DriverEntry[]> = {}
+      result.segments.forEach((seg: { config: { label?: string; source: string }; drivers: DriverEntry[] }) => {
+        bySegment[seg.config.label ?? seg.config.source] = seg.drivers
+      })
+      setDriversBySegment(bySegment)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch drivers')
+    } finally {
+      setLoading(false)
     }
-    if (segments.length > 0) load()
   }, [segments])
+
+  useEffect(() => {
+    fetchDrivers()
+  }, [fetchDrivers])
 
   if (segments.length === 0) {
     return (
@@ -94,6 +98,14 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
                 <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
                   <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
                   Loading drivers…
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <p className="text-sm text-destructive">{error}</p>
+                  <Button variant="outline" size="sm" onClick={fetchDrivers}>
+                    <RotateCw className="mr-1.5 h-3.5 w-3.5" />
+                    Retry
+                  </Button>
                 </div>
               ) : (
                 <>
