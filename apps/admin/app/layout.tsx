@@ -17,11 +17,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   if (!userId) {
     return (
-      <ClerkProvider>
-        <html lang="en" className={cn('font-sans', geist.variable)}>
-          <body>{children}</body>
-        </html>
-      </ClerkProvider>
+      <html lang="en" className={cn('font-sans', geist.variable)}>
+        <body>
+          <ClerkProvider>{children}</ClerkProvider>
+        </body>
+      </html>
     )
   }
 
@@ -30,13 +30,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className="flex min-h-screen">
+    <html lang="en" className={cn('font-sans', geist.variable)}>
+      <body className="flex min-h-screen">
+        <ClerkProvider>
           <Sidebar />
           <main className="flex-1 p-8">{children}</main>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   )
 }

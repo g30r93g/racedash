@@ -32,12 +32,12 @@
 - [ ] Token refresh during long session (leave app open >60s, make API call)
 
 ### Billing
-- [ ] Pro subscription purchase
+- [x] Pro subscription purchase
 - [x] Credit pack purchase (50 / 100 / 250 / 500 RC)
 - [ ] Stripe customer portal (manage subscription)
 - [ ] Subscription cancellation flow
-- [ ] Credit balance display in desktop app
-- [ ] Credit history display in desktop app
+- [x] Credit balance display in desktop app
+- [x] Credit history display in desktop app
 
 ### Cloud Rendering
 - [ ] Create cloud render job from desktop

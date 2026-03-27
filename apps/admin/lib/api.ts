@@ -4,7 +4,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'
 
 export async function adminFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const { getToken } = await auth()
-  const token = await getToken()
+
+  let token: string | null
+  try {
+    token = await getToken()
+  } catch {
+    throw new Error('Not authenticated')
+  }
 
   if (!token) {
     throw new Error('Not authenticated')
