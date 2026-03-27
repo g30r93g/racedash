@@ -25,10 +25,10 @@
 
 ## What Needs Testing
 
-### Auth
+### Auth - Desktop
 - [ ] Session persistence across app restart (close desktop, reopen → still signed in)
-- [ ] Sign-in from cleared cookies (client trust challenge flow end-to-end)
-- [ ] Sign-out → sign-in with same account (full cycle)
+- [x] Sign-in from cleared cookies (client trust challenge flow end-to-end)
+- [x] Sign-out → sign-in with same account (full cycle)
 - [ ] Token refresh during long session (leave app open >60s, make API call)
 
 ### Billing

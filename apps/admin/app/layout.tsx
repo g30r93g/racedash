@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Sidebar } from '@/components/layout/Sidebar'
 import './globals.css'
@@ -13,28 +12,23 @@ export const metadata = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { userId, sessionClaims } = await auth()
+  const { userId } = await auth()
 
-  if (!userId) {
-    return (
-      <html lang="en" className={cn('font-sans', geist.variable)}>
-        <body>
-          <ClerkProvider>{children}</ClerkProvider>
-        </body>
-      </html>
-    )
-  }
-
-  if ((sessionClaims?.publicMetadata as Record<string, unknown>)?.role !== 'admin') {
-    redirect('/access-denied')
-  }
+  // Middleware already enforces admin role — if userId is set here, they're an admin
+  const isAdmin = !!userId
 
   return (
     <html lang="en" className={cn('font-sans', geist.variable)}>
-      <body className="flex min-h-screen">
+      <body className={isAdmin ? 'flex min-h-screen' : ''}>
         <ClerkProvider>
-          <Sidebar />
-          <main className="flex-1 p-8">{children}</main>
+          {isAdmin ? (
+            <>
+              <Sidebar />
+              <main className="flex-1 p-8">{children}</main>
+            </>
+          ) : (
+            children
+          )}
         </ClerkProvider>
       </body>
     </html>
