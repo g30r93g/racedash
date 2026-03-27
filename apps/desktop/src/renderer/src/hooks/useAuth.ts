@@ -63,6 +63,8 @@ export function useAuth(): UseAuthReturn {
       return
     }
 
+    setIsLoading(true)
+
     let cancelled = false
 
     async function fetchProfile(): Promise<void> {
