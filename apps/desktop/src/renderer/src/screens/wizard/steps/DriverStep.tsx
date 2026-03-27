@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react'
-import type { SegmentConfig } from '../../../../../types/project'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/loaders/Spinner'
-import { ExternalLink, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
+import { Check } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { SegmentConfig } from '../../../../../types/project'
 
 interface DriverStepProps {
   segments: SegmentConfig[]
@@ -17,14 +17,6 @@ interface DriverEntry {
   kart: string
   name: string
 }
-
-const PLACEHOLDER_DRIVERS: DriverEntry[] = [
-  { kart: '1', name: 'G. Gorzynski' },
-  { kart: '2', name: 'A. Smith' },
-  { kart: '3', name: 'B. Johnson' },
-  { kart: '4', name: 'C. Williams' },
-  { kart: '5', name: 'D. Brown' },
-]
 
 export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepProps) {
   const [driversBySegment, setDriversBySegment] = useState<Record<string, DriverEntry[]>>({})
@@ -42,11 +34,7 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
         })
         setDriversBySegment(bySegment)
       } catch {
-        const bySegment: Record<string, DriverEntry[]> = {}
-        segments.forEach((seg) => {
-          bySegment[seg.label] = PLACEHOLDER_DRIVERS
-        })
-        setDriversBySegment(bySegment)
+        // fixme: handle error
       } finally {
         setLoading(false)
       }
@@ -83,7 +71,7 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
             >
               {seg.label}
               {selectedDrivers[seg.label] && (
-                <ExternalLink className="ml-1.5 h-3 w-3 text-primary" aria-hidden="true" />
+                <Check className="ml-1.5 h-3 w-3 text-primary" aria-hidden="true" />
               )}
             </TabsTrigger>
           ))}
