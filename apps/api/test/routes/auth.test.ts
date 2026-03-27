@@ -122,7 +122,8 @@ describe('GET /api/auth/me', () => {
       imageUrl: null,
     })
 
-    mockDb.limit.mockResolvedValueOnce([]) // no license
+    mockDb.limit.mockResolvedValueOnce([]) // no active/cancelled license
+    mockDb.limit.mockResolvedValueOnce([]) // no expired license fallback
 
     const response = await app.inject({
       method: 'GET',
@@ -155,7 +156,9 @@ describe('GET /api/auth/me', () => {
     })
 
     // The DB query uses gt(licenses.expiresAt, new Date()), so expired licenses
-    // won't be returned by the query — result is empty
+    // won't be returned by the first query — result is empty
+    mockDb.limit.mockResolvedValueOnce([])
+    // Expired license fallback also returns empty
     mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({

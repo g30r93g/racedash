@@ -148,7 +148,9 @@ describe('GET /api/license', () => {
 
   it('Returns { license: null } when user has no active license', async () => {
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
-    // No license found
+    // No active/cancelled license found
+    mockDb.limit.mockResolvedValueOnce([])
+    // No expired license fallback either
     mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
@@ -162,9 +164,10 @@ describe('GET /api/license', () => {
   })
 
   it('Returns { license: null } when license is expired', async () => {
-    // The route filters with gt(expiresAt, now) so expired licenses
-    // won't be returned by the DB query
+    // The route filters active/cancelled first — none found
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
+    mockDb.limit.mockResolvedValueOnce([])
+    // Expired fallback also returns nothing
     mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({
@@ -181,6 +184,8 @@ describe('GET /api/license', () => {
     // The route filters with eq(status, 'active') so cancelled licenses
     // won't be returned by the DB query
     mockDb.limit.mockResolvedValueOnce([{ id: 'user-1' }])
+    mockDb.limit.mockResolvedValueOnce([])
+    // Expired fallback also returns nothing
     mockDb.limit.mockResolvedValueOnce([])
 
     const response = await app.inject({

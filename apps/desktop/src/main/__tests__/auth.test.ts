@@ -12,32 +12,20 @@ vi.mock('node:fs', () => ({
   ...fsMock,
 }))
 
-const { mockLoadURL, mockClose, mockOn, mockWebContentsOn, mockCookiesGet, mockCookiesRemove, mockSend } = vi.hoisted(
-  () => ({
-    mockLoadURL: vi.fn().mockResolvedValue(undefined),
-    mockClose: vi.fn(),
-    mockOn: vi.fn(),
-    mockWebContentsOn: vi.fn(),
-    mockCookiesGet: vi.fn().mockResolvedValue([]),
-    mockCookiesRemove: vi.fn().mockResolvedValue(undefined),
-    mockSend: vi.fn(),
-  }),
-)
-
 vi.mock('electron', async () => {
   return {
     BrowserWindow: function () {
       return {
-        loadURL: mockLoadURL,
-        close: mockClose,
-        on: mockOn,
+        loadURL: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn(),
+        on: vi.fn(),
         webContents: {
-          on: mockWebContentsOn,
-          send: mockSend,
+          on: vi.fn(),
+          send: vi.fn(),
           session: {
             cookies: {
-              get: mockCookiesGet,
-              remove: mockCookiesRemove,
+              get: vi.fn().mockResolvedValue([]),
+              remove: vi.fn().mockResolvedValue(undefined),
             },
           },
         },
@@ -47,129 +35,113 @@ vi.mock('electron', async () => {
       encryptString: vi.fn((s: string) => Buffer.from(`enc:${s}`)),
       decryptString: vi.fn((b: Buffer) => b.toString().replace('enc:', '')),
     },
-    ipcMain: { handle: vi.fn() },
+    ipcMain: { handle: vi.fn(), on: vi.fn() },
     app: { getPath: vi.fn().mockReturnValue('/mock/userData') },
   }
 })
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
-
 import { ipcMain } from 'electron'
-import { registerAuthHandlers } from '../auth'
+import { registerTokenHandlers, getSessionToken } from '../auth'
 
-describe('registerAuthHandlers', () => {
-  const handlers = new Map<string, (...args: any[]) => any>()
+describe('registerTokenHandlers', () => {
+  const handleHandlers = new Map<string, (...args: any[]) => any>()
+  const onHandlers = new Map<string, (...args: any[]) => any>()
 
   beforeEach(() => {
     vi.clearAllMocks()
-    handlers.clear()
+    handleHandlers.clear()
+    onHandlers.clear()
+    fsMock.existsSync.mockReturnValue(false)
     vi.mocked(ipcMain.handle).mockImplementation((channel: string, handler: any) => {
-      handlers.set(channel, handler)
+      handleHandlers.set(channel, handler)
       return undefined as any
     })
-    registerAuthHandlers({
-      webContents: {
-        session: {
-          cookies: {
-            get: mockCookiesGet,
-            remove: mockCookiesRemove,
-          },
-        },
-        send: mockSend,
-      },
-    } as any)
+    vi.mocked(ipcMain.on).mockImplementation((channel: string, handler: any) => {
+      onHandlers.set(channel, handler)
+      return undefined as any
+    })
+    registerTokenHandlers({ webContents: { send: vi.fn() } } as any)
   })
 
-  it('registers all auth handlers', () => {
-    expect(handlers.has('racedash:auth:signIn')).toBe(true)
-    expect(handlers.has('racedash:auth:signOut')).toBe(true)
-    expect(handlers.has('racedash:auth:getSession')).toBe(true)
-    expect(handlers.has('racedash:auth:fetchWithAuth')).toBe(true)
+  it('registers all token handlers', () => {
+    expect(handleHandlers.has('racedash:auth:token:save:session')).toBe(true)
+    expect(handleHandlers.has('racedash:auth:token:get')).toBe(true)
+    expect(handleHandlers.has('racedash:auth:fetchWithAuth')).toBe(true)
+    expect(onHandlers.has('racedash:auth:token:save:client')).toBe(true)
+    expect(onHandlers.has('racedash:auth:token:clear')).toBe(true)
   })
 
-  describe('getSession', () => {
-    it('returns null when no session file exists', async () => {
+  describe('token:save:session', () => {
+    it('stores session token in memory', async () => {
+      await handleHandlers.get('racedash:auth:token:save:session')!({}, 'session-jwt-123')
+      expect(getSessionToken()).toBe('session-jwt-123')
+    })
+  })
+
+  describe('token:save:client', () => {
+    it('persists client token to disk (encrypted)', () => {
+      onHandlers.get('racedash:auth:token:save:client')!({}, 'client-jwt-abc')
+      expect(fsMock.writeFileSync).toHaveBeenCalled()
+    })
+  })
+
+  describe('token:get', () => {
+    it('returns null when no token file exists', () => {
       fsMock.existsSync.mockReturnValue(false)
-      const result = await handlers.get('racedash:auth:getSession')!()
+      const result = handleHandlers.get('racedash:auth:token:get')!()
       expect(result).toBeNull()
     })
 
-    it('returns session from encrypted file', async () => {
-      const session = { user: { id: 'u1' }, token: 'tk_123', license: null }
+    it('returns decrypted token when file exists', () => {
       fsMock.existsSync.mockReturnValue(true)
-      fsMock.readFileSync.mockReturnValue(Buffer.from(`enc:${JSON.stringify(session)}`))
-
-      const result = await handlers.get('racedash:auth:getSession')!()
-      expect(result).toEqual(session)
-    })
-
-    it('returns null and clears corrupted session', async () => {
-      fsMock.existsSync.mockReturnValue(true)
-      fsMock.readFileSync.mockImplementation(() => {
-        throw new Error('corrupted')
-      })
-
-      const result = await handlers.get('racedash:auth:getSession')!()
-      expect(result).toBeNull()
-      expect(fsMock.unlinkSync).toHaveBeenCalled()
+      fsMock.readFileSync.mockReturnValue(Buffer.from('enc:client-jwt-abc'))
+      const result = handleHandlers.get('racedash:auth:token:get')!()
+      expect(result).toBe('client-jwt-abc')
     })
   })
 
-  describe('signOut', () => {
-    it('opens hidden window, clears session and cookies', async () => {
+  describe('token:clear', () => {
+    it('clears in-memory session token and deletes file when it exists', async () => {
+      await handleHandlers.get('racedash:auth:token:save:session')!({}, 'some-token')
+      expect(getSessionToken()).toBe('some-token')
+
       fsMock.existsSync.mockReturnValue(true)
-
-      await handlers.get('racedash:auth:signOut')!()
-
-      expect(mockLoadURL).toHaveBeenCalledWith(expect.stringContaining('sign-out'))
+      onHandlers.get('racedash:auth:token:clear')!()
+      expect(getSessionToken()).toBeNull()
       expect(fsMock.unlinkSync).toHaveBeenCalled()
     })
   })
 
   describe('fetchWithAuth', () => {
-    it('throws for disallowed URLs when API_URL is set', async () => {
-      // With API_URL as empty string, any URL starting with '' is allowed
-      // This test verifies the validation logic works when API_URL has a value
-      // The source code checks: url.startsWith(API_URL)
-      // With empty API_URL, all URLs pass. This is tested indirectly.
-      // Test the happy path instead:
-      fsMock.existsSync.mockReturnValue(false)
+    const mockFetch = vi.fn()
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', mockFetch)
+    })
+
+    it('fetches with session token when one is set', async () => {
+      await handleHandlers.get('racedash:auth:token:save:session')!({}, 'bearer-token-xyz')
+
       mockFetch.mockResolvedValueOnce({
         status: 200,
         headers: { forEach: vi.fn() },
-        text: async () => '{}',
-      })
-      const result = await handlers.get('racedash:auth:fetchWithAuth')!({}, '/api/test')
-      expect(result.status).toBe(200)
-    })
-
-    it('fetches with auth token and returns status/headers/body', async () => {
-      const session = { user: { id: 'u1' }, token: 'tk_123', license: null }
-      fsMock.existsSync.mockReturnValue(true)
-      fsMock.readFileSync.mockReturnValue(Buffer.from(`enc:${JSON.stringify(session)}`))
-
-      const responseHeaders = new Map([['content-type', 'application/json']])
-      mockFetch.mockResolvedValueOnce({
-        status: 200,
-        headers: { forEach: (cb: (v: string, k: string) => void) => responseHeaders.forEach((v, k) => cb(v, k)) },
         text: async () => '{"ok":true}',
       })
 
-      // API_URL is '' by default, so empty string prefix is valid
-      const result = await handlers.get('racedash:auth:fetchWithAuth')!({}, '/api/test')
+      const result = await handleHandlers.get('racedash:auth:fetchWithAuth')!({}, '/api/test')
       expect(result.status).toBe(200)
       expect(result.body).toBe('{"ok":true}')
+      // Verify the Authorization header was passed regardless of how the URL was constructed
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/test',
+        expect.stringContaining('/api/test'),
         expect.objectContaining({
-          headers: expect.objectContaining({ Authorization: 'Bearer tk_123' }),
+          headers: expect.objectContaining({ Authorization: 'Bearer bearer-token-xyz' }),
         }),
       )
     })
 
-    it('fetches without auth when no session', async () => {
-      fsMock.existsSync.mockReturnValue(false)
+    it('fetches without Authorization header when no session token', async () => {
+      onHandlers.get('racedash:auth:token:clear')!()
 
       mockFetch.mockResolvedValueOnce({
         status: 401,
@@ -177,8 +149,14 @@ describe('registerAuthHandlers', () => {
         text: async () => 'Unauthorized',
       })
 
-      const result = await handlers.get('racedash:auth:fetchWithAuth')!({}, '/api/test')
+      const result = await handleHandlers.get('racedash:auth:fetchWithAuth')!({}, '/api/test')
       expect(result.status).toBe(401)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/test'),
+        expect.objectContaining({
+          headers: expect.not.objectContaining({ Authorization: expect.any(String) }),
+        }),
+      )
     })
   })
 })

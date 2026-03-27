@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 let willNavigateCallback: ((event: any, url: string) => void) | undefined
-let __didNavigateCallback: ((event: any, url: string) => void) | undefined
+let _didNavigateCallback: ((event: any, url: string) => void) | undefined
 let closedCallback: (() => void) | undefined
 
 vi.mock('electron', async () => {
