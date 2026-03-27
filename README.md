@@ -67,16 +67,30 @@ graph TB
 
 ### Package overview
 
-| Package | Description |
-|---------|-------------|
-| `@racedash/core` | Domain types and constants — no runtime dependencies |
-| `@racedash/scraper` | Fetches and parses timing data from Speedhive, AlphaTiming, and email reports |
-| `@racedash/timestamps` | Offset parsing, lap timestamp calculation, and YouTube chapter formatting |
-| `@racedash/compositor` | Remotion bundler/renderer abstraction, GPU detection, and FFmpeg codec validation |
-| `@racedash/engine` | Orchestration layer — composes scraper, timestamps, and compositor into a pipeline |
-| `@racedash/cli` | CLI commands: `drivers`, `timestamps`, `join`, `doctor`, `render` |
-| `@racedash/desktop` | Electron app with project library, creation wizard, editor, and video preview |
-| `@racedash/renderer` | Remotion compositions for overlay styles (banner, esports, geometric-banner, minimal, modern) |
+| Package | Description | Docs |
+|---------|-------------|------|
+| `@racedash/core` | Domain types and constants — no runtime dependencies | [README](packages/core/README.md) |
+| `@racedash/scraper` | Fetches and parses timing data from AlphaTiming | [README](packages/scraper/README.md) |
+| `@racedash/timestamps` | Offset parsing, lap timestamp calculation, and YouTube chapter formatting | [README](packages/timestamps/README.md) |
+| `@racedash/compositor` | Remotion bundler/renderer abstraction, GPU detection, and FFmpeg codec validation | [README](packages/compositor/README.md) |
+| `@racedash/engine` | Orchestration layer — composes scraper, timestamps, and compositor | [README](packages/engine/README.md) |
+| `@racedash/db` | Drizzle ORM schema — PostgreSQL tables for users, licenses, credits, jobs | [README](packages/db/README.md) |
+
+### Apps
+
+| App | Description | Docs |
+|-----|-------------|------|
+| `@racedash/cli` | CLI commands: `drivers`, `timestamps`, `join`, `doctor`, `render` | [README](apps/cli/README.md) |
+| `@racedash/desktop` | Electron app with project library, creation wizard, editor, and video preview | [README](apps/desktop/README.md) |
+| `@racedash/renderer` | Remotion compositions for overlay styles (banner, esports, geometric-banner, minimal, modern) | [README](apps/renderer/README.md) |
+| `@racedash/api` | Fastify REST API — deployed as AWS Lambda | [README](apps/api/README.md) |
+| `@racedash/admin` | Next.js admin dashboard with Clerk auth | [README](apps/admin/README.md) |
+
+### Infrastructure
+
+| Component | Description | Docs |
+|-----------|-------------|------|
+| `@racedash/infra` | AWS CDK stacks, Lambda functions, Step Functions pipeline, LocalStack testing | [README](infra/README.md) |
 
 ---
 
