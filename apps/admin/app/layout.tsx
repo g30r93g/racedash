@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { ClerkProvider } from '@clerk/nextjs'
+import { ThemeProvider } from '@/components/theme-provider'
 import { Sidebar } from '@/components/layout/Sidebar'
 import './globals.css'
 import { Geist } from 'next/font/google'
@@ -18,17 +19,24 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAdmin = !!userId
 
   return (
-    <html lang="en" className={cn('font-sans', geist.variable)}>
+    <html lang="en" className={cn('font-sans', geist.variable)} suppressHydrationWarning>
       <body className={isAdmin ? 'flex min-h-screen' : ''}>
         <ClerkProvider>
-          {isAdmin ? (
-            <>
-              <Sidebar />
-              <main className="flex-1 p-8">{children}</main>
-            </>
-          ) : (
-            children
-          )}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {isAdmin ? (
+              <>
+                <Sidebar />
+                <main className="flex-1 p-8">{children}</main>
+              </>
+            ) : (
+              children
+            )}
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>
