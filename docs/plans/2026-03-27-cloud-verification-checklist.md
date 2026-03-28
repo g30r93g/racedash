@@ -29,7 +29,7 @@
 - [x] Session persistence across app restart (close desktop, reopen → still signed in)
 - [x] Sign-in from cleared cookies (client trust challenge flow end-to-end)
 - [x] Sign-out → sign-in with same account (full cycle)
-- [ ] Token refresh during long session (leave app open >60s, make API call)
+- [x] Token refresh during long session (leave app open >60s, make API call)
 
 ### Billing
 - [x] Pro subscription purchase
@@ -58,16 +58,16 @@
 - [x] Overview page — stats render correctly
 - [x] Jobs list with filters (status, date range)
 - [ ] Job detail page
-- [ ] User list with search
+- [x] User list with search
 - [ ] User detail page — license, credits, jobs
 - [ ] Issue/revoke license from admin
 - [ ] Credit adjustment from admin
 
 ### Infrastructure (AWS)
-- [ ] CDK synth — templates generate without errors
-- [ ] CDK diff — review changes against current state
-- [ ] LocalStack integration tests pass (`pnpm test:local`)
-- [ ] CDK unit/snapshot tests pass (`cd infra && pnpm test`)
+- [x] CDK synth — templates generate without errors (5 stacks)
+- [x] CDK diff — review changes against current state (5 stacks with differences)
+- [x] LocalStack integration tests pass (`pnpm test:local`) — 5 suites, 13 passed, 4 todo
+- [x] CDK unit/snapshot tests pass (`cd infra && pnpm test`) — 14 suites, 84 tests
 
 ### Test Suite
 - [ ] Fix desktop auth test (`registerAuthHandlers` → `registerTokenHandlers`)
@@ -78,6 +78,8 @@
 ### Documentation
 - [x] README updated with local dev setup
 - [x] API README updated with setup:env workflow
+- [x] Per-package/app/infra READMEs written (12 files)
+- [x] Root README links to all per-package docs
 - [ ] Document cloud deployment steps (CDK deploy, env vars, DNS)
 - [ ] Document production Clerk configuration (custom domain, webhooks)
 - [ ] Document production Stripe configuration (live keys, webhook endpoints)

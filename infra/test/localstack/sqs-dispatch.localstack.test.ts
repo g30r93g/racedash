@@ -82,17 +82,23 @@ describe('SQS Dispatch (LocalStack)', () => {
     const maxReceiveCount = redrivePolicy.maxReceiveCount ?? 3
 
     for (let i = 0; i < maxReceiveCount; i++) {
+      // LocalStack needs a brief pause between receives to properly
+      // increment the ApproximateReceiveCount and trigger redrive
+      await new Promise((resolve) => setTimeout(resolve, 500))
       const received = await sqs.send(
         new ReceiveMessageCommand({
           QueueUrl: QUEUE_URL,
           MaxNumberOfMessages: 1,
           WaitTimeSeconds: 5,
-          VisibilityTimeout: 0, // Make it immediately visible again
+          VisibilityTimeout: 1, // Short timeout so it becomes visible again quickly
         }),
       )
       // Just receive — do not delete, so receive count increments
       if (!received.Messages || received.Messages.length === 0) break
     }
+
+    // Give LocalStack time to process the redrive
+    await new Promise((resolve) => setTimeout(resolve, 3000))
 
     // After exceeding maxReceiveCount the message should land in DLQ
     const dlqResult = await sqs.send(

@@ -65,8 +65,23 @@ export class StorageStack extends cdk.Stack {
     const oai = new cloudfront.OriginAccessIdentity(this, 'RendersOAI', {
       comment: `OAI for ${config.rendersBucketName}`,
     })
-    // CloudFront signed URL key pair
-    const publicKeyPem = getContextParam(this, 'cloudFrontPublicKeyPem', 'PLACEHOLDER_PUBLIC_KEY')
+    // CloudFront signed URL key pair — default is a throwaway RSA-2048 key
+    // so `cdk synth` works without real secrets (overridden via context in prod)
+    const publicKeyPem = getContextParam(
+      this,
+      'cloudFrontPublicKeyPem',
+      [
+        '-----BEGIN PUBLIC KEY-----',
+        'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0YgX7RLEP3pXuH/i3OvR',
+        'vJCxjl9XobSXkwGmeICXoiSS0tOqXaJPc0IQxh2M3LoHGKnE3sp5ed6dPPfbGHCi',
+        'BthYMB9ITzCExNeSJGI7SZwSQSz/L2aSW4+o+dNkJ+L+LaRUPsViCsVp6ksOtMUz',
+        'eMfYd+3IbeRMOp3bclJBRMdkRa8LLCEWMS9rF2pJh6eLv5m8V6FPGUlw6Ao+6K1L',
+        'z0krBJN0WFkR7kzHhcEiM3sUVrOY4RocPvr4aI0rKMI7QOQB0d0+8bNRh6cCKqh2',
+        'Q2Cxcq2eVMEpT2fJSLO7pMgQQ8i9hrVUL/HsJw3MNMr8DwqRcxjwYuJDdYAn+q3l',
+        '3QIDAQAB',
+        '-----END PUBLIC KEY-----',
+      ].join('\n'),
+    )
     const publicKey = new cloudfront.PublicKey(this, 'RendersSigningKey', {
       encodedKey: publicKeyPem,
     })
