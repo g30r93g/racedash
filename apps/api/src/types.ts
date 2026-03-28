@@ -368,6 +368,7 @@ export interface AdminUserDetailResponse {
     createdAt: string
     updatedAt: string
   }>
+  totalRc: number
   creditPacks: Array<{
     id: string
     packName: string

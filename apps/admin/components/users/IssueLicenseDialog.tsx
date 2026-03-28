@@ -22,8 +22,23 @@ export function IssueLicenseDialog({ userId, open, onClose, onSuccess }: IssueLi
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const today = new Date().toISOString().slice(0, 10)
+  const maxExpiresAt = (() => {
+    const d = new Date(startsAt)
+    d.setFullYear(d.getFullYear() + 3)
+    return d.toISOString().slice(0, 10)
+  })()
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (expiresAt <= startsAt) {
+      setError('Expires At must be after Starts At')
+      return
+    }
+    if (expiresAt > maxExpiresAt) {
+      setError('Expires At must be within 3 years of Starts At')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -69,11 +84,11 @@ export function IssueLicenseDialog({ userId, open, onClose, onSuccess }: IssueLi
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Starts At</label>
-            <Input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+            <Input type="date" value={startsAt} min={today} onChange={(e) => setStartsAt(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Expires At</label>
-            <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+            <Input type="date" value={expiresAt} min={startsAt} max={maxExpiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
           <DialogFooter>

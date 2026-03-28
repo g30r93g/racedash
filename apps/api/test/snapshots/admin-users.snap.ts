@@ -44,6 +44,7 @@ describe('admin users response shapes', () => {
           updatedAt: '2026-01-15T08:00:00.000Z',
         },
       ],
+      totalRc: 42,
       creditPacks: [
         {
           id: 'cp_001',

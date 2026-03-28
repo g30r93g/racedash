@@ -49,6 +49,7 @@ interface UserDetailData {
     createdAt: string
   }
   licenses: License[]
+  totalRc: number
   creditPacks: CreditPack[]
   recentJobs: RecentJob[]
 }
@@ -175,7 +176,12 @@ export function UserDetailClient({ data }: { data: UserDetailData }) {
 
       {/* Credit Packs */}
       <section>
-        <h2 className="text-sm font-semibold mb-3">Credit Packs</h2>
+        <div className="flex items-center gap-3 mb-3">
+          <h2 className="text-sm font-semibold">Credit Packs</h2>
+          <span className="text-sm text-muted-foreground">
+            {data.totalRc} RC available
+          </span>
+        </div>
         {data.creditPacks.length > 0 ? (
           <div className="rounded-lg border border-border overflow-hidden mb-4">
             <table className="w-full text-sm">

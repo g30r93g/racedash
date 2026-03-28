@@ -24,6 +24,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       createdAt: string
       updatedAt: string
     }>
+    totalRc: number
     creditPacks: Array<{
       id: string
       packName: string

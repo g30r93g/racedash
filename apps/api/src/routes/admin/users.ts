@@ -83,7 +83,13 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     const userCreditPacks = await db
       .select()
       .from(creditPacks)
-      .where(eq(creditPacks.userId, id))
+      .where(
+        and(
+          eq(creditPacks.userId, id),
+          gt(creditPacks.rcRemaining, 0),
+          gt(creditPacks.expiresAt, new Date()),
+        ),
+      )
       .orderBy(asc(creditPacks.expiresAt))
 
     const recentJobs = await db.select().from(jobs).where(eq(jobs.userId, id)).orderBy(desc(jobs.createdAt)).limit(10)
@@ -107,6 +113,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
         createdAt: l.createdAt.toISOString(),
         updatedAt: l.updatedAt.toISOString(),
       })),
+      totalRc: userCreditPacks.reduce((sum, p) => sum + p.rcRemaining, 0),
       creditPacks: userCreditPacks.map((p) => ({
         id: p.id,
         packName: p.packName,

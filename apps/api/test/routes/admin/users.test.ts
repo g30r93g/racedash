@@ -256,6 +256,7 @@ describe('GET /api/admin/users/:id', () => {
     const body = response.json()
     expect(body.user.id).toBe('u-1')
     expect(body.user.email).toBe('user@test.com')
+    expect(body.totalRc).toBe(50)
   })
 
   it('returns 404 for missing user', async () => {
