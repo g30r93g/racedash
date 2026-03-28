@@ -29,7 +29,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
 
   const { user, license: authLicense, isSignedIn, isLoading: authLoading, signIn, signOut } = useAuth()
   const { license } = useLicense(isSignedIn)
-  const { balance, fetchHistory } = useCredits(isSignedIn)
+  const { balance, fetchHistory } = useCredits(!!user)
   const { status: youtubeStatus, connect: youtubeConnect, disconnect: youtubeDisconnect } = useYouTube()
 
   // Determine display plan from license hook (preferred) or auth session fallback

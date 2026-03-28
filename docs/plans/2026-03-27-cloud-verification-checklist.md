@@ -70,10 +70,11 @@
 - [x] CDK unit/snapshot tests pass (`cd infra && pnpm test`) — 14 suites, 84 tests
 
 ### Test Suite
-- [ ] Fix desktop auth test (`registerAuthHandlers` → `registerTokenHandlers`)
-- [ ] Fix desktop stripe-checkout test (`didNavigateCallback` scope)
-- [ ] Fix infra test failures
-- [ ] All packages pass: `pnpm test`
+- [x] Fix desktop auth test (`registerAuthHandlers` → `registerTokenHandlers`)
+- [x] Fix desktop stripe-checkout test (`didNavigateCallback` scope)
+- [x] Fix API auth/license tests (missing mock for two-stage license query)
+- [x] Infra tests pass (14 suites, 84 tests)
+- [x] All packages pass: `pnpm test` (924+ tests across 9 packages)
 
 ### Documentation
 - [x] README updated with local dev setup
