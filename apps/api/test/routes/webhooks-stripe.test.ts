@@ -68,6 +68,7 @@ function makeSubscriptionEvent(
         id: 'sub_123',
         customer: 'cus_123',
         status: 'active',
+        metadata: { user_id: 'user_1' },
         items: {
           data: [
             {
@@ -96,6 +97,7 @@ function makeCheckoutSessionEvent(overrides: Record<string, any> = {}) {
         metadata: {
           type: 'credit_pack',
           pack_size: '100',
+          user_id: 'user_1',
         },
         ...overrides,
       },
@@ -198,7 +200,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Creates license row on customer.subscription.created', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -223,7 +225,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Derives correct tier from Stripe Price ID', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -247,7 +249,7 @@ describe('POST /api/webhooks/stripe', () => {
   it("Sets license status to 'active' on creation", async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -262,7 +264,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Stores stripe_customer_id and stripe_subscription_id on license', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -344,7 +346,7 @@ describe('POST /api/webhooks/stripe', () => {
   it("Creates credit pack on checkout.session.completed with metadata.type === 'credit_pack'", async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -368,7 +370,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Sets credit pack expires_at to 12 months from purchase', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -392,7 +394,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Sets rc_total and rc_remaining to metadata.pack_size', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -428,7 +430,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Skips duplicate events (idempotent via DB constraints)', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -446,7 +448,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Skips duplicate subscription creation', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -464,7 +466,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Skips duplicate credit pack', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
     const mockDb = createMockDb({
-      selectResult: [{ id: 'user_1' }],
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
       insertFn: insertValues,
     })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
@@ -496,7 +498,7 @@ describe('POST /api/webhooks/stripe', () => {
 
   it('Skips when unknown price ID in subscription.created', async () => {
     const insertValues = vi.fn()
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     vi.mocked(tierFromPriceId).mockReturnValue(null as any)
     mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
@@ -510,7 +512,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Handles UNIQUE constraint violation on subscription.created gracefully', async () => {
     const uniqueError = Object.assign(new Error('unique violation'), { code: '23505' })
     const insertValues = vi.fn().mockRejectedValue(uniqueError)
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     vi.mocked(tierFromPriceId).mockReturnValue('pro')
     mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
@@ -524,7 +526,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Rethrows non-UNIQUE errors on subscription.created', async () => {
     const otherError = new Error('connection refused')
     const insertValues = vi.fn().mockRejectedValue(otherError)
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     vi.mocked(tierFromPriceId).mockReturnValue('pro')
     mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))
@@ -536,7 +538,7 @@ describe('POST /api/webhooks/stripe', () => {
 
   it('Handles customer as object (not string) in subscription.created', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_obj_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     vi.mocked(tierFromPriceId).mockReturnValue('pro')
     mockConstructEvent.mockReturnValueOnce(
@@ -547,6 +549,62 @@ describe('POST /api/webhooks/stripe', () => {
 
     expect(response.statusCode).toBe(200)
     expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ stripeCustomerId: 'cus_obj_123' }))
+  })
+
+  it('Resolves user via metadata.user_id on subscription.created', async () => {
+    const insertValues = vi.fn().mockResolvedValue(undefined)
+    const mockDb = createMockDb({
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
+      insertFn: insertValues,
+    })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(
+      makeSubscriptionEvent('customer.subscription.created', { metadata: { user_id: 'user_1' } }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_1' }))
+  })
+
+  it('Falls back to stripeCustomerId when metadata.user_id is missing', async () => {
+    const insertValues = vi.fn().mockResolvedValue(undefined)
+    const mockDb = createMockDb({
+      selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }],
+      insertFn: insertValues,
+    })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(
+      makeSubscriptionEvent('customer.subscription.created', { metadata: {} }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_1' }))
+  })
+
+  it('Backfills stripeCustomerId on user record when missing', async () => {
+    const insertValues = vi.fn().mockResolvedValue(undefined)
+    const mockDb = createMockDb({
+      selectResult: [{ id: 'user_1', stripeCustomerId: null }],
+      insertFn: insertValues,
+    })
+    vi.mocked(getDb).mockReturnValue(mockDb as any)
+    vi.mocked(tierFromPriceId).mockReturnValue('pro')
+    mockConstructEvent.mockReturnValueOnce(
+      makeSubscriptionEvent('customer.subscription.created', { metadata: { user_id: 'user_1' } }),
+    )
+
+    const response = await injectWebhook(app)
+
+    expect(response.statusCode).toBe(200)
+    // The update chain is called for backfill
+    expect(mockDb.update).toHaveBeenCalled()
+    expect(insertValues).toHaveBeenCalledWith(expect.objectContaining({ userId: 'user_1' }))
   })
 
   // ── Edge cases: subscription.updated ───────────────────────────────
@@ -617,7 +675,7 @@ describe('POST /api/webhooks/stripe', () => {
 
   it('Skips checkout.session.completed when pack_size is invalid', async () => {
     const insertValues = vi.fn()
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     mockConstructEvent.mockReturnValueOnce(
       makeCheckoutSessionEvent({ metadata: { type: 'credit_pack', pack_size: '0' } }),
@@ -631,7 +689,7 @@ describe('POST /api/webhooks/stripe', () => {
 
   it('Skips checkout.session.completed when no payment_intent', async () => {
     const insertValues = vi.fn()
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ payment_intent: null }))
 
@@ -643,7 +701,7 @@ describe('POST /api/webhooks/stripe', () => {
 
   it('Handles customer as object in checkout.session.completed', async () => {
     const insertValues = vi.fn().mockResolvedValue(undefined)
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_obj_456' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent({ customer: { id: 'cus_obj_456' } }))
 
@@ -656,7 +714,7 @@ describe('POST /api/webhooks/stripe', () => {
   it('Handles UNIQUE constraint violation on credit pack insert gracefully', async () => {
     const uniqueError = Object.assign(new Error('unique violation'), { code: '23505' })
     const insertValues = vi.fn().mockRejectedValue(uniqueError)
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }], insertFn: insertValues })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }], insertFn: insertValues })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     mockConstructEvent.mockReturnValueOnce(makeCheckoutSessionEvent())
 
@@ -682,7 +740,7 @@ describe('POST /api/webhooks/stripe', () => {
   // ── Success response ───────────────────────────────────────────────────
 
   it('Returns { received: true } for all successfully processed events', async () => {
-    const mockDb = createMockDb({ selectResult: [{ id: 'user_1' }] })
+    const mockDb = createMockDb({ selectResult: [{ id: 'user_1', stripeCustomerId: 'cus_123' }] })
     vi.mocked(getDb).mockReturnValue(mockDb as any)
     vi.mocked(tierFromPriceId).mockReturnValue('pro')
     mockConstructEvent.mockReturnValueOnce(makeSubscriptionEvent('customer.subscription.created'))

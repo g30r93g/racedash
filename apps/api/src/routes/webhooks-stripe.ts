@@ -1,4 +1,4 @@
-import { FastifyPluginAsync } from 'fastify'
+import { FastifyPluginAsync, FastifyBaseLogger } from 'fastify'
 import Stripe from 'stripe'
 import { eq } from 'drizzle-orm'
 import { users, licenses, creditPacks } from '@racedash/db'
@@ -10,6 +10,51 @@ import type { StripeWebhookResponse, ApiError } from '../types'
 
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23505'
+}
+
+/**
+ * Resolves a user from webhook data. Prefers metadata.user_id (set at checkout),
+ * falls back to stripeCustomerId lookup for backwards compatibility.
+ * Backfills stripeCustomerId on the user record if missing.
+ */
+async function resolveWebhookUser(
+  db: ReturnType<typeof getDb>,
+  log: FastifyBaseLogger,
+  opts: { metadataUserId?: string; stripeCustomerId?: string },
+): Promise<{ id: string } | null> {
+  // Primary: look up by user_id from checkout metadata
+  if (opts.metadataUserId) {
+    const [user] = await db
+      .select({ id: users.id, stripeCustomerId: users.stripeCustomerId })
+      .from(users)
+      .where(eq(users.id, opts.metadataUserId))
+      .limit(1)
+
+    if (user) {
+      // Backfill stripeCustomerId if missing
+      if (!user.stripeCustomerId && opts.stripeCustomerId) {
+        await db.update(users).set({ stripeCustomerId: opts.stripeCustomerId }).where(eq(users.id, user.id))
+      }
+      return { id: user.id }
+    }
+
+    log.warn({ metadataUserId: opts.metadataUserId }, 'Webhook: metadata user_id did not match any user')
+  }
+
+  // Fallback: look up by stripeCustomerId (for subscriptions created before this change)
+  if (opts.stripeCustomerId) {
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.stripeCustomerId, opts.stripeCustomerId))
+      .limit(1)
+
+    if (user) return { id: user.id }
+
+    log.warn({ stripeCustomerId: opts.stripeCustomerId }, 'Webhook: no user found for stripe_customer_id')
+  }
+
+  return null
 }
 
 function mapSubscriptionStatus(stripeStatus: string): 'active' | 'expired' | 'cancelled' {
@@ -71,16 +116,12 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
           // Idempotency: skip if already processed
           if (await licenseExistsForSubscription(db, stripeSubscriptionId)) break
 
-          const [user] = await db
-            .select({ id: users.id })
-            .from(users)
-            .where(eq(users.stripeCustomerId, stripeCustomerId))
-            .limit(1)
+          const user = await resolveWebhookUser(db, fastify.log, {
+            metadataUserId: subscription.metadata?.user_id,
+            stripeCustomerId,
+          })
 
-          if (!user) {
-            fastify.log.warn({ stripeCustomerId }, 'Webhook: no user found for stripe_customer_id')
-            break
-          }
+          if (!user) break
 
           const item = subscription.items.data[0]
           const priceId = item?.price?.id
@@ -169,18 +210,12 @@ const webhooksStripeRoutes: FastifyPluginAsync = async (fastify) => {
 
           const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
 
-          if (!stripeCustomerId) break
+          const user = await resolveWebhookUser(db, fastify.log, {
+            metadataUserId: session.metadata?.user_id,
+            stripeCustomerId: stripeCustomerId ?? undefined,
+          })
 
-          const [user] = await db
-            .select({ id: users.id })
-            .from(users)
-            .where(eq(users.stripeCustomerId, stripeCustomerId))
-            .limit(1)
-
-          if (!user) {
-            fastify.log.warn({ stripeCustomerId }, 'Webhook: no user found for credit pack purchase')
-            break
-          }
+          if (!user) break
 
           const packSize = parseInt(session.metadata.pack_size ?? '0', 10)
           if (!packSize || packSize <= 0) {

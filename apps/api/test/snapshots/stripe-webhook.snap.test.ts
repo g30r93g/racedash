@@ -115,6 +115,7 @@ describe('Stripe webhook response snapshots', () => {
           id: 'sub_new_123',
           customer: 'cus_123',
           status: 'active',
+          metadata: { user_id: 'user-1' },
           items: {
             data: [
               {
@@ -133,7 +134,7 @@ describe('Stripe webhook response snapshots', () => {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ id: 'user-1' }]),
+            limit: vi.fn().mockResolvedValue([{ id: 'user-1', stripeCustomerId: 'cus_123' }]),
           }),
         }),
       }),
@@ -307,7 +308,7 @@ describe('Stripe webhook response snapshots', () => {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ id: 'user-1' }]),
+            limit: vi.fn().mockResolvedValue([{ id: 'user-1', stripeCustomerId: 'cus_123' }]),
           }),
         }),
       }),

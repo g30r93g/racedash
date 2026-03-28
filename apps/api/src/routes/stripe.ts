@@ -73,6 +73,7 @@ const stripeRoutes: FastifyPluginAsync = async (fastify) => {
           success_url: 'https://racedash.io/checkout/success?session_id={CHECKOUT_SESSION_ID}',
           cancel_url: 'https://racedash.io/checkout/cancel',
           metadata: { user_id: user.id, tier },
+          subscription_data: { metadata: { user_id: user.id } },
         })
 
         return {
