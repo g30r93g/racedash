@@ -57,7 +57,7 @@ const SAMPLE_PROJECT = {
   configPath: '/new/config.json',
   videoPaths: ['/new/video.mp4'],
   segments: [],
-  selectedDriver: 'G. Gorzynski',
+  selectedDrivers: {},
 }
 
 beforeEach(() => {
@@ -141,9 +141,7 @@ describe('relocateProjectHandler', () => {
 
   it('strips the missing field from the returned ProjectData', async () => {
     mockShowOpenDialog.mockResolvedValue({ canceled: false, filePaths: [NEW_PATH] })
-    mockReadFile.mockResolvedValue(
-      JSON.stringify({ ...SAMPLE_PROJECT, missing: true }) as unknown as Buffer,
-    )
+    mockReadFile.mockResolvedValue(JSON.stringify({ ...SAMPLE_PROJECT, missing: true }) as unknown as Buffer)
 
     const result = await relocateProjectHandler(OLD_PATH)
     expect(result.missing).toBeUndefined()

@@ -1,2 +1,5 @@
 out/
 release/
+
+.env
+!.env.example

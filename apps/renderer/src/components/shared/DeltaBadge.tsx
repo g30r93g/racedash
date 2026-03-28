@@ -19,8 +19,8 @@ export const DeltaBadge: React.FC<Props> = ({ timestamps, fps, styling }) => {
   // Need at least 2 completed laps to show a meaningful delta
   if (currentIdx < 2) return null
 
-  const completedLap = timestamps[currentIdx - 1]  // last completed lap
-  const prevLap = timestamps[currentIdx - 2]        // the one before that
+  const completedLap = timestamps[currentIdx - 1] // last completed lap
+  const prevLap = timestamps[currentIdx - 2] // the one before that
   const delta = completedLap.lap.lapTime - prevLap.lap.lapTime
   const isFaster = delta < 0
 
@@ -40,7 +40,8 @@ export const DeltaBadge: React.FC<Props> = ({ timestamps, fps, styling }) => {
         opacity: flashProgress,
       }}
     >
-      {isFaster ? '-' : '+'}{formatLapTime(Math.abs(delta))}
+      {isFaster ? '-' : '+'}
+      {formatLapTime(Math.abs(delta))}
     </div>
   )
 }

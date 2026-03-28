@@ -16,10 +16,5 @@ interface Props {
 export const InfoSegmentPanel: React.FC<Props> = ({ content, ...props }) => {
   if (content === 'none') return null
 
-  return (
-    <TimeLabelPanel
-      {...props}
-      variant={content === 'last-lap' ? 'last' : 'best'}
-    />
-  )
+  return <TimeLabelPanel {...props} variant={content === 'last-lap' ? 'last' : 'best'} />
 }

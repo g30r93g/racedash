@@ -24,17 +24,17 @@ export async function resolveVideoFiles(videoArg: string): Promise<string[]> {
 
   const entries = await readdir(videoArg)
   const videos = entries
-    .filter(f => VIDEO_EXTS.has(f.slice(f.lastIndexOf('.'))))
+    .filter((f) => VIDEO_EXTS.has(f.slice(f.lastIndexOf('.'))))
     .sort()
-    .map(f => join(videoArg, f))
+    .map((f) => join(videoArg, f))
 
   if (videos.length === 0) throw new Error(`No video files found in: ${videoArg}`)
   if (videos.length === 1) return videos
 
   const chosen = await checkbox({
     message: 'Select footage (space to toggle, enter to confirm):',
-    choices: videos.map(f => ({ name: getVideoChoiceLabel(f), value: f })),
-    validate: v => v.length > 0 || 'Select at least one file',
+    choices: videos.map((f) => ({ name: getVideoChoiceLabel(f), value: f })),
+    validate: (v) => v.length > 0 || 'Select at least one file',
   })
 
   return chosen as string[]

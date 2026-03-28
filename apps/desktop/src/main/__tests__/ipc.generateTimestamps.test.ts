@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@racedash/engine', () => ({
-  joinVideos: vi.fn(), listDrivers: vi.fn(), generateTimestamps: vi.fn(),
-  renderSession: vi.fn(), parseFpsValue: vi.fn(), buildRaceLapSnapshots: vi.fn(),
+  joinVideos: vi.fn(),
+  listDrivers: vi.fn(),
+  generateTimestamps: vi.fn(),
+  renderSession: vi.fn(),
+  parseFpsValue: vi.fn(),
+  buildRaceLapSnapshots: vi.fn(),
   buildSessionSegments: vi.fn(),
-  loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{ positionOverrides: undefined }] }),
-  resolvePositionOverrides: vi.fn().mockReturnValue(undefined),
+  loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{ positionOverrides: [] }] }),
+  resolvePositionOverrides: vi.fn().mockReturnValue([]),
+  resolveTimingSegments: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
@@ -14,14 +19,17 @@ vi.mock('electron', () => ({
   shell: {},
 }))
 vi.mock('node:child_process', () => ({
-  execSync: vi.fn(), execFileSync: vi.fn(),
+  execSync: vi.fn(),
+  execFileSync: vi.fn(),
 }))
 
 import * as engine from '@racedash/engine'
 import { generateTimestampsHandler } from '../ipc'
 
 describe('generateTimestampsHandler', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('merges sessionSegments and startingGridPosition from buildSessionSegments', async () => {
     const fakeSegments = [{ mode: 'race' }] as unknown as ReturnType<typeof engine.buildSessionSegments>['segments']

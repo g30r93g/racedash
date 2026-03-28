@@ -1,15 +1,13 @@
-import { StepIndicator } from '@/components/app/StepIndicator'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { WizardShell } from '@/components/wizard/WizardShell'
 import { useState } from 'react'
 import type { ProjectData, SegmentConfig } from '../../../../types/project'
-import { Step2Segments } from './steps/Step2Segments'
-import { Step3Driver } from './steps/Step3Driver'
-import { Step4Verify } from './steps/Step4Verify'
+import { SegmentsStep } from './steps/SegmentsStep'
+import { DriverStep } from './steps/DriverStep'
+import { VerifyStep } from './steps/VerifyStep'
 
 interface EditWizardState {
   segments: SegmentConfig[]
-  selectedDriver: string
+  selectedDrivers: Record<string, string>
 }
 
 interface ProjectEditWizardProps {
@@ -21,13 +19,13 @@ interface ProjectEditWizardProps {
 const STEP_LABELS = ['Segments', 'Driver', 'Verify'] as const
 
 export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWizardProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState(0)
   const [segmentSubForm, setSegmentSubForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [state, setState] = useState<EditWizardState>({
     segments: project.segments,
-    selectedDriver: project.selectedDriver,
+    selectedDrivers: project.selectedDrivers,
   })
 
   function updateState(patch: Partial<EditWizardState>) {
@@ -35,22 +33,18 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
   }
 
   function goNext() {
-    setStep((s) => Math.min(s + 1, 3) as 1 | 2 | 3)
+    setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1))
   }
 
   function goBack() {
-    setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3)
+    setStep((s) => Math.max(s - 1, 0))
   }
 
   async function handleSave() {
     setSaving(true)
     setSaveError(null)
     try {
-      const updated = await window.racedash.updateProject(
-        project.projectPath,
-        state.segments,
-        state.selectedDriver,
-      )
+      const updated = await window.racedash.updateProject(project.projectPath, state.segments, state.selectedDrivers)
       onSave(updated)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save project')
@@ -59,64 +53,46 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
   }
 
   const canContinue =
-    (step === 1 && state.segments.length >= 1) ||
-    (step === 2 && state.selectedDriver !== '') ||
-    step >= 3
+    (step === 0 && state.segments.length >= 1) ||
+    (step === 1 && state.segments.every((seg) => !!state.selectedDrivers[seg.label])) ||
+    step >= 2
 
   return (
-    <Dialog open={true} onOpenChange={(open) => { if (!open) onCancel() }}>
-      <DialogContent
-        className="flex w-172.5 flex-col gap-0 p-0"
-        onInteractOutside={(event) => event.preventDefault()}
-        style={{ minHeight: '630px', maxHeight: '90vh' }}
-      >
-        <div className="shrink-0 border-b border-border px-8 py-6">
-          <StepIndicator currentStep={step} steps={STEP_LABELS} />
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {step === 1 && (
-            <Step2Segments
-              videoPaths={project.videoPaths}
-              joinedVideoPath={project.videoPaths[0]}
-              segments={state.segments}
-              onChange={(segments) => updateState({ segments })}
-              onSubFormChange={setSegmentSubForm}
-            />
-          )}
-          {step === 2 && (
-            <Step3Driver
-              segments={state.segments}
-              selectedDriver={state.selectedDriver}
-              onChange={(driver) => updateState({ selectedDriver: driver })}
-            />
-          )}
-          {step === 3 && (
-            <>
-              <Step4Verify segments={state.segments} selectedDriver={state.selectedDriver} />
-              {saveError && (
-                <p className="mt-4 text-sm text-destructive">{saveError}</p>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className={`flex shrink-0 items-center justify-between border-t border-border px-8 py-4${segmentSubForm ? ' hidden' : ''}`}>
-          <Button variant="ghost" onClick={step === 1 ? onCancel : goBack}>
-            {step === 1 ? 'Cancel' : '← Back'}
-          </Button>
-          {step < 3 && (
-            <Button onClick={goNext} disabled={!canContinue}>
-              Continue
-            </Button>
-          )}
-          {step === 3 && (
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <WizardShell
+      title="Edit Project"
+      steps={STEP_LABELS}
+      currentStep={step}
+      onNext={goNext}
+      onBack={goBack}
+      onCancel={onCancel}
+      canContinue={canContinue}
+      hideButtonBar={segmentSubForm}
+      isSubmitting={saving}
+      submitLabel="Save"
+      onSubmit={handleSave}
+    >
+      {step === 0 && (
+        <SegmentsStep
+          videoPaths={project.videoPaths}
+          joinedVideoPath={project.videoPaths[0]}
+          segments={state.segments}
+          onChange={(segments) => updateState({ segments })}
+          onSubFormChange={setSegmentSubForm}
+        />
+      )}
+      {step === 1 && (
+        <DriverStep
+          segments={state.segments}
+          selectedDrivers={state.selectedDrivers}
+          onChange={(drivers) => updateState({ selectedDrivers: drivers })}
+        />
+      )}
+      {step === 2 && (
+        <>
+          <VerifyStep segments={state.segments} selectedDrivers={state.selectedDrivers} />
+          {saveError && <p className="mt-4 text-sm text-destructive">{saveError}</p>}
+        </>
+      )}
+    </WizardShell>
   )
 }

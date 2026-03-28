@@ -31,7 +31,11 @@ export const Modern: React.FC<OverlayProps> = ({
   const scale = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
+  const { segment, isEnd, label } = useActiveSegment(
+    segments,
+    currentTime,
+    labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+  )
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
@@ -42,20 +46,23 @@ export const Modern: React.FC<OverlayProps> = ({
 
   const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
   const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity = fadeEnabled && !isEnd
-    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-    : 1
+  const opacity =
+    fadeEnabled && !isEnd
+      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+      : 1
 
-  const {
-    elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition,
-  } = useCardOverlayState({
-    segment, isEnd, currentTime, startingGridPosition, placeholder: PLACEHOLDER,
+  const { elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+    segment,
+    isEnd,
+    currentTime,
+    startingGridPosition,
+    placeholder: PLACEHOLDER,
   })
 
   const mo = styling?.modern
-  const stripeOpacity  = mo?.stripeOpacity  ?? 0.035
-  const bgColor        = mo?.bgColor        ?? 'rgba(13, 15, 20, 0.88)'
-  const dividerColor   = mo?.dividerColor   ?? 'rgba(255,255,255,0.2)'
+  const stripeOpacity = mo?.stripeOpacity ?? 0.035
+  const bgColor = mo?.bgColor ?? 'rgba(13, 15, 20, 0.88)'
+  const dividerColor = mo?.dividerColor ?? 'rgba(255,255,255,0.2)'
   const statLabelColor = mo?.statLabelColor ?? 'rgba(255,255,255,0.5)'
 
   const styles = useMemo(() => {

@@ -1,0 +1,25 @@
+{
+  "name": "@racedash/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --exclude 'test/helpers/{credits,licenses,slots}.test.ts'",
+    "test:coverage": "vitest run --exclude 'test/helpers/{credits,licenses,slots}.test.ts' --coverage",
+    "test:db": "./test/run-with-db.sh",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.0",
+    "drizzle-orm": "^0.38.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.0",
+    "fast-check": "^4.0.0",
+    "pg": "^8.13.0",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

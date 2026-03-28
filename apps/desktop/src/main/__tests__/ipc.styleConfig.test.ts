@@ -10,12 +10,17 @@ vi.mock('electron', () => ({
   shell: {},
 }))
 vi.mock('@racedash/engine', () => ({
-  joinVideos: vi.fn(), listDrivers: vi.fn(), generateTimestamps: vi.fn(),
-  renderSession: vi.fn(), parseFpsValue: vi.fn(), buildRaceLapSnapshots: vi.fn(),
+  joinVideos: vi.fn(),
+  listDrivers: vi.fn(),
+  generateTimestamps: vi.fn(),
+  renderSession: vi.fn(),
+  parseFpsValue: vi.fn(),
+  buildRaceLapSnapshots: vi.fn(),
   buildSessionSegments: vi.fn(),
 }))
 vi.mock('node:child_process', () => ({
-  execSync: vi.fn(), execFileSync: vi.fn(),
+  execSync: vi.fn(),
+  execFileSync: vi.fn(),
 }))
 
 import { saveStyleToConfigHandler } from '../ipc'

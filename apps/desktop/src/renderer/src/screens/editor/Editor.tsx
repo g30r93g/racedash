@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
-import { Timeline } from '@/components/app/Timeline'
+import { Timeline } from '@/components/video/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayProps } from '@racedash/core'
+import { useAuth } from '../../hooks/useAuth'
+import { useLicense } from '../../hooks/useLicense'
 
 function parsePositionString(pos: string): number {
   return parseInt(pos.replace(/^P/i, ''), 10)
@@ -53,8 +55,12 @@ interface EditorProps {
 }
 
 export function Editor({ project, onClose }: EditorProps): React.ReactElement {
+  const { user, license: authLicense, isSignedIn, signIn } = useAuth()
+  const { license: liveLicense } = useLicense(isSignedIn)
+  const displayLicense = liveLicense ?? authLicense
   const [projectState, setProjectState] = useState(project)
   const [configRevision, setConfigRevision] = useState(0)
+  const [timingRevision, setTimingRevision] = useState(0)
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
@@ -78,14 +84,20 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     setTimingError(null)
     window.racedash
       .generateTimestamps({ configPath: projectState.configPath, fps: videoInfo.fps })
-      .then((result) => { if (!cancelled) setTimestampsResult(result) })
+      .then((result) => {
+        if (!cancelled) setTimestampsResult(result)
+      })
       .catch((err: unknown) => {
         if (!cancelled) setTimingError(err instanceof Error ? err.message : String(err))
         console.warn('[Editor] generateTimestamps failed:', err)
       })
-      .finally(() => { if (!cancelled) setTimingLoading(false) })
-    return () => { cancelled = true }
-  }, [projectState.configPath, videoInfo, configRevision])
+      .finally(() => {
+        if (!cancelled) setTimingLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [projectState.configPath, videoInfo, timingRevision])
 
   // ── Style state + undo/redo history ─────────────────────────────────────────
   const [styleHistoryState, dispatchStyle] = useReducer(styleHistoryReducer, {
@@ -98,48 +110,69 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   // Load initial style from config.json on mount (and after project edit)
   useEffect(() => {
-    window.racedash.readProjectConfig(projectState.configPath).then((config) => {
-      const overlayType = (config.overlayType as StyleState['overlayType']) ?? 'banner'
-      const styling = (config.styling as StyleState['styling']) ?? {}
-      const boxPosition = config.boxPosition as BoxPosition | undefined
-      const qualifyingTablePosition = config.qualifyingTablePosition as CornerPosition | undefined
-      const overlayComponents = (config.overlayComponents as OverlayComponentsConfig | undefined) ?? DEFAULT_STYLE_STATE.overlayComponents
-      dispatchStyle({ type: 'init', initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents } })
-    }).catch(() => { /* no style saved yet — defaults are fine */ })
+    window.racedash
+      .readProjectConfig(projectState.configPath)
+      .then((config) => {
+        const overlayType = (config.overlayType as StyleState['overlayType']) ?? 'banner'
+        const styling = (config.styling as StyleState['styling']) ?? {}
+        const boxPosition = config.boxPosition as BoxPosition | undefined
+        const qualifyingTablePosition = config.qualifyingTablePosition as CornerPosition | undefined
+        const overlayComponents =
+          (config.overlayComponents as OverlayComponentsConfig | undefined) ?? DEFAULT_STYLE_STATE.overlayComponents
+        dispatchStyle({
+          type: 'init',
+          initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents },
+        })
+      })
+      .catch(() => {
+        /* no style saved yet — defaults are fine */
+      })
   }, [projectState.configPath, configRevision])
 
-  const handleStyleChange = useCallback((next: StyleState) => {
-    dispatchStyle({ type: 'change', next })
-    window.racedash.saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
-      boxPosition: next.boxPosition,
-      qualifyingTablePosition: next.qualifyingTablePosition,
-      overlayComponents: next.overlayComponents,
-    })
-      .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig failed:', err) })
-  }, [projectState.configPath])
+  const handleStyleChange = useCallback(
+    (next: StyleState) => {
+      dispatchStyle({ type: 'change', next })
+      window.racedash
+        .saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
+          boxPosition: next.boxPosition,
+          qualifyingTablePosition: next.qualifyingTablePosition,
+          overlayComponents: next.overlayComponents,
+        })
+        .catch((err: unknown) => {
+          console.warn('[Editor] saveStyleToConfig failed:', err)
+        })
+    },
+    [projectState.configPath],
+  )
 
   const handleUndo = useCallback(() => {
     const newCursor = Math.max(styleHistoryState.cursor - 1, 0)
     const next = styleHistoryState.history[newCursor]
     dispatchStyle({ type: 'undo' })
-    window.racedash.saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
-      boxPosition: next.boxPosition,
-      qualifyingTablePosition: next.qualifyingTablePosition,
-      overlayComponents: next.overlayComponents,
-    })
-      .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (undo) failed:', err) })
+    window.racedash
+      .saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
+        boxPosition: next.boxPosition,
+        qualifyingTablePosition: next.qualifyingTablePosition,
+        overlayComponents: next.overlayComponents,
+      })
+      .catch((err: unknown) => {
+        console.warn('[Editor] saveStyleToConfig (undo) failed:', err)
+      })
   }, [styleHistoryState, projectState.configPath])
 
   const handleRedo = useCallback(() => {
     const newCursor = Math.min(styleHistoryState.cursor + 1, styleHistoryState.history.length - 1)
     const next = styleHistoryState.history[newCursor]
     dispatchStyle({ type: 'redo' })
-    window.racedash.saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
-      boxPosition: next.boxPosition,
-      qualifyingTablePosition: next.qualifyingTablePosition,
-      overlayComponents: next.overlayComponents,
-    })
-      .catch((err: unknown) => { console.warn('[Editor] saveStyleToConfig (redo) failed:', err) })
+    window.racedash
+      .saveStyleToConfig(projectState.configPath, next.overlayType, next.styling, {
+        boxPosition: next.boxPosition,
+        qualifyingTablePosition: next.qualifyingTablePosition,
+        overlayComponents: next.overlayComponents,
+      })
+      .catch((err: unknown) => {
+        console.warn('[Editor] saveStyleToConfig (redo) failed:', err)
+      })
   }, [styleHistoryState, projectState.configPath])
 
   // Keyboard undo/redo
@@ -147,8 +180,14 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey
       if (!mod) return
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo() }
-      if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); handleRedo() }
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        handleUndo()
+      }
+      if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+        e.preventDefault()
+        handleRedo()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -161,16 +200,23 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   useEffect(() => {
     if (overridesInitialisedRef.current && configRevision === 0) return
     overridesInitialisedRef.current = true
-    window.racedash.readProjectConfig(projectState.configPath).then((config) => {
-      const segments = (config.segments ?? []) as Array<{ positionOverrides?: Array<{ timestamp: string; position: number }> }>
-      const loaded: Override[] = []
-      segments.forEach((seg, segmentIndex) => {
-        for (const o of seg.positionOverrides ?? []) {
-          loaded.push({ id: crypto.randomUUID(), segmentIndex, timecode: o.timestamp, position: `P${o.position}` })
-        }
+    window.racedash
+      .readProjectConfig(projectState.configPath)
+      .then((config) => {
+        const segments = (config.segments ?? []) as Array<{
+          positionOverrides?: Array<{ timestamp: string; position: number }>
+        }>
+        const loaded: Override[] = []
+        segments.forEach((seg, segmentIndex) => {
+          for (const o of seg.positionOverrides ?? []) {
+            loaded.push({ id: crypto.randomUUID(), segmentIndex, timecode: o.timestamp, position: `P${o.position}` })
+          }
+        })
+        setOverrides(loaded)
       })
-      setOverrides(loaded)
-    }).catch(() => { /* config may have no overrides yet */ })
+      .catch(() => {
+        /* config may have no overrides yet */
+      })
   }, [projectState.configPath, configRevision])
 
   // Auto-save overrides to config.json whenever they change (skip initial empty state)
@@ -184,8 +230,16 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       timestamp: timecode,
       position: parsePositionString(position),
     }))
-    window.racedash.updateProjectConfigOverrides(projectState.configPath, payload)
-      .then(() => { setConfigRevision((r) => r + 1) })
+    window.racedash
+      .updateProjectConfigOverrides(projectState.configPath, payload)
+      .then(() => {
+        // Only bump timingRevision so the engine re-generates with updated
+        // overrides.  Do NOT bump configRevision here – that would trigger
+        // the overrides-load effect, which produces new objects (new UUIDs),
+        // which re-triggers this save effect, creating an infinite loop that
+        // causes the timing table to flicker.
+        setTimingRevision((r) => r + 1)
+      })
       .catch((err: unknown) => {
         console.warn('[Editor] failed to save position overrides:', err)
       })
@@ -195,6 +249,27 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
+  const togglePlayPause = useCallback(() => {
+    if (playing) {
+      videoPaneRef.current?.pause()
+    } else {
+      videoPaneRef.current?.play()
+    }
+  }, [playing])
+
+  // Space bar to toggle play/pause
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== ' ') return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      e.preventDefault()
+      togglePlayPause()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [togglePlayPause])
+
   const handleSave = useCallback(() => {
     videoPaneRef.current?.pause()
     onClose()
@@ -203,6 +278,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const handleProjectUpdate = useCallback((updated: ProjectData) => {
     setProjectState(updated)
     setConfigRevision((r) => r + 1)
+    setTimingRevision((r) => r + 1)
     setOverrides([])
     overridesSavedRef.current = false
   }, [])
@@ -227,7 +303,15 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
       {/* Left pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
-        <VideoPane ref={videoPaneRef} videoPath={projectState.videoPaths[0]} fps={videoInfo?.fps} onTimeUpdate={handleTimeUpdate} onPlayingChange={setPlaying} overlayType={styleState.overlayType} overlayProps={overlayProps} />
+        <VideoPane
+          ref={videoPaneRef}
+          videoPath={projectState.videoPaths[0]}
+          fps={videoInfo?.fps}
+          onTimeUpdate={handleTimeUpdate}
+          onPlayingChange={setPlaying}
+          overlayType={styleState.overlayType}
+          overlayProps={overlayProps}
+        />
         <Timeline
           project={projectState}
           videoInfo={videoInfo}
@@ -258,6 +342,9 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           timingLoading={timingLoading}
           timingError={timingError}
           onProjectUpdate={handleProjectUpdate}
+          authUser={user ? { name: user.name } : null}
+          licenseTier={displayLicense?.tier ?? null}
+          onSignIn={signIn}
         />
       </div>
     </div>

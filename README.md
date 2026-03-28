@@ -1,100 +1,275 @@
-# racedash
+# RaceDash
 
-Fetch timing data from multiple sources, generate YouTube chapter timestamps, and render lap timer overlays onto race footage.
+Timing data extraction, YouTube chapter generation, and lap timer overlay rendering for race footage — available as a CLI tool and a desktop app.
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Apps
+        CLI["apps/cli<br/><small>CLI tool</small>"]
+        Desktop["apps/desktop<br/><small>Electron app</small>"]
+        Renderer["apps/renderer<br/><small>Remotion compositions</small>"]
+    end
+
+    subgraph Packages
+        Engine["packages/engine<br/><small>Orchestration layer</small>"]
+        Core["packages/core<br/><small>Domain types</small>"]
+        Scraper["packages/scraper<br/><small>Web scraping</small>"]
+        Timestamps["packages/timestamps<br/><small>Timestamp calculation</small>"]
+        Compositor["packages/compositor<br/><small>Remotion bundler + renderer</small>"]
+    end
+
+    CLI --> Engine
+    Desktop --> Engine
+    Desktop --> Renderer
+    Renderer --> Timestamps
+    Renderer --> Core
+    Engine --> Scraper
+    Engine --> Timestamps
+    Engine --> Compositor
+    Engine --> Core
+    Scraper --> Core
+    Timestamps --> Core
+    Compositor --> Core
+
+    subgraph Cloud["Cloud"]
+        API["apps/api<br/><small>Fastify REST API</small>"]
+        Admin["apps/admin<br/><small>Next.js dashboard</small>"]
+        DB["packages/db<br/><small>Drizzle ORM schema</small>"]
+        Infra["infra/<br/><small>AWS CDK stacks</small>"]
+    end
+
+    Desktop -.->|"authenticated fetch"| API
+    API --> DB
+    Admin --> DB
+    Infra --> API
+
+    subgraph AWS["AWS Services"]
+        S3["S3<br/><small>Uploads + renders</small>"]
+        StepFn["Step Functions<br/><small>Render pipeline</small>"]
+        Lambda["Lambda<br/><small>Pipeline tasks</small>"]
+        SQS["SQS<br/><small>Social upload queue</small>"]
+        SES["SES<br/><small>Email notifications</small>"]
+        CloudFront["CloudFront<br/><small>Signed URL downloads</small>"]
+        MediaConvert["MediaConvert<br/><small>Video processing</small>"]
+    end
+
+    API -.-> S3
+    API -.-> StepFn
+    StepFn -.-> Lambda
+    Lambda -.-> S3
+    Lambda -.-> SQS
+    Lambda -.-> SES
+    Lambda -.-> MediaConvert
+    CloudFront -.-> S3
+```
+
+### Package overview
+
+| Package | Description | Docs |
+|---------|-------------|------|
+| `@racedash/core` | Domain types and constants — no runtime dependencies | [README](packages/core/README.md) |
+| `@racedash/scraper` | Fetches and parses timing data from AlphaTiming | [README](packages/scraper/README.md) |
+| `@racedash/timestamps` | Offset parsing, lap timestamp calculation, and YouTube chapter formatting | [README](packages/timestamps/README.md) |
+| `@racedash/compositor` | Remotion bundler/renderer abstraction, GPU detection, and FFmpeg codec validation | [README](packages/compositor/README.md) |
+| `@racedash/engine` | Orchestration layer — composes scraper, timestamps, and compositor | [README](packages/engine/README.md) |
+| `@racedash/db` | Drizzle ORM schema — PostgreSQL tables for users, licenses, credits, jobs | [README](packages/db/README.md) |
+
+### Apps
+
+| App | Description | Docs |
+|-----|-------------|------|
+| `@racedash/cli` | CLI commands: `drivers`, `timestamps`, `join`, `doctor`, `render` | [README](apps/cli/README.md) |
+| `@racedash/desktop` | Electron app with project library, creation wizard, editor, and video preview | [README](apps/desktop/README.md) |
+| `@racedash/renderer` | Remotion compositions for overlay styles (banner, esports, geometric-banner, minimal, modern) | [README](apps/renderer/README.md) |
+| `@racedash/api` | Fastify REST API — deployed as AWS Lambda | [README](apps/api/README.md) |
+| `@racedash/admin` | Next.js admin dashboard with Clerk auth | [README](apps/admin/README.md) |
+
+### Infrastructure
+
+| Component | Description | Docs |
+|-----------|-------------|------|
+| `@racedash/infra` | AWS CDK stacks, Lambda functions, Step Functions pipeline, LocalStack testing | [README](infra/README.md) |
 
 ---
 
-## Quick start (for everyone)
+## Prerequisites
 
-### 1. Install prerequisites
+| Tool | Install | Verify |
+|------|---------|--------|
+| **Node.js** v20+ | [nodejs.org](https://nodejs.org) (LTS) | `node --version` |
+| **pnpm** | `npm install -g pnpm` | `pnpm --version` |
+| **FFmpeg** | macOS: `brew install ffmpeg` · Windows: `winget install ffmpeg` · Linux: `sudo apt install ffmpeg` | `ffmpeg -version` |
 
-You'll need three tools installed before you can run racedash. Follow the instructions for your operating system.
-
-#### Node.js (v20 or later)
-
-Download and run the installer from **https://nodejs.org** — choose the "LTS" version.
-
-To check it worked, open a terminal and run:
-```
-node --version
-```
-You should see something like `v20.x.x`.
-
-#### pnpm (package manager)
-
-Once Node.js is installed, run this in your terminal:
-```
-npm install -g pnpm
-```
-
-#### FFmpeg (required for the `render` command)
-
-**macOS** — if you have [Homebrew](https://brew.sh):
-```
-brew install ffmpeg
-```
-
-**Windows** — if you have [Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
-```
-winget install ffmpeg
-```
-
-Windows support for `racedash render` is currently experimental. The Windows render path uses a transparent VP9 WebM overlay internally, so you do not need ProRes support installed on your machine.
-
-**Linux:**
-```
-sudo apt install ffmpeg
-```
+> Windows support for `racedash render` is experimental. The Windows render path uses a transparent VP9 WebM overlay internally, so ProRes support is not required.
 
 ---
 
-### 2. Download racedash
+## Getting started
 
-If you have Git installed:
-```
+```bash
 git clone https://github.com/your-org/racedash.git
 cd racedash
-```
-
-Or download the ZIP from GitHub, unzip it, and open a terminal in the folder.
-
----
-
-### 3. Install dependencies
-
-Inside the racedash folder, run:
-```
 pnpm install
 ```
 
 ---
 
-### 4. Run a command
+## Local development
 
-All commands follow this pattern:
-```
+### CLI
+
+```bash
+# Run any CLI command
 pnpm racedash <command> [options]
+
+# Examples
+pnpm racedash drivers --config ./session.json
+pnpm racedash timestamps --config ./session.json
+pnpm racedash render --config ./session.json --video ./race.mp4
 ```
 
-See the **Commands** section below for what you can do.
+### Desktop app
+
+```bash
+pnpm desktop:dev
+```
+
+### Build and test
+
+```bash
+pnpm turbo build       # Build all packages
+pnpm turbo test        # Run tests across all packages
+pnpm turbo typecheck   # Type-check everything
+pnpm lint              # Lint
+```
+
+### Cloud services (local)
+
+The API runs on your host (not in Docker) with hot-reload. Docker provides the infrastructure it depends on: PostgreSQL and LocalStack (emulated AWS services).
+
+| Service | Port |
+|---------|------|
+| API | 3000 |
+| Admin dashboard | 3001 |
+| PostgreSQL | 5433 |
+| LocalStack | 4566 |
+
+**1. Start infrastructure**
+
+```bash
+pnpm local:up       # Start Postgres + LocalStack (waits for readiness)
+```
+
+This creates S3 buckets, SQS queues, SES identity, and the Step Functions state machine automatically.
+
+**2. Configure environment**
+
+```bash
+pnpm setup:env
+```
+
+An interactive script that generates `apps/api/.env.local`. LocalStack vars are auto-populated from `infra/localstack-init/env.localstack`. You'll be prompted for:
+
+- **DATABASE_URL** — Press Enter to accept the default (`postgresql://racedash:racedash_local@localhost:5433/racedash_local`)
+- **CLERK_SECRET_KEY** — From [dashboard.clerk.com](https://dashboard.clerk.com) → API Keys (starts with `sk_test_`)
+- **CLERK_WEBHOOK_SECRET** — Optional. Needed for user sync. Requires ngrok (see Webhooks below)
+- **STRIPE_SECRET_KEY** — From Stripe dashboard → Developers → API Keys (starts with `sk_test_`)
+- **STRIPE_WEBHOOK_SECRET** — Optional. Use `stripe listen` CLI (see Webhooks below)
+- **STRIPE_PRICE_\*** — From Stripe dashboard → Products → price IDs (starts with `price_`)
+- **ADMIN_APP_ORIGIN** — URL of the admin app for CORS. Default `http://localhost:3001`
+
+**3. Push the database schema**
+
+```bash
+DATABASE_URL="postgresql://racedash:racedash_local@localhost:5433/racedash_local" \
+  pnpm drizzle-kit push --force
+```
+
+**4. Start the API**
+
+```bash
+cd apps/api && pnpm dev    # Runs on localhost:3000 with hot-reload
+```
+
+**5. Point the desktop app at the local API**
+
+```bash
+cp apps/desktop/.env.example apps/desktop/.env
+# Set VITE_API_URL=http://localhost:3000
+# Set VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+```
+
+### Webhooks (local)
+
+The API receives webhooks from Clerk (user sync) and Stripe (payments). For local development, you need tunnels to forward these to your host.
+
+**Clerk webhooks (ngrok):**
+
+```bash
+ngrok http 3000
+```
+
+Copy the `https://xxx.ngrok-free.app` URL, then in [dashboard.clerk.com](https://dashboard.clerk.com) → Webhooks → Add Endpoint:
+- URL: `https://xxx.ngrok-free.app/api/webhooks/clerk`
+- Events: `user.created`
+- Copy the signing secret → set as `CLERK_WEBHOOK_SECRET` in `.env.local`
+
+**Stripe webhooks (Stripe CLI):**
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+The CLI prints the webhook signing secret directly — set it as `STRIPE_WEBHOOK_SECRET` in `.env.local`.
+
+### Infrastructure commands
+
+```bash
+pnpm local:up              # Start Postgres + LocalStack
+pnpm local:down            # Stop everything
+pnpm local:fresh           # Wipe volumes and restart clean
+pnpm local:logs            # Tail all container logs
+pnpm local:logs:localstack # Tail LocalStack logs only
+pnpm local:logs:postgres   # Tail Postgres logs only
+pnpm local:version-check   # Warn if pinned LocalStack is outdated
+pnpm local:ses             # Inspect sent emails in LocalStack
+pnpm local:sfn:list        # List Step Functions executions
+pnpm local:sfn:execute     # Start/check SFN executions
+pnpm setup:env             # Interactive .env.local generator
+```
+
+### LocalStack integration tests
+
+```bash
+cd infra
+pnpm localstack:up         # Start standalone LocalStack
+pnpm test:local            # Run integration tests
+pnpm test:local:watch      # Watch mode
+pnpm localstack:down       # Stop container
+```
 
 ---
 
-## Commands
+## CLI reference
 
-### Config-first workflow
+All commands follow the pattern `pnpm racedash <command> [options]`.
 
-`racedash` now reads timing data from a JSON config file for `drivers`, `timestamps`, and `render`.
+### Session config
 
-Each segment must declare an explicit `source`. The current source set is:
+Commands that accept `--config` read a JSON file describing one or more session segments. Each segment declares a `source`:
 
-- `alphaTiming`
-- `teamsportEmail`
-- `daytonaEmail`
-- `mylapsSpeedhive`
-- `manual`
+| Source | Input | Notes |
+|--------|-------|-------|
+| `alphaTiming` | URL to AlphaTiming results page | |
+| `mylapsSpeedhive` | Speedhive session URL | |
+| `teamsportEmail` | Path to saved `.eml` file | |
+| `daytonaEmail` | Path to saved `.eml` file | 2025/2026 Clubspeed format |
+| `manual` | Inline `timingData` array | Fallback when no integration is available |
 
-Example config:
+<details>
+<summary>Example config</summary>
 
 ```json
 {
@@ -136,13 +311,11 @@ Example config:
 }
 ```
 
-`teamsportEmail` and `daytonaEmail` expect a saved `.eml` file. `mylapsSpeedhive` expects a Speedhive session URL. `manual` is the fallback when an integration is unavailable. `daytonaEmail` currently supports the newer Daytona/Clubspeed email format represented by the 2025/2026 samples.
+</details>
 
----
+### `racedash drivers`
 
-### `racedash drivers --config <path>`
-
-Lists drivers discovered across the configured segments. If every segment resolves the same driver list, racedash prints one shared list; otherwise it prints segment-specific lists. When a source lacks full driver discovery, racedash reports that in the feature checklist.
+Lists drivers discovered across configured segments.
 
 ```bash
 pnpm racedash drivers --config ./session.json
@@ -151,138 +324,69 @@ pnpm racedash drivers --config ./session.json --driver "Surrey A"
 
 | Flag | Description | Required |
 |------|-------------|----------|
-| `--config <path>` | Path to the session config JSON | Yes |
-| `--driver <name>` | Driver name to highlight in the printed list | No |
+| `--config <path>` | Session config JSON | Yes |
+| `--driver <name>` | Highlight a specific driver | No |
 
----
+### `racedash timestamps`
 
-### `racedash timestamps --config <path>`
-
-Prints YouTube chapter timestamps to your terminal. Copy and paste the output into your YouTube video description.
+Prints YouTube chapter timestamps. Requires `driver` in the config.
 
 ```bash
 pnpm racedash timestamps --config ./session.json
-pnpm racedash timestamps --config ./session.json --fps 60
 ```
-
-`config.driver` is required for `timestamps` because racedash needs one selected driver per segment.
 
 | Flag | Description | Required |
 |------|-------------|----------|
-| `--config <path>` | Path to the session config JSON | Yes |
-| `--fps <n>` | Video fps used when any segment offset is given as a frame count like `12345 F` | No |
+| `--config <path>` | Session config JSON | Yes |
+| `--fps <n>` | Video FPS for frame-count offsets (e.g. `"12345 F"`) | No |
 
-**Example output:**
-```
-3:23   Lap  1   1:08.588
-4:28   Lap  2   1:04.776
-5:33   Lap  3   1:05.218
-```
+**What is `offset`?** The point in your video where the segment starts — typically when the driver crosses the line to begin lap 1. Use `"12345 F"` format with `--fps` if you have a frame number instead.
 
-#### What is `offset`?
+### `racedash join`
 
-It is the point in your video where the segment starts. For most segments that means the selected driver crosses the line to begin lap 1. Manual timing data may also start at lap `0`, which represents a formation/pre-start lap before lap 1.
-
-If you have a frame number instead of a timestamp, you can use values like `"12345 F"` in the config and pass `--fps 60` to the command.
-
----
-
-### `racedash join <files...>`
-
-Joins multiple GoPro chapter files into a single video (lossless — no re-encoding).
+Lossless concatenation of GoPro chapter files.
 
 ```bash
-pnpm racedash join GH010001.MP4 GH020001.MP4 GH030001.MP4 --output race.mp4
+pnpm racedash join GH010001.MP4 GH020001.MP4 --output race.mp4
 ```
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--output <path>` | Where to save the joined file | `./joined.mp4` |
-
----
 
 ### `racedash doctor`
 
-Inspects your machine and FFmpeg setup for rendering. This is useful when reporting Windows compatibility issues because it prints the detected CPU, GPU, available FFmpeg hardware acceleration backends, relevant encoders, and the current default render strategy.
+Inspects your FFmpeg setup, GPU capabilities, and available encoders.
 
 ```bash
 pnpm racedash doctor
 ```
 
----
+### `racedash render`
 
-### `racedash render --config <path> --video <path>`
-
-Renders a lap timer overlay onto your video. This takes a few minutes depending on video length.
-
-On Windows, `render` support is experimental. racedash will print a warning at startup, probe your FFmpeg and hardware setup, and fall back to software decoding when the preferred hardware path does not validate.
+Renders a lap timer overlay onto video.
 
 ```bash
-pnpm racedash render --config ./session.json \
-  --video ./race.mp4 \
-  --output ./race-out.mp4
+pnpm racedash render --config ./session.json --video ./race.mp4 --output ./race-out.mp4
 ```
-
-While running, racedash shows a progress bar for each step and a total time on completion:
-
-```
-  Fetching session data and probing video...
-
-  Driver      Jane Smith  [43]  ·  26 laps
-  Mode        qualifying
-  Video       1920×1080  ·  60 fps
-  Style       banner
-  Accent      ██ #3DD73D
-  Text        ██ white
-  Timer text  ██ white
-  Timer bg    ██ #111111
-
-  Rendering overlay   [████████████████░░░░░░░░░░░░░░]   54%  ETA 1:12
-  Compositing         [████████████████████████████░░]   93%  ETA 0:08
-
-  ✓  ./race-out.mp4  ·  3:42
-```
-
-#### Flags
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--config <path>` | Path to the session config JSON | _(required)_ |
-| `--video <path>` | Path to your source video file | _(required)_ |
-| `--output <path>` | Where to save the rendered video | `./out.mp4` |
-| `--style <name>` | Overlay style (see below) | `banner` |
-| `--overlay-x <n>` | Horizontal position of the overlay in pixels | `0` |
-| `--overlay-y <n>` | Vertical position of the overlay in pixels | `0` |
-| `--box-position <pos>` | Position for `esports`, `minimal`, and `modern`: `bottom-left`, `bottom-center`, `bottom-right`, `top-left`, `top-center`, `top-right` | `bottom-left` for `esports`/`minimal`, `bottom-center` for `modern` |
-| `--output-resolution <preset>` | Output resolution preset: `1080p`, `1440p`, or `2160p` | _(video resolution)_ |
-| `--qualifying-table-position <pos>` | Corner for the qualifying table: `bottom-left`, `bottom-right`, `top-left`, `top-right` | _(config/default)_ |
-| `--label-window <seconds>` | Seconds before/after a segment offset to show its label | `15` |
-| `--no-cache` | Force the overlay to be re-rendered instead of reusing a cached render | `false` |
-| `--only-render-overlay` | Render the overlay file and skip compositing it onto the source video | `false` |
+| `--config <path>` | Session config JSON | _(required)_ |
+| `--video <path>` | Source video file | _(required)_ |
+| `--output <path>` | Output path | `./out.mp4` |
+| `--style <name>` | Overlay style: `banner`, `esports`, `geometric-banner`, `minimal`, `modern` | `banner` |
+| `--overlay-x <n>` | Horizontal position (px) | `0` |
+| `--overlay-y <n>` | Vertical position (px) | `0` |
+| `--box-position <pos>` | Position for esports/minimal/modern | style-dependent |
+| `--output-resolution <preset>` | `1080p`, `1440p`, or `2160p` | video resolution |
+| `--qualifying-table-position <pos>` | Corner for qualifying table | config default |
+| `--label-window <seconds>` | Label display duration around segment offset | `15` |
+| `--no-cache` | Force overlay re-render | `false` |
+| `--only-render-overlay` | Render overlay without compositing onto source | `false` |
 
-#### Available styles
+#### Overlay styles
 
 | Style | Description |
 |-------|-------------|
-| `banner` | Full-width top strip with a coloured accent band and a dark centre trap for the lap timer. In `practice`/`qualifying` mode the band also shows last-lap and session-best panels; in `race` mode it shows a position counter and lap fraction at the edges. Flashes purple/green/red on lap completion. Colours are fully configurable via `--accent-color`, `--text-color`, `--timer-text-color`, and `--timer-bg-color`. |
-| `esports` | Box with icon panels showing last lap and session best, plus a current-lap ticker. Position controlled by `--box-position`. |
-| `minimal` | Compact dark card with lap number badge, large elapsed timer, and last lap / session best stats. Position controlled by `--box-position`. |
-| `modern` | Slim translucent bar with a subtle diagonal stripe pattern. Shows elapsed time alongside last lap and session best. Position controlled by `--box-position`. |
-
-Segment `mode` still affects the `banner` style layout: `practice` and `qualifying` show last-lap/session-best panels, while `race` shows position and lap count panels.
-
----
-
-## Development
-
-### Running tests
-
-```bash
-pnpm turbo test
-```
-
-### Building
-
-```bash
-pnpm turbo build
-```
+| **banner** | Full-width top bar with accent band and central lap timer. Practice/qualifying: last-lap and session-best panels flanking the timer. Race: position counter and lap counter only. Timer background flashes purple/green/red on lap completion. Configurable accent, text, and timer colours. |
+| **esports** | Floating card (default: bottom-left) with gradient accent bar, position badge, and lap counter. Two icon-badged time panels (last lap, session best) above a current elapsed time bar. |
+| **geometric-banner** | Full-width top bar with five coloured SVG polygon sections. Each section holds a data point (position, last lap, timer, previous lap, lap count). In race mode, collapses to three sections. Timer section flashes with lap performance colours. |
+| **minimal** | Compact floating card (default: bottom-left) with a lap number badge, large italic elapsed time, and three stat columns (position, last lap, session best). Same layout across all modes. |
+| **modern** | Horizontal bar (default: bottom-centre) with a subtle diagonal stripe pattern. Large elapsed time on the left, position/last lap/session best stats on the right separated by a thin divider. |

@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { computeLapColors } from './lapColor'
 import type { Lap } from '@racedash/core'
 
-const lap = (number: number, lapTime: number, cumulative: number): Lap =>
-  ({ number, lapTime, cumulative })
+const lap = (number: number, lapTime: number, cumulative: number): Lap => ({ number, lapTime, cumulative })
 
 describe('computeLapColors', () => {
   it('returns empty array for empty inputs', () => {

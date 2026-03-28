@@ -18,7 +18,9 @@ export function OptionGroup<T extends string>({ options, value, onValueChange, d
     <ToggleGroup
       type="single"
       value={value}
-      onValueChange={(val) => { if (val) onValueChange(val as T) }}
+      onValueChange={(val) => {
+        if (val) onValueChange(val as T)
+      }}
       className="grid w-full auto-cols-fr grid-flow-col gap-2"
     >
       {options.map((o) => (

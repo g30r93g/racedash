@@ -1,0 +1,74 @@
+import Fastify, { FastifyInstance } from 'fastify'
+import compress from '@fastify/compress'
+import cors from '@fastify/cors'
+import helmet from '@fastify/helmet'
+import rateLimit from '@fastify/rate-limit'
+import errorHandler from './plugins/error-handler'
+import clerkAuth from './plugins/clerk-auth'
+import healthRoutes from './routes/health'
+import authRoutes from './routes/auth'
+import webhookRoutes from './routes/webhooks'
+import stripeRoutes from './routes/stripe'
+import stripeCreditRoutes from './routes/stripe-credits'
+import creditRoutes from './routes/credits'
+import licenseRoutes from './routes/license'
+import webhooksStripeRoutes from './routes/webhooks-stripe'
+import adminRoutes from './routes/admin'
+import jobRoutes from './routes/jobs'
+import webhooksRemotionRoutes from './routes/webhooks-remotion'
+import webhooksRenderRoutes from './routes/webhooks-render'
+import youtubeAuthRoutes from './routes/youtube-auth'
+import socialUploadRoutes from './routes/social-upload'
+import socialUploadsListRoutes from './routes/social-uploads-list'
+
+export async function createApp(): Promise<FastifyInstance> {
+  const app = Fastify({
+    logger: true,
+  })
+
+  // Register raw body parsing for webhook signature verification
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      const parsed = JSON.parse(body as string)
+      req.rawBody = body as string
+      done(null, parsed)
+    } catch (err) {
+      done(err as Error, undefined)
+    }
+  })
+
+  // Plugins
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+  })
+  await app.register(compress)
+  await app.register(cors, {
+    origin: process.env.ADMIN_APP_ORIGIN || false,
+    credentials: true,
+  })
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  })
+  await app.register(errorHandler)
+  await app.register(clerkAuth)
+
+  // Routes
+  await app.register(healthRoutes)
+  await app.register(authRoutes)
+  await app.register(webhookRoutes)
+  await app.register(stripeRoutes)
+  await app.register(stripeCreditRoutes)
+  await app.register(creditRoutes)
+  await app.register(licenseRoutes)
+  await app.register(webhooksStripeRoutes)
+  await app.register(adminRoutes)
+  await app.register(jobRoutes)
+  await app.register(webhooksRemotionRoutes)
+  await app.register(webhooksRenderRoutes)
+  await app.register(youtubeAuthRoutes)
+  await app.register(socialUploadRoutes)
+  await app.register(socialUploadsListRoutes)
+
+  return app
+}

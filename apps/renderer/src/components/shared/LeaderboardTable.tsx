@@ -40,19 +40,19 @@ export const LeaderboardTable = React.memo(function LeaderboardTable({
     [leaderboardDrivers, currentTime, mode, ourKart, raceLapSnapshots],
   )
 
-  const rows = useMemo(
-    () => selectWindow(leaderboard, ourKart, mode),
-    [leaderboard, ourKart, mode],
-  )
+  const rows = useMemo(() => selectWindow(leaderboard, ourKart, mode), [leaderboard, ourKart, mode])
 
   if (rows.length === 0) return null
 
   const p1Time = rows[0].best
   const hasSeparator = rows.length > 1 && rows[1].position > 2
 
-  const vPos = anchorTop !== undefined
-    ? { top: anchorTop * sc }
-    : position.startsWith('top') ? { top: 20 * sc } : { bottom: 20 * sc }
+  const vPos =
+    anchorTop !== undefined
+      ? { top: anchorTop * sc }
+      : position.startsWith('top')
+        ? { top: 20 * sc }
+        : { bottom: 20 * sc }
   const hPos = position.endsWith('left') ? { left: 20 * sc } : { right: 20 * sc }
 
   const containerStyle: React.CSSProperties = {
@@ -83,7 +83,13 @@ export const LeaderboardTable = React.memo(function LeaderboardTable({
         return (
           <React.Fragment key={row.kart}>
             {showSeparator && (
-              <div style={{ height: 1 * sc, background: leaderboardStyling?.separatorColor ?? 'rgba(255,255,255,0.15)', margin: `${3 * sc}px 0` }} />
+              <div
+                style={{
+                  height: 1 * sc,
+                  background: leaderboardStyling?.separatorColor ?? 'rgba(255,255,255,0.15)',
+                  margin: `${3 * sc}px 0`,
+                }}
+              />
             )}
             <TableRow
               position={row.position}
@@ -116,13 +122,23 @@ interface TableRowProps {
 }
 
 const TableRow = React.memo(function TableRow({
-  position, kart, name, lapDisplay, isOurs, isP1, accentColor, leaderboardStyling, sc,
+  position,
+  kart,
+  name,
+  lapDisplay,
+  isOurs,
+  isP1,
+  accentColor,
+  leaderboardStyling,
+  sc,
 }: TableRowProps) {
   const accent = leaderboardStyling?.accentColor ?? accentColor
   const borderWidth = leaderboardStyling?.ourRowBorderWidth ?? 3
   const blur = leaderboardStyling?.backdropBlur ?? 8
   const gradientOpacity = leaderboardStyling?.ourRowGradientOpacity ?? 0.19
-  const hexAlpha = Math.round(gradientOpacity * 255).toString(16).padStart(2, '0')
+  const hexAlpha = Math.round(gradientOpacity * 255)
+    .toString(16)
+    .padStart(2, '0')
 
   const rowStyle: React.CSSProperties = {
     display: 'flex',
@@ -139,16 +155,50 @@ const TableRow = React.memo(function TableRow({
 
   return (
     <div style={rowStyle}>
-      <span style={{ width: 22 * sc, fontSize: 11 * sc, fontWeight: 700, color: isP1 ? accent : (leaderboardStyling?.positionTextColor ?? 'rgba(255,255,255,0.5)'), textAlign: 'center' }}>
+      <span
+        style={{
+          width: 22 * sc,
+          fontSize: 11 * sc,
+          fontWeight: 700,
+          color: isP1 ? accent : (leaderboardStyling?.positionTextColor ?? 'rgba(255,255,255,0.5)'),
+          textAlign: 'center',
+        }}
+      >
         P{position}
       </span>
-      <span style={{ width: 28 * sc, fontSize: 11 * sc, fontWeight: 700, color: leaderboardStyling?.kartTextColor ?? 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+      <span
+        style={{
+          width: 28 * sc,
+          fontSize: 11 * sc,
+          fontWeight: 700,
+          color: leaderboardStyling?.kartTextColor ?? 'rgba(255,255,255,0.7)',
+          textAlign: 'center',
+        }}
+      >
         {kart}
       </span>
-      <span style={{ flex: 1, fontSize: 12 * sc, fontWeight: isOurs ? 700 : 400, color: leaderboardStyling?.textColor ?? 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span
+        style={{
+          flex: 1,
+          fontSize: 12 * sc,
+          fontWeight: isOurs ? 700 : 400,
+          color: leaderboardStyling?.textColor ?? 'white',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {name}
       </span>
-      <span style={{ fontSize: 13 * sc, fontWeight: 600, color: isP1 ? accent : (leaderboardStyling?.lapTimeTextColor ?? 'rgba(255,255,255,0.8)'), letterSpacing: 0.5 * sc, flexShrink: 0 }}>
+      <span
+        style={{
+          fontSize: 13 * sc,
+          fontWeight: 600,
+          color: isP1 ? accent : (leaderboardStyling?.lapTimeTextColor ?? 'rgba(255,255,255,0.8)'),
+          letterSpacing: 0.5 * sc,
+          flexShrink: 0,
+        }}
+      >
         {lapDisplay}
       </span>
     </div>

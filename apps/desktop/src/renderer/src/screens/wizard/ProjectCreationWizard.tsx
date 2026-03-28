@@ -1,19 +1,17 @@
-import { StepIndicator } from '@/components/app/StepIndicator'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { WizardShell } from '@/components/wizard/WizardShell'
 import { useState } from 'react'
 import type { ProjectData, SegmentConfig } from '../../../../types/project'
-import { Step1Videos } from './steps/Step1Videos'
-import { Step2Segments } from './steps/Step2Segments'
-import { Step3Driver } from './steps/Step3Driver'
-import { Step4Verify } from './steps/Step4Verify'
-import { Step5Confirm } from './steps/Step5Confirm'
+import { VideosStep } from './steps/VideosStep'
+import { SegmentsStep } from './steps/SegmentsStep'
+import { DriverStep } from './steps/DriverStep'
+import { VerifyStep } from './steps/VerifyStep'
+import { ConfirmStep } from './steps/ConfirmStep'
 
 export interface WizardState {
   videoPaths: string[]
   joinedVideoPath?: string
   segments: SegmentConfig[]
-  selectedDriver: string
+  selectedDrivers: Record<string, string>
   projectName: string
   saveDir?: string
 }
@@ -26,14 +24,14 @@ interface ProjectCreationWizardProps {
 const STEP_LABELS = ['Videos', 'Segments', 'Driver', 'Verify', 'Confirm'] as const
 
 export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationWizardProps) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [step, setStep] = useState(0)
   const [segmentSubForm, setSegmentSubForm] = useState(false)
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [state, setState] = useState<WizardState>({
     videoPaths: [],
     segments: [],
-    selectedDriver: '',
+    selectedDrivers: {},
     projectName: '',
   })
 
@@ -42,11 +40,11 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   }
 
   function goNext() {
-    setStep((s) => Math.min(s + 1, 5) as 1 | 2 | 3 | 4 | 5)
+    setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1))
   }
 
   function goBack() {
-    setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3 | 4 | 5)
+    setStep((s) => Math.max(s - 1, 0))
   }
 
   function handleVideoPathsChange(paths: string[]) {
@@ -55,7 +53,7 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   }
 
   async function handleContinue() {
-    if (step === 1 && !state.joinedVideoPath) {
+    if (step === 0 && !state.joinedVideoPath) {
       setJoining(true)
       setJoinError(null)
       try {
@@ -73,69 +71,57 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   }
 
   const canContinue =
-    (step === 1 && state.videoPaths.length >= 1) ||
-    (step === 2 && state.segments.length >= 1) ||
-    (step === 3 && state.selectedDriver !== '') ||
-    step >= 4
+    (step === 0 && state.videoPaths.length >= 1) ||
+    (step === 1 && state.segments.length >= 1) ||
+    (step === 2 && state.segments.every((seg) => !!state.selectedDrivers[seg.label])) ||
+    step >= 3
 
   return (
-    <Dialog open={true} onOpenChange={(open) => { if (!open) onCancel() }}>
-      <DialogContent
-        className="flex w-172.5 flex-col gap-0 p-0"
-        onInteractOutside={(event) => event.preventDefault()}
-        style={{ minHeight: '630px', maxHeight: '90vh' }}
-      >
-        <div className="shrink-0 border-b border-border px-8 py-6">
-          <StepIndicator currentStep={step} steps={STEP_LABELS} />
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {step === 1 && (
-            <Step1Videos
-              videoPaths={state.videoPaths}
-              onChange={handleVideoPathsChange}
-              joining={joining}
-              joinError={joinError ?? undefined}
-            />
-          )}
-          {step === 2 && (
-            <Step2Segments
-              videoPaths={state.videoPaths}
-              joinedVideoPath={state.joinedVideoPath}
-              segments={state.segments}
-              onChange={(segments) => updateState({ segments })}
-              onSubFormChange={setSegmentSubForm}
-            />
-          )}
-          {step === 3 && (
-            <Step3Driver
-              segments={state.segments}
-              selectedDriver={state.selectedDriver}
-              onChange={(driver) => updateState({ selectedDriver: driver })}
-            />
-          )}
-          {step === 4 && <Step4Verify segments={state.segments} selectedDriver={state.selectedDriver} />}
-          {step === 5 && (
-            <Step5Confirm
-              state={state}
-              onNameChange={(name) => updateState({ projectName: name })}
-              onSaveDirChange={(saveDir) => updateState({ saveDir })}
-              onComplete={onComplete}
-            />
-          )}
-        </div>
-
-        <div className={`flex shrink-0 items-center justify-between border-t border-border px-8 py-4${segmentSubForm ? ' hidden' : ''}`}>
-          <Button variant="ghost" onClick={step === 1 ? onCancel : goBack}>
-            {step === 1 ? 'Cancel' : '← Back'}
-          </Button>
-          {step < 5 && (
-            <Button onClick={handleContinue} disabled={!canContinue || joining}>
-              {joining ? 'Joining…' : 'Continue'}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <WizardShell
+      title="Create Project"
+      steps={STEP_LABELS}
+      currentStep={step}
+      onNext={handleContinue}
+      onBack={goBack}
+      onCancel={onCancel}
+      canContinue={canContinue}
+      hideButtonBar={segmentSubForm}
+      nextDisabled={joining}
+      nextLabel={joining ? 'Joining\u2026' : 'Continue'}
+    >
+      {step === 0 && (
+        <VideosStep
+          videoPaths={state.videoPaths}
+          onChange={handleVideoPathsChange}
+          joining={joining}
+          joinError={joinError ?? undefined}
+        />
+      )}
+      {step === 1 && (
+        <SegmentsStep
+          videoPaths={state.videoPaths}
+          joinedVideoPath={state.joinedVideoPath}
+          segments={state.segments}
+          onChange={(segments) => updateState({ segments })}
+          onSubFormChange={setSegmentSubForm}
+        />
+      )}
+      {step === 2 && (
+        <DriverStep
+          segments={state.segments}
+          selectedDrivers={state.selectedDrivers}
+          onChange={(drivers) => updateState({ selectedDrivers: drivers })}
+        />
+      )}
+      {step === 3 && <VerifyStep segments={state.segments} selectedDrivers={state.selectedDrivers} />}
+      {step === 4 && (
+        <ConfirmStep
+          state={state}
+          onNameChange={(name) => updateState({ projectName: name })}
+          onSaveDirChange={(saveDir) => updateState({ saveDir })}
+          onComplete={onComplete}
+        />
+      )}
+    </WizardShell>
   )
 }

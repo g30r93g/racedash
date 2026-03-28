@@ -23,7 +23,7 @@ export function useSpinner(
     setFrame(0)
     const ms = def.interval / Math.max(speed, 0.01)
     const id = setInterval(() => {
-      setFrame(prev => (prev + 1) % def.frames.length)
+      setFrame((prev) => (prev + 1) % def.frames.length)
     }, ms)
     return () => clearInterval(id)
   }, [name, speed, paused, ignoreReducedMotion, def.interval, def.frames.length])

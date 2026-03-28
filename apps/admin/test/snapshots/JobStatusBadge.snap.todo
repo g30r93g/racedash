@@ -1,0 +1,25 @@
+TODO: Snapshot render of JobStatusBadge component.
+
+Blocked on React test setup in @racedash/admin:
+- Add vitest.config.ts with jsdom environment
+- Configure @testing-library/react (already a devDependency)
+- Configure path aliases (@ -> apps/admin) to match Next.js tsconfig
+
+Once setup is complete, convert this to JobStatusBadge.snap.tsx:
+
+```tsx
+import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { JobStatusBadge } from '@/components/jobs/JobStatusBadge'
+
+describe('JobStatusBadge snapshot', () => {
+  it('renders each known status', () => {
+    const statuses = ['uploading', 'queued', 'rendering', 'compositing', 'complete', 'failed']
+    const fragments = statuses.map((status) => {
+      const { container } = render(<JobStatusBadge status={status} />)
+      return container.innerHTML
+    })
+    expect(fragments).toMatchSnapshot()
+  })
+})
+```

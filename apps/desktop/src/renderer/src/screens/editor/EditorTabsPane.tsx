@@ -27,6 +27,9 @@ interface EditorTabsPaneProps {
   timingLoading?: boolean
   timingError?: string | null
   onProjectUpdate: (updated: ProjectData) => void
+  authUser?: { name: string } | null
+  licenseTier?: 'plus' | 'pro' | null
+  onSignIn?: () => void
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -38,13 +41,40 @@ const TAB_LABELS: Record<TabId, string> = {
   export: 'Export',
 }
 
-export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSave, overrides, onOverridesChange, styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo, timestampsResult, timingLoading, timingError, onProjectUpdate }: EditorTabsPaneProps): React.ReactElement {
+export function EditorTabsPane({
+  project,
+  videoInfo,
+  currentTime,
+  playing,
+  onSave,
+  overrides,
+  onOverridesChange,
+  styleState,
+  onStyleChange,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  timestampsResult,
+  timingLoading,
+  timingError,
+  onProjectUpdate,
+  authUser,
+  licenseTier,
+  onSignIn,
+}: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('timing')
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <Tabs value={activeTab} onValueChange={(v) => { if (!rendering) setActiveTab(v as TabId) }} className="flex flex-1 flex-col overflow-hidden">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          if (!rendering) setActiveTab(v as TabId)
+        }}
+        className="flex flex-1 flex-col overflow-hidden"
+      >
         <TabsList className="h-auto w-full shrink-0 justify-start rounded-none border-b border-border bg-transparent px-0">
           {TAB_IDS.map((id) => (
             <TabsTrigger
@@ -65,20 +95,52 @@ export function EditorTabsPane({ project, videoInfo, currentTime, playing, onSav
         </TabsList>
 
         <TabsContent value="timing" className="mt-0 flex-1 overflow-auto">
-          <TimingTab project={project} videoInfo={videoInfo} currentTime={currentTime} playing={playing} overrides={overrides} onOverridesChange={onOverridesChange} timestampsResult={timestampsResult} timingLoading={timingLoading} timingError={timingError} onProjectUpdate={onProjectUpdate} />
+          <TimingTab
+            project={project}
+            videoInfo={videoInfo}
+            currentTime={currentTime}
+            playing={playing}
+            overrides={overrides}
+            onOverridesChange={onOverridesChange}
+            timestampsResult={timestampsResult}
+            timingLoading={timingLoading}
+            timingError={timingError}
+            onProjectUpdate={onProjectUpdate}
+          />
         </TabsContent>
         <TabsContent value="style" className="mt-0 flex-1 overflow-auto">
-          <StyleTab styleState={styleState} onStyleChange={onStyleChange} onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} />
+          <StyleTab
+            styleState={styleState}
+            onStyleChange={onStyleChange}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            canUndo={canUndo}
+            canRedo={canRedo}
+          />
         </TabsContent>
         <TabsContent value="export" className="mt-0 flex-1 overflow-auto">
-          <ExportTab project={project} videoInfo={videoInfo} onRenderingChange={setRendering} overlayType={styleState.overlayType} />
+          <ExportTab
+            project={project}
+            videoInfo={videoInfo}
+            onRenderingChange={setRendering}
+            overlayType={styleState.overlayType}
+            authUser={authUser}
+            licenseTier={licenseTier}
+            onSignIn={onSignIn}
+          />
         </TabsContent>
       </Tabs>
 
-      {/* RaceDash Cloud footer — coming soon */}
+      {/* RaceDash Cloud footer */}
       <div className="flex h-14 shrink-0 items-center justify-between border-t border-border px-4">
         <span className="text-xs text-muted-foreground">RaceDash Cloud</span>
-        <Button variant="ghost" size="sm" disabled>Sign in</Button>
+        {authUser ? (
+          <span className="text-xs text-foreground">{authUser.name}</span>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={onSignIn}>
+            Sign in
+          </Button>
+        )}
       </div>
     </div>
   )

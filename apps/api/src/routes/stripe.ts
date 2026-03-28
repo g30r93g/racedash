@@ -1,0 +1,132 @@
+import { FastifyPluginAsync } from 'fastify'
+import { eq, and, gt } from 'drizzle-orm'
+import { users, licenses } from '@racedash/db'
+import { getDb } from '../lib/db'
+import { getStripe } from '../lib/stripe'
+import { priceIdForTier } from '../lib/stripe-prices'
+import type { CheckoutResponse, CreateSubscriptionCheckoutRequest, PortalResponse, ApiError } from '../types'
+
+const stripeRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.post<{ Body: CreateSubscriptionCheckoutRequest; Reply: CheckoutResponse | ApiError }>(
+    '/api/stripe/checkout',
+    async (request, reply) => {
+      const { tier } = request.body ?? {}
+
+      if (tier !== 'plus' && tier !== 'pro') {
+        reply.status(400).send({
+          error: { code: 'INVALID_TIER', message: 'tier must be "plus" or "pro"' },
+        })
+        return
+      }
+
+      const db = getDb()
+      const { userId: clerkUserId } = request.clerk
+
+      const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
+
+      if (!user) {
+        reply.status(404).send({
+          error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
+        })
+        return
+      }
+
+      // Check for existing active subscription
+      const [existingLicense] = await db
+        .select({ id: licenses.id })
+        .from(licenses)
+        .where(and(eq(licenses.userId, user.id), eq(licenses.status, 'active'), gt(licenses.expiresAt, new Date())))
+        .limit(1)
+
+      if (existingLicense) {
+        reply.status(409).send({
+          error: { code: 'SUBSCRIPTION_EXISTS', message: 'User already has an active subscription' },
+        })
+        return
+      }
+
+      const stripe = getStripe()
+
+      // Create or reuse Stripe Customer
+      let stripeCustomerId = user.stripeCustomerId
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({ email: user.email })
+        stripeCustomerId = customer.id
+        await db.update(users).set({ stripeCustomerId }).where(eq(users.id, user.id))
+      }
+
+      const priceId = priceIdForTier(tier)
+      if (!priceId) {
+        reply.status(400).send({
+          error: { code: 'INVALID_TIER', message: 'No price configured for this tier' },
+        })
+        return
+      }
+
+      try {
+        const session = await stripe.checkout.sessions.create({
+          mode: 'subscription',
+          customer: stripeCustomerId,
+          line_items: [{ price: priceId, quantity: 1 }],
+          automatic_tax: { enabled: true },
+          customer_update: { address: 'auto' },
+          success_url: 'https://racedash.io/checkout/success?session_id={CHECKOUT_SESSION_ID}',
+          cancel_url: 'https://racedash.io/checkout/cancel',
+          metadata: { user_id: user.id, tier },
+          subscription_data: { metadata: { user_id: user.id } },
+        })
+
+        return {
+          checkoutUrl: session.url!,
+          sessionId: session.id,
+        }
+      } catch (err) {
+        fastify.log.error(err, 'Stripe checkout session creation failed')
+        reply.status(502).send({
+          error: { code: 'STRIPE_ERROR', message: 'Failed to create checkout session' },
+        })
+      }
+    },
+  )
+
+  // POST /api/stripe/portal — create a Stripe Customer Portal session
+  fastify.post<{ Reply: PortalResponse | ApiError }>('/api/stripe/portal', async (request, reply) => {
+    const db = getDb()
+    const { userId: clerkUserId } = request.clerk
+
+    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId)).limit(1)
+
+    if (!user) {
+      reply.status(404).send({
+        error: { code: 'USER_NOT_FOUND', message: 'User record not found' },
+      })
+      return
+    }
+
+    if (!user.stripeCustomerId) {
+      reply.status(404).send({
+        error: { code: 'NO_STRIPE_CUSTOMER', message: 'No Stripe customer associated with this account' },
+      })
+      return
+    }
+
+    const stripe = getStripe()
+    const returnUrl = process.env.APP_RETURN_URL ?? 'https://racedash.io'
+
+    try {
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: returnUrl,
+      })
+
+      return { portalUrl: session.url }
+    } catch (err) {
+      fastify.log.error(err, 'Stripe Customer Portal session creation failed')
+      reply.status(502).send({
+        error: { code: 'STRIPE_ERROR', message: 'Failed to create portal session' },
+      })
+    }
+  })
+}
+
+export default stripeRoutes

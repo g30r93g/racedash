@@ -22,8 +22,5 @@
       "@racedash/timestamps": ["../../packages/timestamps/src/index.ts"]
     }
   },
-  "include": [
-    "src/renderer/**/*",
-    "src/types/**/*"
-  ]
+  "include": ["src/renderer/**/*", "src/types/**/*"]
 }

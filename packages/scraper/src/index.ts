@@ -21,30 +21,36 @@ const USER_AGENT =
 
 export const MAX_REQUESTS_PER_WINDOW = 10
 export const WINDOW_MS = 60_000 // 1 minute
-const requestTimestamps: number[] = []
+const requestTimestamps = new Map<string, number[]>()
 
 /** @internal Clear rate-limit state between tests. */
 export function _resetRateLimit(): void {
-  requestTimestamps.length = 0
+  requestTimestamps.clear()
 }
 
-async function waitForRateLimit(): Promise<void> {
+async function waitForRateLimit(url: string): Promise<void> {
   let backoffAttempt = 0
+  let timestamps = requestTimestamps.get(url)
+  if (!timestamps) {
+    timestamps = []
+    requestTimestamps.set(url, timestamps)
+  }
+
   while (true) {
     const now = Date.now()
     // Purge timestamps outside the current window
-    while (requestTimestamps.length > 0 && requestTimestamps[0] <= now - WINDOW_MS) {
-      requestTimestamps.shift()
+    while (timestamps.length > 0 && timestamps[0] <= now - WINDOW_MS) {
+      timestamps.shift()
     }
-    if (requestTimestamps.length < MAX_REQUESTS_PER_WINDOW) {
-      requestTimestamps.push(now)
+    if (timestamps.length < MAX_REQUESTS_PER_WINDOW) {
+      timestamps.push(now)
       return
     }
     // Wait with exponential backoff: 1s, 2s, 4s, 8s... capped at 30s
     const delay = Math.min(1000 * 2 ** backoffAttempt, 30_000)
     backoffAttempt++
-    console.debug(`Rate limit hit, waiting ${delay}ms before retrying...`)
-    await new Promise(r => setTimeout(r, delay))
+    console.debug(`[scraper] Rate limit hit for ${url}, waiting ${delay}ms before retrying...`)
+    await new Promise((r) => setTimeout(r, delay))
   }
 }
 
@@ -56,17 +62,12 @@ export async function fetchGridHtml(url: string): Promise<string> {
   return fetchTab(url, '/grid')
 }
 
-async function fetchTab(
-  url: string,
-  tab: string,
-  retries = 3,
-  timeoutMs = 30_000,
-): Promise<string> {
+async function fetchTab(url: string, tab: string, retries = 3, timeoutMs = 30_000): Promise<string> {
   const resolved = normaliseUrl(url, tab)
   let lastError: unknown
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      await waitForRateLimit()
+      await waitForRateLimit(resolved)
       const res = await fetch(resolved, {
         headers: { 'User-Agent': USER_AGENT },
         signal: AbortSignal.timeout(timeoutMs),
@@ -76,7 +77,7 @@ async function fetchTab(
     } catch (err) {
       lastError = err
       if (attempt < retries - 1) {
-        await new Promise(r => setTimeout(r, 1000 * 2 ** attempt))
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
       }
     }
   }
@@ -192,7 +193,7 @@ function buildReplayColumnMap($: cheerio.CheerioAPI): Record<string, number> {
 
   const map: Record<string, number> = {}
   for (let i = 0; i < headers.length; i++) {
-    map[headers[i]] = i + 1   // +1 because D[0] has no header
+    map[headers[i]] = i + 1 // +1 because D[0] has no header
   }
   return map
 }
@@ -220,12 +221,12 @@ export function parseReplayLapData(html: string): ReplayLapData {
   const kartIdx = col['No.']
   const nameIdx = col['Name']
   const lapsIdx = col['Laps']
-  const timeIdx = col['Time']          // may be undefined (e.g. IAME)
+  const timeIdx = col['Time'] // may be undefined (e.g. IAME)
   const gapIdx = col['Gap to 1st']
   const intervalIdx = col['Gap']
 
-  return (raw.laps as Array<Array<{ C: number; D: [string, string][] }>>) .map(snapshot =>
-    snapshot.map(entry => ({
+  return (raw.laps as Array<Array<{ C: number; D: [string, string][] }>>).map((snapshot) =>
+    snapshot.map((entry) => ({
       driverId: entry.C,
       position: parseInt(entry.D[posIdx][0], 10),
       kart: extractKartFromColumn(entry.D[kartIdx][0]),

@@ -12,10 +12,9 @@ function driver(kart: string, videoStart: number, lapTimes: number[]): Leaderboa
   return { kart, name: `Driver ${kart}`, timestamps }
 }
 
-function makeSegment(leaderboardDrivers?: LeaderboardDriver[]): Pick<
-  SessionSegment,
-  'mode' | 'session' | 'leaderboardDrivers' | 'raceLapSnapshots'
-> {
+function makeSegment(
+  leaderboardDrivers?: LeaderboardDriver[],
+): Pick<SessionSegment, 'mode' | 'session' | 'leaderboardDrivers' | 'raceLapSnapshots'> {
   return {
     mode: 'race',
     session: {

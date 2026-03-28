@@ -89,11 +89,7 @@ export function SpinnerOverlay({
   ...spinnerProps
 }: SpinnerOverlayProps) {
   return (
-    <div
-      className={containerClassName}
-      style={{ position: 'relative', ...containerStyle }}
-      aria-busy={active}
-    >
+    <div className={containerClassName} style={{ position: 'relative', ...containerStyle }} aria-busy={active}>
       {children}
       {active && (
         <div

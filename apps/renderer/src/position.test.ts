@@ -3,31 +3,18 @@ import type { Lap } from '@racedash/core'
 import { getPosition } from './position'
 
 const lap = (number: number, lapTime: number, cumulative: number): Lap => ({
-  number, lapTime, cumulative,
+  number,
+  lapTime,
+  cumulative,
 })
 
-const currentLaps: Lap[] = [
-  lap(1, 68.0, 68.0),
-  lap(2, 65.0, 133.0),
-  lap(3, 63.0, 196.0),
-]
+const currentLaps: Lap[] = [lap(1, 68.0, 68.0), lap(2, 65.0, 133.0), lap(3, 63.0, 196.0)]
 
-const fasterDriver: Lap[] = [
-  lap(1, 65.0, 65.0),
-  lap(2, 64.0, 129.0),
-  lap(3, 63.0, 192.0),
-]
+const fasterDriver: Lap[] = [lap(1, 65.0, 65.0), lap(2, 64.0, 129.0), lap(3, 63.0, 192.0)]
 
-const slowerDriver: Lap[] = [
-  lap(1, 70.0, 70.0),
-  lap(2, 68.0, 138.0),
-  lap(3, 67.0, 205.0),
-]
+const slowerDriver: Lap[] = [lap(1, 70.0, 70.0), lap(2, 68.0, 138.0), lap(3, 67.0, 205.0)]
 
-const shortDriver: Lap[] = [
-  lap(1, 66.0, 66.0),
-  lap(2, 64.5, 130.5),
-]
+const shortDriver: Lap[] = [lap(1, 66.0, 66.0), lap(2, 64.5, 130.5)]
 
 describe('getPosition — race mode', () => {
   const allLaps = [currentLaps, fasterDriver, slowerDriver]
@@ -75,7 +62,7 @@ describe('getPosition — qualifying/practice mode', () => {
   })
 
   it('ties do not push current driver back (P1 on tie)', () => {
-    const tiedDriver: Lap[] = [lap(1, 68.0, 68.0)]  // same best as currentLaps lap 1
+    const tiedDriver: Lap[] = [lap(1, 68.0, 68.0)] // same best as currentLaps lap 1
     const allLaps = [currentLaps, tiedDriver]
     expect(getPosition('qualifying', 1, currentLaps, allLaps)).toBe(1)
   })

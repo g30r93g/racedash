@@ -22,7 +22,7 @@ export const LapHistory: React.FC<Props> = ({ timestamps, fps, count = 3 }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {history.map(ts => (
+      {history.map((ts) => (
         <div
           key={ts.lap.number}
           style={{

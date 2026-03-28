@@ -10,11 +10,13 @@ describe('resolveInfoSegments', () => {
   })
 
   it('uses explicit left and right segment content when configured', () => {
-    expect(resolveInfoSegments({
-      showTimePanels: true,
-      leftSegment: 'best-lap',
-      rightSegment: 'none',
-    })).toEqual({
+    expect(
+      resolveInfoSegments({
+        showTimePanels: true,
+        leftSegment: 'best-lap',
+        rightSegment: 'none',
+      }),
+    ).toEqual({
       leftSegment: 'best-lap',
       rightSegment: 'none',
     })

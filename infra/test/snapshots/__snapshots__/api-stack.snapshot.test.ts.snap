@@ -1,0 +1,304 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiStack Snapshot ApiStack snapshot 1`] = `
+{
+  "Outputs": {
+    "ApiFunctionArn": {
+      "Export": {
+        "Name": "test-ApiFunctionArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiFunctionCE271BD4",
+          "Arn",
+        ],
+      },
+    },
+    "ApiFunctionUrl": {
+      "Export": {
+        "Name": "test-ApiFunctionUrl",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "ApiFunctionFunctionUrl73AD62DC",
+          "FunctionUrl",
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "ApiFunctionCE271BD4": {
+      "DependsOn": [
+        "ApiFunctionServiceRoleDefaultPolicy20A32B8D",
+        "ApiFunctionServiceRole52B9747B",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "ASSET_HASH.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "AWS_REGION_NAME": {
+              "Ref": "AWS::Region",
+            },
+            "CLERK_SECRET_KEY": "sk_test_123",
+            "CLOUDFRONT_DOMAIN": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B",
+            },
+            "CLOUDFRONT_KEY_PAIR_ID": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersSigningKey9A77E81526B4C3EB",
+            },
+            "CLOUDFRONT_PRIVATE_KEY_PEM": "PRIVATE_KEY_PEM_PLACEHOLDER",
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test-pooled",
+            "REMOTION_WEBHOOK_SECRET": "remotion-secret-123",
+            "S3_RENDERS_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+            },
+            "S3_UPLOAD_BUCKET": {
+              "Fn::ImportValue": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+            },
+            "SQS_SOCIAL_UPLOAD_QUEUE_URL": {
+              "Fn::ImportValue": "SocialStack-test:ExportsOutputRefSocialUploadQueueB3EC8EF013B843BD",
+            },
+            "STEP_FUNCTIONS_STATE_MACHINE_ARN": {
+              "Fn::ImportValue": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+            },
+            "STRIPE_SECRET_KEY": "sk_test_stripe_123",
+            "STRIPE_WEBHOOK_SECRET": "whsec_test_123",
+            "TOKEN_ENCRYPTION_KEY": "ASSET_HASH",
+            "WEBHOOK_SECRET": "webhook-secret-123",
+            "YOUTUBE_CLIENT_ID": "yt-client-id",
+            "YOUTUBE_CLIENT_SECRET": "yt-client-secret",
+          },
+        },
+        "FunctionName": "racedash-api-test",
+        "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "ApiLogGroup1DEDFC07",
+          },
+        },
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "ApiFunctionServiceRole52B9747B",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ApiFunctionFunctionUrl73AD62DC": {
+      "Properties": {
+        "AuthType": "NONE",
+        "TargetFunctionArn": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Url",
+    },
+    "ApiFunctionServiceRole52B9747B": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ApiFunctionServiceRoleDefaultPolicy20A32B8D": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                    },
+                    "/uploads/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "s3:ListMultipartUploadParts",
+                "s3:AbortMultipartUpload",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+                    },
+                    "/uploads/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                    },
+                    "/renders/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "states:StartExecution",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+              },
+            },
+            {
+              "Action": [
+                "states:SendTaskSuccess",
+                "states:SendTaskFailure",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "PipelineStack-test:ExportsOutputRefRenderPipelineStateMachineC5ADD4282BA2AA31",
+              },
+            },
+            {
+              "Action": "sqs:SendMessage",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::ImportValue": "SocialStack-test:ExportsOutputFnGetAttSocialUploadQueueB3EC8EF0Arn8DDE9212",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ApiFunctionServiceRoleDefaultPolicy20A32B8D",
+        "Roles": [
+          {
+            "Ref": "ApiFunctionServiceRole52B9747B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ApiFunctioninvokefunctionB5A175E4": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "InvokedViaFunctionUrl": true,
+        "Principal": "*",
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "ApiFunctioninvokefunctionurl0B8A0798": {
+      "Properties": {
+        "Action": "lambda:InvokeFunctionUrl",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ApiFunctionCE271BD4",
+            "Arn",
+          ],
+        },
+        "FunctionUrlAuthType": "NONE",
+        "Principal": "*",
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "ApiLogGroup1DEDFC07": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

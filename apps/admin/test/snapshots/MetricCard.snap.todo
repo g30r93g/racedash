@@ -1,0 +1,23 @@
+TODO: Snapshot render of MetricCard component.
+
+Blocked on React test setup in @racedash/admin:
+- Add vitest.config.ts with jsdom environment
+- Configure @testing-library/react (already a devDependency)
+- Configure path aliases (@ -> apps/admin) to match Next.js tsconfig
+
+Once setup is complete, convert this to MetricCard.snap.tsx:
+
+```tsx
+import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { MetricCard } from '@/components/overview/MetricCard'
+
+describe('MetricCard snapshot', () => {
+  it('renders with label, value, and suffix', () => {
+    const { container } = render(
+      <MetricCard label="Active Users" value={1234} suffix=" users" />,
+    )
+    expect(container.firstChild).toMatchSnapshot()
+  })
+})
+```

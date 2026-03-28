@@ -14,5 +14,10 @@ docs/pricing-idea.md
 # Node / TypeScript
 node_modules/
 dist/
+coverage/
 .turbo/
 .worktrees/
+.env.local
+
+# electron-vite hot-reload temp files
+electron.vite.config.*.mjs

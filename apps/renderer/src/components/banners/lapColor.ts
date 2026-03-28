@@ -29,7 +29,7 @@ export function computeLapColors(targetLaps: Lap[], sessionAllLaps: Lap[][]): La
   let sessionBest = Infinity
   let j = 0
 
-  return targetLaps.map(lap => {
+  return targetLaps.map((lap) => {
     // Advance pointer to include every session lap whose cumulative time
     // is <= this lap's cumulative — i.e. laps that had already occurred.
     while (j < allLaps.length && allLaps[j].cumulative <= lap.cumulative) {

@@ -1,0 +1,567 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`StorageStack Snapshot StorageStack snapshot 1`] = `
+{
+  "Outputs": {
+    "CloudFrontDomain": {
+      "Export": {
+        "Name": "test-CloudFrontDomain",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersDistributionEC8036BE",
+          "DomainName",
+        ],
+      },
+    },
+    "CloudFrontKeyPairId": {
+      "Export": {
+        "Name": "test-CloudFrontKeyPairId",
+      },
+      "Value": {
+        "Ref": "RendersSigningKey9A77E815",
+      },
+    },
+    "ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersBucket07FBD0F6",
+          "Arn",
+        ],
+      },
+    },
+    "ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputFnGetAttRendersDistributionEC8036BEDomainName7D6DCD2B",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersDistributionEC8036BE",
+          "DomainName",
+        ],
+      },
+    },
+    "ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputFnGetAttUploadsBucket5E5E9B64Arn8603C131",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "UploadsBucket5E5E9B64",
+          "Arn",
+        ],
+      },
+    },
+    "ExportsOutputRefRendersBucket07FBD0F682625F27": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+      },
+      "Value": {
+        "Ref": "RendersBucket07FBD0F6",
+      },
+    },
+    "ExportsOutputRefRendersSigningKey9A77E81526B4C3EB": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputRefRendersSigningKey9A77E81526B4C3EB",
+      },
+      "Value": {
+        "Ref": "RendersSigningKey9A77E815",
+      },
+    },
+    "ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2": {
+      "Export": {
+        "Name": "StorageStack-test:ExportsOutputRefUploadsBucket5E5E9B64F2F56CC2",
+      },
+      "Value": {
+        "Ref": "UploadsBucket5E5E9B64",
+      },
+    },
+    "RendersBucketArn": {
+      "Export": {
+        "Name": "test-RendersBucketArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "RendersBucket07FBD0F6",
+          "Arn",
+        ],
+      },
+    },
+    "RendersBucketName": {
+      "Export": {
+        "Name": "test-RendersBucketName",
+      },
+      "Value": {
+        "Ref": "RendersBucket07FBD0F6",
+      },
+    },
+    "UploadsBucketArn": {
+      "Export": {
+        "Name": "test-UploadsBucketArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "UploadsBucket5E5E9B64",
+          "Arn",
+        ],
+      },
+    },
+    "UploadsBucketName": {
+      "Export": {
+        "Name": "test-UploadsBucketName",
+      },
+      "Value": {
+        "Ref": "UploadsBucket5E5E9B64",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+      "DependsOn": [
+        "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "ASSET_HASH.zip",
+        },
+        "Description": {
+          "Fn::Join": [
+            "",
+            [
+              "Lambda function for auto-deleting objects in ",
+              {
+                "Ref": "UploadsBucket5E5E9B64",
+              },
+              " S3 bucket.",
+            ],
+          ],
+        },
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:\${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "RendersBucket07FBD0F6": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "racedash-renders-test",
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 7,
+              "Id": "expire-renders",
+              "Prefix": "renders/",
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RendersBucketAutoDeleteObjectsCustomResourceEC5F8D8C": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "RendersBucketPolicy58E9010A",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "RendersBucket07FBD0F6",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "RendersBucketPolicy58E9010A": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "RendersBucket07FBD0F6",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "RendersBucket07FBD0F6",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "RendersBucket07FBD0F6",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Principal": {
+                "CanonicalUser": {
+                  "Fn::GetAtt": [
+                    "RendersOAI62BC960C",
+                    "S3CanonicalUserId",
+                  ],
+                },
+              },
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "RendersBucket07FBD0F6",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+    "RendersDistributionEC8036BE": {
+      "Properties": {
+        "DistributionConfig": {
+          "DefaultCacheBehavior": {
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+            "Compress": true,
+            "TargetOriginId": "StorageStacktestRendersDistributionOrigin175FF0C87",
+            "TrustedKeyGroups": [
+              {
+                "Ref": "RendersKeyGroup3CD9D74E",
+              },
+            ],
+            "ViewerProtocolPolicy": "https-only",
+          },
+          "Enabled": true,
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "Origins": [
+            {
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "RendersBucket07FBD0F6",
+                  "RegionalDomainName",
+                ],
+              },
+              "Id": "StorageStacktestRendersDistributionOrigin175FF0C87",
+              "S3OriginConfig": {
+                "OriginAccessIdentity": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "origin-access-identity/cloudfront/",
+                      {
+                        "Ref": "RendersOAI62BC960C",
+                      },
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
+          "PriceClass": "PriceClass_100",
+        },
+      },
+      "Type": "AWS::CloudFront::Distribution",
+    },
+    "RendersKeyGroup3CD9D74E": {
+      "Properties": {
+        "KeyGroupConfig": {
+          "Items": [
+            {
+              "Ref": "RendersSigningKey9A77E815",
+            },
+          ],
+          "Name": "StorageStacktestRendersKeyGroupEFF52A5C",
+        },
+      },
+      "Type": "AWS::CloudFront::KeyGroup",
+    },
+    "RendersOAI62BC960C": {
+      "Properties": {
+        "CloudFrontOriginAccessIdentityConfig": {
+          "Comment": "OAI for racedash-renders-test",
+        },
+      },
+      "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+    },
+    "RendersSigningKey9A77E815": {
+      "Properties": {
+        "PublicKeyConfig": {
+          "CallerReference": "c848a4ad3099b0e5a9046409466b2f806cb08f9692",
+          "EncodedKey": "-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0YgX7RLEP3pXuH/i3OvR
+vJCxjl9XobSXkwGmeICXoiSS0tOqXaJPc0IQxh2M3LoHGKnE3sp5ed6dPPfbGHCi
+BthYMB9ITzCExNeSJGI7SZwSQSz/L2aSW4+o+dNkJ+L+LaRUPsViCsVp6ksOtMUz
+eMfYd+3IbeRMOp3bclJBRMdkRa8LLCEWMS9rF2pJh6eLv5m8V6FPGUlw6Ao+6K1L
+z0krBJN0WFkR7kzHhcEiM3sUVrOY4RocPvr4aI0rKMI7QOQB0d0+8bNRh6cCKqh2
+Q2Cxcq2eVMEpT2fJSLO7pMgQQ8i9hrVUL/HsJw3MNMr8DwqRcxjwYuJDdYAn+q3l
+3QIDAQAB
+-----END PUBLIC KEY-----",
+          "Name": "StorageStacktestRendersSigningKey4B7FD130",
+        },
+      },
+      "Type": "AWS::CloudFront::PublicKey",
+    },
+    "UploadsBucket5E5E9B64": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256",
+              },
+            },
+          ],
+        },
+        "BucketName": "racedash-uploads-test",
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedHeaders": [
+                "*",
+              ],
+              "AllowedMethods": [
+                "PUT",
+              ],
+              "AllowedOrigins": [
+                "*",
+              ],
+            },
+          ],
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": 3,
+              "Id": "expire-uploads",
+              "Prefix": "uploads/",
+              "Status": "Enabled",
+            },
+            {
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 1,
+              },
+              "Id": "abort-incomplete-multipart",
+              "Status": "Enabled",
+            },
+          ],
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true,
+        },
+        "Tags": [
+          {
+            "Key": "aws-cdk:auto-delete-objects",
+            "Value": "true",
+          },
+        ],
+      },
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UploadsBucketAutoDeleteObjectsCustomResourceFFD11C72": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "UploadsBucketPolicy34A32B0B",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "UploadsBucket5E5E9B64",
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3AutoDeleteObjects",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UploadsBucketPolicy34A32B0B": {
+      "Properties": {
+        "Bucket": {
+          "Ref": "UploadsBucket5E5E9B64",
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:PutBucketPolicy",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::GetAtt": [
+                    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+                    "Arn",
+                  ],
+                },
+              },
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "UploadsBucket5E5E9B64",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "UploadsBucket5E5E9B64",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::S3::BucketPolicy",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

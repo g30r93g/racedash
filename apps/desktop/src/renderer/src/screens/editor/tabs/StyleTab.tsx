@@ -1,5 +1,5 @@
-import { ColourRow } from '@/components/app/ColourRow'
-import { SectionLabel } from '@/components/app/SectionLabel'
+import { ColourRow } from '@/components/style/ColourRow'
+import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { Redo, Undo } from 'lucide-react'
@@ -31,10 +31,11 @@ const CORNER_POSITION_OPTIONS: Array<{ value: CornerPosition; label: string }> =
   { value: 'top-right', label: 'Top Right' },
 ]
 
-const OVERLAY_COMPONENT_OPTIONS: Array<{ value: NonNullable<OverlayComponentsConfig['leaderboard']>; label: string }> = [
-  { value: 'off', label: 'Off' },
-  { value: 'on', label: 'On' },
-]
+const OVERLAY_COMPONENT_OPTIONS: Array<{ value: NonNullable<OverlayComponentsConfig['leaderboard']>; label: string }> =
+  [
+    { value: 'off', label: 'Off' },
+    { value: 'on', label: 'On' },
+  ]
 
 export interface StyleState {
   overlayType: OverlayType
@@ -57,7 +58,14 @@ function Divider(): React.ReactElement {
   return <div className="border-t border-border" />
 }
 
-export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, canRedo }: StyleTabProps): React.ReactElement {
+export function StyleTab({
+  styleState,
+  onStyleChange,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+}: StyleTabProps): React.ReactElement {
   const [showOverlayPicker, setShowOverlayPicker] = useState(false)
   const { overlayType, styling } = styleState
 
@@ -67,28 +75,37 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestRef = useRef<{ styleState: StyleState; patch: OverlayStyling }>({ styleState, patch: {} })
 
-  const handleColourChange = useCallback((patch: OverlayStyling) => {
-    latestRef.current = { styleState, patch }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      const { styleState: s, patch: p } = latestRef.current
-      onStyleChange({ ...s, styling: { ...s.styling, ...p } })
-    }, 400)
-  }, [styleState, onStyleChange])
+  const handleColourChange = useCallback(
+    (patch: OverlayStyling) => {
+      latestRef.current = { styleState, patch }
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        const { styleState: s, patch: p } = latestRef.current
+        onStyleChange({ ...s, styling: { ...s.styling, ...p } })
+      }, 400)
+    },
+    [styleState, onStyleChange],
+  )
 
-  const handlePositionChange = useCallback((key: 'boxPosition' | 'qualifyingTablePosition', value: string) => {
-    onStyleChange({ ...styleState, [key]: value !== '' ? value : undefined })
-  }, [styleState, onStyleChange])
+  const handlePositionChange = useCallback(
+    (key: 'boxPosition' | 'qualifyingTablePosition', value: string) => {
+      onStyleChange({ ...styleState, [key]: value !== '' ? value : undefined })
+    },
+    [styleState, onStyleChange],
+  )
 
-  const handleOverlayComponentChange = useCallback((key: keyof OverlayComponentsConfig, value: NonNullable<OverlayComponentsConfig['leaderboard']>) => {
-    onStyleChange({
-      ...styleState,
-      overlayComponents: {
-        ...styleState.overlayComponents,
-        [key]: value,
-      },
-    })
-  }, [styleState, onStyleChange])
+  const handleOverlayComponentChange = useCallback(
+    (key: keyof OverlayComponentsConfig, value: NonNullable<OverlayComponentsConfig['leaderboard']>) => {
+      onStyleChange({
+        ...styleState,
+        overlayComponents: {
+          ...styleState.overlayComponents,
+          [key]: value,
+        },
+      })
+    },
+    [styleState, onStyleChange],
+  )
 
   // Global
   const accent = styling.accentColor ?? '#3DD73D'
@@ -146,8 +163,12 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
     <div className="flex flex-col gap-6 p-4">
       {/* UNDO / REDO */}
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onUndo} disabled={!canUndo}><Undo /></Button>
-        <Button variant="outline" size="sm" onClick={onRedo} disabled={!canRedo}><Redo /></Button>
+        <Button variant="outline" size="sm" onClick={onUndo} disabled={!canUndo}>
+          <Undo />
+        </Button>
+        <Button variant="outline" size="sm" onClick={onRedo} disabled={!canRedo}>
+          <Redo />
+        </Button>
       </div>
 
       {/* OVERLAY TYPE */}
@@ -177,7 +198,9 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
             >
               <option value="">Default</option>
               {BOX_POSITION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
@@ -191,7 +214,9 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
             >
               <option value="">Default</option>
               {CORNER_POSITION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
@@ -204,12 +229,24 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
           <div className="flex items-center justify-between py-1.5">
             <span className="text-xs text-muted-foreground">Leaderboard</span>
             <select
-              value={styleState.overlayComponents?.leaderboard === false || styleState.overlayComponents?.leaderboard === 'off' ? 'off' : 'on'}
-              onChange={(e) => handleOverlayComponentChange('leaderboard', e.target.value as NonNullable<OverlayComponentsConfig['leaderboard']>)}
+              value={
+                styleState.overlayComponents?.leaderboard === false ||
+                styleState.overlayComponents?.leaderboard === 'off'
+                  ? 'off'
+                  : 'on'
+              }
+              onChange={(e) =>
+                handleOverlayComponentChange(
+                  'leaderboard',
+                  e.target.value as NonNullable<OverlayComponentsConfig['leaderboard']>,
+                )
+              }
               className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             >
               {OVERLAY_COMPONENT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
@@ -220,17 +257,9 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
       <section>
         <SectionLabel>Global</SectionLabel>
         <div className="rounded-md border border-border bg-accent px-3">
-          <ColourRow
-            label="Accent"
-            value={accent}
-            onChange={(v) => handleColourChange({ accentColor: v })}
-          />
+          <ColourRow label="Accent" value={accent} onChange={(v) => handleColourChange({ accentColor: v })} />
           <Divider />
-          <ColourRow
-            label="Text"
-            value={textColor}
-            onChange={(v) => handleColourChange({ textColor: v })}
-          />
+          <ColourRow label="Text" value={textColor} onChange={(v) => handleColourChange({ textColor: v })} />
         </div>
       </section>
 
@@ -239,17 +268,41 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
         <section>
           <SectionLabel>Banner</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
-            <ColourRow label="Background" value={bannerBg} onChange={(v) => handleColourChange({ banner: { ...styling.banner, bgColor: v } })} />
+            <ColourRow
+              label="Background"
+              value={bannerBg}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, bgColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Timer text" value={bannerTimerText} onChange={(v) => handleColourChange({ banner: { ...styling.banner, timerTextColor: v } })} />
+            <ColourRow
+              label="Timer text"
+              value={bannerTimerText}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, timerTextColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Timer background" value={bannerTimerBg} onChange={(v) => handleColourChange({ banner: { ...styling.banner, timerBgColor: v } })} />
+            <ColourRow
+              label="Timer background"
+              value={bannerTimerBg}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, timerBgColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Personal best flash" value={bannerLapPurple} onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorPurple: v } })} />
+            <ColourRow
+              label="Personal best flash"
+              value={bannerLapPurple}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorPurple: v } })}
+            />
             <Divider />
-            <ColourRow label="Session best flash" value={bannerLapGreen} onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorGreen: v } })} />
+            <ColourRow
+              label="Session best flash"
+              value={bannerLapGreen}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorGreen: v } })}
+            />
             <Divider />
-            <ColourRow label="Slower lap flash" value={bannerLapRed} onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorRed: v } })} />
+            <ColourRow
+              label="Slower lap flash"
+              value={bannerLapRed}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorRed: v } })}
+            />
           </div>
         </section>
       )}
@@ -259,23 +312,73 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
         <section>
           <SectionLabel>Geometric Banner</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
-            <ColourRow label="Position counter" value={geoBannerPositionCounter} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, positionCounterColor: v } })} />
+            <ColourRow
+              label="Position counter"
+              value={geoBannerPositionCounter}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, positionCounterColor: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Last lap" value={geoBannerLastLap} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lastLapColor: v } })} />
+            <ColourRow
+              label="Last lap"
+              value={geoBannerLastLap}
+              onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lastLapColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Lap timer (neutral)" value={geoBannerNeutral} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapTimerNeutralColor: v } })} />
+            <ColourRow
+              label="Lap timer (neutral)"
+              value={geoBannerNeutral}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapTimerNeutralColor: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Previous lap" value={geoBannerPrevLap} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, previousLapColor: v } })} />
+            <ColourRow
+              label="Previous lap"
+              value={geoBannerPrevLap}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, previousLapColor: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Lap counter" value={geoBannerLapCounter} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapCounterColor: v } })} />
+            <ColourRow
+              label="Lap counter"
+              value={geoBannerLapCounter}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapCounterColor: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Timer text" value={geoBannerTimerText} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, timerTextColor: v } })} />
+            <ColourRow
+              label="Timer text"
+              value={geoBannerTimerText}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, timerTextColor: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Personal best flash" value={geoBannerLapPurple} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorPurple: v } })} />
+            <ColourRow
+              label="Personal best flash"
+              value={geoBannerLapPurple}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorPurple: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Session best flash" value={geoBannerLapGreen} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorGreen: v } })} />
+            <ColourRow
+              label="Session best flash"
+              value={geoBannerLapGreen}
+              onChange={(v) =>
+                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorGreen: v } })
+              }
+            />
             <Divider />
-            <ColourRow label="Slower lap flash" value={geoBannerLapRed} onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorRed: v } })} />
+            <ColourRow
+              label="Slower lap flash"
+              value={geoBannerLapRed}
+              onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorRed: v } })}
+            />
           </div>
         </section>
       )}
@@ -286,37 +389,93 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
           <section>
             <SectionLabel>Top Bar</SectionLabel>
             <div className="rounded-md border border-border bg-accent px-3">
-              <ColourRow label="Accent bar start" value={esportsAccentBar} onChange={(v) => handleColourChange({ esports: { ...styling.esports, accentBarColor: v } })} />
+              <ColourRow
+                label="Accent bar start"
+                value={esportsAccentBar}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, accentBarColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Accent bar end" value={esportsAccentBarEnd} onChange={(v) => handleColourChange({ esports: { ...styling.esports, accentBarColorEnd: v } })} />
+              <ColourRow
+                label="Accent bar end"
+                value={esportsAccentBarEnd}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, accentBarColorEnd: v } })}
+              />
               <Divider />
-              <ColourRow label="Time panels" value={esportsTimePanels} onChange={(v) => handleColourChange({ esports: { ...styling.esports, timePanelsBgColor: v } })} />
+              <ColourRow
+                label="Time panels"
+                value={esportsTimePanels}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, timePanelsBgColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Current time bar" value={esportsCurrentBar} onChange={(v) => handleColourChange({ esports: { ...styling.esports, currentBarBgColor: v } })} />
+              <ColourRow
+                label="Current time bar"
+                value={esportsCurrentBar}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, currentBarBgColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Label" value={esportsLabel} onChange={(v) => handleColourChange({ esports: { ...styling.esports, labelColor: v } })} />
+              <ColourRow
+                label="Label"
+                value={esportsLabel}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, labelColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Last lap icon" value={esportsLastLapIcon} onChange={(v) => handleColourChange({ esports: { ...styling.esports, lastLapIconColor: v } })} />
+              <ColourRow
+                label="Last lap icon"
+                value={esportsLastLapIcon}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, lastLapIconColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Session best icon" value={esportsSessionBestIcon} onChange={(v) => handleColourChange({ esports: { ...styling.esports, sessionBestIconColor: v } })} />
+              <ColourRow
+                label="Session best icon"
+                value={esportsSessionBestIcon}
+                onChange={(v) => handleColourChange({ esports: { ...styling.esports, sessionBestIconColor: v } })}
+              />
             </div>
           </section>
           <section>
             <SectionLabel>Leaderboard</SectionLabel>
             <div className="rounded-md border border-border bg-accent px-3">
-              <ColourRow label="Row background" value={lbBg} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, bgColor: v } })} />
+              <ColourRow
+                label="Row background"
+                value={lbBg}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, bgColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Our row background" value={lbOurRowBg} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, ourRowBgColor: v } })} />
+              <ColourRow
+                label="Our row background"
+                value={lbOurRowBg}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, ourRowBgColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Driver name" value={lbText} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, textColor: v } })} />
+              <ColourRow
+                label="Driver name"
+                value={lbText}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, textColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Position" value={lbPositionText} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, positionTextColor: v } })} />
+              <ColourRow
+                label="Position"
+                value={lbPositionText}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, positionTextColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Kart number" value={lbKartText} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, kartTextColor: v } })} />
+              <ColourRow
+                label="Kart number"
+                value={lbKartText}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, kartTextColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Lap time" value={lbLapTimeText} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, lapTimeTextColor: v } })} />
+              <ColourRow
+                label="Lap time"
+                value={lbLapTimeText}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, lapTimeTextColor: v } })}
+              />
               <Divider />
-              <ColourRow label="Separator" value={lbSeparator} onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, separatorColor: v } })} />
+              <ColourRow
+                label="Separator"
+                value={lbSeparator}
+                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, separatorColor: v } })}
+              />
             </div>
           </section>
         </>
@@ -327,13 +486,29 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
         <section>
           <SectionLabel>Minimal</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
-            <ColourRow label="Background" value={minimalBg} onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, bgColor: v } })} />
+            <ColourRow
+              label="Background"
+              value={minimalBg}
+              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, bgColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Badge background" value={minimalBadgeBg} onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, badgeBgColor: v } })} />
+            <ColourRow
+              label="Badge background"
+              value={minimalBadgeBg}
+              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, badgeBgColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Badge text" value={minimalBadgeText} onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, badgeTextColor: v } })} />
+            <ColourRow
+              label="Badge text"
+              value={minimalBadgeText}
+              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, badgeTextColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Stat label" value={minimalStatLabel} onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, statLabelColor: v } })} />
+            <ColourRow
+              label="Stat label"
+              value={minimalStatLabel}
+              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, statLabelColor: v } })}
+            />
           </div>
         </section>
       )}
@@ -343,11 +518,23 @@ export function StyleTab({ styleState, onStyleChange, onUndo, onRedo, canUndo, c
         <section>
           <SectionLabel>Modern</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
-            <ColourRow label="Background" value={modernBg} onChange={(v) => handleColourChange({ modern: { ...styling.modern, bgColor: v } })} />
+            <ColourRow
+              label="Background"
+              value={modernBg}
+              onChange={(v) => handleColourChange({ modern: { ...styling.modern, bgColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Divider" value={modernDivider} onChange={(v) => handleColourChange({ modern: { ...styling.modern, dividerColor: v } })} />
+            <ColourRow
+              label="Divider"
+              value={modernDivider}
+              onChange={(v) => handleColourChange({ modern: { ...styling.modern, dividerColor: v } })}
+            />
             <Divider />
-            <ColourRow label="Stat label" value={modernStatLabel} onChange={(v) => handleColourChange({ modern: { ...styling.modern, statLabelColor: v } })} />
+            <ColourRow
+              label="Stat label"
+              value={modernStatLabel}
+              onChange={(v) => handleColourChange({ modern: { ...styling.modern, statLabelColor: v } })}
+            />
           </div>
         </section>
       )}

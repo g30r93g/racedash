@@ -16,9 +16,9 @@ function driver(kart: string, videoStart: number, lapTimes: number[]): Leaderboa
 
 // Three drivers: A starts at t=0, B at t=5, C at t=10
 // All do laps of ~60s each
-const A = driver('1', 0, [62.0, 61.0, 60.0])   // best: 60.0
-const B = driver('2', 5, [61.5, 59.5, 61.0])   // best: 59.5 (fastest)
-const C = driver('3', 10, [63.0, 60.5, 61.5])  // best: 60.5
+const A = driver('1', 0, [62.0, 61.0, 60.0]) // best: 60.0
+const B = driver('2', 5, [61.5, 59.5, 61.0]) // best: 59.5 (fastest)
+const C = driver('3', 10, [63.0, 60.5, 61.5]) // best: 60.5
 
 // Lap completion times (ytSeconds + lapTime):
 // A lap1 ends: 62.0, lap2: 123.0, lap3: 183.0
@@ -45,43 +45,43 @@ describe('buildLeaderboard', () => {
     // At t=200, all 3 have completed all laps
     const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
     expect(lb).toHaveLength(3)
-    expect(lb[0].kart).toBe('2')  // B: best 59.5
-    expect(lb[1].kart).toBe('1')  // A: best 60.0
-    expect(lb[2].kart).toBe('3')  // C: best 60.5
+    expect(lb[0].kart).toBe('2') // B: best 59.5
+    expect(lb[1].kart).toBe('1') // A: best 60.0
+    expect(lb[2].kart).toBe('3') // C: best 60.5
   })
 
   it('assigns 1-indexed positions', () => {
     const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
-    expect(lb.map(d => d.position)).toEqual([1, 2, 3])
+    expect(lb.map((d) => d.position)).toEqual([1, 2, 3])
   })
 
   it('does not count a lap as complete until ytSeconds + lapTime <= currentTime', () => {
     // B lap2 ends at 5+61.5+59.5=126.0; at t=125.9 it is not yet complete
     const lb = buildLeaderboard(DRIVERS, 125.9, 'qualifying')
-    const bEntry = lb.find(d => d.kart === '2')
-    expect(bEntry?.best).toBeCloseTo(61.5)  // only lap1 (61.5) is complete, not lap2 (59.5)
+    const bEntry = lb.find((d) => d.kart === '2')
+    expect(bEntry?.best).toBeCloseTo(61.5) // only lap1 (61.5) is complete, not lap2 (59.5)
   })
 
   it('updates best when a faster lap completes', () => {
     // B lap2 ends at 126.0 exactly
     const lb = buildLeaderboard(DRIVERS, 126.0, 'qualifying')
-    const bEntry = lb.find(d => d.kart === '2')
+    const bEntry = lb.find((d) => d.kart === '2')
     expect(bEntry?.best).toBeCloseTo(59.5)
   })
 
   it('computes lapsCompleted for each driver in qualifying mode', () => {
     // At t=200, all 3 have completed all 3 laps
     const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
-    expect(lb.find(d => d.kart === '1')?.lapsCompleted).toBe(3) // A: 3 laps
-    expect(lb.find(d => d.kart === '2')?.lapsCompleted).toBe(3) // B: 3 laps
-    expect(lb.find(d => d.kart === '3')?.lapsCompleted).toBe(3) // C: 3 laps
+    expect(lb.find((d) => d.kart === '1')?.lapsCompleted).toBe(3) // A: 3 laps
+    expect(lb.find((d) => d.kart === '2')?.lapsCompleted).toBe(3) // B: 3 laps
+    expect(lb.find((d) => d.kart === '3')?.lapsCompleted).toBe(3) // C: 3 laps
   })
 
   it('sets interval to null for P1, delta string for others in qualifying mode', () => {
     const lb = buildLeaderboard(DRIVERS, 200.0, 'qualifying')
-    expect(lb[0].interval).toBeNull()       // P1 (B: best 59.5)
-    expect(lb[1].interval).toBe('+0.500')   // A: best 60.0, delta = +0.500
-    expect(lb[2].interval).toBe('+1.000')   // C: best 60.5, delta = +1.000
+    expect(lb[0].interval).toBeNull() // P1 (B: best 59.5)
+    expect(lb[1].interval).toBe('+0.500') // A: best 60.0, delta = +0.500
+    expect(lb[2].interval).toBe('+1.000') // C: best 60.5, delta = +1.000
   })
 })
 
@@ -100,44 +100,44 @@ describe('selectWindow', () => {
 
   it('P1: shows [P1, P2, P3, P4]', () => {
     const rows = selectWindow(lb, '1')
-    expect(rows.map(d => d.position)).toEqual([1, 2, 3, 4])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4])
   })
 
   it('P2: shows [P1, P2, P3, P4]', () => {
     const rows = selectWindow(lb, '2')
-    expect(rows.map(d => d.position)).toEqual([1, 2, 3, 4])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4])
   })
 
   it('P3: shows [P1, P2, P3, P4]', () => {
     const rows = selectWindow(lb, '3')
-    expect(rows.map(d => d.position)).toEqual([1, 2, 3, 4])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4])
   })
 
   it('P4 (middle): shows [P1, P3, P4, P5]', () => {
     const rows = selectWindow(lb, '4')
-    expect(rows.map(d => d.position)).toEqual([1, 3, 4, 5])
+    expect(rows.map((d) => d.position)).toEqual([1, 3, 4, 5])
   })
 
   it('last (P6): shows [P1, P4, P5, P6]', () => {
     const rows = selectWindow(lb, '6')
-    expect(rows.map(d => d.position)).toEqual([1, 4, 5, 6])
+    expect(rows.map((d) => d.position)).toEqual([1, 4, 5, 6])
   })
 
   it('returns all rows when leaderboard has fewer than 4', () => {
     const small = lb.slice(0, 2)
     const rows = selectWindow(small, '2')
-    expect(rows.map(d => d.position)).toEqual([1, 2])
+    expect(rows.map((d) => d.position)).toEqual([1, 2])
   })
 
   it('returns top 4 as fallback if our kart is not in leaderboard', () => {
     const rows = selectWindow(lb, 'UNKNOWN')
-    expect(rows.map(d => d.position)).toEqual([1, 2, 3, 4])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4])
   })
 
   it('3-driver leaderboard, our driver last: shows [P1, P2, P3]', () => {
     const small = lb.slice(0, 3)
     const rows = selectWindow(small, '3')
-    expect(rows.map(d => d.position)).toEqual([1, 2, 3])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3])
   })
 })
 
@@ -157,30 +157,39 @@ describe('formatDelta', () => {
 
 describe('formatInterval', () => {
   function makeEntry(lapsCompleted: number, cumulativeTime: number): RankedDriver {
-    return { kart: 'X', name: 'X', timestamps: [], best: Infinity, lapsCompleted, cumulativeTime, position: 0, interval: null }
+    return {
+      kart: 'X',
+      name: 'X',
+      timestamps: [],
+      best: Infinity,
+      lapsCompleted,
+      cumulativeTime,
+      position: 0,
+      interval: null,
+    }
   }
 
   it('same lap count: returns time gap with + prefix and 3 decimals', () => {
     const current = makeEntry(5, 126.0)
-    const ahead   = makeEntry(5, 123.0)
+    const ahead = makeEntry(5, 123.0)
     expect(formatInterval(current, ahead)).toBe('+3.000')
   })
 
   it('one lap behind: returns "+1L"', () => {
     const current = makeEntry(4, 200.0)
-    const ahead   = makeEntry(5, 123.0)
+    const ahead = makeEntry(5, 123.0)
     expect(formatInterval(current, ahead)).toBe('+1L')
   })
 
   it('two laps behind: returns "+2L"', () => {
     const current = makeEntry(3, 180.0)
-    const ahead   = makeEntry(5, 123.0)
+    const ahead = makeEntry(5, 123.0)
     expect(formatInterval(current, ahead)).toBe('+2L')
   })
 
   it('clamps to +0.000 if current cumulative is somehow less than ahead (defensive)', () => {
     const current = makeEntry(5, 120.0)
-    const ahead   = makeEntry(5, 123.0)
+    const ahead = makeEntry(5, 123.0)
     expect(formatInterval(current, ahead)).toBe('+0.000')
   })
 })
@@ -204,22 +213,22 @@ describe('selectWindow (race mode)', () => {
 
   it('driver in top 10: returns positions 1-10', () => {
     const rows = selectWindow(lb15, '5', 'race')
-    expect(rows.map(d => d.position)).toEqual([1,2,3,4,5,6,7,8,9,10])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 
   it('driver at P10: still returns top 10', () => {
     const rows = selectWindow(lb15, '10', 'race')
-    expect(rows.map(d => d.position)).toEqual([1,2,3,4,5,6,7,8,9,10])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 
   it('driver at P11: P1 + P6..P10 + P11 + P12..P14 = 10 rows', () => {
     const rows = selectWindow(lb15, '11', 'race')
-    expect(rows.map(d => d.position)).toEqual([1, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+    expect(rows.map((d) => d.position)).toEqual([1, 6, 7, 8, 9, 10, 11, 12, 13, 14])
   })
 
   it('driver at P15 (last): P1 + P10..P14 + P15 + [] = 7 rows (fewer than 3 below)', () => {
     const rows = selectWindow(lb15, '15', 'race')
-    expect(rows.map(d => d.position)).toEqual([1, 10, 11, 12, 13, 14, 15])
+    expect(rows.map((d) => d.position)).toEqual([1, 10, 11, 12, 13, 14, 15])
   })
 
   it('returns empty when our kart not in leaderboard (race gate)', () => {
@@ -230,7 +239,7 @@ describe('selectWindow (race mode)', () => {
   it('leaderboard of exactly 10: returns all', () => {
     const lb10 = makeRaceLb(10)
     const rows = selectWindow(lb10, '10', 'race')
-    expect(rows.map(d => d.position)).toEqual([1,2,3,4,5,6,7,8,9,10])
+    expect(rows.map((d) => d.position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 })
 
@@ -271,7 +280,7 @@ describe('buildLeaderboard (race mode)', () => {
 
   it('assigns 1-indexed positions', () => {
     const lb = buildLeaderboard(DRIVERS, 200.0, 'race')
-    expect(lb.map(d => d.position)).toEqual([1, 2, 3])
+    expect(lb.map((d) => d.position)).toEqual([1, 2, 3])
   })
 
   it('P1 interval is null', () => {
@@ -312,9 +321,9 @@ describe('buildLeaderboard (race mode, ourKart)', () => {
   // 7 drivers starting at t=0.  We are P7 on the grid (kart "7").
   // After lap 1 our position should be P6: 5 drivers beat us, one retired driver (kart "8")
   // had a faster lap 1 but only has 1 lap (no lap 2 data).
-  const faster = ['1','2','3','4','5'].map(k => raceDriver(k, [50 + Number(k), 55 + Number(k)]))
-  const us       = raceDriver('7', [58.0, 60.0])  // lap1=58s, lap2=60s → cumulative: 58, 118
-  const retired  = raceDriver('8', [57.0])          // lap1=57s only (retired) → cumulative: 57
+  const faster = ['1', '2', '3', '4', '5'].map((k) => raceDriver(k, [50 + Number(k), 55 + Number(k)]))
+  const us = raceDriver('7', [58.0, 60.0]) // lap1=58s, lap2=60s → cumulative: 58, 118
+  const retired = raceDriver('8', [57.0]) // lap1=57s only (retired) → cumulative: 57
 
   const allDrivers = [...faster, us, retired]
   // currentTime = our lap 1 end = 0 + 58 = 58s
@@ -322,26 +331,26 @@ describe('buildLeaderboard (race mode, ourKart)', () => {
 
   it('ranks us P6 (not P7) when a retired driver beat our lap 1 time', () => {
     const lb = buildLeaderboard(allDrivers, t, 'race', '7')
-    const ourRow = lb.find(d => d.kart === '7')
+    const ourRow = lb.find((d) => d.kart === '7')
     expect(ourRow?.position).toBe(6)
   })
 
   it('retired driver is ranked behind us (no lap 2 data)', () => {
     const lb = buildLeaderboard(allDrivers, t, 'race', '7')
-    const retiredRow = lb.find(d => d.kart === '8')
-    const ourRow     = lb.find(d => d.kart === '7')
+    const retiredRow = lb.find((d) => d.kart === '8')
+    const ourRow = lb.find((d) => d.kart === '7')
     expect(retiredRow?.position).toBeGreaterThan(ourRow?.position ?? 0)
   })
 
   it('interval to retired driver shows "+1L"', () => {
     const lb = buildLeaderboard(allDrivers, t, 'race', '7')
-    const retiredRow = lb.find(d => d.kart === '8')
+    const retiredRow = lb.find((d) => d.kart === '8')
     expect(retiredRow?.interval).toBe('+1L')
   })
 
   it('two finite-group drivers show a time interval, not "+NL"', () => {
     const lb = buildLeaderboard(allDrivers, t, 'race', '7')
-    const ourRow = lb.find(d => d.kart === '7')!
+    const ourRow = lb.find((d) => d.kart === '7')!
     // P5 driver (kart "5") lap1=55, lap2=60 → cumulativeTime = 115
     // our cumulativeTime = 118 → gap = 118 - 115 = 3.000
     expect(ourRow.interval).toMatch(/^\+\d+\.\d{3}$/)
@@ -364,13 +373,11 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 1. raceLapSnapshots: undefined falls back to timing path
   it('raceLapSnapshots: undefined falls back to timing path', () => {
-
     expect(() => buildLeaderboard([], 0, 'race', undefined, undefined)).not.toThrow()
   })
 
   // 2. raceLapSnapshots: [] returns [] without fallback
   it('raceLapSnapshots: [] returns [] without fallback', () => {
-
     const result = buildLeaderboard([], 0, 'race', undefined, [])
     expect(result).toEqual([])
   })
@@ -403,11 +410,7 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 6. P1 interval is null
   it('P1 interval is null', () => {
-    const snapshots = [makeSnapshot(0, [
-      entry('1', 1, 3, ''),
-      entry('2', 2, 3, '1.000'),
-      entry('3', 3, 3, '2.000'),
-    ])]
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 3, ''), entry('2', 2, 3, '1.000'), entry('3', 3, 3, '2.000')])]
 
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[0].interval).toBeNull()
@@ -415,10 +418,7 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 7. Same-lap interval: `+${intervalToAhead}`
   it('same-lap interval uses intervalToAhead from entry', () => {
-    const snapshots = [makeSnapshot(0, [
-      entry('1', 1, 5, ''),
-      entry('2', 2, 5, '0.333'),
-    ])]
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 5, ''), entry('2', 2, 5, '0.333')])]
 
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+0.333')
@@ -426,10 +426,7 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 8. Lapped by 1: "+1L"
   it('lapped by 1 lap shows "+1L"', () => {
-    const snapshots = [makeSnapshot(0, [
-      entry('1', 1, 1, ''),
-      entry('2', 2, 0, '0.000'),
-    ])]
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 1, ''), entry('2', 2, 0, '0.000')])]
 
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+1L')
@@ -437,10 +434,7 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 9. Lapped by multiple: "+3L"
   it('lapped by 3 laps shows "+3L"', () => {
-    const snapshots = [makeSnapshot(0, [
-      entry('1', 1, 3, ''),
-      entry('2', 2, 0, '0.000'),
-    ])]
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 3, ''), entry('2', 2, 0, '0.000')])]
 
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+3L')
@@ -448,10 +442,7 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 10. Empty intervalToAhead for non-P1 (malformed) → "+0.000"
   it('empty intervalToAhead for non-P1 falls back to "+0.000"', () => {
-    const snapshots = [makeSnapshot(0, [
-      entry('1', 1, 5, ''),
-      entry('2', 2, 5, ''),
-    ])]
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 5, ''), entry('2', 2, 5, '')])]
 
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[1].interval).toBe('+0.000')
@@ -468,10 +459,7 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 12. ourKart has no effect on ordering
   it('ourKart has no effect on snapshot ordering', () => {
-    const snapshots = [makeSnapshot(0, [
-      entry('1', 1, 5, ''),
-      entry('2', 2, 5, '0.500'),
-    ])]
+    const snapshots = [makeSnapshot(0, [entry('1', 1, 5, ''), entry('2', 2, 5, '0.500')])]
 
     const result = buildLeaderboard([], 0, 'race', '2', snapshots)
     expect(result[0].kart).toBe('1')
@@ -480,9 +468,11 @@ describe('buildLeaderboard – snapshot path', () => {
 
   // 13. Result has correct kart, name, position, lapsCompleted fields
   it('maps kart, name, position, lapsCompleted directly from snapshot entry', () => {
-    const snapshots = [makeSnapshot(0, [
-      { kart: '42', name: 'Alice', position: 1, lapsCompleted: 7, gapToLeader: '0.000', intervalToAhead: '' },
-    ])]
+    const snapshots = [
+      makeSnapshot(0, [
+        { kart: '42', name: 'Alice', position: 1, lapsCompleted: 7, gapToLeader: '0.000', intervalToAhead: '' },
+      ]),
+    ]
 
     const result = buildLeaderboard([], 0, 'race', undefined, snapshots)
     expect(result[0].kart).toBe('42')
@@ -522,21 +512,21 @@ describe('buildLeaderboard – snapshot path, latest matching lap-count snapshot
 
   it('uses the latest active snapshot entry that matches the driver lap count', () => {
     const result = buildLeaderboard([d1, d2], 300.1, 'race', undefined, [snap1, snap2, snap3])
-    const p1 = result.find(r => r.kart === '2')!
+    const p1 = result.find((r) => r.kart === '2')!
     expect(p1.position).toBe(1)
     expect(p1.lapsCompleted).toBe(2)
   })
 
   it('does not lag one snapshot behind when a newer active snapshot matches the same lap count', () => {
     const result = buildLeaderboard([d1, d2], 300.1, 'race', undefined, [snap1, snap2, snap3])
-    const row = result.find(r => r.kart === '2')!
+    const row = result.find((r) => r.kart === '2')!
     expect(row.position).toBe(1)
     expect(row.interval).toBeNull()
   })
 
   it('falls back to the active snapshot when driver timing data is unavailable', () => {
     const result = buildLeaderboard([], 300.1, 'race', undefined, [snap1, snap2, snap3])
-    const row = result.find(r => r.kart === '2')!
+    const row = result.find((r) => r.kart === '2')!
     expect(row.position).toBe(1)
     expect(row.lapsCompleted).toBe(2)
   })

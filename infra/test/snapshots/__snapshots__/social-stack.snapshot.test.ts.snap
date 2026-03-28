@@ -1,0 +1,840 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SocialStack Snapshot SocialStack snapshot 1`] = `
+{
+  "Outputs": {
+    "ExportsOutputFnGetAttSocialUploadQueueB3EC8EF0Arn8DDE9212": {
+      "Export": {
+        "Name": "SocialStack-test:ExportsOutputFnGetAttSocialUploadQueueB3EC8EF0Arn8DDE9212",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "SocialUploadQueueB3EC8EF0",
+          "Arn",
+        ],
+      },
+    },
+    "ExportsOutputRefSocialUploadQueueB3EC8EF013B843BD": {
+      "Export": {
+        "Name": "SocialStack-test:ExportsOutputRefSocialUploadQueueB3EC8EF013B843BD",
+      },
+      "Value": {
+        "Ref": "SocialUploadQueueB3EC8EF0",
+      },
+    },
+    "SocialClusterArn": {
+      "Export": {
+        "Name": "test-SocialClusterArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "SocialCluster43B1154B",
+          "Arn",
+        ],
+      },
+    },
+    "SocialUploadQueueArn": {
+      "Export": {
+        "Name": "test-SocialUploadQueueArn",
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "SocialUploadQueueB3EC8EF0",
+          "Arn",
+        ],
+      },
+    },
+    "SocialUploadQueueUrl": {
+      "Export": {
+        "Name": "test-SocialUploadQueueUrl",
+      },
+      "Value": {
+        "Ref": "SocialUploadQueueB3EC8EF0",
+      },
+    },
+    "YouTubeUploadTaskDefArn": {
+      "Export": {
+        "Name": "test-YouTubeUploadTaskDefArn",
+      },
+      "Value": {
+        "Ref": "YouTubeUploadTaskDef9428AE8B",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "DispatchLogGroup25357F53": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "SocialCluster43B1154B": {
+      "Properties": {
+        "ClusterName": "racedash-social-test",
+      },
+      "Type": "AWS::ECS::Cluster",
+    },
+    "SocialClusterVpc97F750B1": {
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::VPC",
+    },
+    "SocialClusterVpcIGW658E80DB": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::InternetGateway",
+    },
+    "SocialClusterVpcPrivateSubnet1DefaultRoute0DDD2FC6": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "SocialClusterVpcPublicSubnet1NATGateway461D0184",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet1RouteTableB4ED99C7",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPrivateSubnet1RouteTableAssociation36225D92": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet1RouteTableB4ED99C7",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPrivateSubnet1SubnetBFCB9AA9",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPrivateSubnet1RouteTableB4ED99C7": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPrivateSubnet1SubnetBFCB9AA9": {
+      "Properties": {
+        "AvailabilityZone": "dummy1a",
+        "CidrBlock": "10.0.128.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcPrivateSubnet2DefaultRouteA29B7D91": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "SocialClusterVpcPublicSubnet2NATGatewayAEEA2FAC",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet2RouteTableC8EB3DEE",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPrivateSubnet2RouteTableAssociation3AC4B95F": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPrivateSubnet2RouteTableC8EB3DEE",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPrivateSubnet2Subnet5FDFB1BF",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPrivateSubnet2RouteTableC8EB3DEE": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPrivateSubnet2Subnet5FDFB1BF": {
+      "Properties": {
+        "AvailabilityZone": "dummy1b",
+        "CidrBlock": "10.0.192.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PrivateSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcPublicSubnet1DefaultRouteBB54F27E": {
+      "DependsOn": [
+        "SocialClusterVpcVPCGWE809A395",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "SocialClusterVpcIGW658E80DB",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet1RouteTableA25570C5",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPublicSubnet1EIP411D4731": {
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::EIP",
+    },
+    "SocialClusterVpcPublicSubnet1NATGateway461D0184": {
+      "DependsOn": [
+        "SocialClusterVpcPublicSubnet1DefaultRouteBB54F27E",
+        "SocialClusterVpcPublicSubnet1RouteTableAssociation6427FC83",
+      ],
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "SocialClusterVpcPublicSubnet1EIP411D4731",
+            "AllocationId",
+          ],
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet1Subnet00DB922B",
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::NatGateway",
+    },
+    "SocialClusterVpcPublicSubnet1RouteTableA25570C5": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPublicSubnet1RouteTableAssociation6427FC83": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet1RouteTableA25570C5",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet1Subnet00DB922B",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPublicSubnet1Subnet00DB922B": {
+      "Properties": {
+        "AvailabilityZone": "dummy1a",
+        "CidrBlock": "10.0.0.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcPublicSubnet2DefaultRoute9A90817D": {
+      "DependsOn": [
+        "SocialClusterVpcVPCGWE809A395",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "SocialClusterVpcIGW658E80DB",
+        },
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet2RouteTableE08ACEF3",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "SocialClusterVpcPublicSubnet2EIP879A5EA6": {
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::EIP",
+    },
+    "SocialClusterVpcPublicSubnet2NATGatewayAEEA2FAC": {
+      "DependsOn": [
+        "SocialClusterVpcPublicSubnet2DefaultRoute9A90817D",
+        "SocialClusterVpcPublicSubnet2RouteTableAssociation95243A5F",
+      ],
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "SocialClusterVpcPublicSubnet2EIP879A5EA6",
+            "AllocationId",
+          ],
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet2Subnet29BC57BA",
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::NatGateway",
+    },
+    "SocialClusterVpcPublicSubnet2RouteTableAssociation95243A5F": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "SocialClusterVpcPublicSubnet2RouteTableE08ACEF3",
+        },
+        "SubnetId": {
+          "Ref": "SocialClusterVpcPublicSubnet2Subnet29BC57BA",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "SocialClusterVpcPublicSubnet2RouteTableE08ACEF3": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "SocialClusterVpcPublicSubnet2Subnet29BC57BA": {
+      "Properties": {
+        "AvailabilityZone": "dummy1b",
+        "CidrBlock": "10.0.64.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "SocialStack-test/SocialCluster/Vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "SocialClusterVpcVPCGWE809A395": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "SocialClusterVpcIGW658E80DB",
+        },
+        "VpcId": {
+          "Ref": "SocialClusterVpc97F750B1",
+        },
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+    },
+    "SocialDispatchFunctionC5A04332": {
+      "DependsOn": [
+        "SocialDispatchFunctionServiceRoleDefaultPolicy6010C75C",
+        "SocialDispatchFunctionServiceRoleE7490E8E",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "ASSET_HASH.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "DATABASE_URL": "postgresql://test:test@localhost:5432/test-direct",
+            "ECS_CLUSTER_ARN": {
+              "Fn::GetAtt": [
+                "SocialCluster43B1154B",
+                "Arn",
+              ],
+            },
+            "TASK_SECURITY_GROUP": "sg-abc123",
+            "TASK_SUBNETS": "subnet-abc123",
+            "YOUTUBE_TASK_DEFINITION_ARN": {
+              "Ref": "YouTubeUploadTaskDef9428AE8B",
+            },
+          },
+        },
+        "FunctionName": "racedash-social-dispatch-test",
+        "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "DispatchLogGroup25357F53",
+          },
+        },
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "SocialDispatchFunctionServiceRoleE7490E8E",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SocialDispatchFunctionServiceRoleDefaultPolicy6010C75C": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ecs:RunTask",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "YouTubeUploadTaskDef9428AE8B",
+              },
+            },
+            {
+              "Action": "iam:PassRole",
+              "Condition": {
+                "StringEquals": {
+                  "iam:PassedToService": "ecs-tasks.amazonaws.com",
+                },
+              },
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "YouTubeUploadTaskDefExecutionRole552F98C9",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::GetAtt": [
+                    "YouTubeUploadTaskDefTaskRoleF3DC1CC8",
+                    "Arn",
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "SocialUploadQueueB3EC8EF0",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "SocialDispatchFunctionServiceRoleDefaultPolicy6010C75C",
+        "Roles": [
+          {
+            "Ref": "SocialDispatchFunctionServiceRoleE7490E8E",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "SocialDispatchFunctionServiceRoleE7490E8E": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SocialDispatchFunctionSqsEventSourceSocialStacktestSocialUploadQueue53E84F9DD8BB249C": {
+      "Properties": {
+        "BatchSize": 1,
+        "EventSourceArn": {
+          "Fn::GetAtt": [
+            "SocialUploadQueueB3EC8EF0",
+            "Arn",
+          ],
+        },
+        "FunctionName": {
+          "Ref": "SocialDispatchFunctionC5A04332",
+        },
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "SocialUploadDLQ6A2C91B6": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "QueueName": "racedash-social-uploads-dlq-test",
+        "SqsManagedSseEnabled": true,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "SocialUploadQueueB3EC8EF0": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "MessageRetentionPeriod": 345600,
+        "QueueName": "racedash-social-uploads-test",
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "SocialUploadDLQ6A2C91B6",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 3,
+        },
+        "SqsManagedSseEnabled": true,
+        "VisibilityTimeout": 2700,
+      },
+      "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "YouTubeUploadTaskDef9428AE8B": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Environment": [
+              {
+                "Name": "DATABASE_URL",
+                "Value": "postgresql://test:test@localhost:5432/test-direct",
+              },
+              {
+                "Name": "S3_RENDERS_BUCKET",
+                "Value": {
+                  "Fn::ImportValue": "StorageStack-test:ExportsOutputRefRendersBucket07FBD0F682625F27",
+                },
+              },
+              {
+                "Name": "YOUTUBE_CLIENT_ID",
+                "Value": "yt-client-id",
+              },
+              {
+                "Name": "YOUTUBE_CLIENT_SECRET",
+                "Value": "yt-client-secret",
+              },
+              {
+                "Name": "SES_FROM_ADDRESS",
+                "Value": "noreply@racedash.test",
+              },
+              {
+                "Name": "TOKEN_ENCRYPTION_KEY",
+                "Value": "ASSET_HASH",
+              },
+            ],
+            "Essential": true,
+            "Image": "public.ecr.aws/lambda/nodejs:20",
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "YouTubeUploadTaskDefYouTubeUploadContainerLogGroup1F621BB6",
+                },
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "youtube-upload",
+              },
+            },
+            "Name": "YouTubeUploadContainer",
+          },
+        ],
+        "Cpu": "512",
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "YouTubeUploadTaskDefExecutionRole552F98C9",
+            "Arn",
+          ],
+        },
+        "Family": "racedash-youtube-upload-test",
+        "Memory": "1024",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE",
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "YouTubeUploadTaskDefTaskRoleF3DC1CC8",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ECS::TaskDefinition",
+    },
+    "YouTubeUploadTaskDefExecutionRole552F98C9": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "YouTubeUploadTaskDefExecutionRoleDefaultPolicy33998A22": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "YouTubeUploadTaskDefYouTubeUploadContainerLogGroup1F621BB6",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "YouTubeUploadTaskDefExecutionRoleDefaultPolicy33998A22",
+        "Roles": [
+          {
+            "Ref": "YouTubeUploadTaskDefExecutionRole552F98C9",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "YouTubeUploadTaskDefTaskRoleDefaultPolicy65B63B32": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::ImportValue": "StorageStack-test:ExportsOutputFnGetAttRendersBucket07FBD0F6Arn218382B7",
+                    },
+                    "/renders/*",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "ses:SendEmail",
+              "Effect": "Allow",
+              "Resource": "arn:aws:ses:us-east-1:123456789012:identity/noreply@racedash.test",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "YouTubeUploadTaskDefTaskRoleDefaultPolicy65B63B32",
+        "Roles": [
+          {
+            "Ref": "YouTubeUploadTaskDefTaskRoleF3DC1CC8",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "YouTubeUploadTaskDefTaskRoleF3DC1CC8": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "YouTubeUploadTaskDefYouTubeUploadContainerLogGroup1F621BB6": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

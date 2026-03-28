@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  formatDoctorDiagnostics,
-  resolveOutputResolutionPreset,
-} from './index'
+import { formatDoctorDiagnostics, resolveOutputResolutionPreset } from './index'
 
 describe('resolveOutputResolutionPreset', () => {
   it('returns undefined when the flag is omitted', () => {
@@ -26,16 +23,11 @@ describe('resolveOutputResolutionPreset', () => {
 
 describe('formatDoctorDiagnostics', () => {
   it('formats aligned doctor output', () => {
-    expect(formatDoctorDiagnostics([
-      { label: 'Platform', value: 'win32' },
-      { label: 'Decode pref', value: 'd3d11va -> dxva2 -> software' },
-    ])).toBe(
-      [
-        'racedash doctor',
-        '',
-        '  Platform     win32',
-        '  Decode pref  d3d11va -> dxva2 -> software',
-      ].join('\n'),
-    )
+    expect(
+      formatDoctorDiagnostics([
+        { label: 'Platform', value: 'win32' },
+        { label: 'Decode pref', value: 'd3d11va -> dxva2 -> software' },
+      ]),
+    ).toBe(['racedash doctor', '', '  Platform     win32', '  Decode pref  d3d11va -> dxva2 -> software'].join('\n'))
   })
 })

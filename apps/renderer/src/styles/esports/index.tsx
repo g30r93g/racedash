@@ -107,7 +107,11 @@ export const Esports: React.FC<OverlayProps> = ({
   const sc = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
+  const { segment, isEnd, label } = useActiveSegment(
+    segments,
+    currentTime,
+    labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+  )
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
@@ -118,24 +122,26 @@ export const Esports: React.FC<OverlayProps> = ({
 
   const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
   const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity = fadeEnabled && !isEnd
-    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-    : 1
+  const opacity =
+    fadeEnabled && !isEnd
+      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+      : 1
 
-  const {
-    currentLap, elapsedFormatted,
-    lastLapTime, sessionBestTime, displayedPosition,
-  } = useCardOverlayState({
-    segment, isEnd, currentTime, startingGridPosition, placeholder: EMPTY_TIME,
+  const { currentLap, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+    segment,
+    isEnd,
+    currentTime,
+    startingGridPosition,
+    placeholder: EMPTY_TIME,
   })
 
   const es = styling?.esports
-  const accentBarColor    = es?.accentBarColor     ?? '#2563eb'
-  const accentBarColorEnd = es?.accentBarColorEnd  ?? '#7c3aed'
-  const timePanelsBgColor = es?.timePanelsBgColor  ?? '#3f4755'
-  const currentBarBgColor = es?.currentBarBgColor  ?? '#111'
-  const labelColor        = es?.labelColor         ?? '#9ca3af'
-  const lastLapIconColor  = es?.lastLapIconColor   ?? '#16a34a'
+  const accentBarColor = es?.accentBarColor ?? '#2563eb'
+  const accentBarColorEnd = es?.accentBarColorEnd ?? '#7c3aed'
+  const timePanelsBgColor = es?.timePanelsBgColor ?? '#3f4755'
+  const currentBarBgColor = es?.currentBarBgColor ?? '#111'
+  const labelColor = es?.labelColor ?? '#9ca3af'
+  const lastLapIconColor = es?.lastLapIconColor ?? '#16a34a'
   const sessionBestIconColor = es?.sessionBestIconColor ?? '#7c3aed'
 
   const styles = useMemo(() => {
@@ -250,7 +256,13 @@ export const Esports: React.FC<OverlayProps> = ({
         </div>
         <div style={styles.timePanels}>
           <TimePanel iconBg={lastLapIconColor} label="LAST LAP" time={lastLapTime} labelColor={labelColor} sc={sc} />
-          <TimePanel iconBg={sessionBestIconColor} label="SESSION BEST" time={sessionBestTime} labelColor={labelColor} sc={sc} />
+          <TimePanel
+            iconBg={sessionBestIconColor}
+            label="SESSION BEST"
+            time={sessionBestTime}
+            labelColor={labelColor}
+            sc={sc}
+          />
         </div>
         <div style={styles.currentBar}>
           <StopwatchIcon size={styles.stopwatchSize} color={labelColor} />

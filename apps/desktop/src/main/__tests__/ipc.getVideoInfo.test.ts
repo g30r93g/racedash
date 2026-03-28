@@ -54,9 +54,7 @@ describe('getVideoInfo', () => {
 
   it('parses fps from a whole-number r_frame_rate field (30/1 → 30)', () => {
     const output = JSON.stringify({
-      streams: [
-        { codec_type: 'video', width: 1280, height: 720, r_frame_rate: '30/1', duration: '60' },
-      ],
+      streams: [{ codec_type: 'video', width: 1280, height: 720, r_frame_rate: '30/1', duration: '60' }],
     })
     vi.mocked(childProcess.execFileSync).mockReturnValue(Buffer.from(output))
     const result = getVideoInfo('/path/to/video.mp4')

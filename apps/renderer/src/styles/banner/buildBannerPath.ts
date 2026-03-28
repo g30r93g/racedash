@@ -17,13 +17,7 @@ interface BuildBannerPathOptions {
  * Control points share x with their respective anchor, creating vertical
  * tangents at both ends and a true S-inflection in the middle.
  */
-export function buildBannerPath({
-  width,
-  height,
-  centerStart,
-  centerEnd,
-  rise,
-}: BuildBannerPathOptions): string {
+export function buildBannerPath({ width, height, centerStart, centerEnd, rise }: BuildBannerPathOptions): string {
   const scale = width / 1920
   const rawInset = 45 * scale
   const curveInset = Math.min(rawInset, centerStart, width - centerEnd)

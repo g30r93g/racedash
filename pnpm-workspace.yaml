@@ -1,9 +1,13 @@
 packages:
   - packages/*
   - apps/*
+  - infra
 
 onlyBuiltDependencies:
+  - '@clerk/shared'
   - electron
   - esbuild
   - ffmpeg-static
+  - msw
+  - sharp
   - unicode-animations

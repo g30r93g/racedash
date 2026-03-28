@@ -5,21 +5,55 @@
   "scripts": {
     "build": "turbo build",
     "test": "turbo test",
+    "test:coverage": "turbo test:coverage",
     "typecheck": "turbo typecheck",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "cli": "tsx apps/cli/src/index.ts",
-    "desktop:dev": "pnpm --filter @racedash/desktop dev"
+    "desktop:dev": "pnpm --filter @racedash/desktop dev",
+    "local:up": "docker compose -f docker-compose.local.yml up -d && ./scripts/wait-for-localstack.sh",
+    "local:down": "docker compose -f docker-compose.local.yml down",
+    "local:fresh": "docker compose -f docker-compose.local.yml down -v && docker compose -f docker-compose.local.yml up -d && ./scripts/wait-for-localstack.sh",
+    "local:logs": "docker compose -f docker-compose.local.yml logs -f",
+    "local:logs:localstack": "docker compose -f docker-compose.local.yml logs -f localstack",
+    "local:logs:postgres": "docker compose -f docker-compose.local.yml logs -f postgres",
+    "local:version-check": "./scripts/check-localstack-version.sh",
+    "local:ses": "./scripts/ses-inbox.sh",
+    "local:sfn:list": "./scripts/sfn-execute.sh --list",
+    "local:sfn:execute": "./scripts/sfn-execute.sh",
+    "setup:env": "tsx scripts/setup-env.ts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
+    "@vitest/coverage-v8": "^4.1.1",
     "eslint": "^10.0.3",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
     "tsx": "^4.7.0",
     "turbo": "^2.3.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.57.0",
-    "vitest": "^1.6.0"
+    "vitest": "^4.1.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "vitest": "^4.1.1"
+    },
+    "onlyBuiltDependencies": [
+      "@clerk/shared",
+      "browser-tabs-lock",
+      "bufferutil",
+      "core-js",
+      "electron",
+      "esbuild",
+      "ffmpeg-static",
+      "msw",
+      "sharp",
+      "unicode-animations",
+      "utf-8-validate"
+    ]
   }
 }

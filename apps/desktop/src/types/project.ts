@@ -1,11 +1,6 @@
 // Wizard-selectable timing sources. The engine also supports 'cached' (produced at
 // save time by cacheRemoteTimingData), but it is not user-selectable.
-export type TimingSource =
-  | 'alphaTiming'
-  | 'mylapsSpeedhive'
-  | 'daytonaEmail'
-  | 'teamsportEmail'
-  | 'manual'
+export type TimingSource = 'alphaTiming' | 'mylapsSpeedhive' | 'daytonaEmail' | 'teamsportEmail' | 'manual'
 
 // SessionMode mirrors @racedash/core — kept in sync manually.
 export type SessionMode = 'practice' | 'qualifying' | 'race'
@@ -43,7 +38,8 @@ export interface ProjectData {
   configPath: string
   videoPaths: string[]
   segments: SegmentConfig[]
-  selectedDriver: string
+  /** Per-segment driver selection, keyed by segment label. */
+  selectedDrivers: Record<string, string>
   /** Runtime-only flag set by listProjectsHandler when the project.json cannot be found on disk. Never written to disk. */
   missing?: true
 }
@@ -53,7 +49,8 @@ export interface CreateProjectOpts {
   /** Absolute path to the joined video file (temp or original if single file). */
   joinedVideoPath: string
   segments: SegmentConfig[]
-  selectedDriver: string
+  /** Per-segment driver selection, keyed by segment label. */
+  selectedDrivers: Record<string, string>
   /** Exact directory to save the project into. Defaults to ~/Videos/racedash/{slug}. */
   saveDir?: string
 }

@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Lap } from '@racedash/core'
-import {
-  calculateTimestamps,
-  formatChapters,
-  formatLapTime,
-  formatYtTimestamp,
-  parseOffset,
-} from './index'
+import { calculateTimestamps, formatChapters, formatLapTime, formatYtTimestamp, parseOffset } from './index'
 
 // --- parseOffset ---
 
@@ -31,8 +25,8 @@ describe('calculateTimestamps', () => {
 
   it('timestamps mark the START of each lap', () => {
     const result = calculateTimestamps(laps, 135.0)
-    expect(result[0].ytSeconds).toBeCloseTo(135.0)             // lap 1 starts at offset
-    expect(result[1].ytSeconds).toBeCloseTo(68.588 + 135.0)   // lap 2 starts after lap 1
+    expect(result[0].ytSeconds).toBeCloseTo(135.0) // lap 1 starts at offset
+    expect(result[1].ytSeconds).toBeCloseTo(68.588 + 135.0) // lap 2 starts after lap 1
   })
 
   it('preserves lap reference', () => {
@@ -74,8 +68,8 @@ describe('formatChapters', () => {
 
   it('right-aligns timestamps to consistent width', () => {
     const timestamps = [
-      { lap: { number: 1, lapTime: 60, cumulative: 60 }, ytSeconds: 3540 },   // 59:00
-      { lap: { number: 2, lapTime: 60, cumulative: 120 }, ytSeconds: 3600 },  // 1:00:00
+      { lap: { number: 1, lapTime: 60, cumulative: 60 }, ytSeconds: 3540 }, // 59:00
+      { lap: { number: 2, lapTime: 60, cumulative: 120 }, ytSeconds: 3600 }, // 1:00:00
     ]
     const lines = formatChapters(timestamps).split('\n')
     expect(lines[0].length).toBe(lines[1].length)

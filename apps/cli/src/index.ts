@@ -26,9 +26,7 @@ import type { DriversCommandSegment, RenderProgressEvent } from '@racedash/engin
 type OutputResolutionPreset = '1080p' | '1440p' | '2160p'
 
 function displaySource(config: { source: string; originalSource?: string }): string {
-  return config.source === 'cached' && config.originalSource
-    ? config.originalSource
-    : config.source
+  return config.source === 'cached' && config.originalSource ? config.originalSource : config.source
 }
 
 const OUTPUT_RESOLUTIONS: Record<OutputResolutionPreset, { width: number; height: number }> = {
@@ -37,17 +35,22 @@ const OUTPUT_RESOLUTIONS: Record<OutputResolutionPreset, { width: number; height
   '2160p': { width: 3840, height: 2160 },
 }
 
-const VALID_BOX_POSITIONS: BoxPosition[] = ['bottom-left', 'bottom-center', 'bottom-right', 'top-left', 'top-center', 'top-right']
+const VALID_BOX_POSITIONS: BoxPosition[] = [
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+  'top-left',
+  'top-center',
+  'top-right',
+]
 const VALID_TABLE_POSITIONS: CornerPosition[] = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
 
-export function formatDoctorDiagnostics(
-  diagnostics: Array<{ label: string; value: string }>,
-): string {
-  const width = Math.max(...diagnostics.map(diagnostic => diagnostic.label.length), 6)
+export function formatDoctorDiagnostics(diagnostics: Array<{ label: string; value: string }>): string {
+  const width = Math.max(...diagnostics.map((diagnostic) => diagnostic.label.length), 6)
   return [
     'racedash doctor',
     '',
-    ...diagnostics.map(diagnostic => `  ${diagnostic.label.padEnd(width)}  ${diagnostic.value}`),
+    ...diagnostics.map((diagnostic) => `  ${diagnostic.label.padEnd(width)}  ${diagnostic.value}`),
   ].join('\n')
 }
 
@@ -62,10 +65,7 @@ export function resolveOutputResolutionPreset(
   return { preset: typedPreset, ...OUTPUT_RESOLUTIONS[typedPreset] }
 }
 
-program
-  .name('racedash')
-  .description('Config-driven timing → YouTube chapters + race overlays')
-  .version('0.1.0')
+program.name('racedash').description('Config-driven timing → YouTube chapters + race overlays').version('0.1.0')
 
 program
   .command('drivers')
@@ -153,9 +153,7 @@ program
     try {
       const diagnostics = await runDoctor()
       const warning = getRenderExperimentalWarning()
-      const output = warning == null
-        ? diagnostics
-        : [{ label: 'Warning', value: warning }, ...diagnostics]
+      const output = warning == null ? diagnostics : [{ label: 'Warning', value: warning }, ...diagnostics]
       console.log(formatDoctorDiagnostics(output))
     } catch (err) {
       console.error('Error:', (err as Error).message)
@@ -203,7 +201,10 @@ program
         console.error(`Error: --box-position must be one of: ${VALID_BOX_POSITIONS.join(', ')}`)
         process.exit(1)
       }
-      if (opts.qualifyingTablePosition != null && !VALID_TABLE_POSITIONS.includes(opts.qualifyingTablePosition as CornerPosition)) {
+      if (
+        opts.qualifyingTablePosition != null &&
+        !VALID_TABLE_POSITIONS.includes(opts.qualifyingTablePosition as CornerPosition)
+      ) {
         console.error(`Error: --qualifying-table-position must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
         process.exit(1)
       }
@@ -246,7 +247,9 @@ program
           outputPath: opts.output,
           rendererEntry,
           style: opts.style,
-          outputResolution: outputResolution ? { width: outputResolution.width, height: outputResolution.height } : undefined,
+          outputResolution: outputResolution
+            ? { width: outputResolution.width, height: outputResolution.height }
+            : undefined,
           overlayX,
           overlayY,
           boxPosition: opts.boxPosition as BoxPosition | undefined,
@@ -279,7 +282,11 @@ function parseOptionalFps(raw: string | undefined): number | undefined {
   return fps
 }
 
-function printDriverList(drivers: DriversCommandSegment['drivers'], highlightQuery: string | undefined, heading?: string): void {
+function printDriverList(
+  drivers: DriversCommandSegment['drivers'],
+  highlightQuery: string | undefined,
+  heading?: string,
+): void {
   if (heading) process.stdout.write(`${heading}\n`)
 
   if (drivers.length === 0) {
@@ -287,7 +294,9 @@ function printDriverList(drivers: DriversCommandSegment['drivers'], highlightQue
     return
   }
 
-  const highlights = new Set(filterDriverHighlights(drivers, highlightQuery).map(driver => `${driver.kart}::${driver.name}`))
+  const highlights = new Set(
+    filterDriverHighlights(drivers, highlightQuery).map((driver) => `${driver.kart}::${driver.name}`),
+  )
   drivers.forEach((driver, index) => {
     const marker = highlights.has(`${driver.kart}::${driver.name}`) ? '*' : ' '
     process.stdout.write(`${marker} ${String(index + 1).padStart(2)}. ${formatDriverDisplay(driver)}\n`)

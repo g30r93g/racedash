@@ -67,7 +67,11 @@ export const Minimal: React.FC<OverlayProps> = ({
   const scale = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
+  const { segment, isEnd, label } = useActiveSegment(
+    segments,
+    currentTime,
+    labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+  )
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
@@ -78,22 +82,25 @@ export const Minimal: React.FC<OverlayProps> = ({
 
   const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
   const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity = fadeEnabled && !isEnd
-    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-    : 1
+  const opacity =
+    fadeEnabled && !isEnd
+      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+      : 1
 
-  const {
-    currentLap, effectiveTime, elapsedFormatted,
-    lastLapTime, sessionBestTime, displayedPosition,
-  } = useCardOverlayState({
-    segment, isEnd, currentTime, startingGridPosition, placeholder: EMPTY_TIME,
-  })
+  const { currentLap, effectiveTime: _effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
+    useCardOverlayState({
+      segment,
+      isEnd,
+      currentTime,
+      startingGridPosition,
+      placeholder: EMPTY_TIME,
+    })
 
   const mn = styling?.minimal
-  const cardBgColor    = mn?.bgColor         ?? 'rgba(20, 22, 28, 0.88)'
-  const badgeBgColor   = mn?.badgeBgColor    ?? 'white'
-  const badgeTextColor = mn?.badgeTextColor  ?? '#222222'
-  const statLabelColor = mn?.statLabelColor  ?? '#aaaaaa'
+  const cardBgColor = mn?.bgColor ?? 'rgba(20, 22, 28, 0.88)'
+  const badgeBgColor = mn?.badgeBgColor ?? 'white'
+  const badgeTextColor = mn?.badgeTextColor ?? '#222222'
+  const statLabelColor = mn?.statLabelColor ?? '#aaaaaa'
 
   const styles = useMemo(() => {
     const margin = 20 * scale
@@ -175,7 +182,12 @@ export const Minimal: React.FC<OverlayProps> = ({
           <span style={styles.elapsed}>{elapsedFormatted}</span>
         </div>
         <div style={styles.statRow}>
-          <StatColumn label="POSITION" value={displayedPosition != null ? `P${displayedPosition}` : 'P-'} scale={scale} labelColor={statLabelColor} />
+          <StatColumn
+            label="POSITION"
+            value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
+            scale={scale}
+            labelColor={statLabelColor}
+          />
           <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
           <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={statLabelColor} />
         </div>

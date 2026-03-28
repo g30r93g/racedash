@@ -21,20 +21,25 @@ const SVG_H = 67.30343
 const TIME_PLACEHOLDER = '-:--.---'
 
 export const GeometricBanner: React.FC<OverlayProps> = ({
-  segments, fps, startingGridPosition,
-  styling, labelWindowSeconds,
+  segments,
+  fps,
+  startingGridPosition,
+  styling,
+  labelWindowSeconds,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const currentTime = frame / fps
   const scale = width / 1920
 
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
+  const { segment, isEnd, label } = useActiveSegment(
+    segments,
+    currentTime,
+    labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+  )
   const { session, sessionAllLaps, mode } = segment
 
-  const {
-    currentLap, currentIdx, raceEnd, livePosition, lapColors,
-  } = useBannerOverlayState({ segment, currentTime })
+  const { currentLap, currentIdx, raceEnd, livePosition, lapColors } = useBannerOverlayState({ segment, currentTime })
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
 
@@ -47,32 +52,33 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
 
   // Five section colours
   const positionCounterColor = gb?.positionCounterColor ?? '#0bc770'
-  const lapCounterColor      = gb?.lapCounterColor      ?? '#c70b4d'
-  const lastLapColor         = infoSegments.leftSegment !== 'none' ? (gb?.lastLapColor     ?? '#16aa9c') : 'none'
-  const previousLapColor     = infoSegments.rightSegment !== 'none' ? (gb?.previousLapColor ?? '#7c16aa') : 'none'
+  const lapCounterColor = gb?.lapCounterColor ?? '#c70b4d'
+  const lastLapColor = infoSegments.leftSegment !== 'none' ? (gb?.lastLapColor ?? '#16aa9c') : 'none'
+  const previousLapColor = infoSegments.rightSegment !== 'none' ? (gb?.previousLapColor ?? '#7c16aa') : 'none'
 
   // Timer flash colours
   const timerColorMap = {
     neutral: gb?.lapTimerNeutralColor ?? '#0e0ab8',
-    purple:  gb?.lapColorPurple       ?? 'rgba(107,33,168,0.95)',
-    green:   gb?.lapColorGreen        ?? 'rgba(21,128,61,0.95)',
-    red:     gb?.lapColorRed          ?? 'rgba(185,28,28,0.95)',
+    purple: gb?.lapColorPurple ?? 'rgba(107,33,168,0.95)',
+    green: gb?.lapColorGreen ?? 'rgba(21,128,61,0.95)',
+    red: gb?.lapColorRed ?? 'rgba(185,28,28,0.95)',
   }
 
   const text = styling?.textColor ?? 'white'
   const bgOpacity = gb?.opacity ?? 1
 
-  const raceStart  = session.timestamps[0].ytSeconds
-  const preRoll    = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom   = raceStart - preRoll
+  const raceStart = session.timestamps[0].ytSeconds
+  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
+  const showFrom = raceStart - preRoll
 
   if (currentTime < showFrom && !isEnd) return null
 
-  const fadeEnabled   = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration  = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const fadeOpacity   = fadeEnabled && !isEnd
-    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-    : 1
+  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
+  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
+  const fadeOpacity =
+    fadeEnabled && !isEnd
+      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+      : 1
 
   // Flash logic — identical to Banner
   const flashDurationSeconds = gb?.flashDuration ?? 2
@@ -89,7 +95,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   })()
 
   const bannerHeight = Math.round(width * (SVG_H / SVG_W))
-  const timePanelYOffset = -((bannerHeight / scale) - 80) / 2
+  const timePanelYOffset = -(bannerHeight / scale - 80) / 2
 
   const outerStyle: React.CSSProperties = {
     position: 'absolute',

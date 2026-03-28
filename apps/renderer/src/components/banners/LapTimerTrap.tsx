@@ -25,22 +25,31 @@ function formatTime(seconds: number): string {
 }
 
 export const LapTimerTrap: React.FC<Props> = ({
-  timestamps, currentLap, currentIdx, currentTime, raceEnd,
-  textColor = 'white', flashDuration, placeholderText,
+  timestamps,
+  currentLap,
+  currentIdx,
+  currentTime,
+  raceEnd,
+  textColor = 'white',
+  flashDuration,
+  placeholderText,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
 
   const flashDurationSeconds = flashDuration ?? 2
 
-  const spanStyle = useMemo<React.CSSProperties>(() => ({
-    fontFamily,
-    fontSize: 36 * scale,
-    fontWeight: 400,
-    color: textColor,
-    letterSpacing: 1 * scale,
-    userSelect: 'none',
-  }), [scale, textColor])
+  const spanStyle = useMemo<React.CSSProperties>(
+    () => ({
+      fontFamily,
+      fontSize: 36 * scale,
+      fontWeight: 400,
+      color: textColor,
+      letterSpacing: 1 * scale,
+      userSelect: 'none',
+    }),
+    [scale, textColor],
+  )
 
   const raceStart = timestamps[0].ytSeconds
   if (currentTime < raceStart && placeholderText == null) return null
@@ -51,15 +60,12 @@ export const LapTimerTrap: React.FC<Props> = ({
     displayText = placeholderText!
   } else if (currentTime >= raceEnd) {
     const timeSinceEnd = currentTime - raceEnd
-    displayText = timeSinceEnd < flashDurationSeconds
-      ? formatTime(timestamps[timestamps.length - 1].lap.lapTime)
-      : 'END'
+    displayText =
+      timeSinceEnd < flashDurationSeconds ? formatTime(timestamps[timestamps.length - 1].lap.lapTime) : 'END'
   } else {
     const lapElapsed = getLapElapsed(currentLap, currentTime)
     const isFlashing = lapElapsed < flashDurationSeconds && currentIdx > 0
-    displayText = isFlashing
-      ? formatTime(timestamps[currentIdx - 1].lap.lapTime)
-      : formatTime(lapElapsed)
+    displayText = isFlashing ? formatTime(timestamps[currentIdx - 1].lap.lapTime) : formatTime(lapElapsed)
   }
 
   const containerStyle: React.CSSProperties = {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
@@ -23,8 +23,11 @@ const LAP_PLACEHOLDER = '-/-'
 const POSITION_PLACEHOLDER = 'P-'
 
 export const Banner: React.FC<OverlayProps> = ({
-  segments, fps, startingGridPosition,
-  styling, labelWindowSeconds,
+  segments,
+  fps,
+  startingGridPosition,
+  styling,
+  labelWindowSeconds,
   qualifyingTablePosition,
   overlayComponents,
 }) => {
@@ -33,12 +36,14 @@ export const Banner: React.FC<OverlayProps> = ({
   const scale = width / 1920
   const currentTime = frame / fps
 
-  const { segment, isEnd, label } = useActiveSegment(segments, currentTime, labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS)
+  const { segment, isEnd, label } = useActiveSegment(
+    segments,
+    currentTime,
+    labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+  )
   const { session, sessionAllLaps, mode } = segment
 
-  const {
-    currentLap, currentIdx, raceEnd, livePosition, lapColors,
-  } = useBannerOverlayState({ segment, currentTime })
+  const { currentLap, currentIdx, raceEnd, livePosition, lapColors } = useBannerOverlayState({ segment, currentTime })
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
@@ -62,9 +67,10 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
   const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity = fadeEnabled && !isEnd
-    ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-    : 1
+  const opacity =
+    fadeEnabled && !isEnd
+      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
+      : 1
 
   const bannerHeight = 80 * scale
 
@@ -87,10 +93,10 @@ export const Banner: React.FC<OverlayProps> = ({
   // Compute the timer's current background so end caps flash in sync.
   const flashDurationSeconds = styling?.banner?.flashDuration ?? 2
   const timerColorMap = {
-    neutral: styling?.banner?.timerBgColor   ?? '#111111',
-    purple:  styling?.banner?.lapColorPurple ?? 'rgba(107,33,168,0.95)',
-    green:   styling?.banner?.lapColorGreen  ?? 'rgba(21,128,61,0.95)',
-    red:     styling?.banner?.lapColorRed    ?? 'rgba(185,28,28,0.95)',
+    neutral: styling?.banner?.timerBgColor ?? '#111111',
+    purple: styling?.banner?.lapColorPurple ?? 'rgba(107,33,168,0.95)',
+    green: styling?.banner?.lapColorGreen ?? 'rgba(21,128,61,0.95)',
+    red: styling?.banner?.lapColorRed ?? 'rgba(185,28,28,0.95)',
   }
   const timerBackground = (() => {
     if (currentTime >= raceEnd) {

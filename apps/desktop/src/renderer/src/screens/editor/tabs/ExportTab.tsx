@@ -1,11 +1,14 @@
-import { InfoRow } from '@/components/app/InfoRow'
-import { SectionLabel } from '@/components/app/SectionLabel'
+import { CloudRenderControls } from '@/components/export/CloudRenderControls'
+import { LocalRenderControls } from '@/components/export/LocalRenderControls'
+import { RenderSettings } from '@/components/export/RenderSettings'
+import { InfoRow } from '@/components/shared/InfoRow'
+import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { OptionGroup } from '@/components/ui/option-group'
-import { Progress } from '@/components/ui/progress'
+import { hasCloudLicense } from '@/lib/license'
 import React, { useEffect, useRef, useState } from 'react'
 import type {
+  CloudUploadProgressEvent,
   OutputFrameRate,
   OutputResolution,
   RenderCompleteResult,
@@ -36,18 +39,13 @@ function formatTime(date: Date): string {
     : date.toLocaleDateString()
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.ceil(seconds)}s`
-  const m = Math.floor(seconds / 60)
-  const s = Math.ceil(seconds % 60)
-  return s > 0 ? `${m}m ${s}s` : `${m}m`
-}
-
 /** Extract directory from an absolute path without node:path (renderer-safe). */
 function dirname(p: string): string {
   const i = p.lastIndexOf('/')
   return i >= 0 ? p.slice(0, i) : '.'
 }
+
+type RenderDestination = 'local' | 'cloud'
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -56,6 +54,9 @@ interface ExportTabProps {
   videoInfo?: VideoInfo | null
   onRenderingChange?: (rendering: boolean) => void
   overlayType: OverlayType
+  authUser?: { name: string } | null
+  licenseTier?: 'plus' | 'pro' | null
+  onSignIn?: () => void
 }
 
 interface LastRender {
@@ -64,7 +65,16 @@ interface LastRender {
   timestamp: Date
 }
 
-export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }: ExportTabProps): React.ReactElement {
+export function ExportTab({
+  project,
+  videoInfo,
+  onRenderingChange,
+  overlayType,
+  authUser,
+  licenseTier,
+  onSignIn,
+}: ExportTabProps): React.ReactElement {
+  const licensed = hasCloudLicense(licenseTier)
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -77,11 +87,40 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
   const [lastRender, setLastRender] = useState<LastRender | null>(null)
   const [etaSeconds, setEtaSeconds] = useState<number | null>(null)
 
+  // Cloud render state
+  const [renderDestination, setRenderDestination] = useState<RenderDestination>(licensed ? 'cloud' : 'local')
+  const [estimatedCost, setEstimatedCost] = useState<number | null>(null)
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
+  const [cloudUploading, setCloudUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<CloudUploadProgressEvent | null>(null)
+
   const renderStartRef = useRef<number>(0)
   const cleanupRef = useRef<Array<() => void>>([])
   useEffect(() => {
-    return () => { cleanupRef.current.forEach((fn) => fn()) }
+    return () => {
+      cleanupRef.current.forEach((fn) => fn())
+    }
   }, [])
+
+  // Fetch credit balance when cloud destination is selected
+  useEffect(() => {
+    if (renderDestination === 'cloud' && authUser) {
+      window.racedash.credits
+        .getBalance()
+        .then((b) => setCreditBalance(b.totalRc))
+        .catch(() => {})
+    }
+  }, [renderDestination, authUser])
+
+  // Compute estimated cost when cloud is selected and video info is available
+  useEffect(() => {
+    if (renderDestination === 'cloud' && videoInfo) {
+      window.racedash.cloudRender
+        .estimateCost(videoInfo, outputResolution, outputFrameRate)
+        .then(setEstimatedCost)
+        .catch(() => {})
+    }
+  }, [renderDestination, videoInfo, outputResolution, outputFrameRate])
 
   async function handleBrowse() {
     const dir = await window.racedash.openDirectory({ title: 'Choose output folder' })
@@ -120,7 +159,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
           const remaining = (elapsed / event.progress) * (1 - event.progress)
           setEtaSeconds(remaining)
         }
-      })
+      }),
     )
     cleanupRef.current.push(
       window.racedash.onRenderComplete((result: RenderCompleteResult) => {
@@ -128,7 +167,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
         setLastRender({ status: 'completed', outputPath: result.outputPath, timestamp: new Date() })
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
-      })
+      }),
     )
     cleanupRef.current.push(
       window.racedash.onRenderError((err) => {
@@ -137,7 +176,7 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
         console.error('Render error:', err.message)
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
-      })
+      }),
     )
 
     try {
@@ -157,31 +196,107 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
     }
   }
 
-  const resolutionOptions: Array<{ value: OutputResolution; label: string; disabled?: boolean }> = [
-    { value: 'source', label: 'Source' },
-    { value: '1080p', label: '1080p' },
-    { value: '1440p', label: '1440p' },
-    { value: '2160p', label: '4K ⚡', disabled: true },
-  ]
-  const frameRateOptions: Array<{ value: OutputFrameRate; label: string; disabled?: boolean }> = [
-    { value: 'source', label: 'Source' },
-    { value: '30', label: '30 fps' },
-    { value: '60', label: '60 fps' },
-    { value: '120', label: '120 fps ⚡', disabled: true },
-  ]
-  const renderModeOptions: Array<{ value: RenderMode; label: string }> = [
-    { value: 'overlay+footage', label: 'Overlay + Footage' },
-    { value: 'overlay-only', label: 'Overlay Only' },
+  async function handleCloudRender() {
+    if (!videoInfo) return
+    setCloudUploading(true)
+    setUploadProgress(null)
+
+    // Listen for upload progress events
+    const cleanupProgress = window.racedash.onCloudUploadProgress((event) => {
+      setUploadProgress(event)
+    })
+    const cleanupComplete = window.racedash.onCloudUploadComplete(() => {
+      setCloudUploading(false)
+      setUploadProgress(null)
+      cleanupProgress()
+      cleanupComplete()
+      cleanupError()
+    })
+    const cleanupError = window.racedash.onCloudUploadError((event) => {
+      setCloudUploading(false)
+      setUploadProgress(null)
+      console.error('Cloud upload error:', event.message)
+      cleanupProgress()
+      cleanupComplete()
+      cleanupError()
+    })
+
+    try {
+      // Join chapters if needed
+      const joinResult = await window.racedash.joinVideos(project.videoPaths)
+      const filePath = joinResult.joinedPath
+      const fileSizeBytes = await window.racedash.cloudRender.getFileSize(filePath)
+
+      // Create job
+      const config = await window.racedash.readProjectConfig(project.configPath)
+      const { jobId } = await window.racedash.cloudRender.createJob({
+        config: {
+          resolution: outputResolution,
+          frameRate: outputFrameRate,
+          renderMode,
+          overlayStyle: overlayType,
+          config,
+        },
+        sourceVideo: { ...videoInfo, fileSizeBytes },
+        projectName: project.name,
+        sessionType: 'race',
+      })
+
+      // Start multipart upload
+      const partSize = 10_485_760 // 10 MB
+      const partCount = Math.ceil(fileSizeBytes / partSize)
+      const { uploadId: _uploadId, presignedUrls } = await window.racedash.cloudRender.startUpload(jobId, {
+        partCount,
+        partSize,
+        contentType: 'video/mp4',
+      })
+
+      // Upload parts with concurrency of 4
+      const parts: Array<{ partNumber: number; etag: string }> = []
+      const concurrency = 4
+      let nextPart = 0
+
+      const uploadNextPart = async (): Promise<void> => {
+        while (nextPart < presignedUrls.length) {
+          const idx = nextPart++
+          const { partNumber, url } = presignedUrls[idx]
+          const offset = (partNumber - 1) * partSize
+          const size = Math.min(partSize, fileSizeBytes - offset)
+          const result = await window.racedash.cloudRender.uploadPart(jobId, url, filePath, partNumber, offset, size)
+          parts.push(result)
+        }
+      }
+
+      const workers = Array.from({ length: Math.min(concurrency, partCount) }, () => uploadNextPart())
+      await Promise.all(workers)
+
+      // Sort parts by partNumber for the complete call
+      parts.sort((a, b) => a.partNumber - b.partNumber)
+
+      // Complete upload
+      await window.racedash.cloudRender.completeUpload(jobId, parts)
+
+      setCloudUploading(false)
+      setUploadProgress(null)
+    } catch (err) {
+      setCloudUploading(false)
+      setUploadProgress(null)
+      console.error('Cloud render failed:', err)
+    }
+
+    cleanupProgress()
+    cleanupComplete()
+    cleanupError()
+  }
+
+  const destinationOptions: Array<{ value: RenderDestination; label: string }> = [
+    { value: 'local', label: 'Local' },
+    { value: 'cloud', label: 'Cloud' },
   ]
 
-  const shimmerStyle: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #6e6e6e 0%, #6e6e6e 25%, #e8e8e8 45%, #ffffff 50%, #e8e8e8 55%, #6e6e6e 75%, #6e6e6e 100%)',
-    backgroundSize: '400% 100%',
-    backgroundClip: 'text',
-    WebkitBackgroundClip: 'text',
-    color: 'transparent',
-    animation: 'shimmer 3.5s linear infinite',
-  }
+  const isCloudDisabled =
+    !authUser || !licenseTier || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
+  const isBusy = rendering || cloudUploading
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -189,100 +304,75 @@ export function ExportTab({ project, videoInfo, onRenderingChange, overlayType }
       <section>
         <SectionLabel>Source Video</SectionLabel>
         <div className="rounded-md border border-border bg-accent px-3">
-          <InfoRow
-            label="Resolution"
-            value={videoInfo ? formatResolution(videoInfo.width, videoInfo.height) : '—'}
-          />
+          <InfoRow label="Resolution" value={videoInfo ? formatResolution(videoInfo.width, videoInfo.height) : '—'} />
           <div className="border-t border-border" />
           <InfoRow label="Frame rate" value={videoInfo ? formatFps(videoInfo.fps) : '—'} />
         </div>
       </section>
 
-      {/* OUTPUT RESOLUTION */}
+      {/* RENDER DESTINATION */}
       <section>
-        <SectionLabel>Output Resolution</SectionLabel>
-        <OptionGroup options={resolutionOptions} value={outputResolution} onValueChange={setOutputResolution} disabled={rendering} />
+        <SectionLabel>Render Destination</SectionLabel>
+        <OptionGroup
+          options={destinationOptions}
+          value={renderDestination}
+          onValueChange={setRenderDestination as (v: string) => void}
+          disabled={isBusy}
+        />
       </section>
 
-      {/* OUTPUT FRAME RATE */}
-      <section>
-        <SectionLabel>Output Frame Rate</SectionLabel>
-        <OptionGroup options={frameRateOptions} value={outputFrameRate} onValueChange={setOutputFrameRate} disabled={rendering} />
-      </section>
+      {/* RENDER SETTINGS */}
+      <RenderSettings
+        outputResolution={outputResolution}
+        setOutputResolution={setOutputResolution}
+        outputFrameRate={outputFrameRate}
+        setOutputFrameRate={setOutputFrameRate}
+        renderMode={renderMode}
+        setRenderMode={setRenderMode}
+        licenseTier={licenseTier}
+        disabled={isBusy}
+      />
 
-      {/* OUTPUT PATH */}
-      <section>
-        <SectionLabel>Output Path</SectionLabel>
-        <div className="flex items-center gap-2">
-          <Input
-            value={outputPath}
-            onChange={(e) => setOutputPath(e.target.value)}
-            className="min-w-0 flex-1 font-mono text-xs"
-            disabled={rendering}
-          />
-          <Button variant="outline" size="sm" onClick={handleBrowse} disabled={rendering}>Browse</Button>
-        </div>
-      </section>
-
-      {/* RENDER MODE */}
-      <section>
-        <SectionLabel>Render Mode</SectionLabel>
-        <OptionGroup options={renderModeOptions} value={renderMode} onValueChange={setRenderMode} disabled={rendering} />
-      </section>
-
-      {/* RENDER BUTTON */}
-      <section>
-        {!rendering ? (
-          <Button onClick={handleRender} className="w-full gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            Render
-          </Button>
-        ) : renderProgress === 0 ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <svg className="animate-spin h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span>Starting render job</span>
-            </div>
-            <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs">
-              <span style={shimmerStyle}>{renderPhase}</span>
-              <span>{Math.round(renderProgress * 100)}%</span>
-            </div>
-            <Progress value={Math.round(renderProgress * 100)} />
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              {renderFrames && (
-                <span>Frame {renderFrames.rendered} of {renderFrames.total}</span>
-              )}
-              {etaSeconds != null && (
-                <span className={renderFrames ? '' : 'ml-auto'}>{formatDuration(etaSeconds)} remaining</span>
-              )}
-            </div>
-            <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
-              Cancel
-            </Button>
-          </div>
-        )}
-      </section>
+      {/* DESTINATION-SPECIFIC CONTROLS */}
+      {renderDestination === 'local' ? (
+        <LocalRenderControls
+          outputPath={outputPath}
+          setOutputPath={setOutputPath}
+          onBrowse={handleBrowse}
+          onRender={handleRender}
+          isBusy={isBusy}
+          rendering={rendering}
+          renderPhase={renderPhase}
+          renderProgress={renderProgress}
+          renderFrames={renderFrames}
+          etaSeconds={etaSeconds}
+        />
+      ) : (
+        <CloudRenderControls
+          authUser={authUser}
+          licenseTier={licenseTier}
+          onSignIn={onSignIn}
+          estimatedCost={estimatedCost}
+          creditBalance={creditBalance}
+          isCloudDisabled={isCloudDisabled}
+          onCloudRender={handleCloudRender}
+          cloudUploading={cloudUploading}
+          uploadProgress={uploadProgress}
+          videoInfo={videoInfo}
+        />
+      )}
 
       {/* LAST RENDER */}
       {lastRender && (
         <section>
           <SectionLabel>Last Render</SectionLabel>
           <div className="flex items-center gap-3 rounded-md border border-border bg-accent px-3 py-2">
-            <div className={[
-              'h-2 w-2 shrink-0 rounded-full',
-              lastRender.status === 'completed' ? 'bg-green-500' : 'bg-destructive',
-            ].join(' ')} />
+            <div
+              className={[
+                'h-2 w-2 shrink-0 rounded-full',
+                lastRender.status === 'completed' ? 'bg-green-500' : 'bg-destructive',
+              ].join(' ')}
+            />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="text-xs text-foreground">
                 {lastRender.status === 'completed' ? 'Completed' : 'Failed'}

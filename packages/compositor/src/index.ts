@@ -76,8 +76,7 @@ interface WindowsProcessor {
   Manufacturer?: string
 }
 
-const WINDOWS_WARNING =
-  'Install FFmpeg and make sure both ffmpeg and ffprobe are available on your PATH.'
+const WINDOWS_WARNING = 'Install FFmpeg and make sure both ffmpeg and ffprobe are available on your PATH.'
 
 function emitDiagnostic(
   onDiagnostic: CompositeOptions['onDiagnostic'],
@@ -107,12 +106,10 @@ async function execTool(command: string, args: string[]): Promise<{ stdout: stri
 }
 
 function toLowerSet(values: Iterable<string>): Set<string> {
-  return new Set(Array.from(values, value => value.trim().toLowerCase()).filter(Boolean))
+  return new Set(Array.from(values, (value) => value.trim().toLowerCase()).filter(Boolean))
 }
 
-export function getOverlayRenderProfile(
-  platform: NodeJS.Platform = process.platform,
-): OverlayRenderProfile {
+export function getOverlayRenderProfile(platform: NodeJS.Platform = process.platform): OverlayRenderProfile {
   if (platform === 'win32') {
     return {
       extension: '.webm',
@@ -130,10 +127,7 @@ export function getOverlayRenderProfile(
   }
 }
 
-export function getOverlayOutputPath(
-  outputPath: string,
-  platform: NodeJS.Platform = process.platform,
-): string {
+export function getOverlayOutputPath(outputPath: string, platform: NodeJS.Platform = process.platform): string {
   return outputPath.replace(/\.[^.]+$/, `-overlay${getOverlayRenderProfile(platform).extension}`)
 }
 
@@ -263,11 +257,7 @@ function inferGpuVendor(value: string): GpuVendor {
   const normalized = value.toLowerCase()
   if (normalized.includes('nvidia')) return 'nvidia'
   if (normalized.includes('intel')) return 'intel'
-  if (
-    normalized.includes('advanced micro devices') ||
-    normalized.includes('amd') ||
-    normalized.includes('ati')
-  ) {
+  if (normalized.includes('advanced micro devices') || normalized.includes('amd') || normalized.includes('ati')) {
     return 'amd'
   }
   return 'unknown'
@@ -280,13 +270,11 @@ export function parseWindowsHardwareInfo(
   const gpuRecords = parsePowerShellJson<WindowsVideoController>(gpuJson)
   const cpuRecords = parsePowerShellJson<WindowsProcessor>(cpuJson)
 
-  const gpuNames = gpuRecords
-    .map(record => record.Name?.trim())
-    .filter((value): value is string => Boolean(value))
+  const gpuNames = gpuRecords.map((record) => record.Name?.trim()).filter((value): value is string => Boolean(value))
   const gpuVendors = gpuRecords
-    .map(record => inferGpuVendor(
-      [record.AdapterCompatibility, record.Name, record.PNPDeviceID].filter(Boolean).join(' '),
-    ))
+    .map((record) =>
+      inferGpuVendor([record.AdapterCompatibility, record.Name, record.PNPDeviceID].filter(Boolean).join(' ')),
+    )
     .filter((value, index, values) => values.indexOf(value) === index)
 
   return {
@@ -314,17 +302,12 @@ export async function getWindowsHardwareInfo(): Promise<WindowsHardwareInfo> {
       'Get-CimInstance Win32_VideoController | ' +
         'Select-Object Name,AdapterCompatibility,PNPDeviceID | ConvertTo-Json -Compress',
     ),
-    runPowerShell(
-      'Get-CimInstance Win32_Processor | Select-Object Name,Manufacturer | ConvertTo-Json -Compress',
-    ),
+    runPowerShell('Get-CimInstance Win32_Processor | Select-Object Name,Manufacturer | ConvertTo-Json -Compress'),
   ])
   return parseWindowsHardwareInfo(gpuJson, cpuJson)
 }
 
-export function getWindowsDecodeCandidateOrder(
-  gpuVendors: readonly GpuVendor[],
-  hwaccels: Iterable<string>,
-): string[] {
+export function getWindowsDecodeCandidateOrder(gpuVendors: readonly GpuVendor[], hwaccels: Iterable<string>): string[] {
   const supported = toLowerSet(hwaccels)
   const primaryVendor = gpuVendors.includes('nvidia')
     ? 'nvidia'
@@ -334,13 +317,14 @@ export function getWindowsDecodeCandidateOrder(
         ? 'amd'
         : 'unknown'
 
-  const preferred = primaryVendor === 'nvidia'
-    ? ['cuda', 'd3d11va', 'dxva2']
-    : primaryVendor === 'intel'
-      ? ['qsv', 'd3d11va', 'dxva2']
-      : ['d3d11va', 'dxva2']
+  const preferred =
+    primaryVendor === 'nvidia'
+      ? ['cuda', 'd3d11va', 'dxva2']
+      : primaryVendor === 'intel'
+        ? ['qsv', 'd3d11va', 'dxva2']
+        : ['d3d11va', 'dxva2']
 
-  const filtered = preferred.filter(candidate => supported.has(candidate))
+  const filtered = preferred.filter((candidate) => supported.has(candidate))
   return [...filtered, 'software']
 }
 
@@ -357,15 +341,13 @@ function getRelevantEncoders(encoders: Iterable<string>): string[] {
     'hevc_amf',
   ]
   const available = toLowerSet(encoders)
-  return relevant.filter(encoder => available.has(encoder))
+  return relevant.filter((encoder) => available.has(encoder))
 }
 
-export async function collectDoctorDiagnostics(
-  opts: DoctorOptions = {},
-): Promise<CompositeDiagnostic[]> {
+export async function collectDoctorDiagnostics(opts: DoctorOptions = {}): Promise<CompositeDiagnostic[]> {
   const runtimePlatform = opts.runtimePlatform ?? process.platform
   const overlayProfile = getOverlayRenderProfile(runtimePlatform)
-  const capabilities = opts.ffmpegCapabilities ?? await probeFfmpegCapabilities()
+  const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
   const diagnostics: CompositeDiagnostic[] = [
     { label: 'Platform', value: runtimePlatform },
     { label: 'Overlay', value: overlayProfile.label },
@@ -381,7 +363,7 @@ export async function collectDoctorDiagnostics(
   ]
 
   if (runtimePlatform === 'win32') {
-    const hardwareInfo = opts.windowsHardwareInfo ?? await getWindowsHardwareInfo()
+    const hardwareInfo = opts.windowsHardwareInfo ?? (await getWindowsHardwareInfo())
     diagnostics.push({
       label: 'CPU',
       value: hardwareInfo.cpu ?? 'Unknown',
@@ -424,7 +406,9 @@ export async function collectDoctorDiagnostics(
   return diagnostics
 }
 
-async function runFfmpegCapture(args: string[]): Promise<{ code: number | null; signal: string | null; stderr: string }> {
+async function runFfmpegCapture(
+  args: string[],
+): Promise<{ code: number | null; signal: string | null; stderr: string }> {
   return await new Promise((resolvePromise, rejectPromise) => {
     const proc = spawn('ffmpeg', args)
     let stderr = ''
@@ -452,12 +436,7 @@ async function runFfmpegCapture(args: string[]): Promise<{ code: number | null; 
   })
 }
 
-function buildFilterComplex(
-  overlayX: number,
-  overlayY: number,
-  outputWidth?: number,
-  outputHeight?: number,
-): string {
+function buildFilterComplex(overlayX: number, overlayY: number, outputWidth?: number, outputHeight?: number): string {
   const filterParts: string[] = []
   let sourceLabel = '0:v'
   if (outputWidth != null && outputHeight != null) {
@@ -478,12 +457,17 @@ async function validateWindowsDecodeCandidate(
 ): Promise<{ ok: boolean; error?: string }> {
   const args = [
     ...(candidate === 'software' ? [] : ['-hwaccel', candidate]),
-    '-i', sourcePath,
-    '-i', overlayPath,
-    '-filter_complex', filterComplex,
-    '-t', String(Math.min(2, Math.max(0.5, durationSeconds))),
+    '-i',
+    sourcePath,
+    '-i',
+    overlayPath,
+    '-filter_complex',
+    filterComplex,
+    '-t',
+    String(Math.min(2, Math.max(0.5, durationSeconds))),
     '-an',
-    '-f', 'null',
+    '-f',
+    'null',
     '-',
   ]
   const result = await runFfmpegCapture(args)
@@ -498,18 +482,13 @@ async function resolveWindowsCompositePlan(
   outputPath: string,
   opts: Required<Pick<CompositeOptions, 'fps' | 'overlayX' | 'overlayY'>> & CompositeOptions,
 ): Promise<CompositePlan> {
-  const capabilities = opts.ffmpegCapabilities ?? await probeFfmpegCapabilities()
-  const hardwareInfo = opts.windowsHardwareInfo ?? await getWindowsHardwareInfo()
+  const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
+  const hardwareInfo = opts.windowsHardwareInfo ?? (await getWindowsHardwareInfo())
 
   emitDiagnostic(opts.onDiagnostic, 'CPU', hardwareInfo.cpu ?? 'Unknown')
   emitDiagnostic(opts.onDiagnostic, 'GPU', hardwareInfo.gpuNames.join(', ') || 'Unknown')
 
-  const filterComplex = buildFilterComplex(
-    opts.overlayX,
-    opts.overlayY,
-    opts.outputWidth,
-    opts.outputHeight,
-  )
+  const filterComplex = buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight)
   const candidates = getWindowsDecodeCandidateOrder(hardwareInfo.gpuVendors, capabilities.hwaccels)
 
   let selected = 'software'
@@ -553,15 +532,24 @@ async function resolveWindowsCompositePlan(
     softwareFallback,
     args: [
       ...(selected === 'software' ? [] : ['-hwaccel', selected]),
-      '-i', sourcePath,
-      '-i', overlayPath,
-      '-filter_complex', filterComplex,
-      '-r', String(opts.fps),
-      '-pix_fmt', 'yuv420p',
-      '-c:v', 'libx264',
-      '-preset', 'slow',
-      '-crf', '16',
-      '-c:a', 'copy',
+      '-i',
+      sourcePath,
+      '-i',
+      overlayPath,
+      '-filter_complex',
+      filterComplex,
+      '-r',
+      String(opts.fps),
+      '-pix_fmt',
+      'yuv420p',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'slow',
+      '-crf',
+      '16',
+      '-c:a',
+      'copy',
       '-y',
       outputPath,
     ],
@@ -578,16 +566,26 @@ function buildMacCompositePlan(
     decodePath: 'videotoolbox',
     softwareFallback: false,
     args: [
-      '-hwaccel', 'videotoolbox',
-      '-i', sourcePath,
-      '-i', overlayPath,
-      '-filter_complex', buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
-      '-r', String(opts.fps),
-      '-pix_fmt', 'yuv420p',
-      '-c:v', 'hevc_videotoolbox',
-      '-tag:v', 'hvc1',
-      '-b:v', opts.videoBitrate,
-      '-c:a', 'copy',
+      '-hwaccel',
+      'videotoolbox',
+      '-i',
+      sourcePath,
+      '-i',
+      overlayPath,
+      '-filter_complex',
+      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
+      '-r',
+      String(opts.fps),
+      '-pix_fmt',
+      'yuv420p',
+      '-c:v',
+      'hevc_videotoolbox',
+      '-tag:v',
+      'hvc1',
+      '-b:v',
+      opts.videoBitrate,
+      '-c:a',
+      'copy',
       '-y',
       outputPath,
     ],
@@ -604,15 +602,24 @@ function buildGenericCompositePlan(
     decodePath: 'software',
     softwareFallback: true,
     args: [
-      '-i', sourcePath,
-      '-i', overlayPath,
-      '-filter_complex', buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
-      '-r', String(opts.fps),
-      '-pix_fmt', 'yuv420p',
-      '-c:v', 'libx264',
-      '-preset', 'slow',
-      '-crf', '16',
-      '-c:a', 'copy',
+      '-i',
+      sourcePath,
+      '-i',
+      overlayPath,
+      '-filter_complex',
+      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
+      '-r',
+      String(opts.fps),
+      '-pix_fmt',
+      'yuv420p',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'slow',
+      '-crf',
+      '16',
+      '-c:a',
+      'copy',
       '-y',
       outputPath,
     ],
@@ -639,7 +646,7 @@ export async function compositeVideo(
     outputHeight,
     runtimePlatform = process.platform,
   } = opts
-  const totalSeconds = durationSeconds ?? await getVideoDuration(sourcePath)
+  const totalSeconds = durationSeconds ?? (await getVideoDuration(sourcePath))
   if (totalSeconds <= 0) throw new Error(`Video duration must be positive, got ${totalSeconds}`)
   if ((outputWidth == null) !== (outputHeight == null)) {
     throw new Error('outputWidth and outputHeight must be provided together')
@@ -656,11 +663,12 @@ export async function compositeVideo(
     outputHeight,
   }
 
-  const plan = runtimePlatform === 'win32'
-    ? await resolveWindowsCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
-    : runtimePlatform === 'darwin'
-      ? buildMacCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
-      : buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
+  const plan =
+    runtimePlatform === 'win32'
+      ? await resolveWindowsCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
+      : runtimePlatform === 'darwin'
+        ? buildMacCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
+        : buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
 
   await runFFmpegWithProgress(plan.args, totalSeconds, onProgress)
 }
@@ -670,15 +678,19 @@ export async function compositeVideo(
  */
 export async function getVideoFps(videoPath: string): Promise<number> {
   const { stdout } = await execTool('ffprobe', [
-    '-v', 'error',
-    '-select_streams', 'v:0',
-    '-show_entries', 'stream=avg_frame_rate,r_frame_rate',
-    '-of', 'default=noprint_wrappers=1:nokey=1',
+    '-v',
+    'error',
+    '-select_streams',
+    'v:0',
+    '-show_entries',
+    'stream=avg_frame_rate,r_frame_rate',
+    '-of',
+    'default=noprint_wrappers=1:nokey=1',
     videoPath,
   ])
   const lines = stdout
     .split('\n')
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .filter(Boolean)
 
   for (const line of lines) {
@@ -697,10 +709,14 @@ export async function getVideoFps(videoPath: string): Promise<number> {
  */
 export async function getVideoDuration(videoPath: string): Promise<number> {
   const { stdout } = await execTool('ffprobe', [
-    '-v', 'error',
-    '-select_streams', 'v:0',
-    '-show_entries', 'stream=duration',
-    '-of', 'default=noprint_wrappers=1:nokey=1',
+    '-v',
+    'error',
+    '-select_streams',
+    'v:0',
+    '-show_entries',
+    'stream=duration',
+    '-of',
+    'default=noprint_wrappers=1:nokey=1',
     videoPath,
   ])
   const seconds = parseFloat(stdout.trim())
@@ -713,10 +729,14 @@ export async function getVideoDuration(videoPath: string): Promise<number> {
  */
 export async function getVideoResolution(videoPath: string): Promise<{ width: number; height: number }> {
   const { stdout } = await execTool('ffprobe', [
-    '-v', 'error',
-    '-select_streams', 'v:0',
-    '-show_entries', 'stream=width,height',
-    '-of', 'csv=s=x:p=0',
+    '-v',
+    'error',
+    '-select_streams',
+    'v:0',
+    '-show_entries',
+    'stream=width,height',
+    '-of',
+    'csv=s=x:p=0',
     videoPath,
   ])
   const [w, h] = stdout.trim().split('x').map(Number)
@@ -735,7 +755,7 @@ export async function joinVideos(inputs: string[], outputPath: string): Promise<
   const totalSeconds = durations.reduce((a, b) => a + b, 0)
 
   const tmpFile = resolve(tmpdir(), `racedash-concat-${randomUUID()}.txt`)
-  const list = inputs.map(filePath => `file '${normalizeConcatPath(filePath)}'`).join('\n')
+  const list = inputs.map((filePath) => `file '${normalizeConcatPath(filePath)}'`).join('\n')
   await writeFile(tmpFile, list, 'utf-8')
   try {
     await runFFmpegWithProgress(
@@ -789,10 +809,7 @@ function runFFmpegWithProgress(
       stderr += text
       const match = text.match(/time=(\d+):(\d+):(\d+\.\d+)/)
       if (match) {
-        const processed =
-          parseInt(match[1], 10) * 3600 +
-          parseInt(match[2], 10) * 60 +
-          parseFloat(match[3])
+        const processed = parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60 + parseFloat(match[3])
         const pct = Math.max(0, Math.min(1, processed / totalSeconds))
         onProgress?.(pct)
       }

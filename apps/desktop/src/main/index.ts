@@ -1,14 +1,19 @@
-import { app, BrowserWindow, protocol } from 'electron'
+import { app, BrowserWindow, protocol, session as electronSession } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
 import { configureBundledFfmpegPath } from './ffmpeg'
 import { registerIpcHandlers } from './ipc'
 import { registerUpdaterHandlers } from './updater'
+import { registerTokenHandlers } from './auth'
+import { registerStripeHandlers } from './stripe-checkout'
+import { registerLicenseHandlers } from './license-handlers'
+import { registerYouTubeHandlers } from './youtube'
 
 // Must be called before app.whenReady()
 protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } },
+  { scheme: 'racedash', privileges: { secure: true } },
 ])
 
 app.setName('RaceDash')
@@ -56,26 +61,34 @@ export async function cleanupEmptyRacedashTempDirs(
     return
   }
 
-  await Promise.all(entries
-    .filter(name => name.startsWith(prefix))
-    .map(async (name) => {
-      const targetPath = path.join(tempRoot, name)
+  await Promise.all(
+    entries
+      .filter((name) => name.startsWith(prefix))
+      .map(async (name) => {
+        const targetPath = path.join(tempRoot, name)
 
-      try {
-        const stats = await fs.promises.lstat(targetPath)
-        if (!stats.isDirectory()) return
+        try {
+          const stats = await fs.promises.lstat(targetPath)
+          if (!stats.isDirectory()) return
 
-        const children = await fs.promises.readdir(targetPath)
-        if (children.length !== 0) return
+          const children = await fs.promises.readdir(targetPath)
+          if (children.length !== 0) return
 
-        await fs.promises.rmdir(targetPath)
-      } catch {
-        // Ignore races and permission issues in the shared temp directory.
-      }
-    }))
+          await fs.promises.rmdir(targetPath)
+        } catch {
+          // Ignore races and permission issues in the shared temp directory.
+        }
+      }),
+  )
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Clerk dev instances require third-party cookies (.clerk.accounts.dev
+  // from localhost origin). Flush in-memory cookies to disk so they survive
+  // between sessions.
+  const ses = electronSession.defaultSession
+  await ses.cookies.flushStore()
+
   configureBundledFfmpegPath()
 
   const devIconPath = getDevIconPath()
@@ -130,7 +143,11 @@ app.whenReady().then(() => {
   void cleanupEmptyRacedashTempDirs()
   registerIpcHandlers()
   const win = createWindow()
+  registerTokenHandlers(win)
+  registerLicenseHandlers(win)
+  registerStripeHandlers(win)
   registerUpdaterHandlers(win)
+  registerYouTubeHandlers(win)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

@@ -35,7 +35,9 @@ describe('IPC engine handlers', () => {
         segments: [],
         driverListsIdentical: true,
       }
-      vi.mocked(engine.listDrivers).mockResolvedValue(mockResult as unknown as Awaited<ReturnType<typeof engine.listDrivers>>)
+      vi.mocked(engine.listDrivers).mockResolvedValue(
+        mockResult as unknown as Awaited<ReturnType<typeof engine.listDrivers>>,
+      )
 
       const result = await engine.listDrivers({ configPath: '/path/to/project.json' })
 
@@ -60,9 +62,7 @@ describe('IPC engine handlers', () => {
     it('propagates engine errors', async () => {
       vi.mocked(engine.listDrivers).mockRejectedValue(new Error('Config file not found'))
 
-      await expect(
-        engine.listDrivers({ configPath: '/missing/project.json' })
-      ).rejects.toThrow('Config file not found')
+      await expect(engine.listDrivers({ configPath: '/missing/project.json' })).rejects.toThrow('Config file not found')
     })
   })
 
@@ -75,7 +75,7 @@ describe('IPC engine handlers', () => {
 
     it('resolves with timing data from engine', async () => {
       vi.mocked(engine.generateTimestamps).mockResolvedValue(
-        mockResult as unknown as Awaited<ReturnType<typeof engine.generateTimestamps>>
+        mockResult as unknown as Awaited<ReturnType<typeof engine.generateTimestamps>>,
       )
 
       const result = await engine.generateTimestamps({ configPath: '/path/to/project.json' })
@@ -86,7 +86,7 @@ describe('IPC engine handlers', () => {
 
     it('forwards fps option', async () => {
       vi.mocked(engine.generateTimestamps).mockResolvedValue(
-        mockResult as unknown as Awaited<ReturnType<typeof engine.generateTimestamps>>
+        mockResult as unknown as Awaited<ReturnType<typeof engine.generateTimestamps>>,
       )
 
       await engine.generateTimestamps({ configPath: '/path/to/project.json', fps: 59.94 })
@@ -100,14 +100,12 @@ describe('IPC engine handlers', () => {
     it('propagates engine errors', async () => {
       vi.mocked(engine.generateTimestamps).mockRejectedValue(new Error('No timing data'))
 
-      await expect(
-        engine.generateTimestamps({ configPath: '/path/to/project.json' })
-      ).rejects.toThrow('No timing data')
+      await expect(engine.generateTimestamps({ configPath: '/path/to/project.json' })).rejects.toThrow('No timing data')
     })
 
     it('returns offsets array', async () => {
       vi.mocked(engine.generateTimestamps).mockResolvedValue(
-        mockResult as unknown as Awaited<ReturnType<typeof engine.generateTimestamps>>
+        mockResult as unknown as Awaited<ReturnType<typeof engine.generateTimestamps>>,
       )
 
       const result = await engine.generateTimestamps({ configPath: '/path/to/project.json' })

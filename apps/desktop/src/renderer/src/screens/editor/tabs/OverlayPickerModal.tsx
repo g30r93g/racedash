@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { Check } from 'lucide-react'
 
 export type OverlayType = 'banner' | 'geometric-banner' | 'esports' | 'minimal' | 'modern'
 
@@ -100,7 +101,12 @@ interface OverlayPickerModalProps {
   onApply: (overlay: OverlayType) => void
 }
 
-export function OverlayPickerModal({ open, onOpenChange, current, onApply }: OverlayPickerModalProps): React.ReactElement {
+export function OverlayPickerModal({
+  open,
+  onOpenChange,
+  current,
+  onApply,
+}: OverlayPickerModalProps): React.ReactElement {
   const [selected, setSelected] = useState<OverlayType>(current)
 
   useEffect(() => {
@@ -111,9 +117,7 @@ export function OverlayPickerModal({ open, onOpenChange, current, onApply }: Ove
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[740px] max-w-[740px]">
         <h2 className="mb-1 text-base font-semibold text-foreground">Choose Overlay Style</h2>
-        <p className="mb-5 text-xs text-muted-foreground">
-          Select how your timing data is displayed on the video
-        </p>
+        <p className="mb-5 text-xs text-muted-foreground">Select how your timing data is displayed on the video</p>
 
         <div className="mb-3 grid grid-cols-3 gap-3">
           {OVERLAYS.slice(0, 3).map((o) => (
@@ -127,7 +131,9 @@ export function OverlayPickerModal({ open, onOpenChange, current, onApply }: Ove
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button onClick={() => onApply(selected)}>Apply Style</Button>
         </div>
       </DialogContent>
@@ -145,11 +151,12 @@ function OverlayCard({
   onSelect: () => void
 }): React.ReactElement {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onSelect}
       className={cn(
-        'relative flex flex-col overflow-hidden rounded-lg border-2 bg-accent text-left transition-colors',
-        isSelected ? 'border-primary' : 'border-transparent hover:border-border'
+        'relative flex h-auto flex-col overflow-hidden rounded-lg border-2 bg-accent p-0 text-left transition-colors',
+        isSelected ? 'border-primary' : 'border-transparent hover:border-border',
       )}
     >
       <div className="h-[90px] w-full overflow-hidden bg-[#111]">{overlay.preview}</div>
@@ -159,11 +166,9 @@ function OverlayCard({
       </div>
       {isSelected && (
         <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+          <Check size={10} strokeWidth={3} />
         </div>
       )}
-    </button>
+    </Button>
   )
 }

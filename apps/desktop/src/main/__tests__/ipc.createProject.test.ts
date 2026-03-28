@@ -38,7 +38,9 @@ vi.mock('@racedash/engine', async (importOriginal) => {
   return {
     ...actual,
     loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{}] }),
-    resolveTimingSegments: vi.fn().mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
+    resolveTimingSegments: vi
+      .fn()
+      .mockResolvedValue([{ drivers: [], capabilities: {}, startingGrid: [], replayData: [] }]),
   }
 })
 
@@ -64,6 +66,21 @@ const mockAddToRegistry = vi.mocked(registry.addToRegistry)
 
 const mockMkdirSync = vi.mocked(fs.mkdirSync)
 
+/** Find the project.json write among all writeFileSync calls (order may vary). */
+function findProjectJsonWrite(): Record<string, unknown> {
+  const calls = vi.mocked(fs.writeFileSync).mock.calls
+  for (let i = calls.length - 1; i >= 0; i--) {
+    const content = calls[i][1] as string
+    try {
+      const parsed = JSON.parse(content)
+      if (parsed.name && parsed.projectPath) return parsed
+    } catch {
+      /* skip non-JSON */
+    }
+  }
+  throw new Error('project.json write not found in writeFileSync calls')
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -82,7 +99,7 @@ describe('handleCreateProject', () => {
         session: 'race' as const,
       },
     ],
-    selectedDriver: 'G. Gorzynski',
+    selectedDrivers: { Race: 'G. Gorzynski' },
   }
 
   it('creates the project directory under ~/Videos/racedash/<slug>', async () => {
@@ -96,7 +113,7 @@ describe('handleCreateProject', () => {
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(vi.mocked(fs.promises.rename)).toHaveBeenCalledWith(
       baseOpts.joinedVideoPath,
-      path.join(expectedDir, 'video.mp4')
+      path.join(expectedDir, 'video.mp4'),
     )
     expect(vi.mocked(fs.promises.copyFile)).not.toHaveBeenCalled()
   })
@@ -112,20 +129,22 @@ describe('handleCreateProject', () => {
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
       opts.joinedVideoPath,
-      path.join(expectedDir, 'video.mp4')
+      path.join(expectedDir, 'video.mp4'),
     )
     expect(vi.mocked(fs.promises.rename)).not.toHaveBeenCalled()
   })
 
   it('falls back to copy and delete when moving a temp joined video across devices', async () => {
-    vi.mocked(fs.promises.rename).mockRejectedValueOnce(Object.assign(new Error('cross-device link not permitted'), { code: 'EXDEV' }))
+    vi.mocked(fs.promises.rename).mockRejectedValueOnce(
+      Object.assign(new Error('cross-device link not permitted'), { code: 'EXDEV' }),
+    )
 
     await handleCreateProject(baseOpts)
 
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
       baseOpts.joinedVideoPath,
-      path.join(expectedDir, 'video.mp4')
+      path.join(expectedDir, 'video.mp4'),
     )
     expect(vi.mocked(fs.promises.unlink)).toHaveBeenCalledWith(baseOpts.joinedVideoPath)
   })
@@ -133,25 +152,21 @@ describe('handleCreateProject', () => {
   it('writes project.json with videoPaths pointing to the copied video', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    // writeFileSync calls: [0] temp cache file, [1] config.json, [2] project.json
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[2][1] as string
-    const written = JSON.parse(writtenJson)
+    const written = findProjectJsonWrite()
     expect(written.videoPaths).toEqual([path.join(expectedDir, 'video.mp4')])
   })
 
   it('writes project.json with correct fields', async () => {
     await handleCreateProject(baseOpts)
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    // writeFileSync calls: [0] temp cache file, [1] config.json, [2] project.json
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[2][1] as string
-    const written = JSON.parse(writtenJson)
+    const written = findProjectJsonWrite()
     expect(written).toMatchObject({
       name: 'My Race',
       projectPath: path.join(expectedDir, 'project.json'),
-      selectedDriver: 'G. Gorzynski',
+      selectedDrivers: { Race: 'G. Gorzynski' },
     })
-    expect(written.segments).toHaveLength(1)
-    expect(written.segments[0].label).toBe('Race')
+    expect((written as any).segments).toHaveLength(1)
+    expect((written as any).segments[0].label).toBe('Race')
   })
 
   it('returns ProjectData with projectPath set to the new project.json path', async () => {
@@ -159,35 +174,36 @@ describe('handleCreateProject', () => {
     const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(result.projectPath).toBe(path.join(expectedDir, 'project.json'))
     expect(result.name).toBe('My Race')
-    expect(result.selectedDriver).toBe('G. Gorzynski')
+    expect(result.selectedDrivers).toEqual({ Race: 'G. Gorzynski' })
   })
 
   it('slugifies project names with spaces and special characters', async () => {
     await handleCreateProject({ ...baseOpts, name: 'Club Endurance — Round 3!' })
-    expect(mockMkdirSync).toHaveBeenCalledWith(
-      expect.stringContaining('club-endurance-round-3'),
-      { recursive: true }
-    )
+    expect(mockMkdirSync).toHaveBeenCalledWith(expect.stringContaining('club-endurance-round-3'), { recursive: true })
   })
 
   it('preserves all segment fields in project.json', async () => {
     const opts = {
       ...baseOpts,
-      segments: [{ label: 'Race', source: 'mylapsSpeedhive' as const, eventId: '12345', session: 'race' as const, videoOffsetFrame: 150 }],
+      segments: [
+        {
+          label: 'Race',
+          source: 'mylapsSpeedhive' as const,
+          eventId: '12345',
+          session: 'race' as const,
+          videoOffsetFrame: 150,
+        },
+      ],
     }
     await handleCreateProject(opts)
-    // writeFileSync calls: [0] temp cache file, [1] config.json, [2] project.json
-    const writtenJson = vi.mocked(fs.writeFileSync).mock.calls[2][1] as string
-    const written = JSON.parse(writtenJson)
+    const written = findProjectJsonWrite() as any
     expect(written.segments[0].videoOffsetFrame).toBe(150)
     expect(written.segments[0].eventId).toBe('12345')
   })
 
   it('registers the new project path in the registry', async () => {
     await handleCreateProject(baseOpts)
-    expect(mockAddToRegistry).toHaveBeenCalledWith(
-      expect.stringContaining('project.json'),
-    )
+    expect(mockAddToRegistry).toHaveBeenCalledWith(expect.stringContaining('project.json'))
   })
 
   it('rejects when saveDir exists and is not empty', async () => {
