@@ -150,12 +150,18 @@ describe('buildEngineSegments', () => {
     expect(result[0]).toMatchObject({ url: 'https://speedhive.mylaps.com/Sessions/456' })
   })
 
-  it('converts manual segment with empty timingData', () => {
-    const segments: SegmentConfig[] = [{ label: 'Race', source: 'manual' }]
+  it('converts manual segment with timingData', () => {
+    const timingData = [{ lap: 1, time: '1:02.500' }, { lap: 2, time: '58.123' }]
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'manual', timingData }]
     const result = buildEngineSegments(segments, drivers)
     expect(result).toEqual([
-      { source: 'manual', mode: 'race', offset: '0 F', label: 'Race', driver: 'G. Gorzynski', timingData: [] },
+      { source: 'manual', mode: 'race', offset: '0 F', label: 'Race', driver: 'G. Gorzynski', timingData },
     ])
+  })
+
+  it('rejects manual segment with no timingData', () => {
+    const segments: SegmentConfig[] = [{ label: 'Race', source: 'manual' }]
+    expect(() => buildEngineSegments(segments, drivers)).toThrow('has no timing data')
   })
 
   it('defaults mode to race when session is undefined', () => {

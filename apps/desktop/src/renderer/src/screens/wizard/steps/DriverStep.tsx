@@ -25,11 +25,12 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
   const [search, setSearch] = useState('')
 
   const fetchDrivers = useCallback(async () => {
-    if (segments.length === 0) return
+    const fetchable = segments.filter((s) => s.source !== 'manual')
+    if (fetchable.length === 0) return
     setLoading(true)
     setError(null)
     try {
-      const result = await window.racedash.previewDrivers(segments)
+      const result = await window.racedash.previewDrivers(fetchable)
       const bySegment: Record<string, DriverEntry[]> = {}
       result.segments.forEach((seg: { config: { label?: string; source: string }; drivers: DriverEntry[] }) => {
         bySegment[seg.config.label ?? seg.config.source] = seg.drivers
@@ -82,6 +83,7 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
         </TabsList>
 
         {segments.map((seg) => {
+          const isManual = seg.source === 'manual'
           const drivers = driversBySegment[seg.label] ?? []
           const filtered = search
             ? drivers.filter(
@@ -94,7 +96,18 @@ export function DriverStep({ segments, selectedDrivers, onChange }: DriverStepPr
 
           return (
             <TabsContent key={seg.label} value={seg.label} className="mt-4">
-              {loading ? (
+              {isManual ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    Enter the driver name to display on the overlay.
+                  </p>
+                  <Input
+                    value={selectedForSegment}
+                    onChange={(e) => onChange({ ...selectedDrivers, [seg.label]: e.target.value })}
+                    placeholder="e.g. G. Gorzynski"
+                  />
+                </div>
+              ) : loading ? (
                 <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
                   <Spinner name="checkerboard" size="1.5rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
                   Loading drivers…
