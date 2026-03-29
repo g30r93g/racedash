@@ -51,7 +51,6 @@ interface PositionDot {
 type RawLap = { number: number; lapTime: number; cumulative: number }
 type RawReplayEntry = { kart: string; position: number; totalSeconds: number | null }
 type RawSegment = {
-  config?: { source?: string; timingData?: Array<{ lap: number; position?: number }> }
   selectedDriver?: { kart: string; name: string; laps: unknown[] }
   replayData?: RawReplayEntry[][]
   capabilities?: Record<string, boolean>
@@ -70,27 +69,7 @@ function deriveLapSpans(seg: RawSegment, offsetSeconds: number): LapSpan[] {
 }
 
 function derivePositionDots(seg: RawSegment, offsetSeconds: number): Omit<PositionDot, 'direction'>[] {
-  if (!seg.selectedDriver) return []
-
-  // Manual segments: derive dots from timingData positions
-  if (seg.config?.source === 'manual' && seg.config.timingData) {
-    const laps = seg.selectedDriver.laps as RawLap[]
-    const dots: Omit<PositionDot, 'direction'>[] = []
-    for (const entry of seg.config.timingData) {
-      if (entry.position == null) continue
-      const lap = laps.find((l) => l.number === entry.lap)
-      if (!lap) continue
-      dots.push({
-        videoSeconds: lap.cumulative - lap.lapTime + offsetSeconds,
-        position: entry.position,
-        kind: 'replay',
-      })
-    }
-    return dots
-  }
-
-  // Source-fetched segments: derive from replay snapshots
-  if (!seg.replayData) return []
+  if (!seg.selectedDriver || !seg.replayData) return []
   const { replayData, selectedDriver } = seg
   const dots: Omit<PositionDot, 'direction'>[] = []
   let prevPosition: number | null = null

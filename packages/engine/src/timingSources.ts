@@ -326,6 +326,38 @@ export function resolvePositionOverrides(
   }))
 }
 
+/**
+ * Resolves position overrides for any segment type. For manual segments,
+ * synthesizes overrides from timingData positions so all downstream
+ * consumers use the single unified PositionOverride[] path.
+ */
+export function resolveSegmentPositionOverrides(
+  segment: SegmentConfig,
+  resolvedSegment: ResolvedTimingSegment,
+  offsetSeconds: number,
+  segmentIndex: number,
+  fps?: number,
+): PositionOverride[] | undefined {
+  // Manual segments: synthesize from timingData positions
+  if (segment.source === 'manual') {
+    const laps = resolvedSegment.selectedDriver?.laps ?? []
+    const overrides: PositionOverride[] = []
+    for (const entry of segment.timingData) {
+      if (entry.position == null) continue
+      const lap = laps.find((l) => l.number === entry.lap)
+      if (!lap) continue
+      overrides.push({
+        timestamp: roundMillis(lap.cumulative - lap.lapTime + offsetSeconds),
+        position: entry.position,
+      })
+    }
+    return overrides.length > 0 ? overrides : undefined
+  }
+
+  // All other sources: resolve from config positionOverrides
+  return resolvePositionOverrides(segment.positionOverrides, offsetSeconds, segmentIndex, fps)
+}
+
 export async function loadTimingConfig(configPath: string, requireDriver: boolean): Promise<LoadedTimingConfig> {
   const absoluteConfigPath = path.resolve(configPath)
   const raw = JSON.parse(await readFile(absoluteConfigPath, 'utf8')) as Partial<TimingConfig>

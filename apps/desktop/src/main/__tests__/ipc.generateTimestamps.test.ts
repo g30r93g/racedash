@@ -10,6 +10,7 @@ vi.mock('@racedash/engine', () => ({
   buildSessionSegments: vi.fn(),
   loadTimingConfig: vi.fn().mockResolvedValue({ segments: [{ positionOverrides: [] }] }),
   resolvePositionOverrides: vi.fn().mockReturnValue([]),
+  resolveSegmentPositionOverrides: vi.fn().mockReturnValue([]),
   resolveTimingSegments: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('electron', () => ({

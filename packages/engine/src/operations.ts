@@ -22,6 +22,7 @@ import {
   loadTimingConfig,
   resolveDriversCommandSegments,
   resolvePositionOverrides,
+  resolveSegmentPositionOverrides,
   resolveTimingSegments,
 } from './timingSources'
 import type {
@@ -126,15 +127,18 @@ export async function renderSession(
     const frameDuration = 1 / fps
 
     const rawOffsets = segmentConfigs.map((segment) => parseOffset(segment.offset, fps))
-    const resolvedPositionOverrides = segmentConfigs.map((segment, index) =>
-      resolvePositionOverrides(segment.positionOverrides, rawOffsets[index], index, fps),
-    )
     const snappedOffsets = rawOffsets.map((raw) => roundMillis(Math.round(raw / frameDuration) * frameDuration))
 
     const resolvedSegments = await resolveTimingSegments(segmentConfigs)
     const { segments, startingGridPosition } = buildSessionSegments(resolvedSegments, snappedOffsets)
     segments.forEach((segment, index) => {
-      segment.positionOverrides = resolvedPositionOverrides[index]
+      segment.positionOverrides = resolveSegmentPositionOverrides(
+        segmentConfigs[index],
+        resolvedSegments[index],
+        rawOffsets[index],
+        index,
+        fps,
+      )
     })
 
     const boxPosition = (opts.boxPosition ?? configBoxPosition ?? defaultBoxPositionForStyle(opts.style)) as BoxPosition
