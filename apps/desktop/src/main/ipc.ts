@@ -741,12 +741,30 @@ export async function generateTimestampsHandler(opts: {
   // Attach position overrides to session segments (mirrors renderSession in operations.ts)
   const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
   sessionSegments.forEach((seg, index) => {
-    seg.positionOverrides = resolvePositionOverrides(
-      segmentConfigs[index].positionOverrides,
-      result.offsets[index],
-      index,
-      opts.fps,
-    )
+    const config = segmentConfigs[index]
+    const offset = result.offsets[index]
+
+    // For manual segments, synthesize position overrides from timingData
+    if (config.source === 'manual' && config.timingData) {
+      const resolved = result.segments[index]
+      const laps = resolved.selectedDriver?.laps ?? []
+      seg.positionOverrides = config.timingData
+        .filter((entry) => entry.position != null)
+        .flatMap((entry) => {
+          const lap = laps.find((l) => l.number === entry.lap)
+          if (!lap) return []
+          // Position activates at the start of this lap
+          const timestamp = lap.cumulative - lap.lapTime + offset
+          return [{ timestamp, position: entry.position! }]
+        })
+    } else {
+      seg.positionOverrides = resolvePositionOverrides(
+        config.positionOverrides,
+        offset,
+        index,
+        opts.fps,
+      )
+    }
   })
 
   return { ...result, sessionSegments, startingGridPosition }
