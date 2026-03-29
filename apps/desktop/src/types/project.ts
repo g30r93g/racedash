@@ -26,6 +26,8 @@ export interface SegmentConfig {
   session?: SessionMode
   // daytona, teamsport: path to .eml/.txt file
   emailPath?: string
+  // manual: user-entered lap times
+  timingData?: Array<{ lap: number; time: string; position?: number }>
   // all sources: frame number in the joined video where this segment starts
   videoOffsetFrame?: number
 }

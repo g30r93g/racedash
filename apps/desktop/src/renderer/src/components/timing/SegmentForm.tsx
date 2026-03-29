@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/form-field'
 import { FileUpload } from '@/components/shared/FileUpload'
 import { OptionGroup } from '@/components/ui/option-group'
+import { ManualLapDialog, ManualLapSummary, isValidLapTime, type ManualLapEntry } from './ManualLapEntry'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -93,12 +94,7 @@ function SourceFields({
   }
 
   if (source === 'manual') {
-    return (
-      <p className="rounded-lg border border-border bg-accent/40 px-4 py-3 text-sm text-muted-foreground">
-        No timing file needed. Lap times and positions will be entered manually in the editor once the project is
-        created.
-      </p>
-    )
+    return null // Handled by ManualLapSummary + ManualLapDialog in the parent form
   }
 
   return null
@@ -146,8 +142,10 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
   const [eventId, setEventId] = useState(initial?.eventId ?? '')
   const [session, setSession] = useState<SessionMode>(initial?.session ?? 'race')
   const [emailPath, setEmailPath] = useState(initial?.emailPath ?? '')
+  const [manualLaps, setManualLaps] = useState<ManualLapEntry[]>(initial?.timingData ?? [])
   const [videoOffsetFrame, setVideoOffsetFrame] = useState<number | undefined>(initial?.videoOffsetFrame)
   const [showOffsetPicker, setShowOffsetPicker] = useState(false)
+  const [showLapDialog, setShowLapDialog] = useState(false)
   const labelRef = useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -160,7 +158,11 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
     setEventId('')
     setSession('race')
     setEmailPath('')
+    setManualLaps([])
   }
+
+  const manualLapsValid =
+    source !== 'manual' || (manualLaps.length > 0 && manualLaps.every((e) => isValidLapTime(e.time)))
 
   function handleSave() {
     if (!label.trim()) return
@@ -172,6 +174,7 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
       ...(source === 'mylapsSpeedhive' ? { eventId } : {}),
       ...(source === 'daytonaEmail' ? { emailPath } : {}),
       ...(source === 'teamsportEmail' ? { emailPath } : {}),
+      ...(source === 'manual' ? { timingData: manualLaps } : {}),
       ...(videoOffsetFrame !== undefined ? { videoOffsetFrame } : {}),
     }
     onSave(seg)
@@ -217,13 +220,25 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
           setEmailPath={setEmailPath}
         />
 
+        {source === 'manual' && (
+          <>
+            <ManualLapSummary manualLaps={manualLaps} onEdit={() => setShowLapDialog(true)} />
+            <ManualLapDialog
+              open={showLapDialog}
+              onOpenChange={setShowLapDialog}
+              manualLaps={manualLaps}
+              setManualLaps={setManualLaps}
+            />
+          </>
+        )}
+
         <VideoOffsetField
           videoOffsetFrame={videoOffsetFrame}
           disabled={videoPaths.length === 0}
           onPick={() => setShowOffsetPicker(true)}
         />
 
-        <Button onClick={handleSave} disabled={!label.trim()} className="self-start">
+        <Button onClick={handleSave} disabled={!label.trim() || !manualLapsValid} className="self-start">
           {mode === 'add' ? 'Add segment' : 'Save changes'}
         </Button>
       </div>

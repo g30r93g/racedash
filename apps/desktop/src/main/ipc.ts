@@ -57,7 +57,7 @@ export function buildEngineSegments(
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'mylapsSpeedhive')
       return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
+    if (seg.source === 'manual') return { ...base, timingData: seg.timingData ?? [] }
     return base
   })
 }
@@ -594,7 +594,7 @@ export async function previewDriversImpl(segments: WizardSegmentConfig[]): Promi
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'mylapsSpeedhive')
       return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
+    if (seg.source === 'manual') return { ...base, timingData: seg.timingData ?? [] }
     return base
   })
 
@@ -650,7 +650,7 @@ export async function previewTimestampsImpl(
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'mylapsSpeedhive')
       return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
+    if (seg.source === 'manual') return { ...base, timingData: seg.timingData ?? [] }
     return base
   })
 

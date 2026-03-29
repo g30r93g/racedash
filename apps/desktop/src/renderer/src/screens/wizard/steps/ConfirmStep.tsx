@@ -126,6 +126,9 @@ export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }
                 <InfoRow label="Driver" value={state.selectedDrivers[seg.label] || '—'} />
                 {seg.url && <InfoRow label="URL" value={seg.url} />}
                 {seg.emailPath && <InfoRow label="File" value={seg.emailPath.split('/').pop() ?? seg.emailPath} />}
+                {seg.timingData && seg.timingData.length > 0 && (
+                  <InfoRow label="Laps" value={`${seg.timingData.length} manual entries`} />
+                )}
                 <InfoRow
                   label="Offset"
                   value={seg.videoOffsetFrame !== undefined ? `Frame ${seg.videoOffsetFrame}` : 'Not set'}

@@ -41,6 +41,7 @@ export interface PositionOverrideConfig {
 export interface ManualTimingEntry {
   lap: number
   time: string
+  position?: number
 }
 
 export interface BaseSegmentConfig {
@@ -1047,6 +1048,7 @@ async function resolveManualSegment(
   driverQuery?: string,
 ): Promise<ResolvedTimingSegment> {
   const selectedDriver = driverQuery ? buildManualDriver(driverQuery, segment.timingData) : undefined
+  const hasPositions = segment.timingData.some((entry) => entry.position != null)
 
   return {
     config: segment,
@@ -1057,7 +1059,7 @@ async function resolveManualSegment(
       lapTimes: true,
       bestLap: true,
       lastLap: true,
-      position: false,
+      position: hasPositions,
       classificationPosition: false,
       leaderboard: false,
       gapToLeader: false,
