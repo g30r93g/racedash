@@ -81,8 +81,8 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
     const overlayScale = displayedVideoWidth / referenceVideoWidth
 
     return {
-      compositionWidth: effectiveCompositionWidth,
-      compositionHeight: effectiveCompositionHeight,
+      compositionWidth: Math.round(effectiveCompositionWidth),
+      compositionHeight: Math.round(effectiveCompositionHeight),
       left: (containerSize.width - displayedVideoWidth) / 2 + entry.overlayX * overlayScale,
       top: (containerSize.height - displayedVideoHeight) / 2 + entry.overlayY * overlayScale,
       width: effectiveCompositionWidth * overlayScale,
