@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { ProjectData } from '../../../../../types/project'
 import type { WizardState } from '../ProjectCreationWizard'
 
@@ -33,10 +33,6 @@ function suggestProjectName(videoPaths: string[]): string {
 export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }: ConfirmStepProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!state.projectName) onNameChange(suggestProjectName(state.videoPaths))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleChooseDirectory() {
     const chosen = await window.racedash.openDirectory({ title: 'Choose save location' })

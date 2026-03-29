@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 // Parse hex (#rrggbb) or rgba(r, g, b, a) → { hex, alpha 0-100 }
@@ -37,17 +37,15 @@ interface ColourRowProps {
 
 export function ColourRow({ label, value, onChange }: ColourRowProps): React.ReactElement {
   const inputRef = useRef<HTMLInputElement>(null)
-  const { hex: initHex, alpha: initAlpha } = parseColour(value)
-  const [hex, setHex] = useState(initHex)
-  const [alpha, setAlpha] = useState(initAlpha)
-  const [draft, setDraft] = useState(initHex)
+  const parsed = useMemo(() => parseColour(value), [value])
 
-  useEffect(() => {
-    const { hex: h, alpha: a } = parseColour(value)
-    setHex(h)
-    setAlpha(a)
-    setDraft(h)
-  }, [value])
+  // Reset draft when the external value prop changes
+  const [draft, setDraft] = useState(parsed.hex)
+  const [prevValue, setPrevValue] = useState(value)
+  if (value !== prevValue) {
+    setPrevValue(value)
+    setDraft(parsed.hex)
+  }
 
   function emit(h: string, a: number) {
     onChange(serializeColour(h, a))
@@ -55,28 +53,25 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
 
   function handleNativeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const h = e.target.value
-    setHex(h)
     setDraft(h)
-    emit(h, alpha)
+    emit(h, parsed.alpha)
   }
 
   function handleHexInput(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value
     setDraft(raw)
     if (isValidHex(raw)) {
-      setHex(raw)
-      emit(raw, alpha)
+      emit(raw, parsed.alpha)
     }
   }
 
   function handleHexBlur() {
-    if (!isValidHex(draft)) setDraft(hex)
+    if (!isValidHex(draft)) setDraft(parsed.hex)
   }
 
   function handleAlphaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const a = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0))
-    setAlpha(a)
-    emit(hex, a)
+    emit(parsed.hex, a)
   }
 
   return (
@@ -86,7 +81,7 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
         <input
           ref={inputRef}
           type="color"
-          value={isValidHex(hex) ? hex : '#000000'}
+          value={isValidHex(parsed.hex) ? parsed.hex : '#000000'}
           onChange={handleNativeChange}
           className="sr-only"
           tabIndex={-1}
@@ -96,7 +91,7 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
           size="icon"
           onClick={() => inputRef.current?.click()}
           className="h-5 w-5 rounded border border-border p-0"
-          style={{ backgroundColor: isValidHex(hex) ? hex : '#000000', opacity: alpha / 100 }}
+          style={{ backgroundColor: isValidHex(parsed.hex) ? parsed.hex : '#000000', opacity: parsed.alpha / 100 }}
           aria-label={`Pick colour for ${label}`}
         />
         <input
@@ -112,7 +107,7 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
             type="number"
             min={0}
             max={100}
-            value={alpha}
+            value={parsed.alpha}
             onChange={handleAlphaChange}
             className="w-12 rounded border border-border bg-accent px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />

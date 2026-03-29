@@ -40,7 +40,16 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   }
 
   function goNext() {
-    setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1))
+    setStep((s) => {
+      const next = Math.min(s + 1, STEP_LABELS.length - 1)
+      // Set a default project name when entering the Confirm step
+      if (next === 4 && !state.projectName) {
+        const filename = state.videoPaths[0]?.split('/').pop() ?? ''
+        const suggested = filename ? filename.replace(/\.[^.]+$/, '').replace(/_?\d{4}$/, '') : 'my-race-project'
+        updateState({ projectName: suggested })
+      }
+      return next
+    })
   }
 
   function goBack() {

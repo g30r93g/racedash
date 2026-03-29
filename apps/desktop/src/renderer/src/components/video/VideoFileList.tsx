@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
 interface VideoFileListProps {
@@ -13,24 +13,32 @@ function formatFps(fps: number): string {
 
 export function VideoFileList({ paths, onChange }: VideoFileListProps): React.ReactElement | null {
   const [fpsMap, setFpsMap] = useState<Record<string, number>>({})
+  const fetchedRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    // Remove tracked entries for paths that are no longer in the list
+    for (const p of fetchedRef.current) {
+      if (!paths.includes(p)) fetchedRef.current.delete(p)
+    }
+
     let cancelled = false
     for (const path of paths) {
-      if (fpsMap[path] !== undefined) continue
+      if (fetchedRef.current.has(path)) continue
+      fetchedRef.current.add(path)
       window.racedash
         .getVideoInfo(path)
         .then((info) => {
           if (!cancelled) setFpsMap((prev) => ({ ...prev, [path]: info.fps }))
         })
         .catch((err: unknown) => {
+          fetchedRef.current.delete(path) // allow retry on failure
           console.error('[VideoFileList] getVideoInfo failed for', path, err)
         })
     }
     return () => {
       cancelled = true
     }
-  }, [paths, fpsMap])
+  }, [paths])
 
   if (paths.length === 0) return null
 
