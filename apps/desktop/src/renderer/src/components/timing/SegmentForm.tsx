@@ -35,8 +35,6 @@ interface SourceFieldsProps {
   setUrl: (v: string) => void
   eventId: string
   setEventId: (v: string) => void
-  sessionName: string
-  setSessionName: (v: string) => void
   emailPath: string
   setEmailPath: (v: string) => void
 }
@@ -47,8 +45,6 @@ function SourceFields({
   setUrl,
   eventId,
   setEventId,
-  sessionName,
-  setSessionName,
   emailPath,
   setEmailPath,
 }: SourceFieldsProps) {
@@ -62,33 +58,23 @@ function SourceFields({
 
   if (source === 'mylapsSpeedhive') {
     return (
-      <>
-        <FormField label="Event ID">
-          <Input value={eventId} onChange={(e) => setEventId(e.target.value)} placeholder="123456" />
-        </FormField>
-        <FormField label="Session name" hint="(optional)">
-          <Input value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder="e.g. Sprint Race" />
-        </FormField>
-      </>
+      <FormField label="Event ID">
+        <Input value={eventId} onChange={(e) => setEventId(e.target.value)} placeholder="123456" />
+      </FormField>
     )
   }
 
   if (source === 'daytonaEmail') {
     return (
-      <>
-        <FormField label="Results file">
-          <FileUpload
-            accept={['eml', 'txt']}
-            onFile={setEmailPath}
-            value={emailPath}
-            placeholder="Drop file here or browse"
-            hint=".eml or .txt email export from Daytona"
-          />
-        </FormField>
-        <FormField label="Session name" hint="(optional)">
-          <Input value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder="e.g. Race" />
-        </FormField>
-      </>
+      <FormField label="Results file">
+        <FileUpload
+          accept={['eml', 'txt']}
+          onFile={setEmailPath}
+          value={emailPath}
+          placeholder="Drop file here or browse"
+          hint=".eml or .txt email export from Daytona"
+        />
+      </FormField>
     )
   }
 
@@ -159,7 +145,6 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
   const [url, setUrl] = useState(initial?.url ?? '')
   const [eventId, setEventId] = useState(initial?.eventId ?? '')
   const [session, setSession] = useState<SessionMode>(initial?.session ?? 'race')
-  const [sessionName, setSessionName] = useState(initial?.sessionName ?? '')
   const [emailPath, setEmailPath] = useState(initial?.emailPath ?? '')
   const [videoOffsetFrame, setVideoOffsetFrame] = useState<number | undefined>(initial?.videoOffsetFrame)
   const [showOffsetPicker, setShowOffsetPicker] = useState(false)
@@ -174,7 +159,6 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
     setUrl('')
     setEventId('')
     setSession('race')
-    setSessionName('')
     setEmailPath('')
   }
 
@@ -185,8 +169,8 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
       source,
       session,
       ...(source === 'alphaTiming' ? { url } : {}),
-      ...(source === 'mylapsSpeedhive' ? { eventId, sessionName: sessionName || undefined } : {}),
-      ...(source === 'daytonaEmail' ? { emailPath, sessionName: sessionName || undefined } : {}),
+      ...(source === 'mylapsSpeedhive' ? { eventId } : {}),
+      ...(source === 'daytonaEmail' ? { emailPath } : {}),
       ...(source === 'teamsportEmail' ? { emailPath } : {}),
       ...(videoOffsetFrame !== undefined ? { videoOffsetFrame } : {}),
     }
@@ -229,8 +213,6 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
           setUrl={setUrl}
           eventId={eventId}
           setEventId={setEventId}
-          sessionName={sessionName}
-          setSessionName={setSessionName}
           emailPath={emailPath}
           setEmailPath={setEmailPath}
         />

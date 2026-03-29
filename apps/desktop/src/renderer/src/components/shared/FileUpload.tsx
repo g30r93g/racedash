@@ -33,7 +33,7 @@ export function FileUpload({
 
   function handleValueChange(files: File[]) {
     if (files.length === 0) return
-    const paths = files.map((f) => (f as File & { path?: string }).path ?? f.name)
+    const paths = files.map((f) => window.racedash.getFilePath(f))
     if (multiple && onFiles) {
       onFiles(paths)
     } else if (!multiple && onFile && paths[0]) {

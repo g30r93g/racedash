@@ -553,13 +553,46 @@ export function extractSpeedhiveSessionId(url: string): string {
 
 export function parseTeamsportEmailBody(body: string): TeamsportParsedEmail {
   const $ = cheerio.load(body)
-  const table = $('table.datagrid').first()
-  if (!table.length) {
-    throw new Error('Could not find TeamSport results table in email body')
+
+  // Real TeamSport emails contain multiple datagrid tables (heat overview,
+  // detailed lap times, best-of-day/week/month leaderboards).  The detailed
+  // lap-times table is the one whose header row starts with a blank <th>
+  // (the lap-number column) followed by individual driver-name <th> cells.
+  const candidates = $('table.datagrid').toArray()
+  // cheerio 1.x doesn't re-export Element/AnyNode (they live in domhandler,
+  // a transitive dep we don't declare directly), so we infer the wrapped type.
+  let table: ReturnType<typeof $> | undefined
+  let names: string[] = []
+
+  for (const candidate of candidates) {
+    const headerRow = $(candidate).find('tr').first()
+    const ths = headerRow.find('th').toArray()
+    if (ths.length < 3) continue
+
+    const firstHeader = $(ths[0]).text().trim()
+    if (firstHeader !== '') continue
+
+    const candidateNames = ths.slice(1).map((th) => $(th).text().trim()).filter(Boolean)
+    if (candidateNames.length > 0) {
+      table = $(candidate)
+      names = candidateNames
+      break
+    }
   }
 
-  const headers = table.find('tr').first().find('th').slice(1).toArray()
-  const names = headers.map((header) => $(header).text().trim()).filter(Boolean)
+  if (!table || names.length === 0) {
+    // Fall back to the original behaviour for simple emails with a single table
+    const fallback = $(candidates[0])
+    if (!fallback.length) {
+      throw new Error('Could not find TeamSport results table in email body')
+    }
+    const headers = fallback.find('tr').first().find('th').slice(1).toArray()
+    names = headers.map((header) => $(header).text().trim()).filter(Boolean)
+    if (names.length === 0) {
+      throw new Error('Could not parse TeamSport driver names from email')
+    }
+    table = fallback
+  }
   if (names.length === 0) {
     throw new Error('Could not parse TeamSport driver names from email')
   }
