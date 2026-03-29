@@ -9,7 +9,8 @@
     "test": "vitest run --exclude 'test/helpers/{credits,licenses,slots}.test.ts'",
     "test:coverage": "vitest run --exclude 'test/helpers/{credits,licenses,slots}.test.ts' --coverage",
     "test:db": "./test/run-with-db.sh",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push --force"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.0",
