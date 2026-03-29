@@ -103,6 +103,14 @@ export function TimingTab({
     const allDrivers = seg.drivers ?? []
     const canPosition = seg.capabilities['position'] === true
     const hasSnapshots = seg.capabilities['raceSnapshots'] === true
+    const isManual = (seg.config as { source: string }).source === 'manual'
+    const manualPositions = isManual
+      ? new Map(
+          ((seg.config as { timingData?: Array<{ lap: number; position?: number }> }).timingData ?? [])
+            .filter((e) => e.position != null)
+            .map((e) => [e.lap, e.position!]),
+        )
+      : null
 
     const isSelected = (d: { kart: string; name: string }) =>
       selectedKart ? d.kart === selectedKart : d.name === selectedName
@@ -111,7 +119,10 @@ export function TimingTab({
       const timeMs = lap.lapTime * 1000
       let position: number | null = null
 
-      if (mode === 'race') {
+      // Manual entries: positions come directly from user-entered timingData
+      if (manualPositions?.has(lap.number)) {
+        position = manualPositions.get(lap.number)!
+      } else if (mode === 'race') {
         if (hasSnapshots && seg.replayData) {
           for (const snapshot of seg.replayData) {
             const entry = snapshot.find((e) => e.kart === selectedKart && e.lapsCompleted === lap.number)

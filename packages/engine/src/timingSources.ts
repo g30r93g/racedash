@@ -496,13 +496,17 @@ export function validateManualTimingData(value: JsonValue | undefined, segmentIn
 
     const lap = (entry as JsonObject).lap
     const time = (entry as JsonObject).time
+    const position = (entry as JsonObject).position
     if (typeof lap !== 'number' || !Number.isInteger(lap) || lap < 0) {
       throw new Error(`segments[${segmentIndex}].timingData[${entryIndex}].lap must be an integer >= 0`)
     }
     if (typeof time !== 'string' || parseLapTimeText(time) === null) {
       throw new Error(`segments[${segmentIndex}].timingData[${entryIndex}].time must be a lap time string`)
     }
-    return { lap, time }
+    if (position !== undefined && (typeof position !== 'number' || !Number.isInteger(position) || position < 1)) {
+      throw new Error(`segments[${segmentIndex}].timingData[${entryIndex}].position must be an integer >= 1`)
+    }
+    return { lap, time, ...(typeof position === 'number' ? { position } : {}) }
   })
 
   const firstLap = parsed[0].lap
