@@ -39,6 +39,24 @@ export interface VideoInfo {
   durationSeconds: number
 }
 
+export interface MultiVideoInfo {
+  /** Aggregate duration in seconds across all source files. */
+  totalDurationSeconds: number
+  /** FPS of the first video (all source files must share the same FPS). */
+  fps: number
+  /** Width of the first video. */
+  width: number
+  /** Height of the first video. */
+  height: number
+  /** Per-file info: path, duration, and cumulative start time. */
+  files: Array<{
+    path: string
+    durationSeconds: number
+    /** Cumulative start time in the virtual timeline (seconds). */
+    startSeconds: number
+  }>
+}
+
 // Timing (mirrors @racedash/engine — kept in sync manually)
 export interface LapPreview {
   number: number
@@ -376,6 +394,7 @@ export interface RacedashAPI {
 
   // Engine — Export tab (implemented in Export tab sub-plan)
   getVideoInfo(videoPath: string): Promise<VideoInfo>
+  getMultiVideoInfo(videoPaths: string[]): Promise<MultiVideoInfo>
   startRender(opts: RenderStartOpts): Promise<void>
   cancelRender(): Promise<void>
 

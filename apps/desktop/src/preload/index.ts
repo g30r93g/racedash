@@ -11,6 +11,7 @@ import type {
   CloudUploadProgressEvent,
   VideoInfo,
   YouTubeUploadMetadata,
+  MultiVideoInfo,
 } from '../types/ipc'
 import type { ProjectData, CreateProjectOpts, SegmentConfig } from '../types/project'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
@@ -55,6 +56,7 @@ const api: RacedashAPI = {
   generateTimestamps: (opts) => ipcRenderer.invoke('racedash:generateTimestamps', opts),
 
   getVideoInfo: (videoPath) => ipcRenderer.invoke('racedash:getVideoInfo', videoPath),
+  getMultiVideoInfo: (videoPaths: string[]) => ipcRenderer.invoke('racedash:getMultiVideoInfo', videoPaths),
   startRender: (opts) => ipcRenderer.invoke('racedash:startRender', opts),
   cancelRender: () => ipcRenderer.invoke('racedash:cancelRender'),
 

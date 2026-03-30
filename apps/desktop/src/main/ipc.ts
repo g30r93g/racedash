@@ -10,6 +10,7 @@ import type {
   OpenFileOptions,
   OpenDirectoryOptions,
   VideoInfo,
+  MultiVideoInfo,
   RenderStartOpts,
   OutputResolution,
   DriversResult,
@@ -563,6 +564,28 @@ export function getVideoInfo(videoPath: string): VideoInfo {
   }
 }
 
+export async function getMultiVideoInfoImpl(videoPaths: string[]): Promise<MultiVideoInfo> {
+  if (videoPaths.length === 0) throw new Error('getMultiVideoInfo: at least one path required')
+
+  const infos = await Promise.all(videoPaths.map((p) => getVideoInfo(p)))
+  const fps = infos[0].fps
+
+  let cumulative = 0
+  const files = infos.map((info, i) => {
+    const entry = { path: videoPaths[i], durationSeconds: info.durationSeconds, startSeconds: cumulative }
+    cumulative += info.durationSeconds
+    return entry
+  })
+
+  return {
+    totalDurationSeconds: cumulative,
+    fps,
+    width: infos[0].width,
+    height: infos[0].height,
+    files,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Resolution helpers
 // ---------------------------------------------------------------------------
@@ -852,6 +875,7 @@ export function registerIpcHandlers(): void {
 
   // Export — getVideoInfo (synchronous, uses execFileSync)
   ipcMain.handle('racedash:getVideoInfo', (_event, videoPath: string) => getVideoInfo(videoPath))
+  ipcMain.handle('racedash:getMultiVideoInfo', (_event, videoPaths: string[]) => getMultiVideoInfoImpl(videoPaths))
 
   // Export — startRender (non-blocking; progress pushed via webContents.send)
   ipcMain.handle('racedash:startRender', (event, opts: RenderStartOpts) => {
