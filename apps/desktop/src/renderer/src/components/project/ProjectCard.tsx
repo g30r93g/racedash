@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EllipsisVertical, Play } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import type { ProjectData } from '../../../../types/project'
 
 interface ProjectCardProps {
@@ -136,7 +137,7 @@ export function ProjectCard({
       const loaded = await window.racedash.openProject(project.projectPath)
       onOpen(loaded)
     } catch (err) {
-      console.error('[racedash] failed to open project', err)
+      toast.error('Failed to open project', { description: err instanceof Error ? err.message : String(err) })
     } finally {
       setLoading(false)
     }
@@ -152,7 +153,7 @@ export function ProjectCard({
       onRename(updated)
       setRenameOpen(false)
     } catch (err) {
-      console.error('[racedash] failed to rename project', err)
+      toast.error('Failed to rename project', { description: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -161,7 +162,7 @@ export function ProjectCard({
       await window.racedash.deleteProject(project.projectPath)
       onDelete(project)
     } catch (err) {
-      console.error('[racedash] failed to delete project', err)
+      toast.error('Failed to delete project', { description: err instanceof Error ? err.message : String(err) })
     }
   }
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useSession } from '@clerk/react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -285,7 +286,7 @@ function JobCard({
       await window.racedash.cloudRender.downloadRender(job.id, outputPath)
       window.racedash.revealInFinder(outputPath)
     } catch (err) {
-      console.error('Download failed:', err)
+      toast.error('Download failed', { description: err instanceof Error ? err.message : String(err) })
     }
   }
 

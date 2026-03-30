@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,8 +37,7 @@ export function YouTubeUploadDialog({
       await onUpload({ title: title.trim(), description, privacy })
       onOpenChange(false)
     } catch (err) {
-      // Let parent handle errors
-      console.error('Upload failed:', err)
+      toast.error('YouTube upload failed', { description: err instanceof Error ? err.message : String(err) })
     } finally {
       setSubmitting(false)
     }

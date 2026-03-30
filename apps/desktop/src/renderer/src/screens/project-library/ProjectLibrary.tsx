@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { SpinnerInline } from '@/components/loaders/Spinner'
 import { LayoutGrid, Plus, Rows4 } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import type { ProjectData } from '../../../../types/project'
 import { useAuth } from '../../hooks/useAuth'
 import { useLicense } from '../../hooks/useLicense'
@@ -39,7 +40,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
     window.racedash
       .listProjects()
       .then((result) => setProjects(result))
-      .catch((err) => console.error('[racedash] failed to list projects', err))
+      .catch((err) => { toast.error('Failed to load projects', { description: err instanceof Error ? err.message : String(err) }) })
       .finally(() => setLoading(false))
   }, [])
 

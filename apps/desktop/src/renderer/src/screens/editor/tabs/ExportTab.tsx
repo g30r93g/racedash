@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { OptionGroup } from '@/components/ui/option-group'
 import { hasCloudLicense } from '@/lib/license'
 import React, { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import type {
   CloudUploadProgressEvent,
   OutputFrameRate,
@@ -108,7 +109,7 @@ export function ExportTab({
       window.racedash.credits
         .getBalance()
         .then((b) => setCreditBalance(b.totalRc))
-        .catch(() => {})
+        .catch(() => { toast.error('Failed to fetch credit balance') })
     }
   }, [renderDestination, authUser])
 
@@ -118,7 +119,7 @@ export function ExportTab({
       window.racedash.cloudRender
         .estimateCost(videoInfo, outputResolution, outputFrameRate)
         .then(setEstimatedCost)
-        .catch(() => {})
+        .catch(() => { toast.error('Failed to estimate render cost') })
     }
   }, [renderDestination, videoInfo, outputResolution, outputFrameRate])
 
@@ -173,7 +174,7 @@ export function ExportTab({
       window.racedash.onRenderError((err) => {
         stopRendering()
         setLastRender({ status: 'error', outputPath, timestamp: new Date() })
-        console.error('Render error:', err.message)
+        toast.error('Render failed', { description: err.message })
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
       }),
@@ -192,7 +193,7 @@ export function ExportTab({
     } catch (err) {
       stopRendering()
       setLastRender({ status: 'error', outputPath, timestamp: new Date() })
-      console.error('startRender threw:', err)
+      toast.error('Failed to start render', { description: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -215,7 +216,7 @@ export function ExportTab({
     const cleanupError = window.racedash.onCloudUploadError((event) => {
       setCloudUploading(false)
       setUploadProgress(null)
-      console.error('Cloud upload error:', event.message)
+      toast.error('Cloud upload failed', { description: event.message })
       cleanupProgress()
       cleanupComplete()
       cleanupError()
@@ -281,7 +282,7 @@ export function ExportTab({
     } catch (err) {
       setCloudUploading(false)
       setUploadProgress(null)
-      console.error('Cloud render failed:', err)
+      toast.error('Cloud render failed', { description: err instanceof Error ? err.message : String(err) })
     }
 
     cleanupProgress()
