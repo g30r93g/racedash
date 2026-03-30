@@ -13,7 +13,7 @@ export type SessionMode = 'practice' | 'qualifying' | 'race'
  * Fields specific to the desktop wizard (not in engine schema):
  * - videoOffsetFrame: the raw frame number picked in the offset picker; converted
  *   to an `offset` timestamp string by createProject using the video's fps.
- * - eventId, session, sessionName: SpeedHive wizard form fields; createProject
+ * - eventId, session: SpeedHive wizard form fields; createProject
  *   constructs the `url` from these before saving.
  */
 export interface SegmentConfig {
@@ -24,9 +24,10 @@ export interface SegmentConfig {
   // speedhive wizard form fields (used to construct `url` on save)
   eventId?: string
   session?: SessionMode
-  sessionName?: string
   // daytona, teamsport: path to .eml/.txt file
   emailPath?: string
+  // manual: user-entered lap times
+  timingData?: Array<{ lap: number; time: string; position?: number }>
   // all sources: frame number in the joined video where this segment starts
   videoOffsetFrame?: number
 }

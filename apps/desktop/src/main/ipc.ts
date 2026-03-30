@@ -25,7 +25,7 @@ import {
   buildRaceLapSnapshots,
   buildSessionSegments,
   loadTimingConfig,
-  resolvePositionOverrides,
+  resolveSegmentPositionOverrides,
   resolveTimingSegments,
 } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
@@ -57,7 +57,12 @@ export function buildEngineSegments(
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'mylapsSpeedhive')
       return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
+    if (seg.source === 'manual') {
+      if (!seg.timingData || seg.timingData.length === 0) {
+        throw new Error(`Manual segment "${seg.label}" has no timing data`)
+      }
+      return { ...base, timingData: seg.timingData }
+    }
     return base
   })
 }
@@ -72,18 +77,28 @@ export function buildEngineSegments(
  * fetch will be retried when the project is opened.
  */
 async function cacheRemoteTimingData(engineSegments: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+  // Only resolve remote segments (not manual or cached) — manual segments
+  // already contain their full data and don't need a network fetch or engine
+  // validation round-trip.
+  const remoteSegments = engineSegments.filter(
+    (seg) => seg.source !== 'manual' && seg.source !== 'cached',
+  )
+
+  if (remoteSegments.length === 0) return engineSegments
+
   const tempPath = path.join(os.tmpdir(), `racedash-cache-${Date.now()}.json`)
   try {
-    fs.writeFileSync(tempPath, JSON.stringify({ segments: engineSegments }, null, 2), 'utf-8')
+    fs.writeFileSync(tempPath, JSON.stringify({ segments: remoteSegments }, null, 2), 'utf-8')
 
     const { segments: segmentConfigs } = await loadTimingConfig(tempPath, true)
     const resolved = await resolveTimingSegments(segmentConfigs)
 
-    return engineSegments.map((original, i) => {
+    let remoteIndex = 0
+    return engineSegments.map((original) => {
       const source = original.source as string
       if (source === 'manual' || source === 'cached') return original
 
-      const seg = resolved[i]
+      const seg = resolved[remoteIndex++]
 
       return {
         source: 'cached',
@@ -594,7 +609,7 @@ export async function previewDriversImpl(segments: WizardSegmentConfig[]): Promi
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'mylapsSpeedhive')
       return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
+    if (seg.source === 'manual') return { ...base, timingData: seg.timingData ?? [] }
     return base
   })
 
@@ -637,7 +652,12 @@ export async function previewTimestampsImpl(
   segments: WizardSegmentConfig[],
   selectedDrivers: Record<string, string>,
 ): Promise<PreviewTimestampsSegment[]> {
-  const engineSegments = segments.map((seg) => {
+  // Manual segments are resolved client-side in LapTimeVerifyTable — filter
+  // them out to avoid engine validation failures on the temp config file.
+  const fetchable = segments.filter((s) => s.source !== 'manual')
+  if (fetchable.length === 0) return []
+
+  const engineSegments = fetchable.map((seg) => {
     const base = {
       source: seg.source,
       mode: seg.session ?? 'race',
@@ -650,7 +670,6 @@ export async function previewTimestampsImpl(
     if (seg.source === 'teamsportEmail') return { ...base, emailPath: seg.emailPath ?? '' }
     if (seg.source === 'mylapsSpeedhive')
       return { ...base, url: seg.url ?? `https://speedhive.mylaps.com/Sessions/${seg.eventId ?? ''}` }
-    if (seg.source === 'manual') return { ...base, timingData: [] }
     return base
   })
 
@@ -722,8 +741,9 @@ export async function generateTimestampsHandler(opts: {
   // Attach position overrides to session segments (mirrors renderSession in operations.ts)
   const { segments: segmentConfigs } = await loadTimingConfig(opts.configPath, true)
   sessionSegments.forEach((seg, index) => {
-    seg.positionOverrides = resolvePositionOverrides(
-      segmentConfigs[index].positionOverrides,
+    seg.positionOverrides = resolveSegmentPositionOverrides(
+      segmentConfigs[index],
+      result.segments[index],
       result.offsets[index],
       index,
       opts.fps,

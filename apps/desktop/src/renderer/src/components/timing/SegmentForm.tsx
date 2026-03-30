@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/form-field'
 import { FileUpload } from '@/components/shared/FileUpload'
 import { OptionGroup } from '@/components/ui/option-group'
+import { ManualLapDialog, ManualLapSummary, isValidLapTime, type ManualLapEntry } from './ManualLapEntry'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -35,8 +36,6 @@ interface SourceFieldsProps {
   setUrl: (v: string) => void
   eventId: string
   setEventId: (v: string) => void
-  sessionName: string
-  setSessionName: (v: string) => void
   emailPath: string
   setEmailPath: (v: string) => void
 }
@@ -47,8 +46,6 @@ function SourceFields({
   setUrl,
   eventId,
   setEventId,
-  sessionName,
-  setSessionName,
   emailPath,
   setEmailPath,
 }: SourceFieldsProps) {
@@ -62,33 +59,23 @@ function SourceFields({
 
   if (source === 'mylapsSpeedhive') {
     return (
-      <>
-        <FormField label="Event ID">
-          <Input value={eventId} onChange={(e) => setEventId(e.target.value)} placeholder="123456" />
-        </FormField>
-        <FormField label="Session name" hint="(optional)">
-          <Input value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder="e.g. Sprint Race" />
-        </FormField>
-      </>
+      <FormField label="Event ID">
+        <Input value={eventId} onChange={(e) => setEventId(e.target.value)} placeholder="123456" />
+      </FormField>
     )
   }
 
   if (source === 'daytonaEmail') {
     return (
-      <>
-        <FormField label="Results file">
-          <FileUpload
-            accept={['eml', 'txt']}
-            onFile={setEmailPath}
-            value={emailPath}
-            placeholder="Drop file here or browse"
-            hint=".eml or .txt email export from Daytona"
-          />
-        </FormField>
-        <FormField label="Session name" hint="(optional)">
-          <Input value={sessionName} onChange={(e) => setSessionName(e.target.value)} placeholder="e.g. Race" />
-        </FormField>
-      </>
+      <FormField label="Results file">
+        <FileUpload
+          accept={['eml', 'txt']}
+          onFile={setEmailPath}
+          value={emailPath}
+          placeholder="Drop file here or browse"
+          hint=".eml or .txt email export from Daytona"
+        />
+      </FormField>
     )
   }
 
@@ -107,12 +94,7 @@ function SourceFields({
   }
 
   if (source === 'manual') {
-    return (
-      <p className="rounded-lg border border-border bg-accent/40 px-4 py-3 text-sm text-muted-foreground">
-        No timing file needed. Lap times and positions will be entered manually in the editor once the project is
-        created.
-      </p>
-    )
+    return null // Handled by ManualLapSummary + ManualLapDialog in the parent form
   }
 
   return null
@@ -159,10 +141,11 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
   const [url, setUrl] = useState(initial?.url ?? '')
   const [eventId, setEventId] = useState(initial?.eventId ?? '')
   const [session, setSession] = useState<SessionMode>(initial?.session ?? 'race')
-  const [sessionName, setSessionName] = useState(initial?.sessionName ?? '')
   const [emailPath, setEmailPath] = useState(initial?.emailPath ?? '')
+  const [manualLaps, setManualLaps] = useState<ManualLapEntry[]>(initial?.timingData ?? [])
   const [videoOffsetFrame, setVideoOffsetFrame] = useState<number | undefined>(initial?.videoOffsetFrame)
   const [showOffsetPicker, setShowOffsetPicker] = useState(false)
+  const [showLapDialog, setShowLapDialog] = useState(false)
   const labelRef = useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -174,9 +157,12 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
     setUrl('')
     setEventId('')
     setSession('race')
-    setSessionName('')
     setEmailPath('')
+    setManualLaps([])
   }
+
+  const manualLapsValid =
+    source !== 'manual' || (manualLaps.length > 0 && manualLaps.every((e) => isValidLapTime(e.time)))
 
   function handleSave() {
     if (!label.trim()) return
@@ -185,9 +171,10 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
       source,
       session,
       ...(source === 'alphaTiming' ? { url } : {}),
-      ...(source === 'mylapsSpeedhive' ? { eventId, sessionName: sessionName || undefined } : {}),
-      ...(source === 'daytonaEmail' ? { emailPath, sessionName: sessionName || undefined } : {}),
+      ...(source === 'mylapsSpeedhive' ? { eventId } : {}),
+      ...(source === 'daytonaEmail' ? { emailPath } : {}),
       ...(source === 'teamsportEmail' ? { emailPath } : {}),
+      ...(source === 'manual' ? { timingData: manualLaps } : {}),
       ...(videoOffsetFrame !== undefined ? { videoOffsetFrame } : {}),
     }
     onSave(seg)
@@ -229,11 +216,21 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
           setUrl={setUrl}
           eventId={eventId}
           setEventId={setEventId}
-          sessionName={sessionName}
-          setSessionName={setSessionName}
           emailPath={emailPath}
           setEmailPath={setEmailPath}
         />
+
+        {source === 'manual' && (
+          <>
+            <ManualLapSummary manualLaps={manualLaps} onEdit={() => setShowLapDialog(true)} />
+            <ManualLapDialog
+              open={showLapDialog}
+              onOpenChange={setShowLapDialog}
+              manualLaps={manualLaps}
+              setManualLaps={setManualLaps}
+            />
+          </>
+        )}
 
         <VideoOffsetField
           videoOffsetFrame={videoOffsetFrame}
@@ -241,7 +238,7 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
           onPick={() => setShowOffsetPicker(true)}
         />
 
-        <Button onClick={handleSave} disabled={!label.trim()} className="self-start">
+        <Button onClick={handleSave} disabled={!label.trim() || !manualLapsValid} className="self-start">
           {mode === 'add' ? 'Add segment' : 'Save changes'}
         </Button>
       </div>

@@ -104,14 +104,37 @@ export function TimingTab({
     const canPosition = seg.capabilities['position'] === true
     const hasSnapshots = seg.capabilities['raceSnapshots'] === true
 
+    // Position overrides (from config positionOverrides or synthesized from manual timingData)
+    // are attached to sessionSegments by generateTimestampsHandler. Build a timestamp→position
+    // map so we can look up the active position at each lap's start time.
+    const sessionSeg = timestampsResult.sessionSegments?.[activeSegment]
+    const posOverrides = (sessionSeg as { positionOverrides?: Array<{ timestamp: number; position: number }> })
+      ?.positionOverrides
+    const overridePositionAtTime = (videoSeconds: number): number | null => {
+      if (!posOverrides || posOverrides.length === 0) return null
+      let active: number | null = null
+      for (const o of posOverrides) {
+        if (o.timestamp <= videoSeconds) active = o.position
+        else break
+      }
+      return active
+    }
+
     const isSelected = (d: { kart: string; name: string }) =>
       selectedKart ? d.kart === selectedKart : d.name === selectedName
+
+    const offsetSeconds = timestampsResult.offsets[activeSegment] ?? 0
 
     const lapRowItems: LapRow[] = laps.map((lap, lapIndex) => {
       const timeMs = lap.lapTime * 1000
       let position: number | null = null
 
-      if (mode === 'race') {
+      // Check position overrides first (works for both manual and config-defined overrides)
+      const lapStartVideo = lap.cumulative - lap.lapTime + offsetSeconds
+      const overridePos = overridePositionAtTime(lapStartVideo)
+      if (overridePos !== null) {
+        position = overridePos
+      } else if (mode === 'race') {
         if (hasSnapshots && seg.replayData) {
           for (const snapshot of seg.replayData) {
             const entry = snapshot.find((e) => e.kart === selectedKart && e.lapsCompleted === lap.number)

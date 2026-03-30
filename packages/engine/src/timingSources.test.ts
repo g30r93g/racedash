@@ -22,6 +22,7 @@ import {
 } from './timingSources'
 
 const teamsportFixture = join(__dirname, '__fixtures__', 'teamsport_sample.eml')
+const teamsportRealFixture = join(__dirname, '__fixtures__', 'teamsport_real.eml')
 const daytona2025Fixture = join(__dirname, '__fixtures__', 'daytona_sample_2025.eml')
 const daytona2026Fixture = join(__dirname, '__fixtures__', 'daytona_sample_2026.eml')
 
@@ -432,6 +433,27 @@ describe('teamsportEmail source', () => {
     expect(resolved[0].selectedDriver?.laps.map((lap) => lap.lapTime)).toEqual([62.5, 60.25])
     expect(resolved[0].capabilities.driverDiscovery).toBe(true)
   })
+
+  it('parses a real multi-table TeamSport email (sanitised)', async () => {
+    const resolved = await resolveTimingSegments([
+      {
+        driver: 'Jamie Chen',
+        source: 'teamsportEmail',
+        mode: 'practice',
+        offset: '1:00.000',
+        emailPath: teamsportRealFixture,
+      },
+    ])
+
+    expect(resolved[0].drivers).toHaveLength(16)
+    expect(resolved[0].selectedDriver?.name).toBe('Jamie Chen')
+    expect(resolved[0].selectedDriver?.laps).toHaveLength(13)
+
+    // Verify first lap (raw: 1:03.476 → 63.476s) and best lap (39.484s)
+    expect(resolved[0].selectedDriver?.laps[0].lapTime).toBeCloseTo(63.476, 2)
+    const bestLap = Math.min(...resolved[0].selectedDriver!.laps.map((l) => l.lapTime))
+    expect(bestLap).toBeCloseTo(39.484, 2)
+  })
 })
 
 describe('mylapsSpeedhive source', () => {
@@ -474,7 +496,7 @@ describe('daytonaEmail source', () => {
   it('parses the newer 2025 Daytona email format', async () => {
     const resolved = await resolveTimingSegments([
       {
-        driver: 'George Nick Gorzynski',
+        driver: 'Alex James Mitchell',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
@@ -484,7 +506,7 @@ describe('daytonaEmail source', () => {
 
     expect(resolved[0].drivers.length).toBeGreaterThan(1)
     expect(resolved[0].selectedDriver).toMatchObject({
-      name: 'George Nick Gorzynski',
+      name: 'Alex James Mitchell',
       kart: '131',
     })
     expect(resolved[0].selectedDriver?.laps).toHaveLength(23)
@@ -496,7 +518,7 @@ describe('daytonaEmail source', () => {
   it('parses the newer 2026 Daytona email format', async () => {
     const resolved = await resolveTimingSegments([
       {
-        driver: 'George Nick Gorzynski',
+        driver: 'Alex James Mitchell',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
@@ -506,7 +528,7 @@ describe('daytonaEmail source', () => {
 
     expect(resolved[0].drivers.length).toBeGreaterThan(1)
     expect(resolved[0].selectedDriver).toMatchObject({
-      name: 'George Nick Gorzynski',
+      name: 'Alex James Mitchell',
       kart: '57',
     })
     expect(resolved[0].selectedDriver?.laps).toHaveLength(20)
@@ -517,7 +539,7 @@ describe('daytonaEmail source', () => {
   it('falls back to selected-driver-only session lap data for rendering', async () => {
     const resolved = await resolveTimingSegments([
       {
-        driver: 'George Nick Gorzynski',
+        driver: 'Alex James Mitchell',
         source: 'daytonaEmail',
         mode: 'race',
         offset: '0:45.000',
@@ -1093,8 +1115,8 @@ describe('cached source property and characterisation tests', () => {
   describe('driver matching equivalence', () => {
     it('finds the same driver by partial query on cached data', async () => {
       const drivers = [
-        { kart: '42', name: 'George Gorzynski', laps: [{ number: 1, lapTime: 60.0, cumulative: 60.0 }] },
-        { kart: '7', name: 'Georgie Porgie', laps: [{ number: 1, lapTime: 61.0, cumulative: 61.0 }] },
+        { kart: '42', name: 'Alex Mitchell', laps: [{ number: 1, lapTime: 60.0, cumulative: 60.0 }] },
+        { kart: '7', name: 'Alex Morgan', laps: [{ number: 1, lapTime: 61.0, cumulative: 61.0 }] },
         { kart: '13', name: 'Alice Smith', laps: [{ number: 1, lapTime: 62.0, cumulative: 62.0 }] },
       ]
 
@@ -1133,7 +1155,7 @@ describe('cached source property and characterisation tests', () => {
       expect(resolved1[0].selectedDriver?.kart).toBe('13')
 
       // Ambiguous match should throw (same behavior as all other sources)
-      await expect(resolveTimingSegments(loaded.segments.map((s) => ({ ...s, driver: 'Georg' })))).rejects.toThrow(
+      await expect(resolveTimingSegments(loaded.segments.map((s) => ({ ...s, driver: 'Alex' })))).rejects.toThrow(
         /ambiguous/i,
       )
 

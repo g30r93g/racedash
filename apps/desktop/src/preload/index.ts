@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type {
   RacedashAPI,
@@ -22,6 +22,7 @@ const api: RacedashAPI = {
   openFiles: (opts) => ipcRenderer.invoke('racedash:openFiles', opts),
   openDirectory: (opts) => ipcRenderer.invoke('racedash:openDirectory', opts),
   revealInFinder: (path) => ipcRenderer.invoke('racedash:revealInFinder', path),
+  getFilePath: (file: File) => webUtils.getPathForFile(file),
 
   listProjects: () => ipcRenderer.invoke('racedash:listProjects'),
   openProject: (projectPath: ProjectData['projectPath']) => ipcRenderer.invoke('racedash:openProject', projectPath),

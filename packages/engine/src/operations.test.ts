@@ -58,6 +58,7 @@ vi.mock('./timingSources', () => ({
     .fn()
     .mockResolvedValue([{ drivers: ['Driver A', 'Driver B'], source: 'alphaTiming' }]),
   resolvePositionOverrides: vi.fn().mockReturnValue([]),
+  resolveSegmentPositionOverrides: vi.fn().mockReturnValue([]),
   resolveTimingSegments: vi.fn().mockResolvedValue([{ mode: 'race', laps: [], source: 'alphaTiming' }]),
 }))
 

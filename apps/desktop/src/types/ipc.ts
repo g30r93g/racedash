@@ -333,6 +333,10 @@ export interface RacedashAPI {
   openDirectory(opts?: OpenDirectoryOptions): Promise<string | undefined>
   revealInFinder(path: string): Promise<void>
 
+  // File utilities
+  /** Returns the absolute filesystem path for a File object (Electron 28+ replacement for File.path). */
+  getFilePath(file: File): string
+
   // Projects
   listProjects(): Promise<ProjectData[]>
   openProject(projectPath: string): Promise<ProjectData>

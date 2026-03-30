@@ -9,6 +9,7 @@ export {
   loadTimingConfig,
   resolveDriversCommandSegments,
   resolvePositionOverrides,
+  resolveSegmentPositionOverrides,
   resolveTimingSegments,
   validateManualTimingData,
   validatePositionOverrideConfig,

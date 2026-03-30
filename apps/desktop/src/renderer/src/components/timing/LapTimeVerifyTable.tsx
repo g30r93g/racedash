@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import React, { useEffect, useState } from 'react'
 import type { LapPreview } from '../../../../types/ipc'
 import type { SegmentConfig } from '../../../../types/project'
+import { isValidLapTime } from '@/components/timing/ManualLapEntry'
 
 interface LapTimeVerifyTableProps {
   segment: SegmentConfig
@@ -19,12 +20,40 @@ function formatLapTime(seconds: number): string {
   return `${minutes}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
 }
 
+/** Parse a lap time string to seconds (mirrors engine's parseLapTimeText). */
+function parseLapTimeToSeconds(value: string): number {
+  const t = value.trim()
+  if (/^\d+(?:\.\d+)?$/.test(t)) return parseFloat(t)
+  const parts = t.split(':')
+  if (parts.length === 2) return parseInt(parts[0], 10) * 60 + parseFloat(parts[1])
+  if (parts.length === 3) return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2])
+  return 0
+}
+
+/** Build LapPreview[] from manual timingData without an engine round-trip. */
+function resolveManualLaps(timingData: NonNullable<SegmentConfig['timingData']>): LapPreview[] {
+  return timingData
+    .filter((entry) => isValidLapTime(entry.time))
+    .map((entry) => ({
+      number: entry.lap,
+      lapTime: parseLapTimeToSeconds(entry.time),
+      position: entry.position,
+    }))
+}
+
 export function LapTimeVerifyTable({ segment, selectedDriver }: LapTimeVerifyTableProps): React.ReactElement {
   const [status, setStatus] = useState<Status>('loading')
   const [laps, setLaps] = useState<LapPreview[]>([])
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
+    // Manual segments: resolve client-side from timingData (no engine round-trip needed)
+    if (segment.source === 'manual') {
+      setLaps(resolveManualLaps(segment.timingData ?? []))
+      setStatus('loaded')
+      return
+    }
+
     setStatus('loading')
     setLaps([])
     setError('')
