@@ -4,15 +4,25 @@ import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
 import { UpdateBanner } from '@/components/layout/UpdateBanner'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { AuthModalContext } from '@/hooks/useAuth'
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import type { ProjectData } from '../../types/project'
 import { Play } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function App(): React.ReactElement {
   const [project, setProject] = useState<ProjectData | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const authModalValue = useMemo(() => ({ open: authModalOpen, setOpen: setAuthModalOpen }), [authModalOpen])
+
+  useEffect(() => {
+    const cleanup = window.racedash.onAuthSessionExpired(() => {
+      setProject(null)
+      setAuthModalOpen(true)
+      toast.error('Session expired', { description: 'Please sign in again to continue.' })
+    })
+    return cleanup
+  }, [])
 
   function handleProjectCreated(created: ProjectData) {
     setWizardOpen(false)
