@@ -47,8 +47,8 @@ export interface ProjectData {
 
 export interface CreateProjectOpts {
   name: string
-  /** Absolute path to the joined video file (temp or original if single file). */
-  joinedVideoPath: string
+  /** Absolute paths to source video files (stored as-is, joined only on export). */
+  videoPaths: string[]
   segments: SegmentConfig[]
   /** Per-segment driver selection, keyed by segment label. */
   selectedDrivers: Record<string, string>
