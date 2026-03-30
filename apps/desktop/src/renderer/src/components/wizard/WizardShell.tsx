@@ -17,10 +17,6 @@ export interface WizardShellProps {
   onSubmit?: () => void
   /** Hide the button bar (e.g. when a sub-form is active) */
   hideButtonBar?: boolean
-  /** Disable the Continue button independently of canContinue (e.g. while joining) */
-  nextDisabled?: boolean
-  /** Override the "Continue" label */
-  nextLabel?: string
 }
 
 export function WizardShell({
@@ -35,8 +31,6 @@ export function WizardShell({
   submitLabel,
   onSubmit,
   hideButtonBar,
-  nextDisabled,
-  nextLabel,
 }: WizardShellProps) {
   const isFirstStep = currentStep === 0
   const isLastStep = currentStep === steps.length - 1
@@ -71,8 +65,8 @@ export function WizardShell({
             </Button>
           ) : (
             !isLastStep && (
-              <Button onClick={onNext} disabled={!canContinue || nextDisabled}>
-                {nextLabel ?? 'Continue'}
+              <Button onClick={onNext} disabled={!canContinue}>
+                Continue
               </Button>
             )
           )}

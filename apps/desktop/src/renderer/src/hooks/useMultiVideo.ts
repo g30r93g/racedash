@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import type { MultiVideoInfo } from '../../../types/ipc'
 
 export interface FileEntry {
@@ -45,13 +46,17 @@ export function useMultiVideo(videoPaths: string[]): MultiVideoInfo | null {
       .then((result) => {
         if (!cancelled) setInfo(result)
       })
-      .catch(() => {
-        // Falls back to null — editor will show loading state
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error('Failed to load video info', {
+            description: err instanceof Error ? err.message : String(err),
+          })
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [videoPaths.join(',')])
+  }, [JSON.stringify(videoPaths)])
 
   return info
 }
