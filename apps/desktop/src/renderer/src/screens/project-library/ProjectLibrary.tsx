@@ -3,6 +3,7 @@ import type { LibraryTab } from '@/components/layout/AppSidebar'
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { CloudRendersList } from '@/components/project/CloudRendersList'
 import { ProjectCard } from '@/components/project/ProjectCard'
+import { OfflineState } from '@/components/shared/OfflineState'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { SpinnerInline } from '@/components/loaders/Spinner'
@@ -11,8 +12,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { ProjectData } from '../../../../types/project'
 import { useAuth } from '../../hooks/useAuth'
-import { useLicense } from '../../hooks/useLicense'
 import { useCredits } from '../../hooks/useCredits'
+import { useLicense } from '../../hooks/useLicense'
+import { useOnline } from '../../hooks/useOnline'
 import { useYouTube } from '../../hooks/useYouTube'
 
 type ProjectView = 'tile' | 'list'
@@ -32,6 +34,7 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
   const { license } = useLicense(isSignedIn)
   const { balance, fetchHistory } = useCredits(!!user)
   const { status: youtubeStatus, connect: youtubeConnect, disconnect: youtubeDisconnect } = useYouTube()
+  const online = useOnline()
 
   // Determine display plan from license hook (preferred) or auth session fallback
   const displayPlan = license?.tier ?? authLicense?.tier ?? null
@@ -154,11 +157,15 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
             <div className="mb-6 flex shrink-0 items-center">
               <h1 className="text-lg font-semibold text-white">Cloud Renders</h1>
             </div>
-            <CloudRendersList
-              authUser={user ? { name: user.name } : null}
-              youtubeConnected={youtubeStatus.connected}
-              creditBalance={balance?.totalRc ?? 0}
-            />
+            {online ? (
+              <CloudRendersList
+                authUser={user ? { name: user.name } : null}
+                youtubeConnected={youtubeStatus.connected}
+                creditBalance={balance?.totalRc ?? 0}
+              />
+            ) : (
+              <OfflineState feature="Cloud Renders" />
+            )}
           </>
         )}
 
@@ -167,21 +174,25 @@ export function ProjectLibrary({ onOpen, onNew }: ProjectLibraryProps): React.Re
             <div className="mb-6 flex shrink-0 items-center">
               <h1 className="text-lg font-semibold text-white">Account</h1>
             </div>
-            <AccountDetails
-              user={user}
-              license={license ?? authLicense}
-              isLoading={authLoading}
-              creditBalance={balance}
-              youtubeStatus={youtubeStatus}
-              onSignIn={signIn}
-              onSignOut={signOut}
-              onTopUpCredits={handleTopUpCredits}
-              onManageSubscription={handleManageSubscription}
-              onSubscribe={handleSubscribe}
-              onYouTubeConnect={youtubeConnect}
-              onYouTubeDisconnect={youtubeDisconnect}
-              fetchCreditHistory={fetchHistory}
-            />
+            {online ? (
+              <AccountDetails
+                user={user}
+                license={license ?? authLicense}
+                isLoading={authLoading}
+                creditBalance={balance}
+                youtubeStatus={youtubeStatus}
+                onSignIn={signIn}
+                onSignOut={signOut}
+                onTopUpCredits={handleTopUpCredits}
+                onManageSubscription={handleManageSubscription}
+                onSubscribe={handleSubscribe}
+                onYouTubeConnect={youtubeConnect}
+                onYouTubeDisconnect={youtubeDisconnect}
+                fetchCreditHistory={fetchHistory}
+              />
+            ) : (
+              <OfflineState feature="your account" />
+            )}
           </>
         )}
       </div>

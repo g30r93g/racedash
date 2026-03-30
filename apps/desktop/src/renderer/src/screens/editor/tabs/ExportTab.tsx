@@ -2,11 +2,13 @@ import { CloudRenderControls } from '@/components/export/CloudRenderControls'
 import { LocalRenderControls } from '@/components/export/LocalRenderControls'
 import { RenderSettings } from '@/components/export/RenderSettings'
 import { InfoRow } from '@/components/shared/InfoRow'
+import { OfflineState } from '@/components/shared/OfflineState'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { OptionGroup } from '@/components/ui/option-group'
 import { hasCloudLicense } from '@/lib/license'
 import React, { useEffect, useRef, useState } from 'react'
+import { useOnline } from '../../../hooks/useOnline'
 import { toast } from 'sonner'
 import type {
   CloudUploadProgressEvent,
@@ -76,6 +78,7 @@ export function ExportTab({
   onSignIn,
 }: ExportTabProps): React.ReactElement {
   const licensed = hasCloudLicense(licenseTier)
+  const online = useOnline()
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -348,7 +351,7 @@ export function ExportTab({
           renderFrames={renderFrames}
           etaSeconds={etaSeconds}
         />
-      ) : (
+      ) : online ? (
         <CloudRenderControls
           authUser={authUser}
           licenseTier={licenseTier}
@@ -361,6 +364,8 @@ export function ExportTab({
           uploadProgress={uploadProgress}
           videoInfo={videoInfo}
         />
+      ) : (
+        <OfflineState feature="Cloud Render" />
       )}
 
       {/* LAST RENDER */}
