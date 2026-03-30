@@ -1,16 +1,13 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { VideoFileList } from '@/components/video/VideoFileList'
-import { Spinner } from '@/components/loaders/Spinner'
 
 interface VideosStepProps {
   videoPaths: string[]
   onChange: (paths: string[]) => void
-  joining?: boolean
-  joinError?: string
 }
 
-export function VideosStep({ videoPaths, onChange, joining, joinError }: VideosStepProps) {
+export function VideosStep({ videoPaths, onChange }: VideosStepProps) {
   async function handleBrowse() {
     const paths = await window.racedash.openFiles({
       title: 'Select video files',
@@ -37,20 +34,6 @@ export function VideosStep({ videoPaths, onChange, joining, joinError }: VideosS
 
       <VideoFileList paths={videoPaths} onChange={onChange} />
 
-      {joining && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Spinner
-            name="checkerboard"
-            size="1rem"
-            color="currentColor"
-            speed={2.5}
-            ignoreReducedMotion
-            label="Joining video files"
-          />
-          Joining video files…
-        </p>
-      )}
-      {joinError && <p className="text-sm text-destructive">{joinError}</p>}
     </div>
   )
 }
