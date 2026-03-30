@@ -128,14 +128,13 @@ function VideoOffsetField({ videoOffsetFrame, disabled, onPick }: VideoOffsetFie
 
 export interface SegmentFormProps {
   videoPaths: string[]
-  joinedVideoPath?: string
   initial?: SegmentConfig
   mode: 'add' | 'edit'
   onSave: (segment: SegmentConfig) => void
   onBack: () => void
 }
 
-export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave, onBack }: SegmentFormProps) {
+export function SegmentForm({ videoPaths, initial, mode, onSave, onBack }: SegmentFormProps) {
   const [label, setLabel] = useState(initial?.label ?? '')
   const [source, setSource] = useState<TimingSource>(initial?.source ?? 'alphaTiming')
   const [url, setUrl] = useState(initial?.url ?? '')
@@ -186,7 +185,7 @@ export function SegmentForm({ videoPaths, joinedVideoPath, initial, mode, onSave
         open={showOffsetPicker && videoPaths.length > 0}
         onOpenChange={setShowOffsetPicker}
         segmentLabel={label || 'Segment'}
-        videoPath={joinedVideoPath ?? videoPaths[0] ?? ''}
+        videoPath={videoPaths[0] ?? ''}
         initialFrame={videoOffsetFrame ?? 0}
         onConfirm={(frame) => setVideoOffsetFrame(frame)}
       />

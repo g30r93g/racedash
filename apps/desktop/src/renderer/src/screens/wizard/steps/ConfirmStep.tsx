@@ -41,16 +41,12 @@ export function ConfirmStep({ state, onNameChange, onSaveDirChange, onComplete }
 
   async function handleCreate() {
     if (!state.projectName.trim()) return
-    if (!state.joinedVideoPath) {
-      setError('No joined video path — please go back to Step 1 and re-select your files.')
-      return
-    }
     setLoading(true)
     setError(null)
     try {
       const project = await window.racedash.createProject({
         name: state.projectName.trim(),
-        joinedVideoPath: state.joinedVideoPath,
+        videoPaths: state.videoPaths,
         segments: state.segments,
         selectedDrivers: state.selectedDrivers,
         saveDir: state.saveDir,

@@ -9,7 +9,6 @@ import { ConfirmStep } from './steps/ConfirmStep'
 
 export interface WizardState {
   videoPaths: string[]
-  joinedVideoPath?: string
   segments: SegmentConfig[]
   selectedDrivers: Record<string, string>
   projectName: string
@@ -26,8 +25,6 @@ const STEP_LABELS = ['Videos', 'Segments', 'Driver', 'Verify', 'Confirm'] as con
 export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationWizardProps) {
   const [step, setStep] = useState(0)
   const [segmentSubForm, setSegmentSubForm] = useState(false)
-  const [joining, setJoining] = useState(false)
-  const [joinError, setJoinError] = useState<string | null>(null)
   const [state, setState] = useState<WizardState>({
     videoPaths: [],
     segments: [],
@@ -57,25 +54,10 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
   }
 
   function handleVideoPathsChange(paths: string[]) {
-    setState((prev) => ({ ...prev, videoPaths: paths, joinedVideoPath: undefined }))
-    setJoinError(null)
+    setState((prev) => ({ ...prev, videoPaths: paths }))
   }
 
-  async function handleContinue() {
-    if (step === 0 && !state.joinedVideoPath) {
-      setJoining(true)
-      setJoinError(null)
-      try {
-        const { joinedPath } = await window.racedash.joinVideos(state.videoPaths)
-        updateState({ joinedVideoPath: joinedPath })
-        setJoining(false)
-        goNext()
-      } catch (err) {
-        setJoinError(err instanceof Error ? err.message : 'Failed to join video files')
-        setJoining(false)
-      }
-      return
-    }
+  function handleContinue() {
     goNext()
   }
 
@@ -95,21 +77,16 @@ export function ProjectCreationWizard({ onComplete, onCancel }: ProjectCreationW
       onCancel={onCancel}
       canContinue={canContinue}
       hideButtonBar={segmentSubForm}
-      nextDisabled={joining}
-      nextLabel={joining ? 'Joining\u2026' : 'Continue'}
     >
       {step === 0 && (
         <VideosStep
           videoPaths={state.videoPaths}
           onChange={handleVideoPathsChange}
-          joining={joining}
-          joinError={joinError ?? undefined}
         />
       )}
       {step === 1 && (
         <SegmentsStep
           videoPaths={state.videoPaths}
-          joinedVideoPath={state.joinedVideoPath}
           segments={state.segments}
           onChange={(segments) => updateState({ segments })}
           onSubFormChange={setSegmentSubForm}

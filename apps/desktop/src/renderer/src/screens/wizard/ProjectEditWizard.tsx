@@ -74,7 +74,6 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
       {step === 0 && (
         <SegmentsStep
           videoPaths={project.videoPaths}
-          joinedVideoPath={project.videoPaths[0]}
           segments={state.segments}
           onChange={(segments) => updateState({ segments })}
           onSubFormChange={setSegmentSubForm}
