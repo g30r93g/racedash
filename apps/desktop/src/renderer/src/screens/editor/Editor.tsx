@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline } from '@/components/video/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
@@ -61,21 +62,22 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const [projectState, setProjectState] = useState(project)
   const [configRevision, setConfigRevision] = useState(0)
   const [timingRevision, setTimingRevision] = useState(0)
-  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null)
+  const multiVideoInfo = useMultiVideo(projectState.videoPaths)
+
+  // Derive a VideoInfo-compatible object for downstream components:
+  const videoInfo: VideoInfo | null = multiVideoInfo
+    ? {
+        fps: multiVideoInfo.fps,
+        durationSeconds: multiVideoInfo.totalDurationSeconds,
+        width: multiVideoInfo.width,
+        height: multiVideoInfo.height,
+      }
+    : null
+
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
   const [timingError, setTimingError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (projectState.videoPaths.length === 0) return
-    window.racedash
-      .getVideoInfo(projectState.videoPaths[0])
-      .then(setVideoInfo)
-      .catch((err: unknown) => {
-        console.warn('[Editor] getVideoInfo failed:', err)
-      })
-  }, [projectState.videoPaths])
 
   useEffect(() => {
     if (videoInfo === null) return
@@ -305,8 +307,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
         <VideoPane
           ref={videoPaneRef}
-          videoPath={projectState.videoPaths[0]}
-          fps={videoInfo?.fps}
+          multiVideoInfo={multiVideoInfo}
           onTimeUpdate={handleTimeUpdate}
           onPlayingChange={setPlaying}
           overlayType={styleState.overlayType}
