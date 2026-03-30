@@ -1,0 +1,13 @@
+{
+  "id": 11791523,
+  "name": "Group A Qualifying",
+  "comment": null,
+  "eventId": 3425858,
+  "type": "qualify",
+  "startTime": "2026-03-12T20:00:00",
+  "groupName": "Group A",
+  "isMerge": false,
+  "resultStatus": "Official",
+  "participated": 0,
+  "eventRef": "/api/events/0000000"
+}

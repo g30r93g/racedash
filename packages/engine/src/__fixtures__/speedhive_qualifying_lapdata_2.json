@@ -1,0 +1,243 @@
+{
+  "lapDataInfo": {
+    "participantInfo": {
+      "name": "Kai Kent",
+      "class": "Class A",
+      "transponder": null,
+      "userId": null,
+      "startNr": "131",
+      "startPos": 16,
+      "fieldFinishPos": 2,
+      "classFinishPos": 2
+    },
+    "lapCount": 11,
+    "allLapsHaveFieldPos": true,
+    "firstLapNr": 1,
+    "lapsDriven": 11,
+    "classificationType": 0,
+    "classificationTypeString": "PracticeAndQualification",
+    "sessionId": 11791523
+  },
+  "laps": [
+    {
+      "lapNr": 1,
+      "timeOfDay": "2026-03-12T20:02:17.946",
+      "lapTime": "51.564",
+      "diffWithLastLap": "0.000",
+      "diffWithBestLap": "4.924",
+      "speed": 62.835,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 16,
+        "leaderLap": 2,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 2,
+      "timeOfDay": "2026-03-12T20:03:06.268",
+      "lapTime": "48.322",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "1.682",
+      "speed": 67.05,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 16,
+        "leaderLap": 3,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 3,
+      "timeOfDay": "2026-03-12T20:03:54.042",
+      "lapTime": "47.774",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "1.134",
+      "speed": 67.819,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 16,
+        "leaderLap": 4,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 4,
+      "timeOfDay": "2026-03-12T20:04:41.495",
+      "lapTime": "47.453",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.813",
+      "speed": 68.278,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 16,
+        "leaderLap": 5,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 5,
+      "timeOfDay": "2026-03-12T20:05:28.69",
+      "lapTime": "47.195",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.555",
+      "speed": 68.651,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 16,
+        "leaderLap": 6,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 6,
+      "timeOfDay": "2026-03-12T20:06:16.16",
+      "lapTime": "47.470",
+      "diffWithLastLap": "0.275",
+      "diffWithBestLap": "0.830",
+      "speed": 68.254,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 16,
+        "leaderLap": 7,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 7,
+      "timeOfDay": "2026-03-12T20:07:11.197",
+      "lapTime": "55.037",
+      "diffWithLastLap": "7.567",
+      "diffWithBestLap": "8.397",
+      "speed": 58.869,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 15,
+        "leaderLap": 8,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 8,
+      "timeOfDay": "2026-03-12T20:07:59.853",
+      "lapTime": "48.656",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "2.016",
+      "speed": 66.59,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 15,
+        "leaderLap": 9,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 9,
+      "timeOfDay": "2026-03-12T20:08:47.302",
+      "lapTime": "47.449",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.809",
+      "speed": 68.284,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 15,
+        "leaderLap": 10,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 10,
+      "timeOfDay": "2026-03-12T20:09:34.246",
+      "lapTime": "46.944",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.304",
+      "speed": 69.018,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 15,
+        "leaderLap": 11,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 11,
+      "timeOfDay": "2026-03-12T20:10:20.886",
+      "lapTime": "46.640",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.000",
+      "speed": 69.468,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 15,
+        "leaderLap": 12,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    }
+  ]
+}

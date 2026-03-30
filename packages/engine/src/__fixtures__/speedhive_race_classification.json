@@ -1,0 +1,104 @@
+{
+  "type": "Race",
+  "rows": [
+    {
+      "totalTime": "22:53.347",
+      "diffClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.000"
+      },
+      "difference": {
+        "lapsBehind": 0,
+        "timeDifference": "00.000"
+      },
+      "bestTime": "48.656",
+      "numberOfLaps": 21,
+      "bestLap": 9,
+      "bestSpeed": 66.59,
+      "name": "Kai Kent",
+      "status": "Normal",
+      "startNumber": "131",
+      "resultClass": "Class A",
+      "accountId": null,
+      "user": {
+        "mstUserId": null,
+        "chip": {
+          "code": null
+        },
+        "productCategory": 0
+      },
+      "positionInClass": 1,
+      "additionalFields": [],
+      "isQualified": true,
+      "transponder": null,
+      "transponderCategory": null,
+      "position": 1
+    },
+    {
+      "totalTime": "23:01.338",
+      "diffClass": {
+        "lapsBehind": 0,
+        "timeDifference": "07.991"
+      },
+      "difference": {
+        "lapsBehind": 0,
+        "timeDifference": "07.991"
+      },
+      "bestTime": "48.371",
+      "numberOfLaps": 21,
+      "bestLap": 10,
+      "bestSpeed": 66.982,
+      "name": "Ellis Evans",
+      "status": "Normal",
+      "startNumber": "153",
+      "resultClass": "Class A",
+      "accountId": null,
+      "user": {
+        "mstUserId": null,
+        "chip": {
+          "code": null
+        },
+        "productCategory": 0
+      },
+      "positionInClass": 2,
+      "additionalFields": [],
+      "isQualified": true,
+      "transponder": null,
+      "transponderCategory": null,
+      "position": 2
+    },
+    {
+      "totalTime": "23:06.018",
+      "diffClass": {
+        "lapsBehind": 0,
+        "timeDifference": "12.671"
+      },
+      "difference": {
+        "lapsBehind": 0,
+        "timeDifference": "12.671"
+      },
+      "bestTime": "48.768",
+      "numberOfLaps": 21,
+      "bestLap": 11,
+      "bestSpeed": 66.437,
+      "name": "Alex Adams",
+      "status": "Normal",
+      "startNumber": "134",
+      "resultClass": "Class A",
+      "accountId": null,
+      "user": {
+        "mstUserId": null,
+        "chip": {
+          "code": null
+        },
+        "productCategory": 0
+      },
+      "positionInClass": 3,
+      "additionalFields": [],
+      "isQualified": true,
+      "transponder": null,
+      "transponderCategory": null,
+      "position": 3
+    }
+  ]
+}

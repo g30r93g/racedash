@@ -1,0 +1,125 @@
+{
+  "type": "PracticeAndQualification",
+  "rows": [
+    {
+      "gap": {
+        "lapsBehind": 0,
+        "timeDifference": "00.000"
+      },
+      "gapClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.000"
+      },
+      "diffClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.000"
+      },
+      "difference": {
+        "lapsBehind": 0,
+        "timeDifference": "00.000"
+      },
+      "bestTime": "46.556",
+      "numberOfLaps": 12,
+      "bestLap": 10,
+      "bestSpeed": 69.594,
+      "status": "Normal",
+      "name": "Ellis Evans",
+      "startNumber": "153",
+      "resultClass": "Class A",
+      "accountId": null,
+      "user": {
+        "mstUserId": null,
+        "chip": {
+          "code": null
+        },
+        "productCategory": 0
+      },
+      "transponderCategory": null,
+      "transponder": null,
+      "positionInClass": 1,
+      "additionalFields": [],
+      "isQualified": true,
+      "position": 1
+    },
+    {
+      "gap": {
+        "lapsBehind": 0,
+        "timeDifference": "00.084"
+      },
+      "gapClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.084"
+      },
+      "diffClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.084"
+      },
+      "difference": {
+        "lapsBehind": 0,
+        "timeDifference": "00.084"
+      },
+      "bestTime": "46.640",
+      "numberOfLaps": 11,
+      "bestLap": 11,
+      "bestSpeed": 69.468,
+      "status": "Normal",
+      "name": "Kai Kent",
+      "startNumber": "131",
+      "resultClass": "Class A",
+      "accountId": null,
+      "user": {
+        "mstUserId": null,
+        "chip": {
+          "code": null
+        },
+        "productCategory": 0
+      },
+      "transponderCategory": null,
+      "transponder": null,
+      "positionInClass": 2,
+      "additionalFields": [],
+      "isQualified": true,
+      "position": 2
+    },
+    {
+      "gap": {
+        "lapsBehind": 0,
+        "timeDifference": "00.080"
+      },
+      "gapClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.080"
+      },
+      "diffClass": {
+        "lapsBehind": 0,
+        "timeDifference": "00.164"
+      },
+      "difference": {
+        "lapsBehind": 0,
+        "timeDifference": "00.164"
+      },
+      "bestTime": "46.720",
+      "numberOfLaps": 12,
+      "bestLap": 5,
+      "bestSpeed": 69.349,
+      "status": "Normal",
+      "name": "Morgan Mason",
+      "startNumber": "151",
+      "resultClass": "Class A",
+      "accountId": null,
+      "user": {
+        "mstUserId": null,
+        "chip": {
+          "code": null
+        },
+        "productCategory": 0
+      },
+      "transponderCategory": null,
+      "transponder": null,
+      "positionInClass": 3,
+      "additionalFields": [],
+      "isQualified": true,
+      "position": 3
+    }
+  ]
+}

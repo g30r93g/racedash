@@ -1,0 +1,263 @@
+{
+  "lapDataInfo": {
+    "participantInfo": {
+      "name": "Morgan Mason",
+      "class": "Class A",
+      "transponder": null,
+      "userId": null,
+      "startNr": "151",
+      "startPos": 12,
+      "fieldFinishPos": 3,
+      "classFinishPos": 3
+    },
+    "lapCount": 12,
+    "allLapsHaveFieldPos": true,
+    "firstLapNr": 1,
+    "lapsDriven": 12,
+    "classificationType": 0,
+    "classificationTypeString": "PracticeAndQualification",
+    "sessionId": 11791523
+  },
+  "laps": [
+    {
+      "lapNr": 1,
+      "timeOfDay": "2026-03-12T20:01:50.858",
+      "lapTime": "51.030",
+      "diffWithLastLap": "0.000",
+      "diffWithBestLap": "4.310",
+      "speed": 63.492,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 11,
+        "leaderLap": 1,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 2,
+      "timeOfDay": "2026-03-12T20:02:39.11",
+      "lapTime": "48.252",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "1.532",
+      "speed": 67.147,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 10,
+        "leaderLap": 2,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 3,
+      "timeOfDay": "2026-03-12T20:03:26.656",
+      "lapTime": "47.546",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.826",
+      "speed": 68.145,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 10,
+        "leaderLap": 3,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 4,
+      "timeOfDay": "2026-03-12T20:04:13.52",
+      "lapTime": "46.864",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.144",
+      "speed": 69.136,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 10,
+        "leaderLap": 4,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 5,
+      "timeOfDay": "2026-03-12T20:05:00.24",
+      "lapTime": "46.720",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.000",
+      "speed": 69.349,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 10,
+        "leaderLap": 5,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 6,
+      "timeOfDay": "2026-03-12T20:05:47.077",
+      "lapTime": "46.837",
+      "diffWithLastLap": "0.117",
+      "diffWithBestLap": "0.117",
+      "speed": 69.176,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 10,
+        "leaderLap": 6,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 7,
+      "timeOfDay": "2026-03-12T20:06:34.039",
+      "lapTime": "46.962",
+      "diffWithLastLap": "0.125",
+      "diffWithBestLap": "0.242",
+      "speed": 68.992,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 9,
+        "leaderLap": 7,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 8,
+      "timeOfDay": "2026-03-12T20:07:25.593",
+      "lapTime": "51.554",
+      "diffWithLastLap": "4.592",
+      "diffWithBestLap": "4.834",
+      "speed": 62.847,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 9,
+        "leaderLap": 8,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 9,
+      "timeOfDay": "2026-03-12T20:08:12.545",
+      "lapTime": "46.952",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.232",
+      "speed": 69.007,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 8,
+        "leaderLap": 9,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 10,
+      "timeOfDay": "2026-03-12T20:08:59.851",
+      "lapTime": "47.306",
+      "diffWithLastLap": "0.354",
+      "diffWithBestLap": "0.586",
+      "speed": 68.49,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 7,
+        "leaderLap": 10,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 11,
+      "timeOfDay": "2026-03-12T20:09:46.709",
+      "lapTime": "46.858",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.138",
+      "speed": 69.145,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 7,
+        "leaderLap": 11,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    },
+    {
+      "lapNr": 12,
+      "timeOfDay": "2026-03-12T20:10:33.504",
+      "lapTime": "46.795",
+      "diffWithLastLap": null,
+      "diffWithBestLap": "0.075",
+      "speed": 69.238,
+      "sectionTimes": [],
+      "inPit": false,
+      "status": [
+        "GREEN"
+      ],
+      "fieldComparison": {
+        "position": 7,
+        "leaderLap": 12,
+        "diff": null,
+        "gapAhead": null,
+        "gapBehind": null
+      }
+    }
+  ]
+}

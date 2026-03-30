@@ -2018,3 +2018,243 @@ describe('validateManualTimingData edge cases', () => {
     expect(() => validateManualTimingData([{ lap: 1, time: 'not-a-time' }], 0)).toThrow('lap time string')
   })
 })
+
+// ---------------------------------------------------------------------------
+// SpeedHive E2E tests with real (anonymised) session data
+// ---------------------------------------------------------------------------
+
+const speedhiveFixtureDir = join(__dirname, '__fixtures__')
+
+function loadSpeedhiveFixture(name: string): unknown {
+  const raw = require(join(speedhiveFixtureDir, name))
+  return raw
+}
+
+function buildSpeedhiveFixtureFetch(
+  sessionId: string,
+  fixtures: Record<string, string>,
+): typeof globalThis.fetch {
+  return (async (input: string | URL | Request) => {
+    const url = input.toString()
+    for (const [suffix, fixtureName] of Object.entries(fixtures)) {
+      if (url.endsWith(`/sessions/${sessionId}${suffix}`)) {
+        return new Response(JSON.stringify(loadSpeedhiveFixture(fixtureName)), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+    }
+    return new Response('not found', { status: 404 })
+  }) as typeof globalThis.fetch
+}
+
+describe('mylapsSpeedhive E2E — qualifying session (real data)', () => {
+  it('resolves all 3 drivers with correct lap counts', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildSpeedhiveFixtureFetch('99999', {
+        '': 'speedhive_qualifying_session.json',
+        '/classification': 'speedhive_qualifying_classification.json',
+        '/lapdata/1/laps': 'speedhive_qualifying_lapdata_1.json',
+        '/lapdata/2/laps': 'speedhive_qualifying_lapdata_2.json',
+        '/lapdata/3/laps': 'speedhive_qualifying_lapdata_3.json',
+      }),
+    )
+
+    const resolved = await resolveTimingSegments([
+      {
+        driver: 'Ellis',
+        source: 'mylapsSpeedhive',
+        mode: 'qualifying',
+        offset: '0:45.000',
+        url: 'https://speedhive.mylaps.com/sessions/99999',
+      },
+    ])
+
+    expect(resolved).toHaveLength(1)
+    const seg = resolved[0]
+
+    // 3 drivers from classification
+    expect(seg.drivers).toHaveLength(3)
+
+    // Selected driver by partial name match
+    expect(seg.selectedDriver).toBeDefined()
+    expect(seg.selectedDriver!.name).toBe('Ellis Evans')
+    expect(seg.selectedDriver!.kart).toBe('153')
+
+    // Real session had 12 laps for this driver
+    expect(seg.selectedDriver!.laps).toHaveLength(12)
+    expect(seg.selectedDriver!.laps[0].lapTime).toBe(51.163)
+    expect(seg.selectedDriver!.laps[11].lapTime).toBe(46.848)
+
+    // Cumulative should be sum of all lap times
+    const totalTime = seg.selectedDriver!.laps.reduce((sum, lap) => sum + lap.lapTime, 0)
+    expect(seg.selectedDriver!.laps[11].cumulative).toBeCloseTo(totalTime, 2)
+
+    // Qualifying capabilities
+    expect(seg.capabilities).toMatchObject({
+      driverDiscovery: true,
+      lapTimes: true,
+      bestLap: true,
+      lastLap: true,
+      position: true,
+      classificationPosition: true,
+      leaderboard: true,
+      startingGrid: false,
+    })
+
+    // No starting grid in qualifying (lapchart not fetched)
+    expect(seg.startingGrid).toBeUndefined()
+  })
+
+  it('resolves a different driver by name query', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildSpeedhiveFixtureFetch('99999', {
+        '': 'speedhive_qualifying_session.json',
+        '/classification': 'speedhive_qualifying_classification.json',
+        '/lapdata/1/laps': 'speedhive_qualifying_lapdata_1.json',
+        '/lapdata/2/laps': 'speedhive_qualifying_lapdata_2.json',
+        '/lapdata/3/laps': 'speedhive_qualifying_lapdata_3.json',
+      }),
+    )
+
+    const resolved = await resolveTimingSegments([
+      {
+        driver: 'Kai',
+        source: 'mylapsSpeedhive',
+        mode: 'qualifying',
+        offset: '0:00.000',
+        url: 'https://speedhive.mylaps.com/sessions/99999',
+      },
+    ])
+
+    expect(resolved[0].selectedDriver!.name).toBe('Kai Kent')
+    expect(resolved[0].selectedDriver!.kart).toBe('131')
+    expect(resolved[0].selectedDriver!.laps).toHaveLength(11)
+  })
+})
+
+describe('mylapsSpeedhive E2E — race session (real data)', () => {
+  it('resolves race drivers with starting grid', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildSpeedhiveFixtureFetch('88888', {
+        '': 'speedhive_race_session.json',
+        '/classification': 'speedhive_race_classification.json',
+        '/lapchart': 'speedhive_race_lapchart.json',
+        '/lapdata/1/laps': 'speedhive_race_lapdata_1.json',
+        '/lapdata/2/laps': 'speedhive_race_lapdata_2.json',
+        '/lapdata/3/laps': 'speedhive_race_lapdata_3.json',
+      }),
+    )
+
+    const resolved = await resolveTimingSegments([
+      {
+        driver: 'Kai',
+        source: 'mylapsSpeedhive',
+        mode: 'race',
+        offset: '1:00.000',
+        url: 'https://speedhive.mylaps.com/sessions/88888',
+      },
+    ])
+
+    const seg = resolved[0]
+
+    // 3 drivers
+    expect(seg.drivers).toHaveLength(3)
+
+    // Selected driver
+    expect(seg.selectedDriver!.name).toBe('Kai Kent')
+    expect(seg.selectedDriver!.kart).toBe('131')
+    expect(seg.selectedDriver!.laps).toHaveLength(21)
+
+    // Race session fetches lapchart, so starting grid should exist
+    expect(seg.capabilities.startingGrid).toBe(true)
+    expect(seg.startingGrid).toBeDefined()
+    expect(seg.startingGrid).toHaveLength(3)
+    expect(seg.startingGrid![0]).toMatchObject({ position: 1, kart: '131', name: 'Kai Kent' })
+    expect(seg.startingGrid![1]).toMatchObject({ position: 2, kart: '153', name: 'Ellis Evans' })
+  })
+
+  it('correctly parses lap times with minute notation (e.g. "5:8.916")', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildSpeedhiveFixtureFetch('88888', {
+        '': 'speedhive_race_session.json',
+        '/classification': 'speedhive_race_classification.json',
+        '/lapchart': 'speedhive_race_lapchart.json',
+        '/lapdata/1/laps': 'speedhive_race_lapdata_1.json',
+        '/lapdata/2/laps': 'speedhive_race_lapdata_2.json',
+        '/lapdata/3/laps': 'speedhive_race_lapdata_3.json',
+      }),
+    )
+
+    const resolved = await resolveTimingSegments([
+      {
+        driver: 'Kai',
+        source: 'mylapsSpeedhive',
+        mode: 'race',
+        offset: '0:00.000',
+        url: 'https://speedhive.mylaps.com/sessions/88888',
+      },
+    ])
+
+    const laps = resolved[0].selectedDriver!.laps
+
+    // Lap 1: "58.644" — plain seconds
+    expect(laps[0].lapTime).toBe(58.644)
+
+    // Lap 2: "5:8.916" — 5 minutes 8.916 seconds = 308.916s
+    expect(laps[1].lapTime).toBe(308.916)
+
+    // Lap 3: "1:0.530" — 1 minute 0.530 seconds = 60.530s
+    expect(laps[2].lapTime).toBe(60.53)
+
+    // Cumulative times should be strictly increasing
+    for (let i = 1; i < laps.length; i++) {
+      expect(laps[i].cumulative).toBeGreaterThan(laps[i - 1].cumulative)
+    }
+  })
+
+  it('builds session segments with starting grid position for the selected driver', async () => {
+    vi.stubGlobal(
+      'fetch',
+      buildSpeedhiveFixtureFetch('88888', {
+        '': 'speedhive_race_session.json',
+        '/classification': 'speedhive_race_classification.json',
+        '/lapchart': 'speedhive_race_lapchart.json',
+        '/lapdata/1/laps': 'speedhive_race_lapdata_1.json',
+        '/lapdata/2/laps': 'speedhive_race_lapdata_2.json',
+        '/lapdata/3/laps': 'speedhive_race_lapdata_3.json',
+      }),
+    )
+
+    const resolved = await resolveTimingSegments([
+      {
+        driver: 'Ellis',
+        source: 'mylapsSpeedhive',
+        mode: 'race',
+        offset: '1:00.000',
+        url: 'https://speedhive.mylaps.com/sessions/88888',
+      },
+    ])
+
+    const { segments, startingGridPosition } = buildSessionSegments(resolved, [60])
+
+    expect(segments).toHaveLength(1)
+    expect(segments[0].mode).toBe('race')
+    expect(segments[0].session.driver.name).toBe('Ellis Evans')
+    expect(segments[0].session.driver.kart).toBe('153')
+    expect(segments[0].session.laps).toHaveLength(21)
+
+    // Ellis Evans started P2 on the grid
+    expect(startingGridPosition).toBe(2)
+
+    // Leaderboard drivers should include all 3
+    expect(segments[0].leaderboardDrivers).toHaveLength(3)
+
+    // Timestamps should all be offset by 60s
+    expect(segments[0].session.timestamps[0].ytSeconds).toBeGreaterThanOrEqual(60)
+  })
+})
