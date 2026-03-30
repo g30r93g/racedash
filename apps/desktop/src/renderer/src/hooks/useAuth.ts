@@ -75,10 +75,7 @@ export function useAuth(): UseAuthReturn {
         // Ensure main process has the token before making the API call
         await window.racedash.auth.saveSessionToken(token)
 
-        console.log('[useAuth] fetching profile from /api/auth/me')
         const response: FetchWithAuthResponse = await window.racedash.auth.fetchWithAuth('/api/auth/me')
-
-        console.log('[useAuth] profile response:', response.status, response.body.slice(0, 200))
 
         if (cancelled) return
 
