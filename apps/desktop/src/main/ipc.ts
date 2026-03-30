@@ -439,21 +439,7 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 
   fs.mkdirSync(saveDir, { recursive: true })
 
-  // Preserve original single-source inputs, but move temp joined outputs into the project directory.
-  const videoPath = path.join(saveDir, 'video.mp4')
-  const isTempJoinedVideo = path.resolve(opts.joinedVideoPath).startsWith(path.resolve(os.tmpdir()))
-  if (isTempJoinedVideo) {
-    try {
-      await fs.promises.rename(opts.joinedVideoPath, videoPath)
-    } catch (err) {
-      // Moving to another volume can fail with EXDEV; fall back to copy + delete.
-      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err
-      await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
-      await fs.promises.unlink(opts.joinedVideoPath)
-    }
-  } else {
-    await fs.promises.copyFile(opts.joinedVideoPath, videoPath)
-  }
+  // No video file handling — source paths stored as-is
 
   // Write engine timing config (config.json) — segments in engine format.
   // For remote sources (alphaTiming, mylapsSpeedhive, etc.), resolve the timing data
@@ -480,7 +466,7 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     name: opts.name,
     projectPath,
     configPath,
-    videoPaths: [videoPath],
+    videoPaths: opts.videoPaths,
     segments: opts.segments,
     selectedDrivers: opts.selectedDrivers,
   }
@@ -490,11 +476,10 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
   try {
     await addToRegistry(projectPath)
   } catch (err) {
-    // Roll back the three files we wrote. Do not remove saveDir itself — it may pre-exist.
+    // Roll back the two files we wrote. Do not remove saveDir itself — it may pre-exist.
     await Promise.allSettled([
       fs.promises.unlink(path.join(saveDir, 'project.json')),
       fs.promises.unlink(path.join(saveDir, 'config.json')),
-      fs.promises.unlink(path.join(saveDir, 'video.mp4')),
     ])
     throw err
   }

@@ -88,9 +88,7 @@ beforeEach(() => {
 describe('handleCreateProject', () => {
   const baseOpts = {
     name: 'My Race',
-    // Use path.join(os.tmpdir(), ...) so the path matches on macOS where
-    // os.tmpdir() returns /private/tmp (symlink to /tmp).
-    joinedVideoPath: path.join(os.tmpdir(), 'racedash-join-123.mp4'),
+    videoPaths: ['/videos/chapter1.mp4'],
     segments: [
       {
         label: 'Race',
@@ -108,52 +106,26 @@ describe('handleCreateProject', () => {
     expect(mockMkdirSync).toHaveBeenCalledWith(expectedDir, { recursive: true })
   })
 
-  it('moves a temp joined video into <saveDir>/video.mp4', async () => {
+  it('does not move or copy any video files', async () => {
     await handleCreateProject(baseOpts)
-    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    expect(vi.mocked(fs.promises.rename)).toHaveBeenCalledWith(
-      baseOpts.joinedVideoPath,
-      path.join(expectedDir, 'video.mp4'),
-    )
+    expect(vi.mocked(fs.promises.rename)).not.toHaveBeenCalled()
     expect(vi.mocked(fs.promises.copyFile)).not.toHaveBeenCalled()
   })
 
-  it('does not separately delete the joined video after a successful temp-file move', async () => {
+  it('writes project.json with videoPaths pointing to the original source paths', async () => {
     await handleCreateProject(baseOpts)
-    expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalledWith(baseOpts.joinedVideoPath)
-  })
-
-  it('copies a non-temp source video into <saveDir>/video.mp4', async () => {
-    const opts = { ...baseOpts, joinedVideoPath: '/Users/testuser/Videos/chapter1.mp4' }
-    await handleCreateProject(opts)
-    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
-      opts.joinedVideoPath,
-      path.join(expectedDir, 'video.mp4'),
-    )
-    expect(vi.mocked(fs.promises.rename)).not.toHaveBeenCalled()
-  })
-
-  it('falls back to copy and delete when moving a temp joined video across devices', async () => {
-    vi.mocked(fs.promises.rename).mockRejectedValueOnce(
-      Object.assign(new Error('cross-device link not permitted'), { code: 'EXDEV' }),
-    )
-
-    await handleCreateProject(baseOpts)
-
-    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
-    expect(vi.mocked(fs.promises.copyFile)).toHaveBeenCalledWith(
-      baseOpts.joinedVideoPath,
-      path.join(expectedDir, 'video.mp4'),
-    )
-    expect(vi.mocked(fs.promises.unlink)).toHaveBeenCalledWith(baseOpts.joinedVideoPath)
-  })
-
-  it('writes project.json with videoPaths pointing to the copied video', async () => {
-    await handleCreateProject(baseOpts)
-    const expectedDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     const written = findProjectJsonWrite()
-    expect(written.videoPaths).toEqual([path.join(expectedDir, 'video.mp4')])
+    expect(written.videoPaths).toEqual(baseOpts.videoPaths)
+  })
+
+  it('stores multiple source paths in project.json as-is', async () => {
+    const opts = {
+      ...baseOpts,
+      videoPaths: ['/videos/part1.mp4', '/videos/part2.mp4'],
+    }
+    await handleCreateProject(opts)
+    const written = findProjectJsonWrite()
+    expect(written.videoPaths).toEqual(['/videos/part1.mp4', '/videos/part2.mp4'])
   })
 
   it('writes project.json with correct fields', async () => {
@@ -175,6 +147,11 @@ describe('handleCreateProject', () => {
     expect(result.projectPath).toBe(path.join(expectedDir, 'project.json'))
     expect(result.name).toBe('My Race')
     expect(result.selectedDrivers).toEqual({ Race: 'G. Gorzynski' })
+  })
+
+  it('returns ProjectData with videoPaths matching the source paths', async () => {
+    const result = await handleCreateProject(baseOpts)
+    expect(result.videoPaths).toEqual(baseOpts.videoPaths)
   })
 
   it('slugifies project names with spaces and special characters', async () => {
@@ -227,10 +204,9 @@ describe('handleCreateProject', () => {
 
     await expect(handleCreateProject(baseOpts)).rejects.toThrow('disk full')
 
-    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledTimes(3)
+    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledTimes(2)
     const expectedSaveDir = path.join(os.homedir(), 'Videos', 'racedash', 'my-race')
     expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledWith(path.join(expectedSaveDir, 'project.json'))
     expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledWith(path.join(expectedSaveDir, 'config.json'))
-    expect(vi.mocked(fs.promises).unlink).toHaveBeenCalledWith(path.join(expectedSaveDir, 'video.mp4'))
   })
 })
