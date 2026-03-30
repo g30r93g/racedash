@@ -4,12 +4,15 @@ import './styles/global.css'
 import { App } from './App'
 import { RaceDashClerkProvider } from './provider/ClerkProvider'
 import { Toaster } from '@/components/ui/sonner'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <RaceDashClerkProvider>
-      <App />
-      <Toaster />
-    </RaceDashClerkProvider>
+    <ErrorBoundary>
+      <RaceDashClerkProvider>
+        <App />
+        <Toaster />
+      </RaceDashClerkProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 )
