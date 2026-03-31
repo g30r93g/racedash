@@ -61,19 +61,28 @@ export interface SessionSegment {
 export interface FadeStyling {
   enabled?: boolean // whether to fade in the overlay          (default: true)
   durationSeconds?: number // fade-in duration in seconds             (default: 1)
+  fadeOutDurationSeconds?: number // fade-out duration in seconds            (default: 1)
   preRollSeconds?: number // seconds before first timestamp to show  (default: 3)
 }
 
 export const DEFAULT_FADE_ENABLED = true
 export const DEFAULT_FADE_DURATION_SECONDS = 1
+export const DEFAULT_FADE_OUT_DURATION_SECONDS = 1
 export const DEFAULT_FADE_PRE_ROLL_SECONDS = 3
 export const DEFAULT_LABEL_WINDOW_SECONDS = 2
 
 export interface SegmentLabelStyling {
-  bgColor?: string // pill background    (default: rgba(0,0,0,0.72))
-  textColor?: string // text color         (default: white)
-  borderRadius?: number // in reference px    (default: 8)
+  enabled?: boolean // whether to show segment labels           (default: true)
+  bgColor?: string // pill background                         (default: rgba(0,0,0,0.72))
+  textColor?: string // text color                              (default: white)
+  borderRadius?: number // in reference px                         (default: 8)
+  fadeInDurationSeconds?: number // label fade-in duration in seconds       (default: 0.5)
+  fadeOutDurationSeconds?: number // label fade-out duration in seconds      (default: 0.5)
 }
+
+export const DEFAULT_SEGMENT_LABEL_ENABLED = true
+export const DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS = 0.5
+export const DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS = 0.5
 
 export interface DeltaBadgeStyling {
   fasterColor?: string // color when lap is faster  (default: #00FF87)
