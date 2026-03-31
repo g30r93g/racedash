@@ -4,7 +4,13 @@ import { DEFAULT_LABEL_WINDOW_SECONDS, type SessionSegment } from '@racedash/cor
 export interface ActiveSegmentResult {
   segment: SessionSegment
   isEnd: boolean
+  /** Time (in video seconds) when the active segment's last lap ends. */
+  segEnd: number
   label: string | null
+  /** Start of the label display window (video seconds), or null if no label visible. */
+  labelStart: number | null
+  /** End of the label display window (video seconds), or null if no label visible. */
+  labelEnd: number | null
 }
 
 /**
@@ -40,6 +46,8 @@ export function resolveActiveSegment(
 
   // Compute label
   let label: string | null = null
+  let activeLabelStart: number | null = null
+  let activeLabelEnd: number | null = null
   for (let i = 0; i < segments.length; i++) {
     const s = segments[i]
     if (!s.label) continue
@@ -50,15 +58,17 @@ export function resolveActiveSegment(
       const prevLast = prev.session.timestamps[prev.session.timestamps.length - 1]
       prevEnd = prevLast.ytSeconds + prevLast.lap.lapTime
     }
-    const labelStart = Math.max(segOffset - labelWindowSeconds, prevEnd)
-    const labelEnd = segOffset + labelWindowSeconds
-    if (currentTime >= labelStart && currentTime <= labelEnd) {
+    const lStart = Math.max(segOffset - labelWindowSeconds, prevEnd)
+    const lEnd = segOffset + labelWindowSeconds
+    if (currentTime >= lStart && currentTime <= lEnd) {
       label = s.label
+      activeLabelStart = lStart
+      activeLabelEnd = lEnd
       break
     }
   }
 
-  return { segment, isEnd, label }
+  return { segment, isEnd, segEnd, label, labelStart: activeLabelStart, labelEnd: activeLabelEnd }
 }
 
 /** Memoised hook wrapper around resolveActiveSegment. */

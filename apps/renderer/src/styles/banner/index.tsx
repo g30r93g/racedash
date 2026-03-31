@@ -1,14 +1,13 @@
 import React from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
+import { useFadeOpacity } from '../../useFadeOpacity'
+import { useLabelOpacity } from '../../useLabelOpacity'
 import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { SegmentLabel } from '../../SegmentLabel'
@@ -36,7 +35,7 @@ export const Banner: React.FC<OverlayProps> = ({
   const scale = width / 1920
   const currentTime = frame / fps
 
-  const { segment, isEnd, label } = useActiveSegment(
+  const { segment, isEnd, segEnd, label, labelStart, labelEnd } = useActiveSegment(
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
@@ -60,17 +59,12 @@ export const Banner: React.FC<OverlayProps> = ({
   })
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom = raceStart - preRoll
+  const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
-  if (currentTime < showFrom && !isEnd) return null
+  const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity =
-    fadeEnabled && !isEnd
-      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-      : 1
+  if (hidden) return null
 
   const bannerHeight = 80 * scale
 
@@ -198,7 +192,7 @@ export const Banner: React.FC<OverlayProps> = ({
             raceLapSnapshots={segment.raceLapSnapshots}
           />
         )}
-        {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
+        {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
       </AbsoluteFill>
     )
   }
@@ -252,7 +246,7 @@ export const Banner: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
+      {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
 }

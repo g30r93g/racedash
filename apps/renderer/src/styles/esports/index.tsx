@@ -1,14 +1,13 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
+import { useFadeOpacity } from '../../useFadeOpacity'
+import { useLabelOpacity } from '../../useLabelOpacity'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
@@ -107,7 +106,7 @@ export const Esports: React.FC<OverlayProps> = ({
   const sc = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(
+  const { segment, isEnd, segEnd, label, labelStart, labelEnd } = useActiveSegment(
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
@@ -117,15 +116,10 @@ export const Esports: React.FC<OverlayProps> = ({
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom = raceStart - preRoll
+  const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
-  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity =
-    fadeEnabled && !isEnd
-      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-      : 1
+  const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
   const { currentLap, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
     segment,
@@ -240,7 +234,7 @@ export const Esports: React.FC<OverlayProps> = ({
     }
   }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor])
 
-  if (currentTime < showFrom && !isEnd) return null
+  if (hidden) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>
@@ -281,7 +275,7 @@ export const Esports: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={sc} styling={styling?.segmentLabel} />}
+      {showLabel && <SegmentLabel label={label!} scale={sc} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
 }
