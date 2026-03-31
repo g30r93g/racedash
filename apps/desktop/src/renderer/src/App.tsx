@@ -1,6 +1,6 @@
 import { ProjectLibrary } from '@/screens/project-library/ProjectLibrary'
 import { Editor } from '@/screens/editor/Editor'
-import { ProjectCreationWizard } from '@/screens/wizard/ProjectCreationWizard'
+import { NewProjectWizard } from '@/screens/wizard/NewProjectWizard'
 import { UpdateBanner } from '@/components/layout/UpdateBanner'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { AuthModalContext } from '@/hooks/useAuth'
@@ -60,7 +60,7 @@ export function App(): React.ReactElement {
           )}
         </div>
         {wizardOpen && (
-          <ProjectCreationWizard onComplete={handleProjectCreated} onCancel={() => setWizardOpen(false)} />
+          <NewProjectWizard onComplete={handleProjectCreated} onCancel={() => setWizardOpen(false)} />
         )}
         <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       </div>
