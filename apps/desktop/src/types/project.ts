@@ -30,6 +30,8 @@ export interface SegmentConfig {
   timingData?: Array<{ lap: number; time: string; position?: number }>
   // all sources: frame number in the joined video where this segment starts
   videoOffsetFrame?: number
+  // indices into the project's videoPaths array that belong to this segment
+  videoIndices?: number[]
 }
 
 export interface ProjectData {
