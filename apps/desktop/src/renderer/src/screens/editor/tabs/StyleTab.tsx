@@ -1,7 +1,17 @@
 import { ColourRow } from '@/components/style/ColourRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
+import {
+  DEFAULT_FADE_DURATION_SECONDS,
+  DEFAULT_FADE_ENABLED,
+  DEFAULT_FADE_OUT_DURATION_SECONDS,
+  DEFAULT_FADE_PRE_ROLL_SECONDS,
+  DEFAULT_SEGMENT_LABEL_ENABLED,
+  DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS,
+  DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS,
+} from '@racedash/core'
 import { Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
 import type { OverlayType } from './OverlayPickerModal'
@@ -106,6 +116,67 @@ export function StyleTab({
     },
     [styleState, onStyleChange],
   )
+
+  const handleFadeToggle = useCallback(
+    (enabled: boolean) => {
+      onStyleChange({
+        ...styleState,
+        styling: { ...styleState.styling, fade: { ...styleState.styling.fade, enabled } },
+      })
+    },
+    [styleState, onStyleChange],
+  )
+
+  const handleFadeSliderChange = useCallback(
+    (key: 'durationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds', value: number) => {
+      latestRef.current = {
+        styleState,
+        patch: { fade: { ...styleState.styling.fade, [key]: value } },
+      }
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        const { styleState: s, patch: p } = latestRef.current
+        onStyleChange({ ...s, styling: { ...s.styling, ...p } })
+      }, 400)
+    },
+    [styleState, onStyleChange],
+  )
+
+  const handleSegmentLabelToggle = useCallback(
+    (enabled: boolean) => {
+      onStyleChange({
+        ...styleState,
+        styling: { ...styleState.styling, segmentLabel: { ...styleState.styling.segmentLabel, enabled } },
+      })
+    },
+    [styleState, onStyleChange],
+  )
+
+  const handleSegmentLabelSliderChange = useCallback(
+    (key: 'fadeInDurationSeconds' | 'fadeOutDurationSeconds', value: number) => {
+      latestRef.current = {
+        styleState,
+        patch: { segmentLabel: { ...styleState.styling.segmentLabel, [key]: value } },
+      }
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        const { styleState: s, patch: p } = latestRef.current
+        onStyleChange({ ...s, styling: { ...s.styling, ...p } })
+      }, 400)
+    },
+    [styleState, onStyleChange],
+  )
+
+  // Fade
+  const fadeEnabled = styling.fade?.enabled ?? DEFAULT_FADE_ENABLED
+  const fadeDuration = styling.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
+  const fadeOutDuration = styling.fade?.fadeOutDurationSeconds ?? DEFAULT_FADE_OUT_DURATION_SECONDS
+  const fadePreRoll = styling.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
+
+  // Segment label
+  const segmentLabelEnabled = styling.segmentLabel?.enabled ?? DEFAULT_SEGMENT_LABEL_ENABLED
+  const segmentLabelFadeIn = styling.segmentLabel?.fadeInDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS
+  const segmentLabelFadeOut = styling.segmentLabel?.fadeOutDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS
 
   // Global
   const accent = styling.accentColor ?? '#3DD73D'
@@ -250,6 +321,120 @@ export function StyleTab({
               ))}
             </select>
           </div>
+        </div>
+      </section>
+
+      {/* FADE */}
+      <section>
+        <SectionLabel>Fade</SectionLabel>
+        <div className="rounded-md border border-border bg-accent px-3">
+          <div className="flex items-center justify-between py-1.5">
+            <span className="text-xs text-muted-foreground">Enabled</span>
+            <select
+              value={fadeEnabled ? 'on' : 'off'}
+              onChange={(e) => handleFadeToggle(e.target.value === 'on')}
+              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+          {fadeEnabled && (
+            <>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Fade in</span>
+                  <span className="text-xs tabular-nums text-foreground">{fadeDuration.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  value={[fadeDuration]}
+                  onValueChange={([v]) => handleFadeSliderChange('durationSeconds', v)}
+                />
+              </div>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Fade out</span>
+                  <span className="text-xs tabular-nums text-foreground">{fadeOutDuration.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  value={[fadeOutDuration]}
+                  onValueChange={([v]) => handleFadeSliderChange('fadeOutDurationSeconds', v)}
+                />
+              </div>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Pre-roll</span>
+                  <span className="text-xs tabular-nums text-foreground">{fadePreRoll.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  value={[fadePreRoll]}
+                  onValueChange={([v]) => handleFadeSliderChange('preRollSeconds', v)}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* SEGMENT LABEL */}
+      <section>
+        <SectionLabel>Session Label</SectionLabel>
+        <div className="rounded-md border border-border bg-accent px-3">
+          <div className="flex items-center justify-between py-1.5">
+            <span className="text-xs text-muted-foreground">Enabled</span>
+            <select
+              value={segmentLabelEnabled ? 'on' : 'off'}
+              onChange={(e) => handleSegmentLabelToggle(e.target.value === 'on')}
+              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+          {segmentLabelEnabled && (
+            <>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Fade in</span>
+                  <span className="text-xs tabular-nums text-foreground">{segmentLabelFadeIn.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0.1}
+                  max={3}
+                  step={0.1}
+                  value={[segmentLabelFadeIn]}
+                  onValueChange={([v]) => handleSegmentLabelSliderChange('fadeInDurationSeconds', v)}
+                />
+              </div>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Fade out</span>
+                  <span className="text-xs tabular-nums text-foreground">{segmentLabelFadeOut.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0.1}
+                  max={3}
+                  step={0.1}
+                  value={[segmentLabelFadeOut]}
+                  onValueChange={([v]) => handleSegmentLabelSliderChange('fadeOutDurationSeconds', v)}
+                />
+              </div>
+            </>
+          )}
         </div>
       </section>
 
