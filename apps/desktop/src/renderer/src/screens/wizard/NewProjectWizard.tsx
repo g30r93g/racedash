@@ -120,7 +120,7 @@ export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps
         )}
         {step === 2 && (
           <>
-            <ReviewTimingStep segments={state.segments} selectedDrivers={state.selectedDrivers} />
+            <ReviewTimingStep segments={state.segments} selectedDrivers={state.selectedDrivers} videoPaths={state.videoPaths} />
             {submitError && (
               <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 <p className="font-medium">Failed to create project</p>

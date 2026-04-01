@@ -1,14 +1,16 @@
-// apps/desktop/src/renderer/src/screens/wizard/steps/ReviewTimingStep.tsx
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/loaders/Spinner'
 import { isValidLapTime } from '@/components/timing/ManualLapEntry'
+import { useMultiVideo, resolveFileAtTime, type FileEntry } from '@/hooks/useMultiVideo'
 import type { SegmentConfig } from '../../../../types/project'
 import type { LapPreview } from '../../../../types/ipc'
 
 interface ReviewTimingStepProps {
   segments: SegmentConfig[]
   selectedDrivers: Record<string, string>
+  /** All video paths in the project (segments reference these by index). */
+  videoPaths: string[]
 }
 
 function formatLapTime(seconds: number): string {
@@ -38,12 +40,127 @@ function resolveManualLaps(timingData: NonNullable<SegmentConfig['timingData']>)
     }))
 }
 
+// ---------------------------------------------------------------------------
+// LapFramePreview — shows the video frame at a specific lap's start time
+// ---------------------------------------------------------------------------
+
+function LapFramePreview({
+  segmentVideoPaths,
+  offsetFrame,
+  laps,
+  currentLapIndex,
+}: {
+  segmentVideoPaths: string[]
+  offsetFrame: number
+  laps: LapPreview[]
+  currentLapIndex: number
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const multiInfo = useMultiVideo(segmentVideoPaths)
+  const [videoReady, setVideoReady] = useState(false)
+  const [activeSrc, setActiveSrc] = useState('')
+
+  const files: FileEntry[] = useMemo(
+    () =>
+      multiInfo?.files.map((f) => ({
+        path: f.path,
+        durationSeconds: f.durationSeconds,
+        startSeconds: f.startSeconds,
+      })) ?? [],
+    [multiInfo],
+  )
+
+  const fps = multiInfo?.fps ?? 30
+
+  // Calculate the virtual time for the start of the current lap
+  // Lap N starts at: offset + sum(lap times for laps 1..N-1)
+  const lapStartSeconds = useMemo(() => {
+    const offsetSeconds = offsetFrame / fps
+    let cumulative = offsetSeconds
+    for (let i = 0; i < currentLapIndex; i++) {
+      cumulative += laps[i].lapTime
+    }
+    return cumulative
+  }, [offsetFrame, fps, currentLapIndex, laps])
+
+  // Resolve which file and local time
+  const resolved = files.length > 0 ? resolveFileAtTime(files, lapStartSeconds) : null
+  const targetPath = resolved?.path ?? segmentVideoPaths[0] ?? ''
+  const targetSrc = targetPath.startsWith('/') ? `media://${targetPath}` : targetPath
+  const targetLocalTime = resolved?.localTime ?? lapStartSeconds
+
+  // Switch video src when the active file changes
+  useEffect(() => {
+    if (targetSrc !== activeSrc) {
+      setActiveSrc(targetSrc)
+      setVideoReady(false)
+    }
+  }, [targetSrc, activeSrc])
+
+  // Seek to the correct local time once video is ready
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || video.readyState < 1) return
+    video.currentTime = targetLocalTime
+  }, [targetLocalTime, videoReady])
+
+  if (segmentVideoPaths.length === 0) return null
+
+  if (!multiInfo) {
+    return (
+      <div className="flex items-center justify-center rounded-md bg-black" style={{ aspectRatio: '16/9' }}>
+        <Spinner name="checkerboard" size="1.25rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-md bg-black" style={{ aspectRatio: '16/9' }}>
+      <video
+        key={activeSrc}
+        ref={videoRef}
+        src={activeSrc}
+        className="h-full w-full object-contain"
+        muted
+        preload="auto"
+        onLoadedMetadata={() => {
+          const video = videoRef.current
+          if (!video) return
+          video.currentTime = targetLocalTime
+        }}
+        onCanPlay={() => setVideoReady(true)}
+      />
+      {!videoReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <Spinner name="checkerboard" size="1.25rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
+        </div>
+      )}
+      <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+        {files.length > 1 && resolved && (
+          <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-white/60">
+            File {resolved.fileIndex + 1}/{files.length}
+          </span>
+        )}
+        <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] text-white">
+          {formatLapTime(lapStartSeconds)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SegmentReview
+// ---------------------------------------------------------------------------
+
 function SegmentReview({
   segment,
   selectedDriver,
+  segmentVideoPaths,
 }: {
   segment: SegmentConfig
   selectedDriver: string
+  segmentVideoPaths: string[]
 }) {
   const [laps, setLaps] = useState<LapPreview[]>([])
   const [loading, setLoading] = useState(true)
@@ -110,6 +227,14 @@ function SegmentReview({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Video frame preview */}
+      <LapFramePreview
+        segmentVideoPaths={segmentVideoPaths}
+        offsetFrame={segment.videoOffsetFrame ?? 0}
+        laps={laps}
+        currentLapIndex={currentLapIndex}
+      />
+
       {/* Lap stepper */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -176,10 +301,20 @@ function SegmentReview({
   )
 }
 
-export function ReviewTimingStep({ segments, selectedDrivers }: ReviewTimingStepProps): React.ReactElement {
+// ---------------------------------------------------------------------------
+// ReviewTimingStep
+// ---------------------------------------------------------------------------
+
+export function ReviewTimingStep({ segments, selectedDrivers, videoPaths }: ReviewTimingStepProps): React.ReactElement {
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(0)
   const activeSegment = segments[activeSegmentIndex]
   const activeDriver = selectedDrivers[activeSegment?.label] ?? ''
+
+  // Resolve the video paths for the active segment
+  const segmentVideoPaths = useMemo(
+    () => (activeSegment?.videoIndices ?? []).map((i) => videoPaths[i]).filter(Boolean),
+    [activeSegment, videoPaths],
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -221,8 +356,14 @@ export function ReviewTimingStep({ segments, selectedDrivers }: ReviewTimingStep
         Driver: <span className="font-medium text-foreground">{activeDriver}</span>
       </div>
 
-      {/* Lap review */}
-      {activeSegment && <SegmentReview segment={activeSegment} selectedDriver={activeDriver} />}
+      {/* Lap review with video preview */}
+      {activeSegment && (
+        <SegmentReview
+          segment={activeSegment}
+          selectedDriver={activeDriver}
+          segmentVideoPaths={segmentVideoPaths}
+        />
+      )}
     </div>
   )
 }
