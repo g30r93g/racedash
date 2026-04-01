@@ -114,17 +114,20 @@ export function Timeline({
   const pct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
   const widthPct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
 
-  // Use engine-computed offsets (globalised) when available, fall back to raw videoOffsetFrame
-  const segmentSpans = project.segments.map((seg, i) => {
-    const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
-    const nextStart = timestampsResult?.offsets[i + 1] ?? (
-      project.segments[i + 1]?.videoOffsetFrame !== undefined
-        ? (project.segments[i + 1].videoOffsetFrame ?? 0) / fps
-        : undefined
-    )
-    const endSeconds = nextStart !== undefined ? nextStart : duration
-    return { label: seg.label, startSeconds, endSeconds }
-  })
+  // Use engine-computed offsets (globalised) when available, fall back to raw videoOffsetFrame.
+  // Segment length = sum of lap times (from the last lap's cumulative value).
+  const segmentSpans = React.useMemo(() =>
+    project.segments.map((seg, i) => {
+      const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
+      // Derive end from lap data: offset + last lap's cumulative time
+      const rawSeg = timestampsResult?.segments[i] as RawSegment | undefined
+      const laps = rawSeg?.selectedDriver?.laps as RawLap[] | undefined
+      const lastLap = laps?.[laps.length - 1]
+      const endSeconds = lastLap ? startSeconds + lastLap.cumulative : startSeconds
+      return { label: seg.label, startSeconds, endSeconds }
+    }),
+    [project.segments, timestampsResult, fps],
+  )
 
   const lapSpans: LapSpan[] = React.useMemo(() => {
     if (!timestampsResult) return []
