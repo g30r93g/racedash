@@ -96,11 +96,13 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const bannerHeight = Math.round(width * (SVG_H / SVG_W))
   const timePanelYOffset = -(bannerHeight / scale - 80) / 2
 
+  const margin = styling?.geometricBanner?.margin
+
   const outerStyle: React.CSSProperties = {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: (margin?.top ?? 0) * scale,
+    left: (margin?.left ?? 0) * scale,
+    right: (margin?.right ?? 0) * scale,
     height: bannerHeight,
     overflow: 'hidden',
   }

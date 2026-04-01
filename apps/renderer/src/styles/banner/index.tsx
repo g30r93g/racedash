@@ -70,12 +70,13 @@ export const Banner: React.FC<OverlayProps> = ({
   if (hidden) return null
 
   const bannerHeight = 80 * scale
+  const margin = styling?.banner?.margin
 
   const outerStyle: React.CSSProperties = {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: (margin?.top ?? 0) * scale,
+    left: (margin?.left ?? 0) * scale,
+    right: (margin?.right ?? 0) * scale,
     height: bannerHeight,
     borderBottomLeftRadius: bannerRadius,
     borderBottomRightRadius: bannerRadius,
