@@ -1,5 +1,5 @@
 // apps/desktop/src/renderer/src/screens/wizard/steps/SegmentSetupStep.tsx
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import type { SegmentConfig, TimingSource, SessionMode } from '../../../../types/project'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -208,7 +208,6 @@ function DriverPicker({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const fetchedRef = useRef(false)
 
   const fetchDrivers = useCallback(async () => {
     if (segment.source === 'manual') return
@@ -233,12 +232,12 @@ function DriverPicker({
     }
   }, [segment, selectedDriver, onDriverChange])
 
+  // Fetch on mount — DriverPicker is conditionally rendered (only when hasTimingData),
+  // so it remounts when timing data changes, triggering a fresh fetch.
   useEffect(() => {
-    if (!fetchedRef.current) {
-      fetchedRef.current = true
-      fetchDrivers()
-    }
-  }, [fetchDrivers])
+    fetchDrivers()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (segment.source === 'manual') {
     return (
@@ -345,6 +344,7 @@ export function SegmentSetupStep({
   const [manualLaps, setManualLaps] = useState<ManualLapEntry[]>([])
   const [videoIndices, setVideoIndices] = useState<number[]>([])
   const [videoOffsetFrame, setVideoOffsetFrame] = useState(0)
+  const [hasSetOffset, setHasSetOffset] = useState(false)
   const [driver, setDriver] = useState('')
   const [showLapDialog, setShowLapDialog] = useState(false)
 
@@ -372,6 +372,7 @@ export function SegmentSetupStep({
     setManualLaps([])
     setVideoIndices([])
     setVideoOffsetFrame(0)
+    setHasSetOffset(false)
     setDriver('')
   }
 
@@ -385,6 +386,7 @@ export function SegmentSetupStep({
     setManualLaps(seg.timingData ?? [])
     setVideoIndices(seg.videoIndices ?? [])
     setVideoOffsetFrame(seg.videoOffsetFrame ?? 0)
+    setHasSetOffset(seg.videoOffsetFrame !== undefined)
     setDriver(driverName)
   }
 
@@ -422,7 +424,8 @@ export function SegmentSetupStep({
     label.trim() !== '' &&
     videoIndices.length > 0 &&
     hasTimingData &&
-    driver.trim() !== ''
+    driver.trim() !== '' &&
+    hasSetOffset
 
   function handleSave() {
     if (!canSave) return
@@ -575,7 +578,7 @@ export function SegmentSetupStep({
         <InlineOffsetPicker
           videoPath={firstVideoPath}
           currentFrame={videoOffsetFrame}
-          onFrameChange={setVideoOffsetFrame}
+          onFrameChange={(frame) => { setVideoOffsetFrame(frame); setHasSetOffset(true) }}
         />
       )}
 

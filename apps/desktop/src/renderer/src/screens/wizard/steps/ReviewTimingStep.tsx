@@ -183,8 +183,8 @@ export function ReviewTimingStep({ segments, selectedDrivers }: ReviewTimingStep
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Segment tabs/selector */}
-      {segments.length > 1 && (
+      {/* Segment tabs (<=4) or dropdown (>4) */}
+      {segments.length > 1 && segments.length <= 4 && (
         <div className="flex gap-1 rounded-lg border border-border bg-accent/20 p-1">
           {segments.map((seg, i) => (
             <button
@@ -201,6 +201,19 @@ export function ReviewTimingStep({ segments, selectedDrivers }: ReviewTimingStep
             </button>
           ))}
         </div>
+      )}
+      {segments.length > 4 && (
+        <select
+          value={activeSegmentIndex}
+          onChange={(e) => setActiveSegmentIndex(Number(e.target.value))}
+          className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+        >
+          {segments.map((seg, i) => (
+            <option key={seg.label} value={i}>
+              {seg.label}
+            </option>
+          ))}
+        </select>
       )}
 
       {/* Driver info */}

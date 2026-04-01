@@ -85,8 +85,8 @@ export function NewProjectStep({
             onClick={handleBrowseVideos}
             className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border px-6 py-8 text-center transition-colors hover:border-primary/50 hover:bg-accent/40"
           >
-            <p className="text-sm font-medium text-foreground">Drop video files here</p>
-            <p className="text-xs text-muted-foreground">or click to browse — .mp4, .mov</p>
+            <p className="text-sm font-medium text-foreground">Click to select video files</p>
+            <p className="text-xs text-muted-foreground">.mp4, .mov</p>
           </button>
         ) : (
           <VideoFileList paths={videoPaths} onChange={onVideoPathsChange} />
