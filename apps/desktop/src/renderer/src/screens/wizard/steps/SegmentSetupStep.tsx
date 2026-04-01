@@ -299,7 +299,7 @@ function DriverPicker({
           <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
             Preview laps
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+          <Button variant="outline" size="sm" onClick={() => { onDriverChange(''); setEditing(true) }}>
             Change
           </Button>
         </div>
@@ -589,25 +589,30 @@ export function SegmentSetupStep({
         <OptionGroup options={TIMING_SOURCES} value={source} onValueChange={changeSource} />
       </FormField>
 
-      <SourceFields
-        source={source}
-        url={url}
-        setUrl={setUrl}
-        eventId={eventId}
-        setEventId={setEventId}
-        emailPath={emailPath}
-        setEmailPath={setEmailPath}
-      />
-
-      {source === 'manual' && (
+      {/* Source-specific fields — hidden once a driver is selected (data is locked in) */}
+      {!driver && (
         <>
-          <ManualLapSummary manualLaps={manualLaps} onEdit={() => setShowLapDialog(true)} />
-          <ManualLapDialog
-            open={showLapDialog}
-            onOpenChange={setShowLapDialog}
-            manualLaps={manualLaps}
-            setManualLaps={setManualLaps}
+          <SourceFields
+            source={source}
+            url={url}
+            setUrl={setUrl}
+            eventId={eventId}
+            setEventId={setEventId}
+            emailPath={emailPath}
+            setEmailPath={setEmailPath}
           />
+
+          {source === 'manual' && (
+            <>
+              <ManualLapSummary manualLaps={manualLaps} onEdit={() => setShowLapDialog(true)} />
+              <ManualLapDialog
+                open={showLapDialog}
+                onOpenChange={setShowLapDialog}
+                manualLaps={manualLaps}
+                setManualLaps={setManualLaps}
+              />
+            </>
+          )}
         </>
       )}
 
