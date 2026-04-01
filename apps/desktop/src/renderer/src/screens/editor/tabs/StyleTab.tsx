@@ -659,6 +659,11 @@ export function StyleTab({
           <section>
             <SectionLabel>Top Bar</SectionLabel>
             <div className="rounded-md border border-border bg-accent px-3">
+              <MarginEditor
+                value={styling.esports?.margin}
+                onChange={(margin) => handleColourChange({ esports: { ...styling.esports, margin } })}
+              />
+              <Divider />
               <ColourRow
                 label="Accent bar start"
                 value={esportsAccentBar}
@@ -756,6 +761,11 @@ export function StyleTab({
         <section>
           <SectionLabel>Minimal</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
+            <MarginEditor
+              value={styling.minimal?.margin}
+              onChange={(margin) => handleColourChange({ minimal: { ...styling.minimal, margin } })}
+            />
+            <Divider />
             <ColourRow
               label="Background"
               value={minimalBg}
@@ -788,6 +798,11 @@ export function StyleTab({
         <section>
           <SectionLabel>Modern</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
+            <MarginEditor
+              value={styling.modern?.margin}
+              onChange={(margin) => handleColourChange({ modern: { ...styling.modern, margin } })}
+            />
+            <Divider />
             <ColourRow
               label="Background"
               value={modernBg}

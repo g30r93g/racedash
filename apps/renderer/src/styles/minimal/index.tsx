@@ -100,12 +100,16 @@ export const Minimal: React.FC<OverlayProps> = ({
   const statLabelColor = mn?.statLabelColor ?? '#aaaaaa'
 
   const styles = useMemo(() => {
-    const margin = 20 * scale
-    const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+    const configMargin = styling?.minimal?.margin
+    const mt = (configMargin?.top ?? 20) * scale
+    const mr = (configMargin?.right ?? 20) * scale
+    const mb = (configMargin?.bottom ?? 20) * scale
+    const ml = (configMargin?.left ?? 20) * scale
+    const vPos = boxPosition.startsWith('top') ? { top: mt } : { bottom: mb }
     const hPos = boxPosition.endsWith('left')
-      ? { left: margin }
+      ? { left: ml }
       : boxPosition.endsWith('right')
-        ? { right: margin }
+        ? { right: mr }
         : { left: '50%', transform: 'translateX(-50%)' }
     const padV = 14 * scale
     const padH = 20 * scale

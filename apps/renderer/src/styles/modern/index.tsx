@@ -66,11 +66,16 @@ export const Modern: React.FC<OverlayProps> = ({
     const padX = 20 * scale
     const statGap = 14 * scale
     const dividerMargin = 14 * scale
-    const verticalPos = boxPosition.startsWith('top') ? { top: 0 } : { bottom: 0 }
+    const configMargin = styling?.modern?.margin
+    const mt = (configMargin?.top ?? 0) * scale
+    const mr = (configMargin?.right ?? 0) * scale
+    const mb = (configMargin?.bottom ?? 0) * scale
+    const ml = (configMargin?.left ?? 0) * scale
+    const verticalPos = boxPosition.startsWith('top') ? { top: mt } : { bottom: mb }
     const horizontalPos = boxPosition.endsWith('left')
-      ? { left: 0 }
+      ? { left: ml }
       : boxPosition.endsWith('right')
-        ? { right: 0 }
+        ? { right: mr }
         : { left: '50%', transform: 'translateX(-50%)' }
     return {
       container: {

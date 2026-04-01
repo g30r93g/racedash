@@ -162,6 +162,7 @@ export interface GeometricBannerStyling {
 }
 
 export interface EsportsStyling {
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   accentBarColor?: string // accent bar gradient start  (default: #2563eb)
   accentBarColorEnd?: string // accent bar gradient end    (default: #7c3aed)
   timePanelsBgColor?: string // time panels background     (default: #3f4755)
@@ -172,6 +173,7 @@ export interface EsportsStyling {
 }
 
 export interface MinimalStyling {
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   bgColor?: string // card background          (default: rgba(20,22,28,0.88))
   badgeBgColor?: string // lap number badge bg      (default: white)
   badgeTextColor?: string // lap number badge text    (default: #222222)
@@ -179,6 +181,7 @@ export interface MinimalStyling {
 }
 
 export interface ModernStyling {
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   bgColor?: string // container background   (default: rgba(13,15,20,0.88))
   stripeOpacity?: number // bg stripe opacity      (default: 0.035)
   dividerColor?: string // vertical divider color (default: rgba(255,255,255,0.2))

@@ -142,13 +142,17 @@ export const Esports: React.FC<OverlayProps> = ({
   const sessionBestIconColor = es?.sessionBestIconColor ?? '#7c3aed'
 
   const styles = useMemo(() => {
-    const margin = 20 * sc
+    const configMargin = styling?.esports?.margin
+    const mt = (configMargin?.top ?? 20) * sc
+    const mr = (configMargin?.right ?? 20) * sc
+    const mb = (configMargin?.bottom ?? 20) * sc
+    const ml = (configMargin?.left ?? 20) * sc
     const pad = 16 * sc
-    const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+    const vPos = boxPosition.startsWith('top') ? { top: mt } : { bottom: mb }
     const hPos = boxPosition.endsWith('left')
-      ? { left: margin }
+      ? { left: ml }
       : boxPosition.endsWith('right')
-        ? { right: margin }
+        ? { right: mr }
         : { left: '50%', transform: 'translateX(-50%)' }
     return {
       container: {
