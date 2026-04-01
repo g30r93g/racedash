@@ -3,7 +3,7 @@ import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Switch } from '@/components/ui/switch'
-import type { BoxPosition, ComponentToggle, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
+import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
@@ -124,6 +124,55 @@ function StepperRow({
         >
           +
         </button>
+      </div>
+    </div>
+  )
+}
+
+function MarginEditor({
+  value,
+  onChange,
+}: {
+  value: MarginConfig | undefined
+  onChange: (margin: MarginConfig) => void
+}): React.ReactElement {
+  const t = value?.top ?? 0
+  const r = value?.right ?? 0
+  const b = value?.bottom ?? 0
+  const l = value?.left ?? 0
+  const set = (key: keyof MarginConfig, v: number) => onChange({ ...value, [key]: Math.max(0, v) })
+  const step = 1
+
+  function MarginInput({ label, val, field }: { label: string; val: number; field: keyof MarginConfig }) {
+    return (
+      <div className="flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5">
+        <span className="text-[10px] text-muted-foreground">{label}</span>
+        <button onClick={() => set(field, val - step)} className="text-[10px] text-muted-foreground hover:text-foreground">−</button>
+        <span className="w-5 text-center font-mono text-[10px] text-foreground">{val}</span>
+        <button onClick={() => set(field, val + step)} className="text-[10px] text-muted-foreground hover:text-foreground">+</button>
+        <span className="text-[9px] text-muted-foreground">px</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 py-2">
+      <span className="text-xs text-muted-foreground">Margin</span>
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-20 items-center justify-center rounded border border-border bg-background">
+          <div className="relative flex h-8 w-12 items-center justify-center rounded border-2 border-primary/40 bg-primary/5">
+            <span className="absolute -top-3 font-mono text-[8px] text-muted-foreground">{t}</span>
+            <span className="absolute -bottom-3 font-mono text-[8px] text-muted-foreground">{b}</span>
+            <span className="absolute -left-3.5 font-mono text-[8px] text-muted-foreground">{l}</span>
+            <span className="absolute -right-3.5 font-mono text-[8px] text-muted-foreground">{r}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          <MarginInput label="T" val={t} field="top" />
+          <MarginInput label="B" val={b} field="bottom" />
+          <MarginInput label="L" val={l} field="left" />
+          <MarginInput label="R" val={r} field="right" />
+        </div>
       </div>
     </div>
   )
@@ -479,6 +528,11 @@ export function StyleTab({
               onChange={(v) => handleColourChange({ banner: { ...styling.banner, textColor: v } })}
             />
             <Divider />
+            <MarginEditor
+              value={styling.banner?.margin}
+              onChange={(margin) => handleColourChange({ banner: { ...styling.banner, margin } })}
+            />
+            <Divider />
             <ColourRow
               label="Background"
               value={bannerBg}
@@ -523,6 +577,11 @@ export function StyleTab({
         <section>
           <SectionLabel>Geometric Banner</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
+            <MarginEditor
+              value={styling.geometricBanner?.margin}
+              onChange={(margin) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, margin } })}
+            />
+            <Divider />
             <ColourRow
               label="Position counter"
               value={geoBannerPositionCounter}
