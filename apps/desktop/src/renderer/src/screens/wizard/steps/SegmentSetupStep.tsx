@@ -175,14 +175,11 @@ function VideoSelector({
           <button
             key={path}
             type="button"
-            onClick={() => !assignedTo && toggle(index)}
-            disabled={!!assignedTo}
+            onClick={() => toggle(index)}
             className={`flex items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
               isSelected
                 ? 'border-primary bg-primary/10'
-                : assignedTo
-                  ? 'border-border bg-accent/20 opacity-50'
-                  : 'border-border hover:border-primary/50 hover:bg-accent/40'
+                : 'border-border hover:border-primary/50 hover:bg-accent/40'
             }`}
           >
             <span className="w-4 shrink-0 text-center text-xs text-muted-foreground">{index + 1}</span>
