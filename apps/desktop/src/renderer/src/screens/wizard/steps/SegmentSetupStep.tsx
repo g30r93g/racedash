@@ -9,7 +9,9 @@ import { OptionGroup } from '@/components/ui/option-group'
 import { ManualLapDialog, ManualLapSummary, isValidLapTime, type ManualLapEntry } from '@/components/timing/ManualLapEntry'
 import { InlineOffsetPicker } from '@/components/video/InlineOffsetPicker'
 import { SegmentRow } from '@/components/timing/SegmentRow'
+import { LapTimeVerifyTable } from '@/components/timing/LapTimeVerifyTable'
 import { Spinner } from '@/components/loaders/Spinner'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -210,6 +212,8 @@ function DriverPicker({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [editing, setEditing] = useState(!selectedDriver)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const fetchDrivers = useCallback(async () => {
     if (segment.source === 'manual') return
@@ -226,6 +230,7 @@ function DriverPicker({
       // Auto-select if single driver
       if (entries.length === 1 && !selectedDriver) {
         onDriverChange(entries[0].name)
+        setEditing(false)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
@@ -240,6 +245,11 @@ function DriverPicker({
     fetchDrivers()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function handleSelect(name: string) {
+    onDriverChange(name)
+    setEditing(false)
+  }
 
   if (segment.source === 'manual') {
     return (
@@ -271,15 +281,44 @@ function DriverPicker({
     )
   }
 
-  if (drivers.length === 1) {
+  // Selected driver card — shown when a driver is picked and not editing
+  if (selectedDriver && !editing) {
+    const selectedEntry = drivers.find((d) => d.name === selectedDriver)
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border bg-accent/40 px-3 py-2">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Driver</p>
-        <p className="text-sm text-foreground">{drivers[0].name}</p>
-      </div>
+      <>
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
+          <div className="flex-1 overflow-hidden">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Driver</p>
+            <p className="mt-0.5 truncate text-sm font-medium text-foreground">
+              {selectedDriver}
+              {selectedEntry?.kart && (
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">#{selectedEntry.kart}</span>
+              )}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+            Preview laps
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            Change
+          </Button>
+        </div>
+
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-h-[80vh] overflow-hidden" style={{ minWidth: '480px' }}>
+            <DialogHeader>
+              <DialogTitle>Lap times — {selectedDriver}</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto">
+              <LapTimeVerifyTable segment={segment} selectedDriver={selectedDriver} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 
+  // Driver list — shown when no driver selected or editing
   const filtered = search
     ? drivers.filter(
         (d) =>
@@ -304,7 +343,7 @@ function DriverPicker({
           <button
             key={d.name}
             type="button"
-            onClick={() => onDriverChange(d.name)}
+            onClick={() => handleSelect(d.name)}
             className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent/40 ${
               selectedDriver === d.name ? 'bg-primary/10 text-primary' : 'text-foreground'
             }`}
