@@ -1,8 +1,11 @@
 import { ColourRow } from '@/components/style/ColourRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Slider } from '@/components/ui/slider'
-import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
+import { Switch } from '@/components/ui/switch'
+import type { BoxPosition, ComponentToggle, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
+import { isOverlayComponentEnabled } from '@racedash/core'
 import {
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
@@ -15,7 +18,7 @@ import {
   DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS,
   DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS,
 } from '@racedash/core'
-import { Redo, Undo } from 'lucide-react'
+import { ChevronRight, Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
@@ -28,6 +31,40 @@ const OVERLAY_NAMES: Record<OverlayType, string> = {
   modern: 'Modern',
 }
 
+const BOX_POSITION_OPTIONS: Array<{ value: BoxPosition; label: string }> = [
+  { value: 'bottom-left', label: 'Bottom Left' },
+  { value: 'bottom-center', label: 'Bottom Centre' },
+  { value: 'bottom-right', label: 'Bottom Right' },
+  { value: 'top-left', label: 'Top Left' },
+  { value: 'top-center', label: 'Top Centre' },
+  { value: 'top-right', label: 'Top Right' },
+]
+
+interface ComponentAccordionItemProps {
+  label: string
+  enabled: boolean
+  onToggle: (enabled: boolean) => void
+  children?: React.ReactNode
+}
+
+function ComponentAccordionItem({ label, enabled, onToggle, children }: ComponentAccordionItemProps): React.ReactElement {
+  return (
+    <Collapsible>
+      <div className="flex items-center justify-between py-1.5">
+        <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
+          <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
+          {label}
+        </CollapsibleTrigger>
+        <Switch checked={enabled} onCheckedChange={onToggle} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3" />
+      </div>
+      {children && (
+        <CollapsibleContent>
+          <div className="ml-4 border-l border-border pl-2">{children}</div>
+        </CollapsibleContent>
+      )}
+    </Collapsible>
+  )
+}
 
 export interface StyleState {
   overlayType: OverlayType
@@ -75,6 +112,26 @@ export function StyleTab({
         const { styleState: s, patch: p } = latestRef.current
         onStyleChange({ ...s, styling: { ...s.styling, ...p } })
       }, 400)
+    },
+    [styleState, onStyleChange],
+  )
+
+  const handleComponentToggle = useCallback(
+    (key: keyof OverlayComponentsConfig, enabled: boolean) => {
+      onStyleChange({
+        ...styleState,
+        overlayComponents: {
+          ...styleState.overlayComponents,
+          [key]: enabled ? 'on' : 'off',
+        },
+      })
+    },
+    [styleState, onStyleChange],
+  )
+
+  const handlePositionChange = useCallback(
+    (key: 'boxPosition' | 'qualifyingTablePosition', value: string) => {
+      onStyleChange({ ...styleState, [key]: value !== '' ? value : undefined })
     },
     [styleState, onStyleChange],
   )
@@ -662,6 +719,113 @@ export function StyleTab({
           </div>
         </section>
       )}
+
+      {/* COMPONENTS */}
+      <section>
+        <SectionLabel>Components</SectionLabel>
+        <div className="rounded-md border border-border bg-accent px-3">
+          {/* Overlay position */}
+          <div className="flex items-center justify-between py-1.5">
+            <span className="text-xs text-muted-foreground">Overlay position</span>
+            <select
+              value={styleState.boxPosition ?? ''}
+              onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
+              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="">Default</option>
+              {BOX_POSITION_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Divider />
+
+          {/* Leaderboard */}
+          <ComponentAccordionItem
+            label="Leaderboard"
+            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.leaderboard)}
+            onToggle={(v) => handleComponentToggle('leaderboard', v)}
+          >
+            <ColourRow
+              label="Row background"
+              value={lbBg}
+              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, bgColor: v } })}
+            />
+            <Divider />
+            <ColourRow
+              label="Driver row"
+              value={lbOurRowBg}
+              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, ourRowBgColor: v } })}
+            />
+            <Divider />
+            <ColourRow
+              label="Driver name"
+              value={lbText}
+              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, textColor: v } })}
+            />
+            <Divider />
+            <ColourRow
+              label="Separator"
+              value={lbSeparator}
+              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, separatorColor: v } })}
+            />
+          </ComponentAccordionItem>
+          <Divider />
+
+          {/* Delta badge */}
+          <ComponentAccordionItem
+            label="Delta badge"
+            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.deltaBadge)}
+            onToggle={(v) => handleComponentToggle('deltaBadge', v)}
+          >
+            <ColourRow
+              label="Faster colour"
+              value={styling.deltaBadge?.fasterColor ?? '#00FF87'}
+              onChange={(v) => handleColourChange({ deltaBadge: { ...styling.deltaBadge, fasterColor: v } })}
+            />
+            <Divider />
+            <ColourRow
+              label="Slower colour"
+              value={styling.deltaBadge?.slowerColor ?? '#FF3B30'}
+              onChange={(v) => handleColourChange({ deltaBadge: { ...styling.deltaBadge, slowerColor: v } })}
+            />
+          </ComponentAccordionItem>
+          <Divider />
+
+          {/* Position counter */}
+          <ComponentAccordionItem
+            label="Position counter"
+            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.positionCounter)}
+            onToggle={(v) => handleComponentToggle('positionCounter', v)}
+          />
+          <Divider />
+
+          {/* Lap counter */}
+          <ComponentAccordionItem
+            label="Lap counter"
+            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.lapCounter)}
+            onToggle={(v) => handleComponentToggle('lapCounter', v)}
+          />
+          <Divider />
+
+          {/* Lap timer */}
+          <ComponentAccordionItem
+            label="Lap timer"
+            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.lapTimer)}
+            onToggle={(v) => handleComponentToggle('lapTimer', v)}
+          />
+          <Divider />
+
+          {/* Lap list */}
+          <ComponentAccordionItem
+            label="Lap list"
+            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.lapList)}
+            onToggle={(v) => handleComponentToggle('lapList', v)}
+          />
+        </div>
+      </section>
 
       <OverlayPickerModal
         open={showOverlayPicker}
