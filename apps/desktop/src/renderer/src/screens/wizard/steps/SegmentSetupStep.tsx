@@ -152,7 +152,7 @@ function VideoSelector({
   videoPaths: string[]
   selectedIndices: number[]
   onChange: (indices: number[]) => void
-  assignedByOtherSegments: Record<number, string>
+  assignedByOtherSegments: Record<number, string[]>
 }) {
   const selectedSet = new Set(selectedIndices)
 
@@ -170,7 +170,7 @@ function VideoSelector({
       {videoPaths.map((path, index) => {
         const name = path.split(/[\\/]/).pop() ?? path
         const isSelected = selectedSet.has(index)
-        const assignedTo = assignedByOtherSegments[index]
+        const assignedLabels = assignedByOtherSegments[index] ?? []
         return (
           <button
             key={path}
@@ -184,9 +184,11 @@ function VideoSelector({
           >
             <span className="w-4 shrink-0 text-center text-xs text-muted-foreground">{index + 1}</span>
             <span className="flex-1 truncate font-mono text-xs text-foreground">{name}</span>
-            {assignedTo && (
+            {assignedLabels.length > 0 && (
               <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                {assignedTo}
+                {assignedLabels.length <= 2
+                  ? assignedLabels.join(', ')
+                  : `${assignedLabels[0]} +${assignedLabels.length - 1}`}
               </span>
             )}
           </button>
@@ -444,11 +446,12 @@ export function SegmentSetupStep({
   }
 
   // Build a map of which video indices are assigned to other segments (not the one being edited)
-  const assignedByOtherSegments: Record<number, string> = {}
+  const assignedByOtherSegments: Record<number, string[]> = {}
   segments.forEach((seg, i) => {
     if (formMode?.mode === 'edit' && formMode.index === i) return
     for (const vi of seg.videoIndices ?? []) {
-      assignedByOtherSegments[vi] = seg.label
+      if (!assignedByOtherSegments[vi]) assignedByOtherSegments[vi] = []
+      assignedByOtherSegments[vi].push(seg.label)
     }
   })
 
