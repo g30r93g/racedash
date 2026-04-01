@@ -217,10 +217,10 @@ function DriverPicker({
     setError(null)
     try {
       const result = await window.racedash.previewDrivers([segment])
-      const segResult = result.find((r) => r.label === segment.label) ?? result[0]
+      const segResult = result.segments.find((r) => r.config.label === segment.label) ?? result.segments[0]
       const entries: DriverEntry[] = (segResult?.drivers ?? []).map((d) => ({
         name: d.name,
-        kart: d.kartNumber,
+        kart: d.kart,
       }))
       setDrivers(entries)
       // Auto-select if single driver
