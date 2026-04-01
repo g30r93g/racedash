@@ -11,6 +11,7 @@ import { useLabelOpacity } from '../../useLabelOpacity'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { useCardOverlayState } from '../../useCardOverlayState'
 
 const EMPTY_TIME = '—:--.---'
@@ -115,6 +116,7 @@ export const Esports: React.FC<OverlayProps> = ({
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
 
   const raceStart = session.timestamps[0].ytSeconds
   const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
@@ -122,7 +124,7 @@ export const Esports: React.FC<OverlayProps> = ({
   const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
   const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { currentLap, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+  const { currentLap, currentIdx, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
     segment,
     isEnd,
     currentTime,
@@ -276,6 +278,7 @@ export const Esports: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={sc} styling={styling?.lapList} />}
       {showLabel && <SegmentLabel label={label!} scale={sc} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )

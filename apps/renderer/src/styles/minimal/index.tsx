@@ -9,6 +9,7 @@ import { useActiveSegment } from '../../activeSegment'
 import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { fontFamily } from '../../Root'
 import { SegmentLabel } from '../../SegmentLabel'
 import { useCardOverlayState } from '../../useCardOverlayState'
@@ -75,6 +76,7 @@ export const Minimal: React.FC<OverlayProps> = ({
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
 
   const raceStart = session.timestamps[0].ytSeconds
   const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
@@ -82,7 +84,7 @@ export const Minimal: React.FC<OverlayProps> = ({
   const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
   const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { currentLap, effectiveTime: _effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
+  const { currentLap, currentIdx, effectiveTime: _effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
     useCardOverlayState({
       segment,
       isEnd,
@@ -198,6 +200,7 @@ export const Minimal: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
       {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )

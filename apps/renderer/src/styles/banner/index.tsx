@@ -10,6 +10,7 @@ import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
 import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapElapsed } from '../../timing'
 import { BannerBackground } from './BannerBackground'
@@ -47,6 +48,7 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
 
   const accent = styling?.banner?.accentColor ?? DEFAULT_ACCENT
   const text = styling?.banner?.textColor ?? 'white'
@@ -193,6 +195,7 @@ export const Banner: React.FC<OverlayProps> = ({
             raceLapSnapshots={segment.raceLapSnapshots}
           />
         )}
+        {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
         {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
       </AbsoluteFill>
     )
@@ -247,6 +250,7 @@ export const Banner: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
       {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )

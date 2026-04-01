@@ -2,12 +2,14 @@ import React from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_LABEL_WINDOW_SECONDS,
+  isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
 import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapElapsed } from '../../timing'
 import { GeometricBannerBackground } from './GeometricBannerBackground'
@@ -25,6 +27,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   startingGridPosition,
   styling,
   labelWindowSeconds,
+  overlayComponents,
 }) => {
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
@@ -42,6 +45,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
   const { currentLap, currentIdx, raceEnd, livePosition, lapColors } = useBannerOverlayState({ segment, currentTime })
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
 
   const gb = styling?.geometricBanner
   const infoSegments = resolveInfoSegments({
@@ -190,6 +194,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
             />
           </div>
         </div>
+        {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
         {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
       </AbsoluteFill>
     )
@@ -226,6 +231,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
           />
         </div>
       </div>
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
       {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
