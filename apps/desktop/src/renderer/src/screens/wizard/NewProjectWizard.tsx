@@ -92,7 +92,7 @@ export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps
         submitLabel="Create Project"
         isSubmitting={isSubmitting}
         hideButtonBar={segmentFormActive}
-        title=""
+        title="New Project"
       >
         {step === 0 && (
           <NewProjectStep
