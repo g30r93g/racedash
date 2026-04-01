@@ -1,5 +1,11 @@
 import { useMemo } from 'react'
-import { DEFAULT_LABEL_WINDOW_SECONDS, type SessionSegment } from '@racedash/core'
+import {
+  DEFAULT_LABEL_WINDOW_SECONDS,
+  DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS,
+  DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS,
+  type SegmentLabelStyling,
+  type SessionSegment,
+} from '@racedash/core'
 
 export interface ActiveSegmentResult {
   segment: SessionSegment
@@ -24,13 +30,17 @@ export interface ActiveSegmentResult {
  *
  * label: the label string of the first segment whose label window covers currentTime, or null.
  * Label window for segment i:
- *   labelStart = max(segOffset - window, prevSegEnd ?? 0)   — clamped so it never overlaps prior session
- *   labelEnd   = segOffset + window
+ *   labelStart = max(segOffset - preRoll, prevSegEnd ?? 0)   — clamped so it never overlaps prior session
+ *   labelEnd   = segOffset + postRoll
+ *
+ * When labelStyling is provided, preRoll/postRoll are read from it.
+ * Falls back to labelWindowSeconds for both when labelStyling is undefined (backward compat).
  */
 export function resolveActiveSegment(
   segments: SessionSegment[],
   currentTime: number,
   labelWindowSeconds: number,
+  labelStyling?: SegmentLabelStyling,
 ): ActiveSegmentResult {
   // Find active segment index
   let activeIdx = 0
@@ -45,6 +55,8 @@ export function resolveActiveSegment(
   const isEnd = currentTime >= segEnd
 
   // Compute label
+  const labelPreRoll = labelStyling?.preRollSeconds ?? DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS
+  const labelPostRoll = labelStyling?.postRollSeconds ?? DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS
   let label: string | null = null
   let activeLabelStart: number | null = null
   let activeLabelEnd: number | null = null
@@ -58,8 +70,8 @@ export function resolveActiveSegment(
       const prevLast = prev.session.timestamps[prev.session.timestamps.length - 1]
       prevEnd = prevLast.ytSeconds + prevLast.lap.lapTime
     }
-    const lStart = Math.max(segOffset - labelWindowSeconds, prevEnd)
-    const lEnd = segOffset + labelWindowSeconds
+    const lStart = Math.max(segOffset - labelPreRoll, prevEnd)
+    const lEnd = segOffset + labelPostRoll
     if (currentTime >= lStart && currentTime <= lEnd) {
       label = s.label
       activeLabelStart = lStart
@@ -76,9 +88,10 @@ export function useActiveSegment(
   segments: SessionSegment[],
   currentTime: number,
   labelWindowSeconds = DEFAULT_LABEL_WINDOW_SECONDS,
+  labelStyling?: SegmentLabelStyling,
 ): ActiveSegmentResult {
   return useMemo(
-    () => resolveActiveSegment(segments, currentTime, labelWindowSeconds),
-    [segments, currentTime, labelWindowSeconds],
+    () => resolveActiveSegment(segments, currentTime, labelWindowSeconds, labelStyling),
+    [segments, currentTime, labelWindowSeconds, labelStyling],
   )
 }

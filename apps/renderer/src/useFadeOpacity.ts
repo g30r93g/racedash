@@ -3,6 +3,7 @@ import {
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_OUT_DURATION_SECONDS,
+  DEFAULT_FADE_POST_ROLL_SECONDS,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   type FadeStyling,
 } from '@racedash/core'
@@ -34,9 +35,12 @@ export function useFadeOpacity(
 ): FadeResult {
   const enabled = fade?.enabled ?? DEFAULT_FADE_ENABLED
   const preRoll = fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
+  const postRoll = fade?.postRollSeconds ?? DEFAULT_FADE_POST_ROLL_SECONDS
   const fadeInDuration = fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
   const fadeOutDuration = fade?.fadeOutDurationSeconds ?? DEFAULT_FADE_OUT_DURATION_SECONDS
   const showFrom = raceStart - preRoll
+  // Fade-out begins after post-roll hold period
+  const fadeOutStart = segEnd + postRoll
 
   // Before pre-roll and not past segment end: completely hidden
   if (currentTime < showFrom && !isEnd) {
@@ -44,8 +48,8 @@ export function useFadeOpacity(
   }
 
   if (!enabled) {
-    // After fade-out window when past segment end: hidden
-    if (isEnd && currentTime > segEnd) {
+    // After post-roll when past segment end: hidden
+    if (isEnd && currentTime > fadeOutStart) {
       return { opacity: 0, showFrom, hidden: true }
     }
     return { opacity: 1, showFrom, hidden: false }
@@ -57,9 +61,9 @@ export function useFadeOpacity(
     extrapolateRight: 'clamp',
   })
 
-  // Fade-out: ramp 1→0 over fadeOutDuration from segEnd
-  if (isEnd) {
-    const fadeOut = interpolate(currentTime - segEnd, [0, fadeOutDuration], [1, 0], {
+  // Fade-out: ramp 1→0 over fadeOutDuration, starting after post-roll hold
+  if (isEnd && currentTime >= fadeOutStart) {
+    const fadeOut = interpolate(currentTime - fadeOutStart, [0, fadeOutDuration], [1, 0], {
       extrapolateLeft: 'clamp',
       extrapolateRight: 'clamp',
     })

@@ -70,6 +70,7 @@ export const Minimal: React.FC<OverlayProps> = ({
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+    styling?.segmentLabel,
   )
   const { session, mode } = segment
 
