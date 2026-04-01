@@ -1,9 +1,9 @@
-import React from 'react'
-import { Player, type PlayerRef } from '@remotion/player'
-import type { OverlayProps } from '@racedash/core'
 import type { OverlayType } from '@/screens/editor/tabs/OverlayPickerModal'
+import type { OverlayProps } from '@racedash/core'
+import { Player, type PlayerRef } from '@remotion/player'
 import { registry } from '@renderer/registry'
 import { Play } from 'lucide-react'
+import React from 'react'
 
 interface VideoPlayerProps {
   videoPath?: string
@@ -137,6 +137,7 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
               background: 'transparent',
             }}
             renderLoading={() => null}
+            acknowledgeRemotionLicense
           />
         </div>
       )}
