@@ -63,12 +63,14 @@ export interface FadeStyling {
   durationSeconds?: number // fade-in duration in seconds             (default: 1)
   fadeOutDurationSeconds?: number // fade-out duration in seconds            (default: 1)
   preRollSeconds?: number // seconds before first timestamp to show  (default: 3)
+  postRollSeconds?: number // seconds after last timestamp to hold    (default: 2)
 }
 
 export const DEFAULT_FADE_ENABLED = true
 export const DEFAULT_FADE_DURATION_SECONDS = 1
 export const DEFAULT_FADE_OUT_DURATION_SECONDS = 1
 export const DEFAULT_FADE_PRE_ROLL_SECONDS = 3
+export const DEFAULT_FADE_POST_ROLL_SECONDS = 2
 export const DEFAULT_LABEL_WINDOW_SECONDS = 2
 
 export interface SegmentLabelStyling {
@@ -78,11 +80,22 @@ export interface SegmentLabelStyling {
   borderRadius?: number // in reference px                         (default: 8)
   fadeInDurationSeconds?: number // label fade-in duration in seconds       (default: 0.5)
   fadeOutDurationSeconds?: number // label fade-out duration in seconds      (default: 0.5)
+  preRollSeconds?: number // seconds before segment start to show    (default: 2)
+  postRollSeconds?: number // seconds after segment start to hold     (default: 2)
 }
 
 export const DEFAULT_SEGMENT_LABEL_ENABLED = true
 export const DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS = 0.5
 export const DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS = 0.5
+export const DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS = 2
+export const DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS = 2
+
+export interface MarginConfig {
+  top?: number // top margin in reference px     (default: 0)
+  right?: number // right margin in reference px   (default: 0)
+  bottom?: number // bottom margin in reference px  (default: 0)
+  left?: number // left margin in reference px    (default: 0)
+}
 
 export interface DeltaBadgeStyling {
   fasterColor?: string // color when lap is faster  (default: #00FF87)
@@ -105,7 +118,10 @@ export interface LeaderboardStyling {
 }
 
 export interface BannerStyling {
-  bgColor?: string // banner background color        (default: inherits OverlayStyling.accentColor)
+  accentColor?: string // accent color for P1, borders   (default: #3DD73D)
+  textColor?: string // driver name text color         (default: white)
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
+  bgColor?: string // banner background color        (default: inherits accentColor)
   bgOpacity?: number // banner background opacity      (default: 0.82)
   borderRadius?: number // outer border radius in ref px  (default: 10)
   timerTextColor?: string // lap timer text color           (default: white)
@@ -119,6 +135,9 @@ export interface BannerStyling {
 }
 
 export interface GeometricBannerStyling {
+  accentColor?: string // accent color                 (default: #3DD73D)
+  textColor?: string // text colour                  (default: white)
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   positionCounterColor?: string // position-counter fill        (default: #0bc770)
   lastLapColor?: string // last-lap fill                (default: #16aa9c)
   lapTimerNeutralColor?: string // lap-timer neutral fill       (default: #0e0ab8)
@@ -158,17 +177,22 @@ export interface ModernStyling {
   statLabelColor?: string // stat label color       (default: rgba(255,255,255,0.5))
 }
 
+export type ComponentToggle = 'off' | 'on' | boolean
+
 export interface OverlayComponentsConfig {
-  leaderboard?: 'off' | 'on' | boolean
+  leaderboard?: ComponentToggle
+  positionCounter?: ComponentToggle
+  lapCounter?: ComponentToggle
+  lapTimer?: ComponentToggle
+  deltaBadge?: ComponentToggle
+  lapList?: ComponentToggle
 }
 
-export function isOverlayComponentEnabled(value: OverlayComponentsConfig['leaderboard'] | undefined): boolean {
+export function isOverlayComponentEnabled(value: ComponentToggle | undefined): boolean {
   return value !== 'off' && value !== false
 }
 
 export interface OverlayStyling {
-  accentColor?: string // global accent      (default: #3DD73D)
-  textColor?: string // global text color  (default: white)
   fade?: FadeStyling
   segmentLabel?: SegmentLabelStyling
   deltaBadge?: DeltaBadgeStyling

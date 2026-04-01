@@ -63,7 +63,7 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
     red: gb?.lapColorRed ?? 'rgba(185,28,28,0.95)',
   }
 
-  const text = styling?.textColor ?? 'white'
+  const text = styling?.geometricBanner?.textColor ?? 'white'
   const bgOpacity = gb?.opacity ?? 1
 
   const raceStart = session.timestamps[0].ytSeconds

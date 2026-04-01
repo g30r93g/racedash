@@ -47,8 +47,8 @@ export const Banner: React.FC<OverlayProps> = ({
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
 
-  const accent = styling?.accentColor ?? DEFAULT_ACCENT
-  const text = styling?.textColor ?? 'white'
+  const accent = styling?.banner?.accentColor ?? DEFAULT_ACCENT
+  const text = styling?.banner?.textColor ?? 'white'
   const bannerBg = styling?.banner?.bgColor ?? accent
   const bannerOpacity = styling?.banner?.bgOpacity ?? 0.82
   const bannerRadius = (styling?.banner?.borderRadius ?? 10) * scale

@@ -178,11 +178,9 @@ export function StyleTab({
   const segmentLabelFadeIn = styling.segmentLabel?.fadeInDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS
   const segmentLabelFadeOut = styling.segmentLabel?.fadeOutDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS
 
-  // Global
-  const accent = styling.accentColor ?? '#3DD73D'
-  const textColor = styling.textColor ?? '#ffffff'
-
   // Banner
+  const bannerAccent = styling.banner?.accentColor ?? '#3DD73D'
+  const bannerText = styling.banner?.textColor ?? '#ffffff'
   const bannerBg = styling.banner?.bgColor ?? '#3DD73D'
   const bannerTimerText = styling.banner?.timerTextColor ?? '#ffffff'
   const bannerTimerBg = styling.banner?.timerBgColor ?? '#111111'
@@ -438,21 +436,23 @@ export function StyleTab({
         </div>
       </section>
 
-      {/* GLOBAL COLOURS */}
-      <section>
-        <SectionLabel>Global</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          <ColourRow label="Accent" value={accent} onChange={(v) => handleColourChange({ accentColor: v })} />
-          <Divider />
-          <ColourRow label="Text" value={textColor} onChange={(v) => handleColourChange({ textColor: v })} />
-        </div>
-      </section>
-
       {/* BANNER */}
       {overlayType === 'banner' && (
         <section>
           <SectionLabel>Banner</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
+            <ColourRow
+              label="Accent"
+              value={bannerAccent}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, accentColor: v } })}
+            />
+            <Divider />
+            <ColourRow
+              label="Text"
+              value={bannerText}
+              onChange={(v) => handleColourChange({ banner: { ...styling.banner, textColor: v } })}
+            />
+            <Divider />
             <ColourRow
               label="Background"
               value={bannerBg}
