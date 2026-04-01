@@ -92,22 +92,6 @@ export function InlineOffsetPicker({
         currentFrame={localFrame}
         onSeek={handleLocalSeek}
       />
-      {/* Global slider across all files */}
-      {videoPaths.length > 1 && (
-        <div className="flex flex-col gap-1">
-          <input
-            type="range"
-            min={0}
-            max={totalFrames > 0 ? totalFrames - 1 : 1000}
-            value={currentFrame}
-            onChange={(e) => onFrameChange(Number(e.target.value))}
-            className="w-full accent-primary"
-          />
-          <p className="text-center text-[10px] text-muted-foreground">
-            Global timeline — drag to scrub across all files
-          </p>
-        </div>
-      )}
     </div>
   )
 }
