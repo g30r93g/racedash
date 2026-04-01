@@ -84,12 +84,16 @@ export function FrameScrubber({
     }
   }, [resolved.fileIndex, activeFileIndex])
 
-  // Seek whenever currentFrame or fps changes — but only once video can seek
+  // Seek whenever currentFrame or fps changes — but only once video can seek.
+  // Add half a frame duration to the seek time to land in the middle of the
+  // target frame rather than on its boundary. Without this, the video element
+  // may snap to the previous decoded frame for non-integer fps (e.g. 59.94).
+  const halfFrameSeconds = 0.5 / (fps || 30)
   useEffect(() => {
     const video = videoRef.current
     if (!video || video.readyState < 1) return
-    video.currentTime = resolved.localTime
-  }, [currentFrame, fps, resolved.localTime])
+    video.currentTime = resolved.localTime + halfFrameSeconds
+  }, [currentFrame, fps, resolved.localTime, halfFrameSeconds])
 
   const clamp = useCallback(
     (frame: number) => Math.max(0, Math.min(frame, totalFrames > 0 ? totalFrames - 1 : frame)),
@@ -131,7 +135,7 @@ export function FrameScrubber({
               const frames = Math.floor(video.duration * fps)
               onMetadataLoaded?.(frames)
             }
-            video.currentTime = resolved.localTime
+            video.currentTime = resolved.localTime + halfFrameSeconds
           }}
           onCanPlay={() => setVideoReady(true)}
           onError={handleVideoError}

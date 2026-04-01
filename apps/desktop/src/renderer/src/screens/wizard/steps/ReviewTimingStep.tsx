@@ -88,6 +88,8 @@ function LapFramePreview({
   const targetPath = resolved?.path ?? segmentVideoPaths[0] ?? ''
   const targetSrc = targetPath.startsWith('/') ? `media://${targetPath}` : targetPath
   const targetLocalTime = resolved?.localTime ?? lapStartSeconds
+  // Seek to the middle of the target frame to avoid boundary snapping
+  const halfFrame = 0.5 / fps
 
   // Switch video src when the active file changes
   useEffect(() => {
@@ -101,8 +103,8 @@ function LapFramePreview({
   useEffect(() => {
     const video = videoRef.current
     if (!video || video.readyState < 1) return
-    video.currentTime = targetLocalTime
-  }, [targetLocalTime, videoReady])
+    video.currentTime = targetLocalTime + halfFrame
+  }, [targetLocalTime, halfFrame, videoReady])
 
   if (segmentVideoPaths.length === 0) return null
 
@@ -126,7 +128,7 @@ function LapFramePreview({
         onLoadedMetadata={() => {
           const video = videoRef.current
           if (!video) return
-          video.currentTime = targetLocalTime
+          video.currentTime = targetLocalTime + halfFrame
         }}
         onCanPlay={() => setVideoReady(true)}
       />
