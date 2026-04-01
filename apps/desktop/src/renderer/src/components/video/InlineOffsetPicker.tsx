@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo } from 'react'
-import { FrameScrubber } from './FrameScrubber'
-import { useMultiVideo, resolveFileAtTime, type FileEntry } from '@/hooks/useMultiVideo'
+import React, { useMemo } from 'react'
+import { FrameScrubber, type FrameScrubberFile } from './FrameScrubber'
+import { useMultiVideo } from '@/hooks/useMultiVideo'
 import { Spinner } from '@/components/loaders/Spinner'
 
 interface InlineOffsetPickerProps {
@@ -19,7 +19,7 @@ export function InlineOffsetPicker({
 }: InlineOffsetPickerProps): React.ReactElement {
   const multiInfo = useMultiVideo(videoPaths)
 
-  const files: FileEntry[] = useMemo(
+  const files: FrameScrubberFile[] = useMemo(
     () =>
       multiInfo?.files.map((f) => ({
         path: f.path,
@@ -31,26 +31,6 @@ export function InlineOffsetPicker({
 
   const fps = multiInfo?.fps ?? 30
   const totalFrames = multiInfo ? Math.round(multiInfo.totalDurationSeconds * fps) : 0
-
-  // Map virtual frame → file + local time, then to a local frame for FrameScrubber
-  const globalTimeSeconds = currentFrame / fps
-  const resolved = files.length > 0 ? resolveFileAtTime(files, globalTimeSeconds) : null
-  const activeVideoPath = resolved?.path ?? videoPaths[0] ?? ''
-  const localFrame = resolved ? Math.round(resolved.localTime * fps) : currentFrame
-
-  // Map local FrameScrubber seek back to virtual frame
-  const handleLocalSeek = useCallback(
-    (localFr: number) => {
-      if (!resolved || files.length === 0) {
-        onFrameChange(localFr)
-        return
-      }
-      const activeFile = files[resolved.fileIndex]
-      const globalSeconds = activeFile.startSeconds + localFr / fps
-      onFrameChange(Math.round(globalSeconds * fps))
-    },
-    [resolved, files, fps, onFrameChange],
-  )
 
   if (videoPaths.length === 0) {
     return (
@@ -69,28 +49,17 @@ export function InlineOffsetPicker({
     )
   }
 
-  // For FrameScrubber we need the local file's total frames
-  const activeFileInfo = files[resolved?.fileIndex ?? 0]
-  const localTotalFrames = activeFileInfo ? Math.round(activeFileInfo.durationSeconds * fps) : totalFrames
-
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          Video offset — scrub to the moment the first lap begins
-        </p>
-        {videoPaths.length > 1 && (
-          <span className="text-[10px] text-muted-foreground">
-            File {(resolved?.fileIndex ?? 0) + 1} of {videoPaths.length} · Frame {currentFrame} / {totalFrames}
-          </span>
-        )}
-      </div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Video offset — scrub to the moment the first lap begins
+      </p>
       <FrameScrubber
-        videoPath={activeVideoPath}
+        files={files}
         fps={fps}
-        totalFrames={localTotalFrames}
-        currentFrame={localFrame}
-        onSeek={handleLocalSeek}
+        totalFrames={totalFrames}
+        currentFrame={currentFrame}
+        onSeek={onFrameChange}
       />
     </div>
   )
