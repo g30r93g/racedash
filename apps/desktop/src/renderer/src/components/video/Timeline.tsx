@@ -1,1 +1,1 @@
-export { Timeline } from './timeline/Timeline'
+export { Timeline, type TimelineHandle } from './timeline/Timeline'

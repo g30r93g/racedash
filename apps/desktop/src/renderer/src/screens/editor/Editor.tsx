@@ -3,7 +3,7 @@ import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
-import { Timeline } from '@/components/video/Timeline'
+import { Timeline, type TimelineHandle } from '@/components/video/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
@@ -74,6 +74,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       }
     : null
 
+  const timelineRef = useRef<TimelineHandle>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
@@ -251,7 +252,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
-  const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
+  const handleTimeUpdate = useCallback((t: number) => {
+    setCurrentTime(t)
+    timelineRef.current?.seek(t)
+  }, [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
   const togglePlayPause = useCallback(() => {
     if (playing) {
@@ -316,10 +320,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           overlayProps={overlayProps}
         />
         <Timeline
+          ref={timelineRef}
           project={projectState}
           videoInfo={videoInfo}
           multiVideoInfo={multiVideoInfo}
-          currentTime={currentTime}
           timestampsResult={timestampsResult}
           overrides={overrides}
           onSeek={handleSeek}

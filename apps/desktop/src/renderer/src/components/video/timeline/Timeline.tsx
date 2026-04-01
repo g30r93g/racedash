@@ -1,56 +1,67 @@
 import { Button } from '@/components/ui/button'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { MultiVideoInfo, TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { Override } from '../../../screens/editor/tabs/TimingTab'
-import { ZOOM_LEVELS, TRACK_LABELS, TRACK_PADDING_PX } from './types'
+import { ZOOM_LEVELS, TRACK_LABELS, TRACK_PADDING_PX, formatRulerLabel, pct } from './types'
 import { TimelineTracks } from './TimelineTracks'
-import { Playhead } from './Playhead'
+
+export interface TimelineHandle {
+  /** Update playhead position without triggering a React re-render. */
+  seek: (time: number) => void
+}
 
 export interface TimelineProps {
   project: ProjectData
   videoInfo: VideoInfo | null
   multiVideoInfo?: MultiVideoInfo | null
-  currentTime?: number
   timestampsResult?: TimestampsResult | null
   overrides?: Override[]
   onSeek?: (time: number) => void
 }
 
-export function Timeline({
-  project,
-  videoInfo,
-  multiVideoInfo,
-  currentTime = 0,
-  timestampsResult,
-  overrides = [],
-  onSeek,
-}: TimelineProps): React.ReactElement {
+export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function Timeline(
+  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], onSeek },
+  ref,
+) {
   const duration = videoInfo?.durationSeconds ?? 30
   const fps = videoInfo?.fps ?? 60
   const [zoomIdx, setZoomIdx] = useState(0)
   const zoom = ZOOM_LEVELS[zoomIdx]
   const scrollRef = useRef<HTMLDivElement>(null)
+  const playheadRef = useRef<HTMLDivElement>(null)
+  const currentTimeRef = useRef(0)
 
-  // Pixel position of the playhead within the scrollable area, accounting for padding
-  const playheadPx = (el: HTMLDivElement) =>
-    TRACK_PADDING_PX + (currentTime / duration) * (el.scrollWidth - 2 * TRACK_PADDING_PX)
+  const updatePlayhead = useCallback(
+    (time: number) => {
+      currentTimeRef.current = time
+      const head = playheadRef.current
+      if (head) {
+        head.style.left = pct(time, duration)
+        const label = head.querySelector('[data-playhead-label]') as HTMLSpanElement | null
+        if (label) label.textContent = formatRulerLabel(time)
+      }
+      const el = scrollRef.current
+      if (el) {
+        const px = TRACK_PADDING_PX + (time / duration) * (el.scrollWidth - 2 * TRACK_PADDING_PX)
+        el.scrollLeft = px - el.clientWidth * 0.3
+      }
+    },
+    [duration],
+  )
 
-  // Keep playhead at 30% from the left while playing
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollLeft = playheadPx(el) - el.clientWidth * 0.3
-  }, [currentTime, duration]) // eslint-disable-line react-hooks/exhaustive-deps -- playheadPx closes over currentTime/duration already in deps
+  useImperativeHandle(ref, () => ({ seek: updatePlayhead }), [updatePlayhead])
 
-  // When zoom changes, keep currentTime centered
+  // When zoom changes, keep playhead centered
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
     requestAnimationFrame(() => {
-      el.scrollLeft = playheadPx(el) - el.clientWidth / 2
+      const px =
+        TRACK_PADDING_PX + (currentTimeRef.current / duration) * (el.scrollWidth - 2 * TRACK_PADDING_PX)
+      el.scrollLeft = px - el.clientWidth / 2
     })
-  }, [zoom]) // eslint-disable-line react-hooks/exhaustive-deps -- intentionally excludes currentTime/duration, only re-centre on zoom change
+  }, [zoom, duration])
 
   return (
     <div className="flex h-45 shrink-0 flex-col border-t border-border bg-background" style={{ fontSize: 11 }}>
@@ -96,7 +107,6 @@ export function Timeline({
 
         {/* Horizontally scrollable track content */}
         <div ref={scrollRef} className="relative flex-1 overflow-x-auto overflow-y-hidden">
-          {/* Wide content — zoom * 100% of the scroll viewport, padded on each end */}
           <TimelineTracks
             project={project}
             duration={duration}
@@ -107,10 +117,22 @@ export function Timeline({
             overrides={overrides}
             onSeek={onSeek}
           >
-            <Playhead currentTime={currentTime} duration={duration} />
+            {/* Playhead — positioned imperatively via ref, zero React re-renders */}
+            <div
+              ref={playheadRef}
+              className="pointer-events-none absolute inset-y-0 z-10 -translate-x-1/2 flex flex-col items-center"
+              style={{ left: '0%' }}
+            >
+              <div className="rounded bg-primary px-1 py-px">
+                <span data-playhead-label className="font-mono text-[10px] text-primary-foreground">
+                  {formatRulerLabel(0)}
+                </span>
+              </div>
+              <div className="w-px flex-1 bg-primary" />
+            </div>
           </TimelineTracks>
         </div>
       </div>
     </div>
   )
-}
+})
