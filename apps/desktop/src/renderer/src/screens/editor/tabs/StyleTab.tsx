@@ -116,7 +116,7 @@ function StepperRow({
           −
         </button>
         <span className="w-10 text-center font-mono text-xs tabular-nums text-foreground">
-          {value.toFixed(1)}{suffix}
+          {value.toFixed(2)}{suffix}
         </span>
         <button
           onClick={() => onChange(+(value + step).toFixed(2))}
