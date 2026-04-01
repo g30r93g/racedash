@@ -7,10 +7,13 @@ import {
   DEFAULT_FADE_DURATION_SECONDS,
   DEFAULT_FADE_ENABLED,
   DEFAULT_FADE_OUT_DURATION_SECONDS,
+  DEFAULT_FADE_POST_ROLL_SECONDS,
   DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_SEGMENT_LABEL_ENABLED,
   DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS,
   DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS,
+  DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS,
+  DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS,
 } from '@racedash/core'
 import { Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
@@ -25,27 +28,6 @@ const OVERLAY_NAMES: Record<OverlayType, string> = {
   modern: 'Modern',
 }
 
-const BOX_POSITION_OPTIONS: Array<{ value: BoxPosition; label: string }> = [
-  { value: 'bottom-left', label: 'Bottom Left' },
-  { value: 'bottom-center', label: 'Bottom Centre' },
-  { value: 'bottom-right', label: 'Bottom Right' },
-  { value: 'top-left', label: 'Top Left' },
-  { value: 'top-center', label: 'Top Centre' },
-  { value: 'top-right', label: 'Top Right' },
-]
-
-const CORNER_POSITION_OPTIONS: Array<{ value: CornerPosition; label: string }> = [
-  { value: 'bottom-left', label: 'Bottom Left' },
-  { value: 'bottom-right', label: 'Bottom Right' },
-  { value: 'top-left', label: 'Top Left' },
-  { value: 'top-right', label: 'Top Right' },
-]
-
-const OVERLAY_COMPONENT_OPTIONS: Array<{ value: NonNullable<OverlayComponentsConfig['leaderboard']>; label: string }> =
-  [
-    { value: 'off', label: 'Off' },
-    { value: 'on', label: 'On' },
-  ]
 
 export interface StyleState {
   overlayType: OverlayType
@@ -97,26 +79,6 @@ export function StyleTab({
     [styleState, onStyleChange],
   )
 
-  const handlePositionChange = useCallback(
-    (key: 'boxPosition' | 'qualifyingTablePosition', value: string) => {
-      onStyleChange({ ...styleState, [key]: value !== '' ? value : undefined })
-    },
-    [styleState, onStyleChange],
-  )
-
-  const handleOverlayComponentChange = useCallback(
-    (key: keyof OverlayComponentsConfig, value: NonNullable<OverlayComponentsConfig['leaderboard']>) => {
-      onStyleChange({
-        ...styleState,
-        overlayComponents: {
-          ...styleState.overlayComponents,
-          [key]: value,
-        },
-      })
-    },
-    [styleState, onStyleChange],
-  )
-
   const handleFadeToggle = useCallback(
     (enabled: boolean) => {
       onStyleChange({
@@ -128,7 +90,7 @@ export function StyleTab({
   )
 
   const handleFadeSliderChange = useCallback(
-    (key: 'durationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds', value: number) => {
+    (key: 'durationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds' | 'postRollSeconds', value: number) => {
       latestRef.current = {
         styleState,
         patch: { fade: { ...styleState.styling.fade, [key]: value } },
@@ -153,7 +115,7 @@ export function StyleTab({
   )
 
   const handleSegmentLabelSliderChange = useCallback(
-    (key: 'fadeInDurationSeconds' | 'fadeOutDurationSeconds', value: number) => {
+    (key: 'fadeInDurationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds' | 'postRollSeconds', value: number) => {
       latestRef.current = {
         styleState,
         patch: { segmentLabel: { ...styleState.styling.segmentLabel, [key]: value } },
@@ -172,11 +134,14 @@ export function StyleTab({
   const fadeDuration = styling.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
   const fadeOutDuration = styling.fade?.fadeOutDurationSeconds ?? DEFAULT_FADE_OUT_DURATION_SECONDS
   const fadePreRoll = styling.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
+  const fadePostRoll = styling.fade?.postRollSeconds ?? DEFAULT_FADE_POST_ROLL_SECONDS
 
   // Segment label
   const segmentLabelEnabled = styling.segmentLabel?.enabled ?? DEFAULT_SEGMENT_LABEL_ENABLED
   const segmentLabelFadeIn = styling.segmentLabel?.fadeInDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS
   const segmentLabelFadeOut = styling.segmentLabel?.fadeOutDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS
+  const segmentLabelPreRoll = styling.segmentLabel?.preRollSeconds ?? DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS
+  const segmentLabelPostRoll = styling.segmentLabel?.postRollSeconds ?? DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS
 
   // Banner
   const bannerAccent = styling.banner?.accentColor ?? '#3DD73D'
@@ -254,77 +219,9 @@ export function StyleTab({
         </div>
       </section>
 
-      {/* POSITION */}
-      <section>
-        <SectionLabel>Position</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-xs text-muted-foreground">Overlay position</span>
-            <select
-              value={styleState.boxPosition ?? ''}
-              onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">Default</option>
-              {BOX_POSITION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Divider />
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-xs text-muted-foreground">Qualifying table</span>
-            <select
-              value={styleState.qualifyingTablePosition ?? ''}
-              onChange={(e) => handlePositionChange('qualifyingTablePosition', e.target.value)}
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">Default</option>
-              {CORNER_POSITION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <SectionLabel>Overlay Components</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-xs text-muted-foreground">Leaderboard</span>
-            <select
-              value={
-                styleState.overlayComponents?.leaderboard === false ||
-                styleState.overlayComponents?.leaderboard === 'off'
-                  ? 'off'
-                  : 'on'
-              }
-              onChange={(e) =>
-                handleOverlayComponentChange(
-                  'leaderboard',
-                  e.target.value as NonNullable<OverlayComponentsConfig['leaderboard']>,
-                )
-              }
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              {OVERLAY_COMPONENT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
-
       {/* FADE */}
       <section>
-        <SectionLabel>Fade</SectionLabel>
+        <SectionLabel>Overlay Fade</SectionLabel>
         <div className="rounded-md border border-border bg-accent px-3">
           <div className="flex items-center justify-between py-1.5">
             <span className="text-xs text-muted-foreground">Enabled</span>
@@ -339,6 +236,20 @@ export function StyleTab({
           </div>
           {fadeEnabled && (
             <>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Pre-roll</span>
+                  <span className="text-xs tabular-nums text-foreground">{fadePreRoll.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  value={[fadePreRoll]}
+                  onValueChange={([v]) => handleFadeSliderChange('preRollSeconds', v)}
+                />
+              </div>
               <Divider />
               <div className="flex flex-col gap-2 py-2">
                 <div className="flex items-center justify-between">
@@ -370,15 +281,15 @@ export function StyleTab({
               <Divider />
               <div className="flex flex-col gap-2 py-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Pre-roll</span>
-                  <span className="text-xs tabular-nums text-foreground">{fadePreRoll.toFixed(1)}s</span>
+                  <span className="text-xs text-muted-foreground">Post-roll</span>
+                  <span className="text-xs tabular-nums text-foreground">{fadePostRoll.toFixed(1)}s</span>
                 </div>
                 <Slider
                   min={0}
                   max={10}
                   step={0.5}
-                  value={[fadePreRoll]}
-                  onValueChange={([v]) => handleFadeSliderChange('preRollSeconds', v)}
+                  value={[fadePostRoll]}
+                  onValueChange={([v]) => handleFadeSliderChange('postRollSeconds', v)}
                 />
               </div>
             </>
@@ -406,6 +317,20 @@ export function StyleTab({
               <Divider />
               <div className="flex flex-col gap-2 py-2">
                 <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Pre-roll</span>
+                  <span className="text-xs tabular-nums text-foreground">{segmentLabelPreRoll.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  value={[segmentLabelPreRoll]}
+                  onValueChange={([v]) => handleSegmentLabelSliderChange('preRollSeconds', v)}
+                />
+              </div>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Fade in</span>
                   <span className="text-xs tabular-nums text-foreground">{segmentLabelFadeIn.toFixed(1)}s</span>
                 </div>
@@ -429,6 +354,20 @@ export function StyleTab({
                   step={0.1}
                   value={[segmentLabelFadeOut]}
                   onValueChange={([v]) => handleSegmentLabelSliderChange('fadeOutDurationSeconds', v)}
+                />
+              </div>
+              <Divider />
+              <div className="flex flex-col gap-2 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Post-roll</span>
+                  <span className="text-xs tabular-nums text-foreground">{segmentLabelPostRoll.toFixed(1)}s</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  value={[segmentLabelPostRoll]}
+                  onValueChange={([v]) => handleSegmentLabelSliderChange('postRollSeconds', v)}
                 />
               </div>
             </>
