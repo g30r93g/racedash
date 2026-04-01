@@ -97,6 +97,14 @@ export interface MarginConfig {
   left?: number // left margin in reference px    (default: 0)
 }
 
+export interface LapListStyling {
+  maxRows?: number | 'all' // max visible rows          (default: 'all')
+  bgColor?: string // row background             (default: rgba(0,0,0,0.65))
+  textColor?: string // lap number/time text       (default: white)
+  bestLapColor?: string // best lap highlight color   (default: #00FF87)
+  position?: BoxPosition // screen position            (default: bottom-right)
+}
+
 export interface DeltaBadgeStyling {
   fasterColor?: string // color when lap is faster  (default: #00FF87)
   slowerColor?: string // color when lap is slower  (default: #FF3B30)
@@ -196,6 +204,7 @@ export interface OverlayStyling {
   fade?: FadeStyling
   segmentLabel?: SegmentLabelStyling
   deltaBadge?: DeltaBadgeStyling
+  lapList?: LapListStyling
   leaderboard?: LeaderboardStyling
   banner?: BannerStyling
   geometricBanner?: GeometricBannerStyling
