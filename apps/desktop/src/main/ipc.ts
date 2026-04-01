@@ -915,6 +915,27 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:getVideoInfo', (_event, videoPath: string) => getVideoInfo(videoPath))
   ipcMain.handle('racedash:getMultiVideoInfo', (_event, videoPaths: string[]) => getMultiVideoInfoImpl(videoPaths))
 
+  // Lightweight file validation — checks accessibility without running ffprobe.
+  // Returns { available: string[], unavailable: string[] }
+  ipcMain.handle('racedash:validateVideoPaths', (_event, videoPaths: string[]) => {
+    const available: string[] = []
+    const unavailable: string[] = []
+    for (const p of videoPaths) {
+      try {
+        fs.accessSync(p, fs.constants.R_OK)
+        const stat = fs.statSync(p)
+        if (stat.size < 1024) {
+          unavailable.push(p)
+        } else {
+          available.push(p)
+        }
+      } catch {
+        unavailable.push(p)
+      }
+    }
+    return { available, unavailable }
+  })
+
   // Export — startRender (non-blocking; progress pushed via webContents.send)
   ipcMain.handle('racedash:startRender', (event, opts: RenderStartOpts) => {
     activeRenderCancelled = false

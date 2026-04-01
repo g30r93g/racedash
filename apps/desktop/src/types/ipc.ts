@@ -395,6 +395,7 @@ export interface RacedashAPI {
   // Engine — Export tab (implemented in Export tab sub-plan)
   getVideoInfo(videoPath: string): Promise<VideoInfo>
   getMultiVideoInfo(videoPaths: string[]): Promise<MultiVideoInfo>
+  validateVideoPaths(videoPaths: string[]): Promise<{ available: string[]; unavailable: string[] }>
   startRender(opts: RenderStartOpts): Promise<void>
   cancelRender(): Promise<void>
 

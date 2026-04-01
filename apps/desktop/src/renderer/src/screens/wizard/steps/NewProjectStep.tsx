@@ -54,20 +54,9 @@ export function NewProjectStep({
     const newPaths = selected.filter((p) => !existingSet.has(p))
     if (newPaths.length === 0) return
 
-    // Validate files are locally available (not iCloud/cloud placeholders).
-    // getVideoInfo calls ffprobe which will fail on placeholder files.
-    const available: string[] = []
-    const unavailable: string[] = []
-    await Promise.all(
-      newPaths.map(async (p) => {
-        try {
-          await window.racedash.getVideoInfo(p)
-          available.push(p)
-        } catch {
-          unavailable.push(p)
-        }
-      }),
-    )
+    // Fast validation: check files are locally available (not iCloud/cloud placeholders).
+    // Uses fs.accessSync + fs.statSync on the main process — no ffprobe, instant.
+    const { available, unavailable } = await window.racedash.validateVideoPaths(newPaths)
 
     if (unavailable.length > 0) {
       setCloudWarningFiles(unavailable.map((p) => p.split(/[\\/]/).pop() ?? p))
