@@ -40,6 +40,12 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   const activeFile = files[activeFileIndex]
   const videoPath = activeFile?.path
 
+  // Throttle onTimeUpdate to avoid full React re-renders at 60fps.
+  // The rAF tick updates refs and the Remotion player at full speed;
+  // React state (and parent re-renders) update at ~10fps during playback.
+  const lastNotifyRef = useRef(0)
+  const NOTIFY_INTERVAL_MS = 100 // ~10 updates/sec for React state
+
   // Keep globalTimeRef in sync
   useEffect(() => {
     globalTimeRef.current = globalTime
@@ -52,10 +58,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
     const tick = () => {
       const localT = videoRef.current?.currentTime ?? 0
       const global = activeFile.startSeconds + localT
-
-      setGlobalTime(global)
       globalTimeRef.current = global
-      onTimeUpdate?.(global)
 
       // Auto-advance to next file
       if (localT >= activeFile.durationSeconds - 0.05 && activeFileIndexRef.current < files.length - 1) {
@@ -65,14 +68,30 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
         return // Stop rAF — new src load will restart playback
       }
 
+      // Seek Remotion overlay at full frame rate (no React state involved)
       const overlayFps = overlayProps?.fps
       if (overlayFps != null) {
         playerRef.current?.seekTo(Math.round(global * overlayFps))
       }
+
+      // Throttle React state updates to avoid cascading re-renders
+      const now = performance.now()
+      if (now - lastNotifyRef.current >= NOTIFY_INTERVAL_MS) {
+        lastNotifyRef.current = now
+        setGlobalTime(global)
+        onTimeUpdate?.(global)
+      }
+
       rafId = requestAnimationFrame(tick)
     }
     rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
+    return () => {
+      cancelAnimationFrame(rafId)
+      // Flush final time to React state on pause/stop so UI is accurate
+      const finalTime = globalTimeRef.current
+      setGlobalTime(finalTime)
+      onTimeUpdate?.(finalTime)
+    }
   }, [playing, activeFile, onTimeUpdate, overlayProps?.fps, files.length])
 
   const handlePlay = useCallback(() => {
