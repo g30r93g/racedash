@@ -255,7 +255,7 @@ export async function updateProjectConfigOverridesHandler(
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
-export function saveStyleToConfigHandler(
+export async function saveStyleToConfigHandler(
   configPath: string,
   overlayType: string,
   styling: OverlayStyling,
@@ -265,11 +265,11 @@ export function saveStyleToConfigHandler(
     overlayComponents?: OverlayComponentsConfig
     segmentStyles?: Record<string, Partial<OverlayStyling>>
   },
-): void {
+): Promise<void> {
   if (typeof configPath !== 'string' || configPath.trim().length === 0) {
     throw new Error('saveStyleToConfig: configPath must be a non-empty string')
   }
-  const raw = fs.readFileSync(configPath, 'utf-8')
+  const raw = await fs.promises.readFile(configPath, 'utf-8')
   const config = JSON.parse(raw) as Record<string, unknown>
   config.overlayType = overlayType
   config.styling = styling
@@ -293,7 +293,7 @@ export function saveStyleToConfigHandler(
   } else {
     delete config.segmentStyles
   }
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+  await fs.promises.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
 export interface StylePreset {
