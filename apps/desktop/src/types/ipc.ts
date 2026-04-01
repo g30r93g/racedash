@@ -384,6 +384,20 @@ export interface RacedashAPI {
     },
   ): Promise<void>
 
+  saveStylePreset(preset: {
+    name: string
+    overlayType: string
+    styling: OverlayStyling
+    overlayComponents?: OverlayComponentsConfig
+  }): Promise<string | null>
+
+  loadStylePreset(): Promise<{
+    name: string
+    overlayType: string
+    styling: OverlayStyling
+    overlayComponents?: OverlayComponentsConfig
+  } | null>
+
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>
   previewTimestamps(

@@ -313,6 +313,43 @@ export function StyleTab({
         </div>
       )}
 
+      {/* PRESET BUTTONS */}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={() => {
+            window.racedash.loadStylePreset().then((preset) => {
+              if (!preset) return
+              onStyleChange({
+                ...styleState,
+                overlayType: preset.overlayType as OverlayType,
+                styling: preset.styling,
+                overlayComponents: preset.overlayComponents ?? styleState.overlayComponents,
+              })
+            })
+          }}
+        >
+          Load Style Preset
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="flex-1"
+          onClick={() => {
+            window.racedash.saveStylePreset({
+              name: OVERLAY_NAMES[overlayType],
+              overlayType,
+              styling,
+              overlayComponents: styleState.overlayComponents,
+            })
+          }}
+        >
+          Save Style Preset
+        </Button>
+      </div>
+
       {/* OVERLAY TYPE */}
       <section>
         <SectionLabel>Overlay Type</SectionLabel>

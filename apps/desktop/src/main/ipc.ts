@@ -296,6 +296,44 @@ export function saveStyleToConfigHandler(
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
+export interface StylePreset {
+  name: string
+  overlayType: string
+  styling: OverlayStyling
+  overlayComponents?: OverlayComponentsConfig
+}
+
+export async function saveStylePresetHandler(
+  preset: StylePreset,
+  parentWindow?: BrowserWindow | null,
+): Promise<string | null> {
+  const result = await dialog.showSaveDialog(parentWindow ?? BrowserWindow.getFocusedWindow()!, {
+    title: 'Save Style Preset',
+    defaultPath: path.join(os.homedir(), `${preset.name || 'style-preset'}.json`),
+    filters: [{ name: 'Style Preset', extensions: ['json'] }],
+  })
+  if (result.canceled || !result.filePath) return null
+  fs.writeFileSync(result.filePath, JSON.stringify(preset, null, 2), 'utf-8')
+  return result.filePath
+}
+
+export async function loadStylePresetHandler(
+  parentWindow?: BrowserWindow | null,
+): Promise<StylePreset | null> {
+  const result = await dialog.showOpenDialog(parentWindow ?? BrowserWindow.getFocusedWindow()!, {
+    title: 'Load Style Preset',
+    filters: [{ name: 'Style Preset', extensions: ['json'] }],
+    properties: ['openFile'],
+  })
+  if (result.canceled || result.filePaths.length === 0) return null
+  const raw = fs.readFileSync(result.filePaths[0], 'utf-8')
+  const parsed = JSON.parse(raw) as Record<string, unknown>
+  if (typeof parsed.overlayType !== 'string' || typeof parsed.styling !== 'object') {
+    throw new Error('Invalid style preset file')
+  }
+  return parsed as unknown as StylePreset
+}
+
 export async function renameProjectHandler(projectPath: string, name: string): Promise<ProjectData> {
   if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
     throw new Error('renameProject: projectPath must be a non-empty string')
@@ -903,6 +941,8 @@ export function registerIpcHandlers(): void {
       },
     ) => saveStyleToConfigHandler(configPath, overlayType, styling, configOptions),
   )
+  ipcMain.handle('racedash:saveStylePreset', (_event, preset: StylePreset) => saveStylePresetHandler(preset))
+  ipcMain.handle('racedash:loadStylePreset', () => loadStylePresetHandler())
 
   // Timing — engine integration
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) => previewDriversImpl(segments))
