@@ -2,7 +2,6 @@ import { ColourRow } from '@/components/style/ColourRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import type { BoxPosition, ComponentToggle, CornerPosition, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
@@ -89,6 +88,45 @@ interface StyleTabProps {
 
 function Divider(): React.ReactElement {
   return <div className="border-t border-border" />
+}
+
+function StepperRow({
+  label,
+  value,
+  onChange,
+  step = 0.25,
+  min = 0,
+  suffix = 's',
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  step?: number
+  min?: number
+  suffix?: string
+}): React.ReactElement {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={() => onChange(Math.max(min, +(value - step).toFixed(2)))}
+          className="flex h-5 w-5 items-center justify-center rounded text-xs text-muted-foreground hover:bg-background"
+        >
+          −
+        </button>
+        <span className="w-10 text-center font-mono text-xs tabular-nums text-foreground">
+          {value.toFixed(1)}{suffix}
+        </span>
+        <button
+          onClick={() => onChange(+(value + step).toFixed(2))}
+          className="flex h-5 w-5 items-center justify-center rounded text-xs text-muted-foreground hover:bg-background"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export function StyleTab({
@@ -382,61 +420,13 @@ export function StyleTab({
           {fadeEnabled && (
             <>
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Pre-roll</span>
-                  <span className="text-xs tabular-nums text-foreground">{fadePreRoll.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  value={[fadePreRoll]}
-                  onValueChange={([v]) => handleFadeSliderChange('preRollSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Pre-roll" value={fadePreRoll} onChange={(v) => handleFadeSliderChange('preRollSeconds', v)} />
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Fade in</span>
-                  <span className="text-xs tabular-nums text-foreground">{fadeDuration.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  value={[fadeDuration]}
-                  onValueChange={([v]) => handleFadeSliderChange('durationSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Fade in" value={fadeDuration} min={0.25} onChange={(v) => handleFadeSliderChange('durationSeconds', v)} />
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Fade out</span>
-                  <span className="text-xs tabular-nums text-foreground">{fadeOutDuration.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  value={[fadeOutDuration]}
-                  onValueChange={([v]) => handleFadeSliderChange('fadeOutDurationSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Fade out" value={fadeOutDuration} min={0.25} onChange={(v) => handleFadeSliderChange('fadeOutDurationSeconds', v)} />
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Post-roll</span>
-                  <span className="text-xs tabular-nums text-foreground">{fadePostRoll.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  value={[fadePostRoll]}
-                  onValueChange={([v]) => handleFadeSliderChange('postRollSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Post-roll" value={fadePostRoll} onChange={(v) => handleFadeSliderChange('postRollSeconds', v)} />
             </>
           )}
         </div>
@@ -460,61 +450,13 @@ export function StyleTab({
           {segmentLabelEnabled && (
             <>
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Pre-roll</span>
-                  <span className="text-xs tabular-nums text-foreground">{segmentLabelPreRoll.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  value={[segmentLabelPreRoll]}
-                  onValueChange={([v]) => handleSegmentLabelSliderChange('preRollSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Pre-roll" value={segmentLabelPreRoll} onChange={(v) => handleSegmentLabelSliderChange('preRollSeconds', v)} />
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Fade in</span>
-                  <span className="text-xs tabular-nums text-foreground">{segmentLabelFadeIn.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0.1}
-                  max={3}
-                  step={0.1}
-                  value={[segmentLabelFadeIn]}
-                  onValueChange={([v]) => handleSegmentLabelSliderChange('fadeInDurationSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Fade in" value={segmentLabelFadeIn} min={0.25} onChange={(v) => handleSegmentLabelSliderChange('fadeInDurationSeconds', v)} />
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Fade out</span>
-                  <span className="text-xs tabular-nums text-foreground">{segmentLabelFadeOut.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0.1}
-                  max={3}
-                  step={0.1}
-                  value={[segmentLabelFadeOut]}
-                  onValueChange={([v]) => handleSegmentLabelSliderChange('fadeOutDurationSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Fade out" value={segmentLabelFadeOut} min={0.25} onChange={(v) => handleSegmentLabelSliderChange('fadeOutDurationSeconds', v)} />
               <Divider />
-              <div className="flex flex-col gap-2 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Post-roll</span>
-                  <span className="text-xs tabular-nums text-foreground">{segmentLabelPostRoll.toFixed(1)}s</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  value={[segmentLabelPostRoll]}
-                  onValueChange={([v]) => handleSegmentLabelSliderChange('postRollSeconds', v)}
-                />
-              </div>
+              <StepperRow label="Post-roll" value={segmentLabelPostRoll} onChange={(v) => handleSegmentLabelSliderChange('postRollSeconds', v)} />
             </>
           )}
         </div>
