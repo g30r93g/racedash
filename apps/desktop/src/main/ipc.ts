@@ -528,6 +528,22 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
  * any Electron machinery.
  */
 export function getVideoInfo(videoPath: string): VideoInfo {
+  // Guard: ensure the file exists and is locally available.
+  // iCloud/cloud placeholders are tiny stubs (< 1KB) that can cause ffprobe
+  // to hang or return invalid data.
+  try {
+    fs.accessSync(videoPath, fs.constants.R_OK)
+    const stat = fs.statSync(videoPath)
+    if (stat.size < 1024) {
+      throw new Error(
+        `File appears to be a cloud storage placeholder (${stat.size} bytes). Download it locally first: ${videoPath}`,
+      )
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes('cloud storage placeholder')) throw err
+    throw new Error(`File not accessible: ${videoPath}`)
+  }
+
   let stdout: Buffer
   try {
     stdout = execFileSync(resolveFfprobeCommand(), [
@@ -537,12 +553,18 @@ export function getVideoInfo(videoPath: string): VideoInfo {
       'json',
       '-show_streams',
       videoPath,
-    ]) as Buffer
+    ], { timeout: 10_000 }) as Buffer
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     const code = (err as NodeJS.ErrnoException).code
+    const signal = (err as { signal?: string }).signal
     if (code === 'ENOENT' || message.toLowerCase().includes('not found')) {
       throw new Error('ffprobe not found. Install ffmpeg (which bundles ffprobe) and ensure it is on your PATH.')
+    }
+    if (signal === 'SIGINT' || signal === 'SIGTERM' || code === 'ETIMEDOUT') {
+      throw new Error(
+        `Could not read video file — it may still be downloading from cloud storage: ${videoPath}`,
+      )
     }
     throw err
   }
