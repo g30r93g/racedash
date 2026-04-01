@@ -64,15 +64,20 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const [timingRevision, setTimingRevision] = useState(0)
   const multiVideoInfo = useMultiVideo(projectState.videoPaths)
 
-  // Derive a VideoInfo-compatible object for downstream components:
-  const videoInfo: VideoInfo | null = multiVideoInfo
-    ? {
-        fps: multiVideoInfo.fps,
-        durationSeconds: multiVideoInfo.totalDurationSeconds,
-        width: multiVideoInfo.width,
-        height: multiVideoInfo.height,
-      }
-    : null
+  // Derive a VideoInfo-compatible object for downstream components (memoized to avoid
+  // re-triggering the generateTimestamps effect on every render):
+  const videoInfo: VideoInfo | null = useMemo(
+    () =>
+      multiVideoInfo
+        ? {
+            fps: multiVideoInfo.fps,
+            durationSeconds: multiVideoInfo.totalDurationSeconds,
+            width: multiVideoInfo.width,
+            height: multiVideoInfo.height,
+          }
+        : null,
+    [multiVideoInfo],
+  )
 
   const timelineRef = useRef<TimelineHandle>(null)
   const [currentTime, setCurrentTime] = useState(0)
