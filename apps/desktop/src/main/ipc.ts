@@ -41,15 +41,31 @@ import { registerCloudRenderHandlers } from './cloud-render-handlers'
  * Converts wizard SegmentConfig[] into the engine's config format.
  * Used by both handleCreateProject and updateProjectHandler.
  */
+/**
+ * Convert wizard-format segments to engine-format segments.
+ *
+ * @param videoFrameOffsets - Optional map from video index (in the project's
+ *   videoPaths array) to cumulative start frame in the global timeline.
+ *   When provided and a segment has `videoIndices`, the segment's
+ *   `videoOffsetFrame` is shifted by the first assigned video's global offset
+ *   so the engine sees a global frame number.
+ */
 export function buildEngineSegments(
   segments: WizardSegmentConfig[],
   selectedDrivers: Record<string, string>,
+  videoFrameOffsets?: Map<number, number>,
 ): Record<string, unknown>[] {
   return segments.map((seg) => {
+    let offsetFrame = seg.videoOffsetFrame ?? 0
+    // Shift offset to global timeline when video index info is available
+    if (videoFrameOffsets && seg.videoIndices && seg.videoIndices.length > 0) {
+      const firstVideoIndex = seg.videoIndices[0]
+      offsetFrame += videoFrameOffsets.get(firstVideoIndex) ?? 0
+    }
     const base = {
       source: seg.source,
       mode: seg.session ?? 'race',
-      offset: `${seg.videoOffsetFrame ?? 0} F`,
+      offset: `${offsetFrame} F`,
       label: seg.label,
       driver: selectedDrivers[seg.label],
     }
@@ -441,10 +457,25 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 
   // No video file handling — source paths stored as-is
 
+  // Compute cumulative frame offsets for each video in the global timeline.
+  // This maps video index → start frame so segment offsets can be globalised.
+  let videoFrameOffsets: Map<number, number> | undefined
+  if (opts.videoPaths.length > 1) {
+    try {
+      const multiInfo = await getMultiVideoInfoImpl(opts.videoPaths)
+      videoFrameOffsets = new Map<number, number>()
+      for (let i = 0; i < multiInfo.files.length; i++) {
+        videoFrameOffsets.set(i, Math.round(multiInfo.files[i].startSeconds * multiInfo.fps))
+      }
+    } catch (err) {
+      console.warn('[createProject] Could not compute video frame offsets, using raw offsets:', err)
+    }
+  }
+
   // Write engine timing config (config.json) — segments in engine format.
   // For remote sources (alphaTiming, mylapsSpeedhive, etc.), resolve the timing data
   // now and save it as manual source to avoid re-fetching on every project open.
-  const engineSegments = buildEngineSegments(opts.segments, opts.selectedDrivers)
+  const engineSegments = buildEngineSegments(opts.segments, opts.selectedDrivers, videoFrameOffsets)
   const cachedSegments = await cacheRemoteTimingData(engineSegments)
 
   const configPath = path.join(saveDir, 'config.json')
