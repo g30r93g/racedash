@@ -1,38 +1,58 @@
-// apps/desktop/src/renderer/src/components/video/InlineOffsetPicker.tsx
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { FrameScrubber } from './FrameScrubber'
+import { useMultiVideo, resolveFileAtTime, type FileEntry } from '@/hooks/useMultiVideo'
+import { Spinner } from '@/components/loaders/Spinner'
 
 interface InlineOffsetPickerProps {
-  videoPath: string
+  /** All video paths assigned to this segment, in order. */
+  videoPaths: string[]
+  /** Current frame in the virtual (concatenated) timeline. */
   currentFrame: number
+  /** Called when the user scrubs — frame is in the virtual timeline. */
   onFrameChange: (frame: number) => void
 }
 
 export function InlineOffsetPicker({
-  videoPath,
+  videoPaths,
   currentFrame,
   onFrameChange,
 }: InlineOffsetPickerProps): React.ReactElement {
-  const [fps, setFps] = useState(30)
-  const [totalFrames, setTotalFrames] = useState(0)
+  const multiInfo = useMultiVideo(videoPaths)
 
-  useEffect(() => {
-    if (!videoPath) return
-    let cancelled = false
-    window.racedash
-      .getVideoInfo(videoPath)
-      .then((info) => {
-        if (cancelled) return
-        setFps(info.fps)
-        setTotalFrames(Math.round(info.duration * info.fps))
-      })
-      .catch((err: unknown) => {
-        console.error('[InlineOffsetPicker] getVideoInfo failed:', err)
-      })
-    return () => { cancelled = true }
-  }, [videoPath])
+  const files: FileEntry[] = useMemo(
+    () =>
+      multiInfo?.files.map((f) => ({
+        path: f.path,
+        durationSeconds: f.durationSeconds,
+        startSeconds: f.startSeconds,
+      })) ?? [],
+    [multiInfo],
+  )
 
-  if (!videoPath) {
+  const fps = multiInfo?.fps ?? 30
+  const totalFrames = multiInfo ? Math.round(multiInfo.totalDurationSeconds * fps) : 0
+
+  // Map virtual frame → file + local time, then to a local frame for FrameScrubber
+  const globalTimeSeconds = currentFrame / fps
+  const resolved = files.length > 0 ? resolveFileAtTime(files, globalTimeSeconds) : null
+  const activeVideoPath = resolved?.path ?? videoPaths[0] ?? ''
+  const localFrame = resolved ? Math.round(resolved.localTime * fps) : currentFrame
+
+  // Map local FrameScrubber seek back to virtual frame
+  const handleLocalSeek = useCallback(
+    (localFr: number) => {
+      if (!resolved || files.length === 0) {
+        onFrameChange(localFr)
+        return
+      }
+      const activeFile = files[resolved.fileIndex]
+      const globalSeconds = activeFile.startSeconds + localFr / fps
+      onFrameChange(Math.round(globalSeconds * fps))
+    },
+    [resolved, files, fps, onFrameChange],
+  )
+
+  if (videoPaths.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-accent/40 px-4 py-6 text-center text-sm text-muted-foreground">
         Assign videos to this segment to set the offset
@@ -40,19 +60,54 @@ export function InlineOffsetPicker({
     )
   }
 
+  if (!multiInfo) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-accent/40 px-4 py-6">
+        <Spinner name="checkerboard" size="1.25rem" color="#3b82f6" speed={2.5} ignoreReducedMotion />
+        <span className="text-xs text-muted-foreground">Loading video info…</span>
+      </div>
+    )
+  }
+
+  // For FrameScrubber we need the local file's total frames
+  const activeFileInfo = files[resolved?.fileIndex ?? 0]
+  const localTotalFrames = activeFileInfo ? Math.round(activeFileInfo.durationSeconds * fps) : totalFrames
+
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        Video offset — scrub to the moment the first lap begins
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Video offset — scrub to the moment the first lap begins
+        </p>
+        {videoPaths.length > 1 && (
+          <span className="text-[10px] text-muted-foreground">
+            File {(resolved?.fileIndex ?? 0) + 1} of {videoPaths.length} · Frame {currentFrame} / {totalFrames}
+          </span>
+        )}
+      </div>
       <FrameScrubber
-        videoPath={videoPath}
+        videoPath={activeVideoPath}
         fps={fps}
-        totalFrames={totalFrames}
-        currentFrame={currentFrame}
-        onSeek={onFrameChange}
-        onMetadataLoaded={setTotalFrames}
+        totalFrames={localTotalFrames}
+        currentFrame={localFrame}
+        onSeek={handleLocalSeek}
       />
+      {/* Global slider across all files */}
+      {videoPaths.length > 1 && (
+        <div className="flex flex-col gap-1">
+          <input
+            type="range"
+            min={0}
+            max={totalFrames > 0 ? totalFrames - 1 : 1000}
+            value={currentFrame}
+            onChange={(e) => onFrameChange(Number(e.target.value))}
+            className="w-full accent-primary"
+          />
+          <p className="text-center text-[10px] text-muted-foreground">
+            Global timeline — drag to scrub across all files
+          </p>
+        </div>
+      )}
     </div>
   )
 }

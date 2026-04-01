@@ -476,8 +476,8 @@ export function SegmentSetupStep({
     resetForm()
   }
 
-  // The first video of this segment's assigned videos (for the offset picker)
-  const firstVideoPath = videoIndices.length > 0 ? videoPaths[videoIndices[0]] ?? '' : ''
+  // All video paths assigned to this segment (for the offset picker)
+  const segmentVideoPaths = videoIndices.map((i) => videoPaths[i]).filter(Boolean)
 
   // --- Render ---
 
@@ -576,7 +576,7 @@ export function SegmentSetupStep({
       {/* Offset picker — inline */}
       {videoIndices.length > 0 && (
         <InlineOffsetPicker
-          videoPath={firstVideoPath}
+          videoPaths={segmentVideoPaths}
           currentFrame={videoOffsetFrame}
           onFrameChange={(frame) => { setVideoOffsetFrame(frame); setHasSetOffset(true) }}
         />
