@@ -316,6 +316,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         <Timeline
           project={projectState}
           videoInfo={videoInfo}
+          multiVideoInfo={multiVideoInfo}
           currentTime={currentTime}
           timestampsResult={timestampsResult}
           overrides={overrides}
