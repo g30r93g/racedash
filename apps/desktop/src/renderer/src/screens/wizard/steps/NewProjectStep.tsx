@@ -1,10 +1,19 @@
-import React, { useState } from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
 import { VideoFileList } from '@/components/video/VideoFileList'
 import { smartSortVideoPaths } from '@/utils/videoFileOrder'
 import { ChevronDown, ChevronRight, FolderOpen } from 'lucide-react'
+import React, { useState } from 'react'
 
 interface NewProjectStepProps {
   projectName: string
@@ -32,6 +41,7 @@ export function NewProjectStep({
   onSaveDirChange,
 }: NewProjectStepProps): React.ReactElement {
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [cloudWarningFiles, setCloudWarningFiles] = useState<string[]>([])
 
   async function handleBrowseVideos() {
     const selected = await window.racedash.openFiles({
@@ -44,7 +54,28 @@ export function NewProjectStep({
     const newPaths = selected.filter((p) => !existingSet.has(p))
     if (newPaths.length === 0) return
 
-    const merged = [...videoPaths, ...newPaths]
+    // Validate files are locally available (not iCloud/cloud placeholders).
+    // getVideoInfo calls ffprobe which will fail on placeholder files.
+    const available: string[] = []
+    const unavailable: string[] = []
+    await Promise.all(
+      newPaths.map(async (p) => {
+        try {
+          await window.racedash.getVideoInfo(p)
+          available.push(p)
+        } catch {
+          unavailable.push(p)
+        }
+      }),
+    )
+
+    if (unavailable.length > 0) {
+      setCloudWarningFiles(unavailable.map((p) => p.split(/[\\/]/).pop() ?? p))
+    }
+
+    if (available.length === 0) return
+
+    const merged = [...videoPaths, ...available]
     const sorted = smartSortVideoPaths(merged)
     onVideoPathsChange(sorted)
 
@@ -120,6 +151,24 @@ export function NewProjectStep({
           </FormField>
         </div>
       )}
+      <AlertDialog open={cloudWarningFiles.length > 0} onOpenChange={() => setCloudWarningFiles([])}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Files not downloaded</AlertDialogTitle>
+            <AlertDialogDescription>
+              The following files appear to be stored in a cloud service and aren't available on your device. Please download them first, then try again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-40 overflow-y-auto rounded-md border border-border bg-accent/20 p-3">
+            {cloudWarningFiles.map((name) => (
+              <p key={name} className="truncate font-mono text-xs text-muted-foreground">{name}</p>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setCloudWarningFiles([])}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
