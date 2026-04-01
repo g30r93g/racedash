@@ -111,20 +111,29 @@ export function Timeline({
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // pct/widthPct produce % values for positioning within the padded content area
-  const pct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
-  const widthPct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
+  const pct = React.useCallback(
+    (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`,
+    [duration],
+  )
+  const widthPct = React.useCallback(
+    (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`,
+    [duration],
+  )
 
   // Use engine-computed offsets (globalised) when available, fall back to raw videoOffsetFrame
-  const segmentSpans = project.segments.map((seg, i) => {
-    const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
-    const nextStart = timestampsResult?.offsets[i + 1] ?? (
-      project.segments[i + 1]?.videoOffsetFrame !== undefined
-        ? (project.segments[i + 1].videoOffsetFrame ?? 0) / fps
-        : undefined
-    )
-    const endSeconds = nextStart !== undefined ? nextStart : duration
-    return { label: seg.label, startSeconds, endSeconds }
-  })
+  const segmentSpans = React.useMemo(() =>
+    project.segments.map((seg, i) => {
+      const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
+      const nextStart = timestampsResult?.offsets[i + 1] ?? (
+        project.segments[i + 1]?.videoOffsetFrame !== undefined
+          ? (project.segments[i + 1].videoOffsetFrame ?? 0) / fps
+          : undefined
+      )
+      const endSeconds = nextStart !== undefined ? nextStart : duration
+      return { label: seg.label, startSeconds, endSeconds }
+    }),
+    [project.segments, timestampsResult?.offsets, fps, duration],
+  )
 
   const lapSpans: LapSpan[] = React.useMemo(() => {
     if (!timestampsResult) return []
