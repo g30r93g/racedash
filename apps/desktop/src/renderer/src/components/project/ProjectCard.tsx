@@ -196,48 +196,76 @@ export function ProjectCard({
   if (project.missing) {
     return (
       <>
-        {view === 'tile' ? (
-          <div className="flex h-auto w-full flex-col items-stretch gap-0 overflow-hidden rounded-lg border border-red-500 bg-[#1f1f1f]">
-            <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
-              <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium uppercase tracking-wide text-red-400">
-                Missing
-              </span>
-            </div>
-            <div className="flex flex-col gap-1 px-3 py-2.5">
-              <p className="truncate text-sm font-medium text-white/60">{project.name}</p>
-              {locateError && <p className="text-[11px] text-red-400">{locateError}</p>}
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-1 w-full border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300"
-                onClick={handleLocate}
-                disabled={locating}
-              >
-                {locating ? 'Locating…' : 'Locate…'}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-auto w-full items-center gap-3 rounded-lg border border-red-500 bg-[#1f1f1f] px-4 py-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
-              <span className="text-[10px] font-bold text-red-400">!</span>
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className="truncate text-sm font-medium text-white/60">{project.name}</p>
-              <p className="text-[11px] text-red-400">Missing</p>
-              {locateError && <p className="text-[11px] text-red-400">{locateError}</p>}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300"
-              onClick={handleLocate}
-              disabled={locating}
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            {view === 'tile' ? (
+              <div className="flex h-auto w-full flex-col items-stretch gap-0 overflow-hidden rounded-lg border border-red-500 bg-[#1f1f1f]">
+                <div className="relative flex h-[110px] w-full items-center justify-center bg-[#141414]">
+                  <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium uppercase tracking-wide text-red-400">
+                    Missing
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 px-3 py-2.5">
+                  <p className="truncate text-sm font-medium text-white/60">{project.name}</p>
+                  {locateError && <p className="text-[11px] text-red-400">{locateError}</p>}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1 w-full border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300"
+                    onClick={handleLocate}
+                    disabled={locating}
+                  >
+                    {locating ? 'Locating…' : 'Locate…'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-auto w-full items-center gap-3 rounded-lg border border-red-500 bg-[#1f1f1f] px-4 py-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
+                  <span className="text-[10px] font-bold text-red-400">!</span>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium text-white/60">{project.name}</p>
+                  <p className="text-[11px] text-red-400">Missing</p>
+                  {locateError && <p className="text-[11px] text-red-400">{locateError}</p>}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300"
+                  onClick={handleLocate}
+                  disabled={locating}
+                >
+                  {locating ? 'Locating…' : 'Locate…'}
+                </Button>
+              </div>
+            )}
+          </ContextMenuTrigger>
+          <ContextMenuContent className="border-white/5 bg-[#1f1f1f]">
+            <ContextMenuItem onSelect={handleLocate}>Locate…</ContextMenuItem>
+            <ContextMenuItem
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+              onSelect={() => setConfirmOpen(true)}
             >
-              {locating ? 'Locating…' : 'Locate…'}
-            </Button>
-          </div>
-        )}
+              Remove from library
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove "{project.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will remove the project from your library. Since the project files are already missing, no files will be deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete}>Remove</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </>
     )
   }

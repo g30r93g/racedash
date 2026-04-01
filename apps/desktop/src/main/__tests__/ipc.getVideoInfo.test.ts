@@ -1,9 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as childProcess from 'node:child_process'
+import fs from 'node:fs'
 
 import { getVideoInfo } from '../ipc'
 
 vi.mock('node:child_process')
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      accessSync: vi.fn(),
+      statSync: vi.fn().mockReturnValue({ size: 10_000_000 }),
+      constants: actual.constants,
+    },
+    accessSync: vi.fn(),
+    statSync: vi.fn().mockReturnValue({ size: 10_000_000 }),
+    constants: actual.constants,
+  }
+})
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
   app: { getPath: vi.fn().mockReturnValue('/Users/testuser') },

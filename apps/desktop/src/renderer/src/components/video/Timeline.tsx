@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button'
 import React, { useEffect, useRef, useState } from 'react'
-import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import type { MultiVideoInfo, TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import type { ProjectData } from '../../../../types/project'
 import type { Override } from '../../screens/editor/tabs/TimingTab'
 
 interface TimelineProps {
   project: ProjectData
   videoInfo: VideoInfo | null
+  multiVideoInfo?: MultiVideoInfo | null
   currentTime?: number
   timestampsResult?: TimestampsResult | null
   overrides?: Override[]
@@ -97,6 +98,7 @@ function positionDotColor(direction: 'up' | 'down' | null): string {
 export function Timeline({
   project,
   videoInfo,
+  multiVideoInfo,
   currentTime = 0,
   timestampsResult,
   overrides = [],
@@ -112,12 +114,20 @@ export function Timeline({
   const pct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
   const widthPct = (seconds: number) => `${Math.min(100, (seconds / duration) * 100).toFixed(3)}%`
 
-  const segmentSpans = project.segments.map((seg, i) => {
-    const startSeconds = (seg.videoOffsetFrame ?? 0) / fps
-    const nextFrame = project.segments[i + 1]?.videoOffsetFrame
-    const endSeconds = nextFrame !== undefined ? nextFrame / fps : duration
-    return { label: seg.label, startSeconds, endSeconds }
-  })
+  // Use engine-computed offsets (globalised) when available, fall back to raw videoOffsetFrame.
+  // Segment length = sum of lap times (from the last lap's cumulative value).
+  const segmentSpans = React.useMemo(() =>
+    project.segments.map((seg, i) => {
+      const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
+      // Derive end from lap data: offset + last lap's cumulative time
+      const rawSeg = timestampsResult?.segments[i] as RawSegment | undefined
+      const laps = rawSeg?.selectedDriver?.laps as RawLap[] | undefined
+      const lastLap = laps?.[laps.length - 1]
+      const endSeconds = lastLap ? startSeconds + lastLap.cumulative : startSeconds
+      return { label: seg.label, startSeconds, endSeconds }
+    }),
+    [project.segments, timestampsResult, fps],
+  )
 
   const lapSpans: LapSpan[] = React.useMemo(() => {
     if (!timestampsResult) return []
@@ -293,7 +303,33 @@ export function Timeline({
 
               {/* VIDEO */}
               <div className="relative flex-1">
-                <div className="absolute inset-y-1 rounded-sm bg-[#3a3a3a]" style={{ left: '0%', width: '100%' }} />
+                {multiVideoInfo && multiVideoInfo.files.length > 1 ? (
+                  multiVideoInfo.files.map((file, i) => {
+                    const name = file.path.split(/[\\/]/).pop() ?? file.path
+                    return (
+                      <div
+                        key={i}
+                        className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm bg-[#3a3a3a] px-1"
+                        style={{
+                          left: pct(file.startSeconds),
+                          width: widthPct(file.durationSeconds),
+                          // Subtle alternating shade to distinguish files
+                          backgroundColor: i % 2 === 0 ? '#3a3a3a' : '#444444',
+                        }}
+                      >
+                        <span className="truncate text-[10px] text-white/50">{name}</span>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm bg-[#3a3a3a] px-1" style={{ left: '0%', width: '100%' }}>
+                    {project.videoPaths[0] && (
+                      <span className="truncate text-[10px] text-white/50">
+                        {project.videoPaths[0].split(/[\\/]/).pop()}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* SEGMENTS */}

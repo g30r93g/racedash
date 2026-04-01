@@ -57,6 +57,7 @@ const api: RacedashAPI = {
 
   getVideoInfo: (videoPath) => ipcRenderer.invoke('racedash:getVideoInfo', videoPath),
   getMultiVideoInfo: (videoPaths: string[]) => ipcRenderer.invoke('racedash:getMultiVideoInfo', videoPaths),
+  validateVideoPaths: (videoPaths: string[]) => ipcRenderer.invoke('racedash:validateVideoPaths', videoPaths),
   startRender: (opts) => ipcRenderer.invoke('racedash:startRender', opts),
   cancelRender: () => ipcRenderer.invoke('racedash:cancelRender'),
 

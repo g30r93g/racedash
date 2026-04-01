@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 interface VideoFileListProps {
   paths: string[]
   onChange: (paths: string[]) => void
+  /** Optional map of video index to segment label. Assigned videos show a badge. */
+  assignments?: Record<number, string>
 }
 
 function formatFps(fps: number): string {
@@ -11,7 +13,7 @@ function formatFps(fps: number): string {
   return `${parseFloat(fps.toFixed(2))} fps`
 }
 
-export function VideoFileList({ paths, onChange }: VideoFileListProps): React.ReactElement | null {
+export function VideoFileList({ paths, onChange, assignments }: VideoFileListProps): React.ReactElement | null {
   const [fpsMap, setFpsMap] = useState<Record<string, number>>({})
   const fetchedRef = useRef<Set<string>>(new Set())
 
@@ -63,12 +65,18 @@ export function VideoFileList({ paths, onChange }: VideoFileListProps): React.Re
       </p>
       {paths.map((path, index) => {
         const name = path.split(/[\\/]/).pop() ?? path
+        const assignedTo = assignments?.[index]
         return (
           <div key={path} className="flex items-center gap-2 rounded-md border border-border bg-accent/40 px-3 py-2">
             <span className="w-4 shrink-0 text-center text-xs text-muted-foreground">{index + 1}</span>
             <span className="flex-1 truncate font-mono text-xs text-foreground">{name}</span>
             {fpsMap[path] !== undefined && (
               <span className="shrink-0 font-mono text-xs text-muted-foreground">{formatFps(fpsMap[path])}</span>
+            )}
+            {assignedTo && (
+              <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                {assignedTo}
+              </span>
             )}
             <div className="flex shrink-0 items-center">
               <Button

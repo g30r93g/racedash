@@ -1,6 +1,6 @@
 import { StepIndicator } from '@/components/layout/StepIndicator'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import type { ReactNode } from 'react'
 
 export interface WizardShellProps {
@@ -11,7 +11,10 @@ export interface WizardShellProps {
   onCancel: () => void
   canContinue: boolean
   children: ReactNode
-  title: string
+  /** Accessible title for the dialog (screen readers). Not rendered visually. */
+  title?: string
+  /** Accessible description for the dialog (screen readers). Not rendered visually. */
+  description?: string
   isSubmitting?: boolean
   submitLabel?: string
   onSubmit?: () => void
@@ -27,6 +30,8 @@ export function WizardShell({
   onCancel,
   canContinue,
   children,
+  title,
+  description,
   isSubmitting,
   submitLabel,
   onSubmit,
@@ -47,6 +52,10 @@ export function WizardShell({
         onInteractOutside={(event) => event.preventDefault()}
         style={{ minHeight: '630px', maxHeight: '90vh' }}
       >
+        <DialogTitle className="sr-only">{title ?? 'Project wizard'}</DialogTitle>
+        <DialogDescription className="sr-only">
+          {description ?? `Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]}`}
+        </DialogDescription>
         <div className="shrink-0 border-b border-border px-8 py-6">
           <StepIndicator currentStep={currentStep + 1} steps={steps} />
         </div>

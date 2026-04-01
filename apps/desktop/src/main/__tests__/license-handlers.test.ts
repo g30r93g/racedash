@@ -14,10 +14,15 @@ vi.mock('../license-cache', () => ({
   loadCachedLicense: vi.fn(),
 }))
 
+vi.mock('../auth-helpers', () => ({
+  loadSessionToken: vi.fn(() => 'mock-token'),
+}))
+
 import { ipcMain } from 'electron'
 import { registerLicenseHandlers } from '../license-handlers'
 import { fetchWithAuth } from '../api-client'
 import { cacheLicense, loadCachedLicense } from '../license-cache'
+import { loadSessionToken } from '../auth-helpers'
 
 describe('registerLicenseHandlers', () => {
   const handlers = new Map<string, (...args: any[]) => any>()
@@ -80,5 +85,26 @@ describe('registerLicenseHandlers', () => {
 
     await handlers.get('racedash:credits:getHistory')!({})
     expect(fetchWithAuth).toHaveBeenCalledWith('/api/credits/history')
+  })
+
+  it('license:get returns null when not signed in', async () => {
+    vi.mocked(loadSessionToken).mockReturnValueOnce(null)
+    const result = await handlers.get('racedash:license:get')!()
+    expect(result).toBeNull()
+    expect(fetchWithAuth).not.toHaveBeenCalled()
+  })
+
+  it('credits:getBalance returns null when not signed in', async () => {
+    vi.mocked(loadSessionToken).mockReturnValueOnce(null)
+    const result = await handlers.get('racedash:credits:getBalance')!()
+    expect(result).toBeNull()
+    expect(fetchWithAuth).not.toHaveBeenCalled()
+  })
+
+  it('credits:getHistory returns null when not signed in', async () => {
+    vi.mocked(loadSessionToken).mockReturnValueOnce(null)
+    const result = await handlers.get('racedash:credits:getHistory')!({})
+    expect(result).toBeNull()
+    expect(fetchWithAuth).not.toHaveBeenCalled()
   })
 })

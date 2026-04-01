@@ -41,15 +41,31 @@ import { registerCloudRenderHandlers } from './cloud-render-handlers'
  * Converts wizard SegmentConfig[] into the engine's config format.
  * Used by both handleCreateProject and updateProjectHandler.
  */
+/**
+ * Convert wizard-format segments to engine-format segments.
+ *
+ * @param videoFrameOffsets - Optional map from video index (in the project's
+ *   videoPaths array) to cumulative start frame in the global timeline.
+ *   When provided and a segment has `videoIndices`, the segment's
+ *   `videoOffsetFrame` is shifted by the first assigned video's global offset
+ *   so the engine sees a global frame number.
+ */
 export function buildEngineSegments(
   segments: WizardSegmentConfig[],
   selectedDrivers: Record<string, string>,
+  videoFrameOffsets?: Map<number, number>,
 ): Record<string, unknown>[] {
   return segments.map((seg) => {
+    let offsetFrame = seg.videoOffsetFrame ?? 0
+    // Shift offset to global timeline when video index info is available
+    if (videoFrameOffsets && seg.videoIndices && seg.videoIndices.length > 0) {
+      const firstVideoIndex = seg.videoIndices[0]
+      offsetFrame += videoFrameOffsets.get(firstVideoIndex) ?? 0
+    }
     const base = {
       source: seg.source,
       mode: seg.session ?? 'race',
-      offset: `${seg.videoOffsetFrame ?? 0} F`,
+      offset: `${offsetFrame} F`,
       label: seg.label,
       driver: selectedDrivers[seg.label],
     }
@@ -441,10 +457,25 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 
   // No video file handling — source paths stored as-is
 
+  // Compute cumulative frame offsets for each video in the global timeline.
+  // This maps video index → start frame so segment offsets can be globalised.
+  let videoFrameOffsets: Map<number, number> | undefined
+  if (opts.videoPaths.length > 1) {
+    try {
+      const multiInfo = await getMultiVideoInfoImpl(opts.videoPaths)
+      videoFrameOffsets = new Map<number, number>()
+      for (let i = 0; i < multiInfo.files.length; i++) {
+        videoFrameOffsets.set(i, Math.round(multiInfo.files[i].startSeconds * multiInfo.fps))
+      }
+    } catch (err) {
+      console.warn('[createProject] Could not compute video frame offsets, using raw offsets:', err)
+    }
+  }
+
   // Write engine timing config (config.json) — segments in engine format.
   // For remote sources (alphaTiming, mylapsSpeedhive, etc.), resolve the timing data
   // now and save it as manual source to avoid re-fetching on every project open.
-  const engineSegments = buildEngineSegments(opts.segments, opts.selectedDrivers)
+  const engineSegments = buildEngineSegments(opts.segments, opts.selectedDrivers, videoFrameOffsets)
   const cachedSegments = await cacheRemoteTimingData(engineSegments)
 
   const configPath = path.join(saveDir, 'config.json')
@@ -497,6 +528,22 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
  * any Electron machinery.
  */
 export function getVideoInfo(videoPath: string): VideoInfo {
+  // Guard: ensure the file exists and is locally available.
+  // iCloud/cloud placeholders are tiny stubs (< 1KB) that can cause ffprobe
+  // to hang or return invalid data.
+  try {
+    fs.accessSync(videoPath, fs.constants.R_OK)
+    const stat = fs.statSync(videoPath)
+    if (stat.size < 1024) {
+      throw new Error(
+        `File appears to be a cloud storage placeholder (${stat.size} bytes). Download it locally first: ${videoPath}`,
+      )
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes('cloud storage placeholder')) throw err
+    throw new Error(`File not accessible: ${videoPath}`)
+  }
+
   let stdout: Buffer
   try {
     stdout = execFileSync(resolveFfprobeCommand(), [
@@ -506,12 +553,18 @@ export function getVideoInfo(videoPath: string): VideoInfo {
       'json',
       '-show_streams',
       videoPath,
-    ]) as Buffer
+    ], { timeout: 10_000 }) as Buffer
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     const code = (err as NodeJS.ErrnoException).code
+    const signal = (err as { signal?: string }).signal
     if (code === 'ENOENT' || message.toLowerCase().includes('not found')) {
       throw new Error('ffprobe not found. Install ffmpeg (which bundles ffprobe) and ensure it is on your PATH.')
+    }
+    if (signal === 'SIGINT' || signal === 'SIGTERM' || code === 'ETIMEDOUT') {
+      throw new Error(
+        `Could not read video file — it may still be downloading from cloud storage: ${videoPath}`,
+      )
     }
     throw err
   }
@@ -861,6 +914,27 @@ export function registerIpcHandlers(): void {
   // Export — getVideoInfo (synchronous, uses execFileSync)
   ipcMain.handle('racedash:getVideoInfo', (_event, videoPath: string) => getVideoInfo(videoPath))
   ipcMain.handle('racedash:getMultiVideoInfo', (_event, videoPaths: string[]) => getMultiVideoInfoImpl(videoPaths))
+
+  // Lightweight file validation — checks accessibility without running ffprobe.
+  // Returns { available: string[], unavailable: string[] }
+  ipcMain.handle('racedash:validateVideoPaths', (_event, videoPaths: string[]) => {
+    const available: string[] = []
+    const unavailable: string[] = []
+    for (const p of videoPaths) {
+      try {
+        fs.accessSync(p, fs.constants.R_OK)
+        const stat = fs.statSync(p)
+        if (stat.size < 1024) {
+          unavailable.push(p)
+        } else {
+          available.push(p)
+        }
+      } catch {
+        unavailable.push(p)
+      }
+    }
+    return { available, unavailable }
+  })
 
   // Export — startRender (non-blocking; progress pushed via webContents.send)
   ipcMain.handle('racedash:startRender', (event, opts: RenderStartOpts) => {
