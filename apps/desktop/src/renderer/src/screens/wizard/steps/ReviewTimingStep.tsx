@@ -189,6 +189,7 @@ function SegmentReview({
   }, [segment, selectedDriver])
 
   useEffect(() => {
+    setCurrentLapIndex(0)
     fetchLaps()
   }, [fetchLaps])
 
@@ -223,7 +224,8 @@ function SegmentReview({
     )
   }
 
-  const currentLap = laps[currentLapIndex]
+  const safeIndex = Math.min(currentLapIndex, laps.length - 1)
+  const currentLap = laps[safeIndex]
   const bestLapTime = Math.min(...laps.map((l) => l.lapTime))
   const isBest = currentLap.lapTime === bestLapTime
 
@@ -234,7 +236,7 @@ function SegmentReview({
         segmentVideoPaths={segmentVideoPaths}
         offsetFrame={segment.videoOffsetFrame ?? 0}
         laps={laps}
-        currentLapIndex={currentLapIndex}
+        currentLapIndex={safeIndex}
       />
 
       {/* Lap stepper */}
@@ -244,12 +246,12 @@ function SegmentReview({
             variant="outline"
             size="sm"
             onClick={() => setCurrentLapIndex((i) => Math.max(0, i - 1))}
-            disabled={currentLapIndex === 0}
+            disabled={safeIndex === 0}
           >
             ← Prev
           </Button>
           <select
-            value={currentLapIndex}
+            value={safeIndex}
             onChange={(e) => setCurrentLapIndex(Number(e.target.value))}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm"
           >
@@ -263,13 +265,13 @@ function SegmentReview({
             variant="outline"
             size="sm"
             onClick={() => setCurrentLapIndex((i) => Math.min(laps.length - 1, i + 1))}
-            disabled={currentLapIndex === laps.length - 1}
+            disabled={safeIndex === laps.length - 1}
           >
             Next →
           </Button>
         </div>
         <span className="text-xs text-muted-foreground">
-          {currentLapIndex + 1} of {laps.length}
+          {safeIndex + 1} of {laps.length}
         </span>
       </div>
 
