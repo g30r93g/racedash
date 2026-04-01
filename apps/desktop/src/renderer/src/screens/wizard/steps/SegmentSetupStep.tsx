@@ -50,6 +50,8 @@ interface SegmentSetupStepProps {
   selectedDrivers: Record<string, string>
   onSegmentsChange: (segments: SegmentConfig[]) => void
   onSelectedDriversChange: (drivers: Record<string, string>) => void
+  /** Called when the inline segment form opens/closes. Use to hide the wizard footer. */
+  onFormActiveChange?: (active: boolean) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -331,8 +333,14 @@ export function SegmentSetupStep({
   selectedDrivers,
   onSegmentsChange,
   onSelectedDriversChange,
+  onFormActiveChange,
 }: SegmentSetupStepProps): React.ReactElement {
   const [formMode, setFormMode] = useState<FormMode>(segments.length === 0 ? { mode: 'add' } : null)
+
+  // Notify parent when the inline form opens/closes (hides wizard footer)
+  useEffect(() => {
+    onFormActiveChange?.(formMode !== null)
+  }, [formMode, onFormActiveChange])
 
   // --- Draft state for the inline form ---
   const [label, setLabel] = useState('')

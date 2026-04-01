@@ -49,6 +49,7 @@ export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [segmentFormActive, setSegmentFormActive] = useState(false)
 
   const hasData = state.projectName.trim() !== '' || state.videoPaths.length > 0 || state.segments.length > 0
 
@@ -97,6 +98,7 @@ export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps
         onSubmit={step === STEPS.length - 1 ? handleSubmit : undefined}
         submitLabel="Create Project"
         isSubmitting={isSubmitting}
+        hideButtonBar={segmentFormActive}
         title=""
       >
         {step === 0 && (
@@ -116,6 +118,7 @@ export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps
             selectedDrivers={state.selectedDrivers}
             onSegmentsChange={(segments) => setState((s) => ({ ...s, segments }))}
             onSelectedDriversChange={(drivers) => setState((s) => ({ ...s, selectedDrivers: drivers }))}
+            onFormActiveChange={setSegmentFormActive}
           />
         )}
         {step === 2 && (
