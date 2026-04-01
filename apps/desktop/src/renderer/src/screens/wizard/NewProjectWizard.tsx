@@ -30,12 +30,6 @@ interface WizardState {
   selectedDrivers: Record<string, string>
 }
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
 
 export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps): React.ReactElement {
   const [step, setStep] = useState(0)
@@ -70,13 +64,12 @@ export function NewProjectWizard({ onComplete, onCancel }: NewProjectWizardProps
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const saveDir = state.saveDir || `~/Videos/racedash/${slugify(state.projectName)}/`
       const project = await window.racedash.createProject({
         name: state.projectName,
         videoPaths: state.videoPaths,
         segments: state.segments,
         selectedDrivers: state.selectedDrivers,
-        saveDir,
+        ...(state.saveDir ? { saveDir: state.saveDir } : {}),
       })
       onComplete(project)
     } catch (err: unknown) {
