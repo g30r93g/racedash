@@ -380,6 +380,7 @@ export interface RacedashAPI {
       boxPosition?: BoxPosition
       qualifyingTablePosition?: CornerPosition
       overlayComponents?: OverlayComponentsConfig
+      segmentStyles?: Record<string, Partial<OverlayStyling>>
     },
   ): Promise<void>
 

@@ -72,6 +72,8 @@ export interface StyleState {
   boxPosition?: BoxPosition
   qualifyingTablePosition?: CornerPosition
   overlayComponents?: OverlayComponentsConfig
+  /** Per-segment style overrides, keyed by segment label. Merged on top of base `styling`. */
+  segmentStyles?: Record<string, Partial<OverlayStyling>>
 }
 
 interface StyleTabProps {
@@ -81,6 +83,8 @@ interface StyleTabProps {
   onRedo: () => void
   canUndo: boolean
   canRedo: boolean
+  /** Segment labels from the project config, used to render segment tabs. */
+  segmentLabels?: string[]
 }
 
 function Divider(): React.ReactElement {
@@ -94,9 +98,33 @@ export function StyleTab({
   onRedo,
   canUndo,
   canRedo,
+  segmentLabels = [],
 }: StyleTabProps): React.ReactElement {
   const [showOverlayPicker, setShowOverlayPicker] = useState(false)
-  const { overlayType, styling } = styleState
+  // null = editing base (all segments), string = editing a specific segment's overrides
+  const [activeSegment, setActiveSegment] = useState<string | null>(null)
+  const { overlayType } = styleState
+
+  // Effective styling: base merged with segment overrides when a segment is selected
+  const segmentOverrides = activeSegment ? styleState.segmentStyles?.[activeSegment] : undefined
+  const styling: OverlayStyling = segmentOverrides ? { ...styleState.styling, ...segmentOverrides } : styleState.styling
+
+  /** Applies a styling patch to the correct target: base styling or segment override. */
+  const applyStylingPatch = useCallback(
+    (state: StyleState, patch: OverlayStyling): StyleState => {
+      if (!activeSegment) {
+        return { ...state, styling: { ...state.styling, ...patch } }
+      }
+      return {
+        ...state,
+        segmentStyles: {
+          ...state.segmentStyles,
+          [activeSegment]: { ...state.segmentStyles?.[activeSegment], ...patch },
+        },
+      }
+    },
+    [activeSegment],
+  )
 
   // Debounced colour change: waits 400ms after the last drag tick before committing
   // to history. Only one onStyleChange call fires per drag — NOT immediately.
@@ -110,10 +138,10 @@ export function StyleTab({
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         const { styleState: s, patch: p } = latestRef.current
-        onStyleChange({ ...s, styling: { ...s.styling, ...p } })
+        onStyleChange(applyStylingPatch(s, p))
       }, 400)
     },
-    [styleState, onStyleChange],
+    [styleState, onStyleChange, applyStylingPatch],
   )
 
   const handleComponentToggle = useCallback(
@@ -138,52 +166,46 @@ export function StyleTab({
 
   const handleFadeToggle = useCallback(
     (enabled: boolean) => {
-      onStyleChange({
-        ...styleState,
-        styling: { ...styleState.styling, fade: { ...styleState.styling.fade, enabled } },
-      })
+      onStyleChange(applyStylingPatch(styleState, { fade: { ...styling.fade, enabled } }))
     },
-    [styleState, onStyleChange],
+    [styleState, styling, onStyleChange, applyStylingPatch],
   )
 
   const handleFadeSliderChange = useCallback(
     (key: 'durationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds' | 'postRollSeconds', value: number) => {
       latestRef.current = {
         styleState,
-        patch: { fade: { ...styleState.styling.fade, [key]: value } },
+        patch: { fade: { ...styling.fade, [key]: value } },
       }
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         const { styleState: s, patch: p } = latestRef.current
-        onStyleChange({ ...s, styling: { ...s.styling, ...p } })
+        onStyleChange(applyStylingPatch(s, p))
       }, 400)
     },
-    [styleState, onStyleChange],
+    [styleState, styling, onStyleChange, applyStylingPatch],
   )
 
   const handleSegmentLabelToggle = useCallback(
     (enabled: boolean) => {
-      onStyleChange({
-        ...styleState,
-        styling: { ...styleState.styling, segmentLabel: { ...styleState.styling.segmentLabel, enabled } },
-      })
+      onStyleChange(applyStylingPatch(styleState, { segmentLabel: { ...styling.segmentLabel, enabled } }))
     },
-    [styleState, onStyleChange],
+    [styleState, styling, onStyleChange, applyStylingPatch],
   )
 
   const handleSegmentLabelSliderChange = useCallback(
     (key: 'fadeInDurationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds' | 'postRollSeconds', value: number) => {
       latestRef.current = {
         styleState,
-        patch: { segmentLabel: { ...styleState.styling.segmentLabel, [key]: value } },
+        patch: { segmentLabel: { ...styling.segmentLabel, [key]: value } },
       }
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         const { styleState: s, patch: p } = latestRef.current
-        onStyleChange({ ...s, styling: { ...s.styling, ...p } })
+        onStyleChange(applyStylingPatch(s, p))
       }, 400)
     },
-    [styleState, onStyleChange],
+    [styleState, styling, onStyleChange, applyStylingPatch],
   )
 
   // Fade
@@ -261,6 +283,35 @@ export function StyleTab({
           <Redo />
         </Button>
       </div>
+
+      {/* SEGMENT TABS */}
+      {segmentLabels.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setActiveSegment(null)}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              activeSegment === null
+                ? 'bg-accent text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            All
+          </button>
+          {segmentLabels.map((label) => (
+            <button
+              key={label}
+              onClick={() => setActiveSegment(label)}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                activeSegment === label
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* OVERLAY TYPE */}
       <section>

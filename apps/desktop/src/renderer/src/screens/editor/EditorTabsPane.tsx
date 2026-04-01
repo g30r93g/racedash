@@ -116,6 +116,7 @@ export function EditorTabsPane({
             onRedo={onRedo}
             canUndo={canUndo}
             canRedo={canRedo}
+            segmentLabels={project.segments.map((s) => s.label)}
           />
         </TabsContent>
         <TabsContent value="export" className="mt-0 flex-1 overflow-auto">

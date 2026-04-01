@@ -263,6 +263,7 @@ export function saveStyleToConfigHandler(
     boxPosition?: string
     qualifyingTablePosition?: string
     overlayComponents?: OverlayComponentsConfig
+    segmentStyles?: Record<string, Partial<OverlayStyling>>
   },
 ): void {
   if (typeof configPath !== 'string' || configPath.trim().length === 0) {
@@ -286,6 +287,11 @@ export function saveStyleToConfigHandler(
     config.overlayComponents = configOptions.overlayComponents
   } else {
     delete config.overlayComponents
+  }
+  if (configOptions?.segmentStyles !== undefined && Object.keys(configOptions.segmentStyles).length > 0) {
+    config.segmentStyles = configOptions.segmentStyles
+  } else {
+    delete config.segmentStyles
   }
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
@@ -893,6 +899,7 @@ export function registerIpcHandlers(): void {
         boxPosition?: string
         qualifyingTablePosition?: string
         overlayComponents?: OverlayComponentsConfig
+        segmentStyles?: Record<string, Partial<OverlayStyling>>
       },
     ) => saveStyleToConfigHandler(configPath, overlayType, styling, configOptions),
   )

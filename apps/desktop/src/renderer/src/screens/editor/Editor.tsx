@@ -121,9 +121,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         const qualifyingTablePosition = config.qualifyingTablePosition as CornerPosition | undefined
         const overlayComponents =
           (config.overlayComponents as OverlayComponentsConfig | undefined) ?? DEFAULT_STYLE_STATE.overlayComponents
+        const segmentStyles = (config.segmentStyles as StyleState['segmentStyles']) ?? undefined
         dispatchStyle({
           type: 'init',
-          initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents },
+          initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents, segmentStyles },
         })
       })
       .catch(() => {
@@ -139,6 +140,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           boxPosition: next.boxPosition,
           qualifyingTablePosition: next.qualifyingTablePosition,
           overlayComponents: next.overlayComponents,
+          segmentStyles: next.segmentStyles,
         })
         .catch((err: unknown) => {
           console.warn('[Editor] saveStyleToConfig failed:', err)
