@@ -1,9 +1,8 @@
 import { WizardShell } from '@/components/wizard/WizardShell'
 import { useState } from 'react'
 import type { ProjectData, SegmentConfig } from '../../../../types/project'
-import { SegmentsStep } from './steps/SegmentsStep'
-import { DriverStep } from './steps/DriverStep'
-import { VerifyStep } from './steps/VerifyStep'
+import { SegmentSetupStep } from './steps/SegmentSetupStep'
+import { ReviewTimingStep } from './steps/ReviewTimingStep'
 
 interface EditWizardState {
   segments: SegmentConfig[]
@@ -16,29 +15,17 @@ interface ProjectEditWizardProps {
   onCancel: () => void
 }
 
-const STEP_LABELS = ['Segments', 'Driver', 'Verify'] as const
+const STEP_LABELS = ['Segments', 'Review'] as const
 
 export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWizardProps) {
   const [step, setStep] = useState(0)
-  const [segmentSubForm, setSegmentSubForm] = useState(false)
+  const [segmentFormActive, setSegmentFormActive] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [state, setState] = useState<EditWizardState>({
     segments: project.segments,
     selectedDrivers: project.selectedDrivers,
   })
-
-  function updateState(patch: Partial<EditWizardState>) {
-    setState((prev) => ({ ...prev, ...patch }))
-  }
-
-  function goNext() {
-    setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1))
-  }
-
-  function goBack() {
-    setStep((s) => Math.max(s - 1, 0))
-  }
 
   async function handleSave() {
     setSaving(true)
@@ -54,41 +41,39 @@ export function ProjectEditWizard({ project, onSave, onCancel }: ProjectEditWiza
 
   const canContinue =
     (step === 0 && state.segments.length >= 1) ||
-    (step === 1 && state.segments.every((seg) => !!state.selectedDrivers[seg.label])) ||
-    step >= 2
+    step >= 1
 
   return (
     <WizardShell
       title="Edit Project"
       steps={STEP_LABELS}
       currentStep={step}
-      onNext={goNext}
-      onBack={goBack}
+      onNext={() => setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1))}
+      onBack={() => setStep((s) => Math.max(s - 1, 0))}
       onCancel={onCancel}
       canContinue={canContinue}
-      hideButtonBar={segmentSubForm}
+      hideButtonBar={segmentFormActive}
       isSubmitting={saving}
       submitLabel="Save"
-      onSubmit={handleSave}
+      onSubmit={step === STEP_LABELS.length - 1 ? handleSave : undefined}
     >
       {step === 0 && (
-        <SegmentsStep
+        <SegmentSetupStep
           videoPaths={project.videoPaths}
           segments={state.segments}
-          onChange={(segments) => updateState({ segments })}
-          onSubFormChange={setSegmentSubForm}
+          selectedDrivers={state.selectedDrivers}
+          onSegmentsChange={(segments) => setState((s) => ({ ...s, segments }))}
+          onSelectedDriversChange={(drivers) => setState((s) => ({ ...s, selectedDrivers: drivers }))}
+          onFormActiveChange={setSegmentFormActive}
         />
       )}
       {step === 1 && (
-        <DriverStep
-          segments={state.segments}
-          selectedDrivers={state.selectedDrivers}
-          onChange={(drivers) => updateState({ selectedDrivers: drivers })}
-        />
-      )}
-      {step === 2 && (
         <>
-          <VerifyStep segments={state.segments} selectedDrivers={state.selectedDrivers} />
+          <ReviewTimingStep
+            segments={state.segments}
+            selectedDrivers={state.selectedDrivers}
+            videoPaths={project.videoPaths}
+          />
           {saveError && <p className="mt-4 text-sm text-destructive">{saveError}</p>}
         </>
       )}
