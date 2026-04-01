@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react'
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { JumpToDialog } from '../timing/JumpToDialog'
 
 interface VideoPlaybackControlsProps {
@@ -38,15 +38,6 @@ export function VideoPlaybackControls({
 }: VideoPlaybackControlsProps): React.ReactElement {
   const frame = Math.floor(currentTime * fps)
   const [jumpOpen, setJumpOpen] = useState(false)
-  const rangeRef = useRef<HTMLInputElement>(null)
-
-  // During playback, update the native range slider via DOM to avoid
-  // Radix Slider re-renders on every frame.
-  useEffect(() => {
-    if (playing && rangeRef.current) {
-      rangeRef.current.value = String(currentTime)
-    }
-  }, [currentTime, playing])
 
   return (
     <TooltipProvider>
@@ -66,30 +57,15 @@ export function VideoPlaybackControls({
           <TooltipContent>{playing ? 'Pause' : 'Play'}</TooltipContent>
         </Tooltip>
 
-        {/* Use Radix Slider when paused (nice UI) or native range during playback (no re-render cost) */}
-        {playing ? (
-          <input
-            ref={rangeRef}
-            type="range"
-            min={0}
-            max={duration || 1}
-            step={0.001}
-            defaultValue={currentTime}
-            onChange={(e) => onSeek(Number(e.target.value))}
-            className="flex-1 accent-primary"
-            aria-label="Playback position"
-          />
-        ) : (
-          <Slider
-            min={0}
-            max={duration || 1}
-            step={0.001}
-            value={[currentTime]}
-            onValueChange={([v]) => onSeek(v)}
-            className="flex-1"
-            aria-label="Playback position"
-          />
-        )}
+        <Slider
+          min={0}
+          max={duration || 1}
+          step={0.001}
+          value={[currentTime]}
+          onValueChange={([v]) => onSeek(v)}
+          className="flex-1"
+          aria-label="Playback position"
+        />
 
         <Tooltip>
           <TooltipTrigger asChild>
