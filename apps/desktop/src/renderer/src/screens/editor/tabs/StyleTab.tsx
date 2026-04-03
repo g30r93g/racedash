@@ -244,7 +244,21 @@ export function StyleTab({
                 )}
               </React.Fragment>
             ))}
-            {(entry.styleSettings?.length ?? 0) > 0 && <Separator />}
+            <Separator />
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-xs text-muted-foreground">Position</span>
+              <select
+                value={styleState.boxPosition ?? ''}
+                onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
+                className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Default</option>
+                {BOX_POSITION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <Separator />
             <MarginEditor
               value={marginValue}
               onChange={(margin) => {
@@ -294,22 +308,7 @@ export function StyleTab({
               )}
             </div>
             <div className="rounded-md border border-border bg-accent px-3">
-              {/* Overlay position */}
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-xs text-muted-foreground">Overlay position</span>
-                <select
-                  value={styleState.boxPosition ?? ''}
-                  onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
-                  className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="">Default</option>
-                  {BOX_POSITION_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {allComponents.map((comp) => {
+              {allComponents.map((comp, ci) => {
                 const isGlobal = globalComponents.some((g) => g.key === comp.key)
                 const compEnabled = comp.toggleable
                   ? isOverlayComponentEnabled((styleState.overlayComponents as Record<string, unknown> | undefined)?.[comp.key] as ComponentToggle | undefined)
@@ -317,7 +316,7 @@ export function StyleTab({
 
                 return (
                   <React.Fragment key={comp.key}>
-                    <Separator />
+                    {ci > 0 && <Separator />}
                     {comp.toggleable ? (
                       <ComponentAccordionItem
                         label={comp.label}
