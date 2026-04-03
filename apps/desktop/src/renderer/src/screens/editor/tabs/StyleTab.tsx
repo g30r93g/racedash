@@ -293,7 +293,7 @@ export function StyleTab({
               value={marginValue}
               onChange={(margin) => {
                 if (!marginPath) return
-                handleColourChange({ [marginPath]: { ...marginSection, margin } } as unknown as OverlayStyling)
+                onStyleChange(applyStylingPatch(styleState, { [marginPath]: { ...marginSection, margin } } as unknown as OverlayStyling))
               }}
             />
           </div>
