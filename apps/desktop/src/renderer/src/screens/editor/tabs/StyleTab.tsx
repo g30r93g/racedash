@@ -275,13 +275,11 @@ export function StyleTab({
         </section>
       )}
 
-      {/* COMPONENTS — style-specific + added global components */}
+      {/* STYLE COMPONENTS */}
       {(() => {
-        const activeGlobals = globalComponents.filter((g) => isAdded(g.stylingPath))
-        const availableGlobals = globalComponents.filter((g) => !isAdded(g.stylingPath))
-        const allComponents = [...(entry?.components ?? []), ...activeGlobals]
+        const styleComponents = entry?.components ?? []
 
-        const renderSettings = (comp: typeof allComponents[number]) =>
+        const renderSettings = (comp: (typeof styleComponents)[number]) =>
           comp.settings.map((s, si) => (
             <React.Fragment key={s.key}>
               {si > 0 && <Separator />}
@@ -303,67 +301,92 @@ export function StyleTab({
           ))
 
         return (
-          <section>
-            <div className="mb-2 flex items-center justify-between">
-              <SectionLabel>Components</SectionLabel>
-              <Button variant="ghost" size="sm" className="h-5 text-[10px]" onClick={() => setShowAddComponent(true)}>
-                <Plus />
-                Add
-              </Button>
-            </div>
-            <div className="rounded-md border border-border bg-accent px-3">
-              {allComponents.map((comp, ci) => {
-                const isGlobal = globalComponents.some((g) => g.key === comp.key)
-                const compEnabled = comp.toggleable
-                  ? isOverlayComponentEnabled((styleState.overlayComponents as Record<string, unknown> | undefined)?.[comp.key] as ComponentToggle | undefined)
-                  : true
-
-                return (
-                  <React.Fragment key={comp.key}>
-                    {ci > 0 && <Separator />}
-                    {comp.toggleable ? (
-                      <ComponentAccordionItem
-                        label={comp.label}
-                        enabled={isGlobal ? isEnabled(comp.stylingPath) : compEnabled}
-                        onToggle={isGlobal
-                          ? (v) => setVal(comp.stylingPath, 'enabled', v)
-                          : (v) => handleComponentToggle(comp.key as keyof OverlayComponentsConfig, v)
-                        }
-                        onRemove={isGlobal ? () => {
-                          // Remove the entire styling section to mark as "not added"
-                          const patch = { [comp.stylingPath]: undefined } as unknown as OverlayStyling
-                          onStyleChange(applyStylingPatch(styleState, patch))
-                        } : undefined}
-                      >
-                        {renderSettings(comp)}
-                      </ComponentAccordionItem>
-                    ) : (
-                      <Collapsible>
-                        <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
-                          <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
-                          {comp.label}
-                        </CollapsibleTrigger>
-                        {comp.settings.length > 0 && (
-                          <CollapsibleContent>
-                            <div className="ml-4 border-l border-border pl-2">
-                              {renderSettings(comp)}
-                            </div>
-                          </CollapsibleContent>
+          <>
+            {/* Style-specific components */}
+            {styleComponents.length > 0 && (
+              <section>
+                <SectionLabel>Style Components</SectionLabel>
+                <div className="rounded-md border border-border bg-accent px-3">
+                  {styleComponents.map((comp, ci) => {
+                    const compEnabled = comp.toggleable
+                      ? isOverlayComponentEnabled((styleState.overlayComponents as Record<string, unknown> | undefined)?.[comp.key] as ComponentToggle | undefined)
+                      : true
+                    return (
+                      <React.Fragment key={comp.key}>
+                        {ci > 0 && <Separator />}
+                        {comp.toggleable ? (
+                          <ComponentAccordionItem
+                            label={comp.label}
+                            enabled={compEnabled}
+                            onToggle={(v) => handleComponentToggle(comp.key as keyof OverlayComponentsConfig, v)}
+                          >
+                            {renderSettings(comp)}
+                          </ComponentAccordionItem>
+                        ) : (
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
+                              <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
+                              {comp.label}
+                            </CollapsibleTrigger>
+                            {comp.settings.length > 0 && (
+                              <CollapsibleContent>
+                                <div className="ml-4 border-l border-border pl-2">
+                                  {renderSettings(comp)}
+                                </div>
+                              </CollapsibleContent>
+                            )}
+                          </Collapsible>
                         )}
-                      </Collapsible>
-                    )}
-                  </React.Fragment>
-                )
-              })}
-            </div>
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
 
-            <AddComponentModal
-              open={showAddComponent}
-              onOpenChange={setShowAddComponent}
-              availableComponents={availableGlobals}
-              onAdd={(comp) => setVal(comp.stylingPath, 'enabled', true)}
-            />
-          </section>
+            {/* Global components (addable/removable) */}
+            {(() => {
+              const activeGlobals = globalComponents.filter((g) => isAdded(g.stylingPath))
+              const availableGlobals = globalComponents.filter((g) => !isAdded(g.stylingPath))
+              return (
+                <section>
+                  <div className="mb-2 flex items-center justify-between">
+                    <SectionLabel>Components</SectionLabel>
+                    <Button variant="ghost" size="sm" className="h-5 text-[10px]" onClick={() => setShowAddComponent(true)}>
+                      <Plus />
+                      Add
+                    </Button>
+                  </div>
+                  {activeGlobals.length > 0 && (
+                    <div className="rounded-md border border-border bg-accent px-3">
+                      {activeGlobals.map((comp, ci) => (
+                        <React.Fragment key={comp.key}>
+                          {ci > 0 && <Separator />}
+                          <ComponentAccordionItem
+                            label={comp.label}
+                            enabled={isEnabled(comp.stylingPath)}
+                            onToggle={(v) => setVal(comp.stylingPath, 'enabled', v)}
+                            onRemove={() => {
+                              const patch = { [comp.stylingPath]: undefined } as unknown as OverlayStyling
+                              onStyleChange(applyStylingPatch(styleState, patch))
+                            }}
+                          >
+                            {renderSettings(comp)}
+                          </ComponentAccordionItem>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  )}
+                  <AddComponentModal
+                    open={showAddComponent}
+                    onOpenChange={setShowAddComponent}
+                    availableComponents={availableGlobals}
+                    onAdd={(comp) => setVal(comp.stylingPath, 'enabled', true)}
+                  />
+                </section>
+              )
+            })()}
+          </>
         )
       })()}
 
