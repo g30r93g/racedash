@@ -2,6 +2,7 @@ import { ColourRow } from '@/components/style/ColourRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
@@ -75,9 +76,6 @@ interface StyleTabProps {
   segmentLabels?: string[]
 }
 
-function Divider(): React.ReactElement {
-  return <div className="border-t border-border" />
-}
 
 function StepperRow({
   label,
@@ -251,7 +249,13 @@ export function StyleTab({
     const val = getStylingSection(path)?.enabled
     return val !== false && val !== 0
   }
+  /** Immediate commit — for steppers, toggles, dropdowns. */
   const setVal = (path: string, key: string, value: string | number | boolean) => {
+    const s = getStylingSection(path)
+    onStyleChange(applyStylingPatch(styleState, { [path]: { ...s, [key]: value } } as unknown as OverlayStyling))
+  }
+  /** Debounced commit — for colour pickers (continuous drag). */
+  const setColourVal = (path: string, key: string, value: string) => {
     const s = getStylingSection(path)
     handleColourChange({ [path]: { ...s, [key]: value } } as unknown as OverlayStyling)
   }
@@ -371,9 +375,9 @@ export function StyleTab({
               )}
               {enabled && comp.settings.map((s, si) => (
                 <React.Fragment key={s.key}>
-                  {(si > 0 || comp.toggleable) && <Divider />}
+                  {(si > 0 || comp.toggleable) && <Separator />}
                   {s.type === 'colour' && (
-                    <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                    <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
                   )}
                   {s.type === 'stepper' && (
                     <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
@@ -392,16 +396,16 @@ export function StyleTab({
           <div className="rounded-md border border-border bg-accent px-3">
             {entry.styleSettings?.map((s, i) => (
               <React.Fragment key={s.key}>
-                {i > 0 && <Divider />}
+                {i > 0 && <Separator />}
                 {s.type === 'colour' && (
-                  <ColourRow label={s.label} value={String(getVal(s.stylingPath, s.key, s.default))} onChange={(v) => setVal(s.stylingPath, s.key, v)} />
+                  <ColourRow label={s.label} value={String(getVal(s.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(s.stylingPath, s.key, v)} />
                 )}
                 {s.type === 'stepper' && (
                   <StepperRow label={s.label} value={Number(getVal(s.stylingPath, s.key, s.default))} onChange={(v) => setVal(s.stylingPath, s.key, v)} step={1} suffix="px" />
                 )}
               </React.Fragment>
             ))}
-            {(entry.styleSettings?.length ?? 0) > 0 && <Divider />}
+            {(entry.styleSettings?.length ?? 0) > 0 && <Separator />}
             <MarginEditor
               value={marginValue}
               onChange={(margin) => {
@@ -433,7 +437,7 @@ export function StyleTab({
             </div>
             {entry.components.map((comp, ci) => (
               <React.Fragment key={comp.key}>
-                <Divider />
+                <Separator />
                 {comp.toggleable ? (
                   <ComponentAccordionItem
                     label={comp.label}
@@ -444,9 +448,9 @@ export function StyleTab({
                   >
                     {comp.settings.map((s, si) => (
                       <React.Fragment key={s.key}>
-                        {si > 0 && <Divider />}
+                        {si > 0 && <Separator />}
                         {s.type === 'colour' && (
-                          <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                          <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
                         )}
                         {s.type === 'dropdown' && s.options && (
                           <div className="flex items-center justify-between py-1.5">
@@ -473,9 +477,9 @@ export function StyleTab({
                         <div className="ml-4 border-l border-border pl-2">
                           {comp.settings.map((s, si) => (
                             <React.Fragment key={s.key}>
-                              {si > 0 && <Divider />}
+                              {si > 0 && <Separator />}
                               {s.type === 'colour' && (
-                                <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                                <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
                               )}
                               {s.type === 'dropdown' && s.options && (
                                 <div className="flex items-center justify-between py-1.5">
