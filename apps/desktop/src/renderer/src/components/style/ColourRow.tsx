@@ -39,7 +39,7 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
             <span className="font-mono text-xs text-muted-foreground">{display}</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 p-3" side="left" align="start">
+        <PopoverContent className="w-64 p-3" side="left" align="start">
           <ColourPicker value={value} onChange={onChange} />
         </PopoverContent>
       </Popover>

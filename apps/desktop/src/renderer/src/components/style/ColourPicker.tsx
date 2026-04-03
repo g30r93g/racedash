@@ -178,24 +178,26 @@ export function ColourPicker({ value, onChange }: ColourPickerProps): React.Reac
           />
         </div>
 
-        {/* Inputs */}
-        <div className="mt-2 grid grid-cols-5 gap-1">
-          <div className="col-span-2">
-            <Input
-              value={hexDraft}
-              onChange={(e) => {
-                setHexDraft(e.target.value)
-                if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) {
-                  const parsed = parseColourString(e.target.value)
-                  emit({ ...rgbaToHsva(parsed), a: hsva.a })
-                }
-              }}
-              onBlur={() => setHexDraft(rgbaToHex(currentRgba))}
-              maxLength={7}
-              className="h-6 px-1 text-center font-mono text-[10px]"
-            />
-            <span className="mt-0.5 block text-center text-[8px] text-muted-foreground">HEX</span>
-          </div>
+        {/* Hex input */}
+        <div className="mt-2">
+          <Input
+            value={hexDraft}
+            onChange={(e) => {
+              setHexDraft(e.target.value)
+              if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) {
+                const parsed = parseColourString(e.target.value)
+                emit({ ...rgbaToHsva(parsed), a: hsva.a })
+              }
+            }}
+            onBlur={() => setHexDraft(rgbaToHex(currentRgba))}
+            maxLength={7}
+            className="h-6 w-full px-1 text-center font-mono text-[10px]"
+          />
+          <span className="mt-0.5 block text-center text-[8px] text-muted-foreground">HEX</span>
+        </div>
+
+        {/* RGBA inputs */}
+        <div className="mt-1 grid grid-cols-4 gap-1">
           {(['r', 'g', 'b'] as const).map((ch) => (
             <div key={ch}>
               <Input
