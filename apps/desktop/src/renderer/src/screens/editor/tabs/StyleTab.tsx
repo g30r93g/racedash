@@ -1,17 +1,17 @@
+import { SectionLabel } from '@/components/shared/SectionLabel'
 import { AddComponentModal } from '@/components/style/AddComponentModal'
 import { ColourRow } from '@/components/style/ColourRow'
 import { ComponentAccordionItem } from '@/components/style/ComponentAccordionItem'
 import { MarginEditor } from '@/components/style/MarginEditor'
 import { StepperRow } from '@/components/style/StepperRow'
-import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Separator } from '@/components/ui/separator'
 import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
-import { ChevronRight, Redo, Undo } from 'lucide-react'
+import { BOX_POSITION_OPTIONS, globalComponents, registry } from '@renderer/registry'
+import { ChevronRight, Plus, Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
-import { registry, globalComponents, BOX_POSITION_OPTIONS } from '@renderer/registry'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
 
@@ -121,6 +121,10 @@ export function StyleTab({
   const isEnabled = (path: string): boolean => {
     const val = getStylingSection(path)?.enabled
     return val !== false && val !== 0
+  }
+  /** Strict check: returns true only if enabled is explicitly true (not undefined). */
+  const isExplicitlyEnabled = (path: string): boolean => {
+    return getStylingSection(path)?.enabled === true
   }
   /** Immediate commit — for steppers, toggles, dropdowns. */
   const setVal = (path: string, key: string, value: string | number | boolean) => {
@@ -273,8 +277,8 @@ export function StyleTab({
 
       {/* COMPONENTS — style-specific + added global components */}
       {(() => {
-        const activeGlobals = globalComponents.filter((g) => isEnabled(g.stylingPath))
-        const availableGlobals = globalComponents.filter((g) => !isEnabled(g.stylingPath))
+        const activeGlobals = globalComponents.filter((g) => isExplicitlyEnabled(g.stylingPath))
+        const availableGlobals = globalComponents.filter((g) => !isExplicitlyEnabled(g.stylingPath))
         const allComponents = [...(entry?.components ?? []), ...activeGlobals]
 
         const renderSettings = (comp: typeof allComponents[number]) =>
@@ -302,11 +306,10 @@ export function StyleTab({
           <section>
             <div className="mb-2 flex items-center justify-between">
               <SectionLabel>Components</SectionLabel>
-              {availableGlobals.length > 0 && (
-                <Button variant="ghost" size="sm" className="h-5 text-[10px]" onClick={() => setShowAddComponent(true)}>
-                  + Add
-                </Button>
-              )}
+              <Button variant="ghost" size="sm" className="h-5 text-[10px]" onClick={() => setShowAddComponent(true)}>
+                <Plus />
+                Add
+              </Button>
             </div>
             <div className="rounded-md border border-border bg-accent px-3">
               {allComponents.map((comp, ci) => {
