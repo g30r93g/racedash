@@ -31,7 +31,7 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
       <span className="text-xs text-muted-foreground">{label}</span>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" className="flex h-auto items-center gap-2 px-1 py-0.5">
+          <Button variant="ghost" className="flex h-auto items-center gap-2 rounded px-1 py-0.5 hover:bg-background">
             <div
               className="h-4 w-4 shrink-0 rounded border border-border"
               style={{ backgroundColor: value }}
