@@ -6,6 +6,7 @@ import { MarginEditor } from '@/components/style/MarginEditor'
 import { StepperRow } from '@/components/style/StepperRow'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
@@ -275,16 +276,17 @@ export function StyleTab({
             <Separator />
             <div className="flex items-center justify-between py-1.5">
               <span className="text-xs text-muted-foreground">Position</span>
-              <select
-                value={styleState.boxPosition ?? ''}
-                onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
-                className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Default</option>
-                {BOX_POSITION_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+              <Select value={styleState.boxPosition ?? ''} onValueChange={(v) => handlePositionChange('boxPosition', v)}>
+                <SelectTrigger className="h-6 w-auto gap-1 border-border bg-background px-2 text-xs">
+                  <SelectValue placeholder="Default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Default</SelectItem>
+                  {BOX_POSITION_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Separator />
             <MarginEditor
