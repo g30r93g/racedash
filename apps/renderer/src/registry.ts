@@ -47,39 +47,62 @@ export interface RegistryEntry {
   components?: StyleComponentDef[]
 }
 
-// ── Shared component definitions (reused across styles) ──────────────────────
+// ── Global components (style-agnostic, always shown) ─────────────────────────
 
-const LEADERBOARD_SETTINGS: ComponentSetting[] = [
-  { key: 'bgColor', label: 'Row background', type: 'colour', default: 'rgba(0,0,0,0.65)' },
-  { key: 'ourRowBgColor', label: 'Driver row', type: 'colour', default: 'rgba(0,0,0,0.82)' },
-  { key: 'textColor', label: 'Driver name', type: 'colour', default: '#ffffff' },
-  { key: 'positionTextColor', label: 'Position', type: 'colour', default: 'rgba(255,255,255,0.5)' },
-  { key: 'kartTextColor', label: 'Kart number', type: 'colour', default: 'rgba(255,255,255,0.7)' },
-  { key: 'lapTimeTextColor', label: 'Lap time', type: 'colour', default: 'rgba(255,255,255,0.8)' },
-  { key: 'separatorColor', label: 'Separator', type: 'colour', default: 'rgba(255,255,255,0.15)' },
+export const globalComponents: StyleComponentDef[] = [
+  {
+    key: 'fade',
+    label: 'Overlay Fade',
+    toggleable: true,
+    stylingPath: 'fade',
+    settings: [
+      { key: 'preRollSeconds', label: 'Pre-roll', type: 'stepper', default: 3 },
+      { key: 'durationSeconds', label: 'Fade in', type: 'stepper', default: 1 },
+      { key: 'fadeOutDurationSeconds', label: 'Fade out', type: 'stepper', default: 1 },
+      { key: 'postRollSeconds', label: 'Post-roll', type: 'stepper', default: 2 },
+    ],
+  },
+  {
+    key: 'segmentLabel',
+    label: 'Session Label',
+    toggleable: true,
+    stylingPath: 'segmentLabel',
+    settings: [
+      { key: 'preRollSeconds', label: 'Pre-roll', type: 'stepper', default: 2 },
+      { key: 'fadeInDurationSeconds', label: 'Fade in', type: 'stepper', default: 0.5 },
+      { key: 'fadeOutDurationSeconds', label: 'Fade out', type: 'stepper', default: 0.5 },
+      { key: 'postRollSeconds', label: 'Post-roll', type: 'stepper', default: 2 },
+    ],
+  },
+  {
+    key: 'leaderboard',
+    label: 'Leaderboard',
+    toggleable: true,
+    stylingPath: 'leaderboard',
+    settings: [
+      { key: 'bgColor', label: 'Row background', type: 'colour', default: 'rgba(0,0,0,0.65)' },
+      { key: 'ourRowBgColor', label: 'Driver row', type: 'colour', default: 'rgba(0,0,0,0.82)' },
+      { key: 'textColor', label: 'Driver name', type: 'colour', default: '#ffffff' },
+      { key: 'positionTextColor', label: 'Position', type: 'colour', default: 'rgba(255,255,255,0.5)' },
+      { key: 'kartTextColor', label: 'Kart number', type: 'colour', default: 'rgba(255,255,255,0.7)' },
+      { key: 'lapTimeTextColor', label: 'Lap time', type: 'colour', default: 'rgba(255,255,255,0.8)' },
+      { key: 'separatorColor', label: 'Separator', type: 'colour', default: 'rgba(255,255,255,0.15)' },
+    ],
+  },
+  {
+    key: 'lapList',
+    label: 'Lap List',
+    toggleable: true,
+    stylingPath: 'lapList',
+    settings: [
+      { key: 'bgColor', label: 'Background', type: 'colour', default: 'rgba(0,0,0,0.65)' },
+      { key: 'textColor', label: 'Text colour', type: 'colour', default: '#ffffff' },
+      { key: 'bestLapColor', label: 'Best lap', type: 'colour', default: '#00FF87' },
+    ],
+  },
 ]
 
-const LEADERBOARD_COMPONENT: StyleComponentDef = {
-  key: 'leaderboard',
-  label: 'Leaderboard',
-  toggleable: true,
-  stylingPath: 'leaderboard',
-  settings: LEADERBOARD_SETTINGS,
-}
-
-const LAP_LIST_SETTINGS: ComponentSetting[] = [
-  { key: 'bgColor', label: 'Background', type: 'colour', default: 'rgba(0,0,0,0.65)' },
-  { key: 'textColor', label: 'Text colour', type: 'colour', default: '#ffffff' },
-  { key: 'bestLapColor', label: 'Best lap', type: 'colour', default: '#00FF87' },
-]
-
-const LAP_LIST_COMPONENT: StyleComponentDef = {
-  key: 'lapList',
-  label: 'Lap List',
-  toggleable: true,
-  stylingPath: 'lapList',
-  settings: LAP_LIST_SETTINGS,
-}
+// ── Shared constants ─────────────────────────────────────────────────────────
 
 const INFO_PANEL_OPTIONS = [
   { value: 'none', label: 'None' },
@@ -121,8 +144,6 @@ export const registry: Record<string, RegistryEntry> = {
           { key: 'rightSegment', label: 'Right segment', type: 'dropdown', default: 'best-lap', options: INFO_PANEL_OPTIONS },
         ],
       },
-      LEADERBOARD_COMPONENT,
-      LAP_LIST_COMPONENT,
     ],
   },
   'geometric-banner': {
@@ -156,7 +177,6 @@ export const registry: Record<string, RegistryEntry> = {
       { key: 'previousLap', label: 'Previous Lap Indicator', toggleable: false, stylingPath: 'geometricBanner', settings: [
         { key: 'previousLapColor', label: 'Fill colour', type: 'colour', default: '#7c16aa' },
       ]},
-      LAP_LIST_COMPONENT,
     ],
   },
   esports: {
@@ -185,8 +205,6 @@ export const registry: Record<string, RegistryEntry> = {
       { key: 'sessionBestIcon', label: 'Session Best Icon', toggleable: false, stylingPath: 'esports', settings: [
         { key: 'sessionBestIconColor', label: 'Colour', type: 'colour', default: '#7c3aed' },
       ]},
-      LEADERBOARD_COMPONENT,
-      LAP_LIST_COMPONENT,
     ],
   },
   minimal: {
@@ -207,8 +225,6 @@ export const registry: Record<string, RegistryEntry> = {
       { key: 'stats', label: 'Stats', toggleable: false, stylingPath: 'minimal', settings: [
         { key: 'statLabelColor', label: 'Label colour', type: 'colour', default: '#aaaaaa' },
       ]},
-      LEADERBOARD_COMPONENT,
-      LAP_LIST_COMPONENT,
     ],
   },
   modern: {
@@ -228,8 +244,6 @@ export const registry: Record<string, RegistryEntry> = {
       { key: 'stats', label: 'Stats', toggleable: false, stylingPath: 'modern', settings: [
         { key: 'statLabelColor', label: 'Label colour', type: 'colour', default: 'rgba(255,255,255,0.5)' },
       ]},
-      LEADERBOARD_COMPONENT,
-      LAP_LIST_COMPONENT,
     ],
   },
 }

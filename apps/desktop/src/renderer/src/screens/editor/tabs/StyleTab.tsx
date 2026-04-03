@@ -5,21 +5,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Switch } from '@/components/ui/switch'
 import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
-import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_OUT_DURATION_SECONDS,
-  DEFAULT_FADE_POST_ROLL_SECONDS,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
-  DEFAULT_SEGMENT_LABEL_ENABLED,
-  DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS,
-  DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS,
-  DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS,
-  DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS,
-} from '@racedash/core'
 import { ChevronRight, Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
-import { registry } from '@renderer/registry'
+import { registry, globalComponents } from '@renderer/registry'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
 
@@ -252,72 +240,19 @@ export function StyleTab({
     [styleState, onStyleChange],
   )
 
-  const handleFadeToggle = useCallback(
-    (enabled: boolean) => {
-      onStyleChange(applyStylingPatch(styleState, { fade: { ...styling.fade, enabled } }))
-    },
-    [styleState, styling, onStyleChange, applyStylingPatch],
-  )
-
-  const handleFadeSliderChange = useCallback(
-    (key: 'durationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds' | 'postRollSeconds', value: number) => {
-      latestRef.current = {
-        styleState,
-        patch: { fade: { ...styling.fade, [key]: value } },
-      }
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => {
-        const { styleState: s, patch: p } = latestRef.current
-        onStyleChange(applyStylingPatch(s, p))
-      }, 400)
-    },
-    [styleState, styling, onStyleChange, applyStylingPatch],
-  )
-
-  const handleSegmentLabelToggle = useCallback(
-    (enabled: boolean) => {
-      onStyleChange(applyStylingPatch(styleState, { segmentLabel: { ...styling.segmentLabel, enabled } }))
-    },
-    [styleState, styling, onStyleChange, applyStylingPatch],
-  )
-
-  const handleSegmentLabelSliderChange = useCallback(
-    (key: 'fadeInDurationSeconds' | 'fadeOutDurationSeconds' | 'preRollSeconds' | 'postRollSeconds', value: number) => {
-      latestRef.current = {
-        styleState,
-        patch: { segmentLabel: { ...styling.segmentLabel, [key]: value } },
-      }
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => {
-        const { styleState: s, patch: p } = latestRef.current
-        onStyleChange(applyStylingPatch(s, p))
-      }, 400)
-    },
-    [styleState, styling, onStyleChange, applyStylingPatch],
-  )
-
-  // Fade
-  const fadeEnabled = styling.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const fadeOutDuration = styling.fade?.fadeOutDurationSeconds ?? DEFAULT_FADE_OUT_DURATION_SECONDS
-  const fadePreRoll = styling.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const fadePostRoll = styling.fade?.postRollSeconds ?? DEFAULT_FADE_POST_ROLL_SECONDS
-
-  // Segment label
-  const segmentLabelEnabled = styling.segmentLabel?.enabled ?? DEFAULT_SEGMENT_LABEL_ENABLED
-  const segmentLabelFadeIn = styling.segmentLabel?.fadeInDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS
-  const segmentLabelFadeOut = styling.segmentLabel?.fadeOutDurationSeconds ?? DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS
-  const segmentLabelPreRoll = styling.segmentLabel?.preRollSeconds ?? DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS
-  const segmentLabelPostRoll = styling.segmentLabel?.postRollSeconds ?? DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS
-
   // Registry-driven settings
   const entry = registry[overlayType]
+  const getStylingSection = (path: string) =>
+    (styling as Record<string, Record<string, unknown> | undefined>)[path]
   const getVal = (path: string, key: string, def: string | number): string | number => {
-    const s = (styling as Record<string, Record<string, unknown> | undefined>)[path]
-    return (s?.[key] as string | number) ?? def
+    return (getStylingSection(path)?.[key] as string | number) ?? def
   }
-  const setVal = (path: string, key: string, value: string | number) => {
-    const s = (styling as Record<string, Record<string, unknown> | undefined>)[path]
+  const isEnabled = (path: string): boolean => {
+    const val = getStylingSection(path)?.enabled
+    return val !== false && val !== 0
+  }
+  const setVal = (path: string, key: string, value: string | number | boolean) => {
+    const s = getStylingSection(path)
     handleColourChange({ [path]: { ...s, [key]: value } } as unknown as OverlayStyling)
   }
   // Resolve margin from the first styleSettings path or first component path
@@ -417,65 +352,38 @@ export function StyleTab({
         </div>
       </section>
 
-      {/* FADE */}
-      <section>
-        <SectionLabel>Overlay Fade</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-xs text-muted-foreground">Enabled</span>
-            <select
-              value={fadeEnabled ? 'on' : 'off'}
-              onChange={(e) => handleFadeToggle(e.target.value === 'on')}
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="on">On</option>
-              <option value="off">Off</option>
-            </select>
-          </div>
-          {fadeEnabled && (
-            <>
-              <Divider />
-              <StepperRow label="Pre-roll" value={fadePreRoll} onChange={(v) => handleFadeSliderChange('preRollSeconds', v)} />
-              <Divider />
-              <StepperRow label="Fade in" value={fadeDuration} min={0.25} onChange={(v) => handleFadeSliderChange('durationSeconds', v)} />
-              <Divider />
-              <StepperRow label="Fade out" value={fadeOutDuration} min={0.25} onChange={(v) => handleFadeSliderChange('fadeOutDurationSeconds', v)} />
-              <Divider />
-              <StepperRow label="Post-roll" value={fadePostRoll} onChange={(v) => handleFadeSliderChange('postRollSeconds', v)} />
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* SEGMENT LABEL */}
-      <section>
-        <SectionLabel>Session Label</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-xs text-muted-foreground">Enabled</span>
-            <select
-              value={segmentLabelEnabled ? 'on' : 'off'}
-              onChange={(e) => handleSegmentLabelToggle(e.target.value === 'on')}
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="on">On</option>
-              <option value="off">Off</option>
-            </select>
-          </div>
-          {segmentLabelEnabled && (
-            <>
-              <Divider />
-              <StepperRow label="Pre-roll" value={segmentLabelPreRoll} onChange={(v) => handleSegmentLabelSliderChange('preRollSeconds', v)} />
-              <Divider />
-              <StepperRow label="Fade in" value={segmentLabelFadeIn} min={0.25} onChange={(v) => handleSegmentLabelSliderChange('fadeInDurationSeconds', v)} />
-              <Divider />
-              <StepperRow label="Fade out" value={segmentLabelFadeOut} min={0.25} onChange={(v) => handleSegmentLabelSliderChange('fadeOutDurationSeconds', v)} />
-              <Divider />
-              <StepperRow label="Post-roll" value={segmentLabelPostRoll} onChange={(v) => handleSegmentLabelSliderChange('postRollSeconds', v)} />
-            </>
-          )}
-        </div>
-      </section>
+      {/* GLOBAL COMPONENTS (style-agnostic) */}
+      {globalComponents.map((comp) => {
+        const enabled = comp.toggleable ? isEnabled(comp.stylingPath) : true
+        return (
+          <section key={comp.key}>
+            <SectionLabel>{comp.label}</SectionLabel>
+            <div className="rounded-md border border-border bg-accent px-3">
+              {comp.toggleable && (
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-xs text-muted-foreground">Enabled</span>
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={(v) => setVal(comp.stylingPath, 'enabled', v)}
+                    className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
+                  />
+                </div>
+              )}
+              {enabled && comp.settings.map((s, si) => (
+                <React.Fragment key={s.key}>
+                  {(si > 0 || comp.toggleable) && <Divider />}
+                  {s.type === 'colour' && (
+                    <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                  )}
+                  {s.type === 'stepper' && (
+                    <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </section>
+        )
+      })}
 
       {/* STYLE SETTINGS + MARGIN (data-driven) */}
       {entry && (
