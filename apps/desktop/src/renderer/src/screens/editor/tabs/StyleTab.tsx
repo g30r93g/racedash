@@ -1,3 +1,4 @@
+import { AddComponentModal } from '@/components/style/AddComponentModal'
 import { ColourRow } from '@/components/style/ColourRow'
 import { ComponentAccordionItem } from '@/components/style/ComponentAccordionItem'
 import { MarginEditor } from '@/components/style/MarginEditor'
@@ -348,26 +349,12 @@ export function StyleTab({
               })}
             </div>
 
-            {/* Add component dialog */}
-            {showAddComponent && (
-              <div className="mt-2 rounded-md border border-border bg-accent p-2">
-                <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Add component</p>
-                <div className="flex flex-col gap-1">
-                  {availableGlobals.map((g) => (
-                    <button
-                      key={g.key}
-                      className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-background"
-                      onClick={() => {
-                        setVal(g.stylingPath, 'enabled', true)
-                        setShowAddComponent(false)
-                      }}
-                    >
-                      {g.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <AddComponentModal
+              open={showAddComponent}
+              onOpenChange={setShowAddComponent}
+              availableComponents={availableGlobals}
+              onAdd={(comp) => setVal(comp.stylingPath, 'enabled', true)}
+            />
           </section>
         )
       })()}
