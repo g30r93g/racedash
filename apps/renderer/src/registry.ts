@@ -62,19 +62,16 @@ export const BOX_POSITION_OPTIONS: Array<{ value: BoxPosition; label: string }> 
 
 // ── Global components (style-agnostic, always shown) ─────────────────────────
 
+// ── Shared style settings (appended to every style's styleSettings) ──────────
+
+export const FADE_SETTINGS: StyleSettingDef[] = [
+  { key: 'preRollSeconds', label: 'Pre-roll', type: 'stepper', default: 3, stylingPath: 'fade' },
+  { key: 'durationSeconds', label: 'Fade in', type: 'stepper', default: 1, stylingPath: 'fade' },
+  { key: 'fadeOutDurationSeconds', label: 'Fade out', type: 'stepper', default: 1, stylingPath: 'fade' },
+  { key: 'postRollSeconds', label: 'Post-roll', type: 'stepper', default: 2, stylingPath: 'fade' },
+]
+
 export const globalComponents: StyleComponentDef[] = [
-  {
-    key: 'fade',
-    label: 'Overlay Fade',
-    toggleable: true,
-    stylingPath: 'fade',
-    settings: [
-      { key: 'preRollSeconds', label: 'Pre-roll', type: 'stepper', default: 3 },
-      { key: 'durationSeconds', label: 'Fade in', type: 'stepper', default: 1 },
-      { key: 'fadeOutDurationSeconds', label: 'Fade out', type: 'stepper', default: 1 },
-      { key: 'postRollSeconds', label: 'Post-roll', type: 'stepper', default: 2 },
-    ],
-  },
   {
     key: 'segmentLabel',
     label: 'Session Label',
@@ -147,6 +144,7 @@ export const registry: Record<string, RegistryEntry> = {
       { key: 'textColor', label: 'Text', type: 'colour', default: '#ffffff', stylingPath: 'banner' },
       { key: 'bgColor', label: 'Background', type: 'colour', default: '#3DD73D', stylingPath: 'banner' },
       { key: 'borderRadius', label: 'Border radius', type: 'stepper', default: 10, stylingPath: 'banner' },
+      ...FADE_SETTINGS,
     ],
     components: [
       { key: 'positionCounter', label: 'Position Counter', toggleable: true, settings: [], stylingPath: 'banner' },
@@ -171,6 +169,7 @@ export const registry: Record<string, RegistryEntry> = {
     styleSettings: [
       { key: 'accentColor', label: 'Accent', type: 'colour', default: '#3DD73D', stylingPath: 'geometricBanner' },
       { key: 'textColor', label: 'Text', type: 'colour', default: '#ffffff', stylingPath: 'geometricBanner' },
+      ...FADE_SETTINGS,
     ],
     components: [
       { key: 'positionCounter', label: 'Position Counter', toggleable: true, stylingPath: 'geometricBanner', settings: [
@@ -202,7 +201,7 @@ export const registry: Record<string, RegistryEntry> = {
     overlayX: 0,
     overlayY: 0,
     scaleWithVideo: true,
-    styleSettings: [],
+    styleSettings: [...FADE_SETTINGS],
     components: [
       { key: 'accentBar', label: 'Accent Bar', toggleable: false, stylingPath: 'esports', settings: [
         { key: 'accentBarColor', label: 'Gradient start', type: 'colour', default: '#2563eb' },
@@ -233,6 +232,7 @@ export const registry: Record<string, RegistryEntry> = {
     scaleWithVideo: true,
     styleSettings: [
       { key: 'bgColor', label: 'Background', type: 'colour', default: 'rgba(20,22,28,0.88)', stylingPath: 'minimal' },
+      ...FADE_SETTINGS,
     ],
     components: [
       { key: 'lapBadge', label: 'Lap Badge', toggleable: false, stylingPath: 'minimal', settings: [
@@ -254,6 +254,7 @@ export const registry: Record<string, RegistryEntry> = {
     scaleWithVideo: true,
     styleSettings: [
       { key: 'bgColor', label: 'Background', type: 'colour', default: 'rgba(13,15,20,0.88)', stylingPath: 'modern' },
+      ...FADE_SETTINGS,
     ],
     components: [
       { key: 'divider', label: 'Divider', toggleable: false, stylingPath: 'modern', settings: [
