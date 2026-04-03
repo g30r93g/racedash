@@ -19,6 +19,7 @@ import {
 } from '@racedash/core'
 import { ChevronRight, Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
+import { registry } from '@renderer/registry'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
 
@@ -48,7 +49,7 @@ interface ComponentAccordionItemProps {
 
 function ComponentAccordionItem({ label, enabled, onToggle, children }: ComponentAccordionItemProps): React.ReactElement {
   return (
-    <Collapsible>
+    <Collapsible open={enabled ? undefined : false}>
       <div className="flex items-center justify-between py-1.5">
         <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
           <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
@@ -309,55 +310,20 @@ export function StyleTab({
   const segmentLabelPreRoll = styling.segmentLabel?.preRollSeconds ?? DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS
   const segmentLabelPostRoll = styling.segmentLabel?.postRollSeconds ?? DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS
 
-  // Banner
-  const bannerAccent = styling.banner?.accentColor ?? '#3DD73D'
-  const bannerText = styling.banner?.textColor ?? '#ffffff'
-  const bannerBg = styling.banner?.bgColor ?? '#3DD73D'
-  const bannerTimerText = styling.banner?.timerTextColor ?? '#ffffff'
-  const bannerTimerBg = styling.banner?.timerBgColor ?? '#111111'
-  const bannerLapPurple = styling.banner?.lapColorPurple ?? 'rgba(107, 33, 168, 0.95)'
-  const bannerLapGreen = styling.banner?.lapColorGreen ?? 'rgba(21, 128, 61, 0.95)'
-  const bannerLapRed = styling.banner?.lapColorRed ?? 'rgba(185, 28, 28, 0.95)'
-
-  // Geometric Banner
-  const geoBannerPositionCounter = styling.geometricBanner?.positionCounterColor ?? '#0bc770'
-  const geoBannerLastLap = styling.geometricBanner?.lastLapColor ?? '#16aa9c'
-  const geoBannerNeutral = styling.geometricBanner?.lapTimerNeutralColor ?? '#0e0ab8'
-  const geoBannerPrevLap = styling.geometricBanner?.previousLapColor ?? '#7c16aa'
-  const geoBannerLapCounter = styling.geometricBanner?.lapCounterColor ?? '#c70b4d'
-  const geoBannerTimerText = styling.geometricBanner?.timerTextColor ?? '#ffffff'
-  const geoBannerLapPurple = styling.geometricBanner?.lapColorPurple ?? 'rgba(107, 33, 168, 0.95)'
-  const geoBannerLapGreen = styling.geometricBanner?.lapColorGreen ?? 'rgba(21, 128, 61, 0.95)'
-  const geoBannerLapRed = styling.geometricBanner?.lapColorRed ?? 'rgba(185, 28, 28, 0.95)'
-
-  // Esports
-  const esportsAccentBar = styling.esports?.accentBarColor ?? '#2563eb'
-  const esportsAccentBarEnd = styling.esports?.accentBarColorEnd ?? '#7c3aed'
-  const esportsTimePanels = styling.esports?.timePanelsBgColor ?? '#3f4755'
-  const esportsCurrentBar = styling.esports?.currentBarBgColor ?? '#111111'
-  const esportsLabel = styling.esports?.labelColor ?? '#9ca3af'
-  const esportsLastLapIcon = styling.esports?.lastLapIconColor ?? '#16a34a'
-  const esportsSessionBestIcon = styling.esports?.sessionBestIconColor ?? '#7c3aed'
-
-  // Leaderboard (esports)
-  const lbBg = styling.leaderboard?.bgColor ?? 'rgba(0, 0, 0, 0.65)'
-  const lbOurRowBg = styling.leaderboard?.ourRowBgColor ?? 'rgba(0, 0, 0, 0.82)'
-  const lbText = styling.leaderboard?.textColor ?? '#ffffff'
-  const lbPositionText = styling.leaderboard?.positionTextColor ?? 'rgba(255, 255, 255, 0.5)'
-  const lbKartText = styling.leaderboard?.kartTextColor ?? 'rgba(255, 255, 255, 0.7)'
-  const lbLapTimeText = styling.leaderboard?.lapTimeTextColor ?? 'rgba(255, 255, 255, 0.8)'
-  const lbSeparator = styling.leaderboard?.separatorColor ?? 'rgba(255, 255, 255, 0.15)'
-
-  // Minimal
-  const minimalBg = styling.minimal?.bgColor ?? 'rgba(20, 22, 28, 0.88)'
-  const minimalBadgeBg = styling.minimal?.badgeBgColor ?? '#ffffff'
-  const minimalBadgeText = styling.minimal?.badgeTextColor ?? '#222222'
-  const minimalStatLabel = styling.minimal?.statLabelColor ?? '#aaaaaa'
-
-  // Modern
-  const modernBg = styling.modern?.bgColor ?? 'rgba(13, 15, 20, 0.88)'
-  const modernDivider = styling.modern?.dividerColor ?? 'rgba(255, 255, 255, 0.2)'
-  const modernStatLabel = styling.modern?.statLabelColor ?? 'rgba(255, 255, 255, 0.5)'
+  // Registry-driven settings
+  const entry = registry[overlayType]
+  const getVal = (path: string, key: string, def: string | number): string | number => {
+    const s = (styling as Record<string, Record<string, unknown> | undefined>)[path]
+    return (s?.[key] as string | number) ?? def
+  }
+  const setVal = (path: string, key: string, value: string | number) => {
+    const s = (styling as Record<string, Record<string, unknown> | undefined>)[path]
+    handleColourChange({ [path]: { ...s, [key]: value } } as unknown as OverlayStyling)
+  }
+  // Resolve margin from the first styleSettings path or first component path
+  const marginPath = entry?.styleSettings?.[0]?.stylingPath ?? entry?.components?.[0]?.stylingPath ?? ''
+  const marginSection = (styling as Record<string, Record<string, unknown> | undefined>)[marginPath]
+  const marginValue = marginSection?.margin as MarginConfig | undefined
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -511,425 +477,121 @@ export function StyleTab({
         </div>
       </section>
 
-      {/* BANNER */}
-      {overlayType === 'banner' && (
+      {/* STYLE SETTINGS + MARGIN (data-driven) */}
+      {entry && (
         <section>
-          <SectionLabel>Banner</SectionLabel>
+          <SectionLabel>{OVERLAY_NAMES[overlayType]}</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
-            <ColourRow
-              label="Accent"
-              value={bannerAccent}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, accentColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Text"
-              value={bannerText}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, textColor: v } })}
-            />
-            <Divider />
+            {entry.styleSettings?.map((s, i) => (
+              <React.Fragment key={s.key}>
+                {i > 0 && <Divider />}
+                {s.type === 'colour' && (
+                  <ColourRow label={s.label} value={String(getVal(s.stylingPath, s.key, s.default))} onChange={(v) => setVal(s.stylingPath, s.key, v)} />
+                )}
+                {s.type === 'stepper' && (
+                  <StepperRow label={s.label} value={Number(getVal(s.stylingPath, s.key, s.default))} onChange={(v) => setVal(s.stylingPath, s.key, v)} step={1} suffix="px" />
+                )}
+              </React.Fragment>
+            ))}
+            {(entry.styleSettings?.length ?? 0) > 0 && <Divider />}
             <MarginEditor
-              value={styling.banner?.margin}
-              onChange={(margin) => handleColourChange({ banner: { ...styling.banner, margin } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Background"
-              value={bannerBg}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, bgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Timer text"
-              value={bannerTimerText}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, timerTextColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Timer background"
-              value={bannerTimerBg}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, timerBgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Personal best flash"
-              value={bannerLapPurple}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorPurple: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Session best flash"
-              value={bannerLapGreen}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorGreen: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Slower lap flash"
-              value={bannerLapRed}
-              onChange={(v) => handleColourChange({ banner: { ...styling.banner, lapColorRed: v } })}
+              value={marginValue}
+              onChange={(margin) => {
+                if (!marginPath) return
+                handleColourChange({ [marginPath]: { ...marginSection, margin } } as unknown as OverlayStyling)
+              }}
             />
           </div>
         </section>
       )}
 
-      {/* GEOMETRIC BANNER */}
-      {overlayType === 'geometric-banner' && (
+      {/* COMPONENTS (data-driven from registry) */}
+      {entry?.components && entry.components.length > 0 && (
         <section>
-          <SectionLabel>Geometric Banner</SectionLabel>
+          <SectionLabel>Components</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
-            <MarginEditor
-              value={styling.geometricBanner?.margin}
-              onChange={(margin) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, margin } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Position counter"
-              value={geoBannerPositionCounter}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, positionCounterColor: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Last lap"
-              value={geoBannerLastLap}
-              onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lastLapColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Lap timer (neutral)"
-              value={geoBannerNeutral}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapTimerNeutralColor: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Previous lap"
-              value={geoBannerPrevLap}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, previousLapColor: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Lap counter"
-              value={geoBannerLapCounter}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapCounterColor: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Timer text"
-              value={geoBannerTimerText}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, timerTextColor: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Personal best flash"
-              value={geoBannerLapPurple}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorPurple: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Session best flash"
-              value={geoBannerLapGreen}
-              onChange={(v) =>
-                handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorGreen: v } })
-              }
-            />
-            <Divider />
-            <ColourRow
-              label="Slower lap flash"
-              value={geoBannerLapRed}
-              onChange={(v) => handleColourChange({ geometricBanner: { ...styling.geometricBanner, lapColorRed: v } })}
-            />
-          </div>
-        </section>
-      )}
-
-      {/* ESPORTS */}
-      {overlayType === 'esports' && (
-        <>
-          <section>
-            <SectionLabel>Top Bar</SectionLabel>
-            <div className="rounded-md border border-border bg-accent px-3">
-              <MarginEditor
-                value={styling.esports?.margin}
-                onChange={(margin) => handleColourChange({ esports: { ...styling.esports, margin } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Accent bar start"
-                value={esportsAccentBar}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, accentBarColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Accent bar end"
-                value={esportsAccentBarEnd}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, accentBarColorEnd: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Time panels"
-                value={esportsTimePanels}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, timePanelsBgColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Current time bar"
-                value={esportsCurrentBar}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, currentBarBgColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Label"
-                value={esportsLabel}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, labelColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Last lap icon"
-                value={esportsLastLapIcon}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, lastLapIconColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Session best icon"
-                value={esportsSessionBestIcon}
-                onChange={(v) => handleColourChange({ esports: { ...styling.esports, sessionBestIconColor: v } })}
-              />
+            <div className="flex items-center justify-between py-1.5">
+              <span className="text-xs text-muted-foreground">Overlay position</span>
+              <select
+                value={styleState.boxPosition ?? ''}
+                onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
+                className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Default</option>
+                {BOX_POSITION_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
-          </section>
-          <section>
-            <SectionLabel>Leaderboard</SectionLabel>
-            <div className="rounded-md border border-border bg-accent px-3">
-              <ColourRow
-                label="Row background"
-                value={lbBg}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, bgColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Our row background"
-                value={lbOurRowBg}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, ourRowBgColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Driver name"
-                value={lbText}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, textColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Position"
-                value={lbPositionText}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, positionTextColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Kart number"
-                value={lbKartText}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, kartTextColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Lap time"
-                value={lbLapTimeText}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, lapTimeTextColor: v } })}
-              />
-              <Divider />
-              <ColourRow
-                label="Separator"
-                value={lbSeparator}
-                onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, separatorColor: v } })}
-              />
-            </div>
-          </section>
-        </>
-      )}
-
-      {/* MINIMAL */}
-      {overlayType === 'minimal' && (
-        <section>
-          <SectionLabel>Minimal</SectionLabel>
-          <div className="rounded-md border border-border bg-accent px-3">
-            <MarginEditor
-              value={styling.minimal?.margin}
-              onChange={(margin) => handleColourChange({ minimal: { ...styling.minimal, margin } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Background"
-              value={minimalBg}
-              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, bgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Badge background"
-              value={minimalBadgeBg}
-              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, badgeBgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Badge text"
-              value={minimalBadgeText}
-              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, badgeTextColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Stat label"
-              value={minimalStatLabel}
-              onChange={(v) => handleColourChange({ minimal: { ...styling.minimal, statLabelColor: v } })}
-            />
+            {entry.components.map((comp, ci) => (
+              <React.Fragment key={comp.key}>
+                <Divider />
+                {comp.toggleable ? (
+                  <ComponentAccordionItem
+                    label={comp.label}
+                    enabled={isOverlayComponentEnabled(
+                      (styleState.overlayComponents as Record<string, unknown> | undefined)?.[comp.key] as ComponentToggle | undefined,
+                    )}
+                    onToggle={(v) => handleComponentToggle(comp.key as keyof OverlayComponentsConfig, v)}
+                  >
+                    {comp.settings.map((s, si) => (
+                      <React.Fragment key={s.key}>
+                        {si > 0 && <Divider />}
+                        {s.type === 'colour' && (
+                          <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                        )}
+                        {s.type === 'dropdown' && s.options && (
+                          <div className="flex items-center justify-between py-1.5">
+                            <span className="text-xs text-muted-foreground">{s.label}</span>
+                            <select value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(e) => setVal(comp.stylingPath, s.key, e.target.value)} className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+                              {s.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                          </div>
+                        )}
+                        {s.type === 'stepper' && (
+                          <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} step={1} suffix="px" />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </ComponentAccordionItem>
+                ) : (
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
+                      <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
+                      {comp.label}
+                    </CollapsibleTrigger>
+                    {comp.settings.length > 0 && (
+                      <CollapsibleContent>
+                        <div className="ml-4 border-l border-border pl-2">
+                          {comp.settings.map((s, si) => (
+                            <React.Fragment key={s.key}>
+                              {si > 0 && <Divider />}
+                              {s.type === 'colour' && (
+                                <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+                              )}
+                              {s.type === 'dropdown' && s.options && (
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-xs text-muted-foreground">{s.label}</span>
+                                  <select value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(e) => setVal(comp.stylingPath, s.key, e.target.value)} className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+                                    {s.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                  </select>
+                                </div>
+                              )}
+                              {s.type === 'stepper' && (
+                                <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} step={1} suffix="px" />
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    )}
+                  </Collapsible>
+                )}
+              </React.Fragment>
+            ))}
           </div>
         </section>
       )}
-
-      {/* MODERN */}
-      {overlayType === 'modern' && (
-        <section>
-          <SectionLabel>Modern</SectionLabel>
-          <div className="rounded-md border border-border bg-accent px-3">
-            <MarginEditor
-              value={styling.modern?.margin}
-              onChange={(margin) => handleColourChange({ modern: { ...styling.modern, margin } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Background"
-              value={modernBg}
-              onChange={(v) => handleColourChange({ modern: { ...styling.modern, bgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Divider"
-              value={modernDivider}
-              onChange={(v) => handleColourChange({ modern: { ...styling.modern, dividerColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Stat label"
-              value={modernStatLabel}
-              onChange={(v) => handleColourChange({ modern: { ...styling.modern, statLabelColor: v } })}
-            />
-          </div>
-        </section>
-      )}
-
-      {/* COMPONENTS */}
-      <section>
-        <SectionLabel>Components</SectionLabel>
-        <div className="rounded-md border border-border bg-accent px-3">
-          {/* Overlay position */}
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-xs text-muted-foreground">Overlay position</span>
-            <select
-              value={styleState.boxPosition ?? ''}
-              onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
-              className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">Default</option>
-              {BOX_POSITION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Divider />
-
-          {/* Leaderboard */}
-          <ComponentAccordionItem
-            label="Leaderboard"
-            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.leaderboard)}
-            onToggle={(v) => handleComponentToggle('leaderboard', v)}
-          >
-            <ColourRow
-              label="Row background"
-              value={lbBg}
-              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, bgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Driver row"
-              value={lbOurRowBg}
-              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, ourRowBgColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Driver name"
-              value={lbText}
-              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, textColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Separator"
-              value={lbSeparator}
-              onChange={(v) => handleColourChange({ leaderboard: { ...styling.leaderboard, separatorColor: v } })}
-            />
-          </ComponentAccordionItem>
-          <Divider />
-
-          {/* Delta badge */}
-          <ComponentAccordionItem
-            label="Delta badge"
-            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.deltaBadge)}
-            onToggle={(v) => handleComponentToggle('deltaBadge', v)}
-          >
-            <ColourRow
-              label="Faster colour"
-              value={styling.deltaBadge?.fasterColor ?? '#00FF87'}
-              onChange={(v) => handleColourChange({ deltaBadge: { ...styling.deltaBadge, fasterColor: v } })}
-            />
-            <Divider />
-            <ColourRow
-              label="Slower colour"
-              value={styling.deltaBadge?.slowerColor ?? '#FF3B30'}
-              onChange={(v) => handleColourChange({ deltaBadge: { ...styling.deltaBadge, slowerColor: v } })}
-            />
-          </ComponentAccordionItem>
-          <Divider />
-
-          {/* Position counter */}
-          <ComponentAccordionItem
-            label="Position counter"
-            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.positionCounter)}
-            onToggle={(v) => handleComponentToggle('positionCounter', v)}
-          />
-          <Divider />
-
-          {/* Lap counter */}
-          <ComponentAccordionItem
-            label="Lap counter"
-            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.lapCounter)}
-            onToggle={(v) => handleComponentToggle('lapCounter', v)}
-          />
-          <Divider />
-
-          {/* Lap timer */}
-          <ComponentAccordionItem
-            label="Lap timer"
-            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.lapTimer)}
-            onToggle={(v) => handleComponentToggle('lapTimer', v)}
-          />
-          <Divider />
-
-          {/* Lap list */}
-          <ComponentAccordionItem
-            label="Lap list"
-            enabled={isOverlayComponentEnabled(styleState.overlayComponents?.lapList)}
-            onToggle={(v) => handleComponentToggle('lapList', v)}
-          />
-        </div>
-      </section>
 
       <OverlayPickerModal
         open={showOverlayPicker}
