@@ -251,11 +251,11 @@ export function StyleTab({
                 {s.type === 'group' && s.children && (
                   <Collapsible>
                     <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs text-muted-foreground [&[data-state=open]>svg]:rotate-90">
-                      <ChevronRight className="h-3 w-3 transition-transform" />
+                      <ChevronRight className="-ml-5 h-3 w-3 transition-transform" />
                       {s.label}
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <div className="ml-4 border-l border-border pl-2">
+                      <div className="border-l border-border pl-2">
                         {s.children.map((child, ci) => (
                           <React.Fragment key={child.key}>
                             {ci > 0 && <Separator />}
