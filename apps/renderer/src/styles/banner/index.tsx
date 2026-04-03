@@ -49,6 +49,9 @@ export const Banner: React.FC<OverlayProps> = ({
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
   const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showPositionCounter = isOverlayComponentEnabled(overlayComponents?.positionCounter)
+  const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
+  const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
 
   const accent = styling?.banner?.accentColor ?? DEFAULT_ACCENT
   const text = styling?.banner?.textColor ?? 'white'
@@ -130,19 +133,21 @@ export const Banner: React.FC<OverlayProps> = ({
             timerFill={timerBackground}
           />
           <div style={wrapperStyle}>
-            <PositionCounter
-              timestamps={session.timestamps}
-              currentLaps={session.laps}
-              sessionAllLaps={sessionAllLaps}
-              currentIdx={currentIdx}
-              currentTime={currentTime}
-              mode={mode}
-              startingGridPosition={startingGridPosition}
-              textColor={text}
-              livePosition={livePosition}
-              positionOverrides={segment.positionOverrides}
-              placeholderText={POSITION_PLACEHOLDER}
-            />
+            {showPositionCounter && (
+              <PositionCounter
+                timestamps={session.timestamps}
+                currentLaps={session.laps}
+                sessionAllLaps={sessionAllLaps}
+                currentIdx={currentIdx}
+                currentTime={currentTime}
+                mode={mode}
+                startingGridPosition={startingGridPosition}
+                textColor={text}
+                livePosition={livePosition}
+                positionOverrides={segment.positionOverrides}
+                placeholderText={POSITION_PLACEHOLDER}
+              />
+            )}
             {infoSegments.leftSegment !== 'none' ? (
               <div style={{ flex: 1 }}>
                 <InfoSegmentPanel
@@ -158,7 +163,7 @@ export const Banner: React.FC<OverlayProps> = ({
             ) : infoSegments.rightSegment !== 'none' ? (
               <div style={{ flex: 1 }} />
             ) : null}
-            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
+            {showLapTimer && <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />}
             {infoSegments.rightSegment !== 'none' ? (
               <div style={{ flex: 1 }}>
                 <InfoSegmentPanel
@@ -174,13 +179,15 @@ export const Banner: React.FC<OverlayProps> = ({
             ) : infoSegments.leftSegment !== 'none' ? (
               <div style={{ flex: 1 }} />
             ) : null}
-            <LapCounter
-              timestamps={session.timestamps}
-              currentLap={currentLap}
-              currentTime={currentTime}
-              textColor={text}
-              placeholderText={LAP_PLACEHOLDER}
-            />
+            {showLapCounter && (
+              <LapCounter
+                timestamps={session.timestamps}
+                currentLap={currentLap}
+                currentTime={currentTime}
+                textColor={text}
+                placeholderText={LAP_PLACEHOLDER}
+              />
+            )}
           </div>
         </div>
         {showTable && (
@@ -214,29 +221,35 @@ export const Banner: React.FC<OverlayProps> = ({
           timerFill={timerBackground}
         />
         <div style={wrapperStyle}>
-          <PositionCounter
-            timestamps={session.timestamps}
-            currentLaps={session.laps}
-            sessionAllLaps={sessionAllLaps}
-            currentIdx={currentIdx}
-            currentTime={currentTime}
-            mode={mode}
-            startingGridPosition={startingGridPosition}
-            textColor={text}
-            livePosition={livePosition}
-            positionOverrides={segment.positionOverrides}
-            placeholderText={POSITION_PLACEHOLDER}
-          />
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
-          </div>
-          <LapCounter
-            timestamps={session.timestamps}
-            currentLap={currentLap}
-            currentTime={currentTime}
-            textColor={text}
-            placeholderText={LAP_PLACEHOLDER}
-          />
+          {showPositionCounter && (
+            <PositionCounter
+              timestamps={session.timestamps}
+              currentLaps={session.laps}
+              sessionAllLaps={sessionAllLaps}
+              currentIdx={currentIdx}
+              currentTime={currentTime}
+              mode={mode}
+              startingGridPosition={startingGridPosition}
+              textColor={text}
+              livePosition={livePosition}
+              positionOverrides={segment.positionOverrides}
+              placeholderText={POSITION_PLACEHOLDER}
+            />
+          )}
+          {showLapTimer && (
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
+            </div>
+          )}
+          {showLapCounter && (
+            <LapCounter
+              timestamps={session.timestamps}
+              currentLap={currentLap}
+              currentTime={currentTime}
+              textColor={text}
+              placeholderText={LAP_PLACEHOLDER}
+            />
+          )}
         </div>
       </div>
       {showTable && (
