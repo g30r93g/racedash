@@ -11,26 +11,10 @@ import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, Overla
 import { isOverlayComponentEnabled } from '@racedash/core'
 import { ChevronRight, Redo, Undo } from 'lucide-react'
 import React, { useCallback, useRef, useState } from 'react'
-import { registry, globalComponents } from '@renderer/registry'
+import { registry, globalComponents, BOX_POSITION_OPTIONS } from '@renderer/registry'
 import type { OverlayType } from './OverlayPickerModal'
 import { OverlayPickerModal } from './OverlayPickerModal'
 
-const OVERLAY_NAMES: Record<OverlayType, string> = {
-  banner: 'Banner',
-  'geometric-banner': 'Geometric Banner',
-  esports: 'Esports',
-  minimal: 'Minimal',
-  modern: 'Modern',
-}
-
-const BOX_POSITION_OPTIONS: Array<{ value: BoxPosition; label: string }> = [
-  { value: 'bottom-left', label: 'Bottom Left' },
-  { value: 'bottom-center', label: 'Bottom Centre' },
-  { value: 'bottom-right', label: 'Bottom Right' },
-  { value: 'top-left', label: 'Top Left' },
-  { value: 'top-center', label: 'Top Centre' },
-  { value: 'top-right', label: 'Top Right' },
-]
 
 export interface StyleState {
   overlayType: OverlayType
@@ -219,7 +203,7 @@ export function StyleTab({
           className="flex-1"
           onClick={() => {
             window.racedash.saveStylePreset({
-              name: OVERLAY_NAMES[overlayType],
+              name: entry?.name ?? overlayType,
               overlayType,
               styling,
               overlayComponents: styleState.overlayComponents,
@@ -236,7 +220,7 @@ export function StyleTab({
         <div className="flex items-center justify-between rounded-md border border-border bg-accent px-3 py-2">
           <div className="flex items-center gap-2">
             <div className="h-4 w-6 rounded-sm bg-primary opacity-80" />
-            <span className="text-sm text-foreground">{OVERLAY_NAMES[overlayType]}</span>
+            <span className="text-sm text-foreground">{entry?.name ?? overlayType}</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setShowOverlayPicker(true)}>
             Change
@@ -280,7 +264,7 @@ export function StyleTab({
       {/* STYLE SETTINGS + MARGIN (data-driven) */}
       {entry && (
         <section>
-          <SectionLabel>{OVERLAY_NAMES[overlayType]}</SectionLabel>
+          <SectionLabel>{entry?.name ?? overlayType}</SectionLabel>
           <div className="rounded-md border border-border bg-accent px-3">
             {entry.styleSettings?.map((s, i) => (
               <React.Fragment key={s.key}>

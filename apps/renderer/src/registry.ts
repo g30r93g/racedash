@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import type { OverlayProps } from '@racedash/core'
+import type { BoxPosition, OverlayProps } from '@racedash/core'
 import { Banner } from './styles/banner'
 import { Esports } from './styles/esports'
 import { GeometricBanner } from './styles/geometric-banner'
@@ -37,6 +37,8 @@ export interface StyleSettingDef extends ComponentSetting {
 // ── Registry entry ───────────────────────────────────────────────────────────
 
 export interface RegistryEntry {
+  /** Human-readable display name for the overlay style. */
+  name: string
   component: ComponentType<OverlayProps>
   width: number
   height: number
@@ -46,6 +48,17 @@ export interface RegistryEntry {
   styleSettings?: StyleSettingDef[]
   components?: StyleComponentDef[]
 }
+
+// ── Position options ─────────────────────────────────────────────────────────
+
+export const BOX_POSITION_OPTIONS: Array<{ value: BoxPosition; label: string }> = [
+  { value: 'bottom-left', label: 'Bottom Left' },
+  { value: 'bottom-center', label: 'Bottom Centre' },
+  { value: 'bottom-right', label: 'Bottom Right' },
+  { value: 'top-left', label: 'Top Left' },
+  { value: 'top-center', label: 'Top Centre' },
+  { value: 'top-right', label: 'Top Right' },
+]
 
 // ── Global components (style-agnostic, always shown) ─────────────────────────
 
@@ -122,6 +135,7 @@ const BANNER_FLASH_SETTINGS: ComponentSetting[] = [
 
 export const registry: Record<string, RegistryEntry> = {
   banner: {
+    name: 'Banner',
     component: Banner,
     width: 1920,
     height: 500,
@@ -147,6 +161,7 @@ export const registry: Record<string, RegistryEntry> = {
     ],
   },
   'geometric-banner': {
+    name: 'Geometric Banner',
     component: GeometricBanner,
     width: 1920,
     height: 500,
@@ -180,6 +195,7 @@ export const registry: Record<string, RegistryEntry> = {
     ],
   },
   esports: {
+    name: 'Esports',
     component: Esports,
     width: 1920,
     height: 400,
@@ -208,6 +224,7 @@ export const registry: Record<string, RegistryEntry> = {
     ],
   },
   minimal: {
+    name: 'Minimal',
     component: Minimal,
     width: 1920,
     height: 400,
@@ -228,6 +245,7 @@ export const registry: Record<string, RegistryEntry> = {
     ],
   },
   modern: {
+    name: 'Modern',
     component: Modern,
     width: 1920,
     height: 1080,
