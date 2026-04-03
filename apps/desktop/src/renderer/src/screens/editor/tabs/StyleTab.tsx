@@ -247,6 +247,29 @@ export function StyleTab({
                 {s.type === 'stepper' && (
                   <StepperRow label={s.label} value={Number(getVal(s.stylingPath, s.key, s.default))} onChange={(v) => setVal(s.stylingPath, s.key, v)} step={1} suffix="px" />
                 )}
+                {s.type === 'group' && s.children && (
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
+                      <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
+                      {s.label}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="ml-4 border-l border-border pl-2">
+                        {s.children.map((child, ci) => (
+                          <React.Fragment key={child.key}>
+                            {ci > 0 && <Separator />}
+                            {child.type === 'colour' && (
+                              <ColourRow label={child.label} value={String(getVal(s.childStylingPath ?? s.stylingPath, child.key, child.default))} onChange={(v) => setColourVal(s.childStylingPath ?? s.stylingPath, child.key, v)} />
+                            )}
+                            {child.type === 'stepper' && (
+                              <StepperRow label={child.label} value={Number(getVal(s.childStylingPath ?? s.stylingPath, child.key, child.default))} onChange={(v) => setVal(s.childStylingPath ?? s.stylingPath, child.key, v)} />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </React.Fragment>
             ))}
             <Separator />
