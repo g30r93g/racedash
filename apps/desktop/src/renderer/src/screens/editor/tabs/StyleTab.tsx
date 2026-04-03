@@ -276,12 +276,12 @@ export function StyleTab({
             <Separator />
             <div className="flex items-center justify-between py-1.5">
               <span className="text-xs text-muted-foreground">Position</span>
-              <Select value={styleState.boxPosition ?? ''} onValueChange={(v) => handlePositionChange('boxPosition', v)}>
+              <Select value={styleState.boxPosition ?? 'default'} onValueChange={(v) => handlePositionChange('boxPosition', v === 'default' ? '' : v)}>
                 <SelectTrigger className="h-6 w-auto gap-1 border-border bg-background px-2 text-xs">
                   <SelectValue placeholder="Default" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Default</SelectItem>
+                  <SelectItem value="default">Default</SelectItem>
                   {BOX_POSITION_OPTIONS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
