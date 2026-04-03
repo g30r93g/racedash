@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import React, { useMemo } from 'react'
 import { ColourPicker } from './ColourPicker'
 
@@ -27,10 +29,20 @@ export function ColourRow({ label, value, onChange }: ColourRowProps): React.Rea
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
-        <ColourPicker value={value} onChange={onChange} />
-        <span className="w-24 truncate font-mono text-xs text-muted-foreground">{display}</span>
-      </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" className="flex h-auto items-center gap-2 px-1 py-0.5">
+            <div
+              className="h-4 w-4 shrink-0 rounded border border-border"
+              style={{ backgroundColor: value }}
+            />
+            <span className="font-mono text-xs text-muted-foreground">{display}</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-3" side="left" align="start">
+          <ColourPicker value={value} onChange={onChange} />
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

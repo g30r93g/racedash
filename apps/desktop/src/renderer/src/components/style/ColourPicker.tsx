@@ -1,6 +1,5 @@
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 
 // ── Colour conversion helpers ────────────────────────────────────────────────
 
@@ -137,15 +136,7 @@ export function ColourPicker({ value, onChange }: ColourPickerProps): React.Reac
   const hueColour = `hsl(${hsva.h}, 100%, 50%)`
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          className="h-5 w-5 shrink-0 rounded border border-border"
-          style={{ backgroundColor: value }}
-          aria-label="Pick colour"
-        />
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-3" side="left" align="start">
+    <>
         {/* Saturation / Value area */}
         <div
           {...svDrag}
@@ -236,7 +227,6 @@ export function ColourPicker({ value, onChange }: ColourPickerProps): React.Reac
             <span className="mt-0.5 block text-center text-[8px] text-muted-foreground">A%</span>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+    </>
   )
 }
