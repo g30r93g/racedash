@@ -122,9 +122,9 @@ export function StyleTab({
     const val = getStylingSection(path)?.enabled
     return val !== false && val !== 0
   }
-  /** Strict check: returns true only if enabled is explicitly true (not undefined). */
-  const isExplicitlyEnabled = (path: string): boolean => {
-    return getStylingSection(path)?.enabled === true
+  /** Returns true if the styling section exists (component has been added). */
+  const isAdded = (path: string): boolean => {
+    return getStylingSection(path) !== undefined
   }
   /** Immediate commit — for steppers, toggles, dropdowns. */
   const setVal = (path: string, key: string, value: string | number | boolean) => {
@@ -277,8 +277,8 @@ export function StyleTab({
 
       {/* COMPONENTS — style-specific + added global components */}
       {(() => {
-        const activeGlobals = globalComponents.filter((g) => isExplicitlyEnabled(g.stylingPath))
-        const availableGlobals = globalComponents.filter((g) => !isExplicitlyEnabled(g.stylingPath))
+        const activeGlobals = globalComponents.filter((g) => isAdded(g.stylingPath))
+        const availableGlobals = globalComponents.filter((g) => !isAdded(g.stylingPath))
         const allComponents = [...(entry?.components ?? []), ...activeGlobals]
 
         const renderSettings = (comp: typeof allComponents[number]) =>
@@ -324,11 +324,16 @@ export function StyleTab({
                     {comp.toggleable ? (
                       <ComponentAccordionItem
                         label={comp.label}
-                        enabled={isGlobal ? true : compEnabled}
+                        enabled={isGlobal ? isEnabled(comp.stylingPath) : compEnabled}
                         onToggle={isGlobal
-                          ? () => setVal(comp.stylingPath, 'enabled', false)
+                          ? (v) => setVal(comp.stylingPath, 'enabled', v)
                           : (v) => handleComponentToggle(comp.key as keyof OverlayComponentsConfig, v)
                         }
+                        onRemove={isGlobal ? () => {
+                          // Remove the entire styling section to mark as "not added"
+                          const patch = { [comp.stylingPath]: undefined } as unknown as OverlayStyling
+                          onStyleChange(applyStylingPatch(styleState, patch))
+                        } : undefined}
                       >
                         {renderSettings(comp)}
                       </ComponentAccordionItem>
