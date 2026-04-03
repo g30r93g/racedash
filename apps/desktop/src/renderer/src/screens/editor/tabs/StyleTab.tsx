@@ -6,7 +6,6 @@ import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 import type { BoxPosition, ComponentToggle, CornerPosition, MarginConfig, OverlayComponentsConfig, OverlayStyling } from '@racedash/core'
 import { isOverlayComponentEnabled } from '@racedash/core'
 import { ChevronRight, Redo, Undo } from 'lucide-react'
@@ -47,6 +46,7 @@ export function StyleTab({
   segmentLabels = [],
 }: StyleTabProps): React.ReactElement {
   const [showOverlayPicker, setShowOverlayPicker] = useState(false)
+  const [showAddComponent, setShowAddComponent] = useState(false)
   // null = editing base (all segments), string = editing a specific segment's overrides
   const [activeSegment, setActiveSegment] = useState<string | null>(null)
   const { overlayType } = styleState
@@ -228,39 +228,6 @@ export function StyleTab({
         </div>
       </section>
 
-      {/* GLOBAL COMPONENTS (style-agnostic) */}
-      {globalComponents.map((comp) => {
-        const enabled = comp.toggleable ? isEnabled(comp.stylingPath) : true
-        return (
-          <section key={comp.key}>
-            <SectionLabel>{comp.label}</SectionLabel>
-            <div className="rounded-md border border-border bg-accent px-3">
-              {comp.toggleable && (
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="text-xs text-muted-foreground">Enabled</span>
-                  <Switch
-                    checked={enabled}
-                    onCheckedChange={(v) => setVal(comp.stylingPath, 'enabled', v)}
-                    className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
-                  />
-                </div>
-              )}
-              {enabled && comp.settings.map((s, si) => (
-                <React.Fragment key={s.key}>
-                  {(si > 0 || comp.toggleable) && <Separator />}
-                  {s.type === 'colour' && (
-                    <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
-                  )}
-                  {s.type === 'stepper' && (
-                    <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          </section>
-        )
-      })}
-
       {/* STYLE SETTINGS + MARGIN (data-driven) */}
       {entry && (
         <section>
@@ -289,93 +256,122 @@ export function StyleTab({
         </section>
       )}
 
-      {/* COMPONENTS (data-driven from registry) */}
-      {entry?.components && entry.components.length > 0 && (
-        <section>
-          <SectionLabel>Components</SectionLabel>
-          <div className="rounded-md border border-border bg-accent px-3">
-            <div className="flex items-center justify-between py-1.5">
-              <span className="text-xs text-muted-foreground">Overlay position</span>
-              <select
-                value={styleState.boxPosition ?? ''}
-                onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
-                className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Default</option>
-                {BOX_POSITION_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+      {/* COMPONENTS — style-specific + added global components */}
+      {(() => {
+        const activeGlobals = globalComponents.filter((g) => isEnabled(g.stylingPath))
+        const availableGlobals = globalComponents.filter((g) => !isEnabled(g.stylingPath))
+        const allComponents = [...(entry?.components ?? []), ...activeGlobals]
+
+        const renderSettings = (comp: typeof allComponents[number]) =>
+          comp.settings.map((s, si) => (
+            <React.Fragment key={s.key}>
+              {si > 0 && <Separator />}
+              {s.type === 'colour' && (
+                <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
+              )}
+              {s.type === 'dropdown' && s.options && (
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-xs text-muted-foreground">{s.label}</span>
+                  <select value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(e) => setVal(comp.stylingPath, s.key, e.target.value)} className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+                    {s.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
+              )}
+              {s.type === 'stepper' && (
+                <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} />
+              )}
+            </React.Fragment>
+          ))
+
+        return (
+          <section>
+            <div className="mb-2 flex items-center justify-between">
+              <SectionLabel>Components</SectionLabel>
+              {availableGlobals.length > 0 && (
+                <Button variant="ghost" size="sm" className="h-5 text-[10px]" onClick={() => setShowAddComponent(true)}>
+                  + Add
+                </Button>
+              )}
             </div>
-            {entry.components.map((comp, ci) => (
-              <React.Fragment key={comp.key}>
-                <Separator />
-                {comp.toggleable ? (
-                  <ComponentAccordionItem
-                    label={comp.label}
-                    enabled={isOverlayComponentEnabled(
-                      (styleState.overlayComponents as Record<string, unknown> | undefined)?.[comp.key] as ComponentToggle | undefined,
+            <div className="rounded-md border border-border bg-accent px-3">
+              {/* Overlay position */}
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-xs text-muted-foreground">Overlay position</span>
+                <select
+                  value={styleState.boxPosition ?? ''}
+                  onChange={(e) => handlePositionChange('boxPosition', e.target.value)}
+                  className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">Default</option>
+                  {BOX_POSITION_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {allComponents.map((comp) => {
+                const isGlobal = globalComponents.some((g) => g.key === comp.key)
+                const compEnabled = comp.toggleable
+                  ? isOverlayComponentEnabled((styleState.overlayComponents as Record<string, unknown> | undefined)?.[comp.key] as ComponentToggle | undefined)
+                  : true
+
+                return (
+                  <React.Fragment key={comp.key}>
+                    <Separator />
+                    {comp.toggleable ? (
+                      <ComponentAccordionItem
+                        label={comp.label}
+                        enabled={isGlobal ? true : compEnabled}
+                        onToggle={isGlobal
+                          ? () => setVal(comp.stylingPath, 'enabled', false)
+                          : (v) => handleComponentToggle(comp.key as keyof OverlayComponentsConfig, v)
+                        }
+                      >
+                        {renderSettings(comp)}
+                      </ComponentAccordionItem>
+                    ) : (
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
+                          <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
+                          {comp.label}
+                        </CollapsibleTrigger>
+                        {comp.settings.length > 0 && (
+                          <CollapsibleContent>
+                            <div className="ml-4 border-l border-border pl-2">
+                              {renderSettings(comp)}
+                            </div>
+                          </CollapsibleContent>
+                        )}
+                      </Collapsible>
                     )}
-                    onToggle={(v) => handleComponentToggle(comp.key as keyof OverlayComponentsConfig, v)}
-                  >
-                    {comp.settings.map((s, si) => (
-                      <React.Fragment key={s.key}>
-                        {si > 0 && <Separator />}
-                        {s.type === 'colour' && (
-                          <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
-                        )}
-                        {s.type === 'dropdown' && s.options && (
-                          <div className="flex items-center justify-between py-1.5">
-                            <span className="text-xs text-muted-foreground">{s.label}</span>
-                            <select value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(e) => setVal(comp.stylingPath, s.key, e.target.value)} className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-                              {s.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                            </select>
-                          </div>
-                        )}
-                        {s.type === 'stepper' && (
-                          <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} step={1} suffix="px" />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </ComponentAccordionItem>
-                ) : (
-                  <Collapsible>
-                    <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
-                      <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
-                      {comp.label}
-                    </CollapsibleTrigger>
-                    {comp.settings.length > 0 && (
-                      <CollapsibleContent>
-                        <div className="ml-4 border-l border-border pl-2">
-                          {comp.settings.map((s, si) => (
-                            <React.Fragment key={s.key}>
-                              {si > 0 && <Separator />}
-                              {s.type === 'colour' && (
-                                <ColourRow label={s.label} value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setColourVal(comp.stylingPath, s.key, v)} />
-                              )}
-                              {s.type === 'dropdown' && s.options && (
-                                <div className="flex items-center justify-between py-1.5">
-                                  <span className="text-xs text-muted-foreground">{s.label}</span>
-                                  <select value={String(getVal(comp.stylingPath, s.key, s.default))} onChange={(e) => setVal(comp.stylingPath, s.key, e.target.value)} className="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-                                    {s.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                                  </select>
-                                </div>
-                              )}
-                              {s.type === 'stepper' && (
-                                <StepperRow label={s.label} value={Number(getVal(comp.stylingPath, s.key, s.default))} onChange={(v) => setVal(comp.stylingPath, s.key, v)} step={1} suffix="px" />
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </CollapsibleContent>
-                    )}
-                  </Collapsible>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </section>
-      )}
+                  </React.Fragment>
+                )
+              })}
+            </div>
+
+            {/* Add component dialog */}
+            {showAddComponent && (
+              <div className="mt-2 rounded-md border border-border bg-accent p-2">
+                <p className="mb-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Add component</p>
+                <div className="flex flex-col gap-1">
+                  {availableGlobals.map((g) => (
+                    <button
+                      key={g.key}
+                      className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-background"
+                      onClick={() => {
+                        setVal(g.stylingPath, 'enabled', true)
+                        setShowAddComponent(false)
+                      }}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )
+      })()}
 
       <OverlayPickerModal
         open={showOverlayPicker}
