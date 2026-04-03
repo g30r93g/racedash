@@ -1,4 +1,7 @@
 import { ColourRow } from '@/components/style/ColourRow'
+import { ComponentAccordionItem } from '@/components/style/ComponentAccordionItem'
+import { MarginEditor } from '@/components/style/MarginEditor'
+import { StepperRow } from '@/components/style/StepperRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -29,32 +32,6 @@ const BOX_POSITION_OPTIONS: Array<{ value: BoxPosition; label: string }> = [
   { value: 'top-right', label: 'Top Right' },
 ]
 
-interface ComponentAccordionItemProps {
-  label: string
-  enabled: boolean
-  onToggle: (enabled: boolean) => void
-  children?: React.ReactNode
-}
-
-function ComponentAccordionItem({ label, enabled, onToggle, children }: ComponentAccordionItemProps): React.ReactElement {
-  return (
-    <Collapsible open={enabled ? undefined : false}>
-      <div className="flex items-center justify-between py-1.5">
-        <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-foreground [&[data-state=open]>svg]:rotate-90">
-          <ChevronRight className="h-3 w-3 text-muted-foreground transition-transform" />
-          {label}
-        </CollapsibleTrigger>
-        <Switch checked={enabled} onCheckedChange={onToggle} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3" />
-      </div>
-      {children && (
-        <CollapsibleContent>
-          <div className="ml-4 border-l border-border pl-2">{children}</div>
-        </CollapsibleContent>
-      )}
-    </Collapsible>
-  )
-}
-
 export interface StyleState {
   overlayType: OverlayType
   styling: OverlayStyling
@@ -74,95 +51,6 @@ interface StyleTabProps {
   canRedo: boolean
   /** Segment labels from the project config, used to render segment tabs. */
   segmentLabels?: string[]
-}
-
-
-function StepperRow({
-  label,
-  value,
-  onChange,
-  step = 0.25,
-  min = 0,
-  suffix = 's',
-}: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  step?: number
-  min?: number
-  suffix?: string
-}): React.ReactElement {
-  return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-0.5">
-        <button
-          onClick={() => onChange(Math.max(min, +(value - step).toFixed(2)))}
-          className="flex h-5 w-5 items-center justify-center rounded text-xs text-muted-foreground hover:bg-background"
-        >
-          −
-        </button>
-        <span className="w-10 text-center font-mono text-xs tabular-nums text-foreground">
-          {value.toFixed(2)}{suffix}
-        </span>
-        <button
-          onClick={() => onChange(+(value + step).toFixed(2))}
-          className="flex h-5 w-5 items-center justify-center rounded text-xs text-muted-foreground hover:bg-background"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function MarginEditor({
-  value,
-  onChange,
-}: {
-  value: MarginConfig | undefined
-  onChange: (margin: MarginConfig) => void
-}): React.ReactElement {
-  const t = value?.top ?? 0
-  const r = value?.right ?? 0
-  const b = value?.bottom ?? 0
-  const l = value?.left ?? 0
-  const set = (key: keyof MarginConfig, v: number) => onChange({ ...value, [key]: Math.max(0, v) })
-  const step = 1
-
-  function MarginInput({ label, val, field }: { label: string; val: number; field: keyof MarginConfig }) {
-    return (
-      <div className="flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5">
-        <span className="text-[10px] text-muted-foreground">{label}</span>
-        <button onClick={() => set(field, val - step)} className="text-[10px] text-muted-foreground hover:text-foreground">−</button>
-        <span className="w-5 text-center font-mono text-[10px] text-foreground">{val}</span>
-        <button onClick={() => set(field, val + step)} className="text-[10px] text-muted-foreground hover:text-foreground">+</button>
-        <span className="text-[9px] text-muted-foreground">px</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5 py-2">
-      <span className="text-xs text-muted-foreground">Margin</span>
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-20 items-center justify-center rounded border border-border bg-background">
-          <div className="relative flex h-8 w-12 items-center justify-center rounded border-2 border-primary/40 bg-primary/5">
-            <span className="absolute -top-3 font-mono text-[8px] text-muted-foreground">{t}</span>
-            <span className="absolute -bottom-3 font-mono text-[8px] text-muted-foreground">{b}</span>
-            <span className="absolute -left-3.5 font-mono text-[8px] text-muted-foreground">{l}</span>
-            <span className="absolute -right-3.5 font-mono text-[8px] text-muted-foreground">{r}</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          <MarginInput label="T" val={t} field="top" />
-          <MarginInput label="B" val={b} field="bottom" />
-          <MarginInput label="L" val={l} field="left" />
-          <MarginInput label="R" val={r} field="right" />
-        </div>
-      </div>
-    </div>
-  )
 }
 
 export function StyleTab({

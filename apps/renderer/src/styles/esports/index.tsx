@@ -13,84 +13,10 @@ import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { LapHistory } from '../../components/shared/LapHistory'
 import { useCardOverlayState } from '../../useCardOverlayState'
+import { StopwatchIcon } from './StopwatchIcon'
+import { TimePanel } from './TimePanel'
 
 const EMPTY_TIME = '—:--.---'
-
-function StopwatchIcon({ size, color = 'white' }: { size: number; color?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2v2" />
-      <path d="M10 2h4" />
-      <circle cx="12" cy="13" r="8" />
-      <polyline points="12 9 12 13 15 13" />
-    </svg>
-  )
-}
-
-interface TimePanelProps {
-  iconBg: string
-  label: string
-  time: string
-  labelColor: string
-  sc: number
-}
-
-const TimePanel = React.memo(function TimePanel({ iconBg, label, time, labelColor, sc }: TimePanelProps) {
-  const iconBgSize = 40 * sc
-  const iconSize = 22 * sc
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 * sc }}>
-      <div
-        style={{
-          width: iconBgSize,
-          height: iconBgSize,
-          background: iconBg,
-          borderRadius: 6 * sc,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <StopwatchIcon size={iconSize} />
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 * sc }}>
-        <span
-          style={{
-            fontSize: 10 * sc,
-            fontWeight: 400,
-            color: labelColor,
-            letterSpacing: 1.5 * sc,
-            textTransform: 'uppercase',
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            fontSize: 26 * sc,
-            fontWeight: 400,
-            color: 'white',
-            letterSpacing: 0.5 * sc,
-            lineHeight: 1,
-          }}
-        >
-          {time}
-        </span>
-      </div>
-    </div>
-  )
-})
 
 export const Esports: React.FC<OverlayProps> = ({
   segments,
