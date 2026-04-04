@@ -249,8 +249,7 @@ export const registry: Record<string, RegistryEntry> = {
       FADE_SETTING,
     ],
     components: [
-      { key: 'lapCounter', label: 'Lap Counter', toggleable: true, settings: [], stylingPath: 'minimal' },
-      { key: 'lapBadge', label: 'Lap Badge', toggleable: false, stylingPath: 'minimal', settings: [
+      { key: 'lapCounter', label: 'Lap Counter', toggleable: false, stylingPath: 'minimal', settings: [
         { key: 'badgeBgColor', label: 'Background', type: 'colour', default: '#ffffff' },
         { key: 'badgeTextColor', label: 'Text', type: 'colour', default: '#222222' },
       ]},
