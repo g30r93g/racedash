@@ -80,6 +80,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   )
 
   const timelineRef = useRef<TimelineHandle>(null)
+  const currentTimeRef = useRef(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
@@ -257,9 +258,16 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
+  // Update timeline imperatively every frame; batch React state at 4Hz for TimingTab
+  const timeUpdateFrameRef = useRef(0)
   const handleTimeUpdate = useCallback((t: number) => {
-    setCurrentTime(t)
+    currentTimeRef.current = t
     timelineRef.current?.seek(t)
+    // Throttle React state updates to ~4Hz (every 15 frames at 60fps)
+    timeUpdateFrameRef.current++
+    if (timeUpdateFrameRef.current % 15 === 0) {
+      setCurrentTime(t)
+    }
   }, [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
   const togglePlayPause = useCallback(() => {
