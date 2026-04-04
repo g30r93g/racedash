@@ -95,6 +95,7 @@ export const Minimal: React.FC<OverlayProps> = ({
 
   const mn = styling?.minimal
   const cardBgColor = mn?.bgColor ?? 'rgba(20, 22, 28, 0.88)'
+  const cardBorderRadius = mn?.borderRadius ?? 12
   const badgeBgColor = mn?.badgeBgColor ?? 'white'
   const badgeTextColor = mn?.badgeTextColor ?? '#222222'
   const positionLabelColor = mn?.positionLabelColor ?? '#aaaaaa'
@@ -124,7 +125,7 @@ export const Minimal: React.FC<OverlayProps> = ({
         width: 440 * scale,
         height: 150 * scale,
         background: cardBgColor,
-        borderRadius: 12 * scale,
+        borderRadius: cardBorderRadius * scale,
         padding: `${padV}px ${padH}px`,
         boxSizing: 'border-box' as const,
         display: 'flex',

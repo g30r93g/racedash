@@ -177,6 +177,7 @@ export interface EsportsStyling {
 export interface MinimalStyling {
   margin?: MarginConfig // overlay margin in reference px (default: all 0)
   bgColor?: string // card background             (default: rgba(20,22,28,0.88))
+  borderRadius?: number // card border radius in ref px (default: 12)
   badgeBgColor?: string // lap counter badge bg        (default: white)
   badgeTextColor?: string // lap counter badge text      (default: #222222)
   elapsedTextColor?: string // lap timer text              (default: #ffffff)

@@ -209,7 +209,7 @@ export const registry: Record<string, RegistryEntry> = {
     name: 'Esports',
     component: Esports,
     width: 1920,
-    height: 400,
+    height: 1080,
     overlayX: 0,
     overlayY: 0,
     scaleWithVideo: true,
@@ -240,12 +240,13 @@ export const registry: Record<string, RegistryEntry> = {
     name: 'Minimal',
     component: Minimal,
     width: 1920,
-    height: 400,
+    height: 1080,
     overlayX: 0,
     overlayY: 0,
     scaleWithVideo: true,
     styleSettings: [
       { key: 'bgColor', label: 'Background', type: 'colour', default: 'rgba(20,22,28,0.88)', stylingPath: 'minimal' },
+      { key: 'borderRadius', label: 'Border radius', type: 'stepper', default: 12, stylingPath: 'minimal' },
       FADE_SETTING,
     ],
     components: [
