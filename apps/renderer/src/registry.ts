@@ -221,10 +221,12 @@ export const registry: Record<string, RegistryEntry> = {
       ]},
       { key: 'timePanels', label: 'Time Panels', toggleable: false, stylingPath: 'esports', settings: [
         { key: 'timePanelsBgColor', label: 'Background', type: 'colour', default: '#3f4755' },
-        { key: 'labelColor', label: 'Label colour', type: 'colour', default: '#9ca3af' },
+        { key: 'timePanelTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+        { key: 'labelColor', label: 'Label', type: 'colour', default: '#9ca3af' },
       ]},
       { key: 'currentBar', label: 'Current Time Bar', toggleable: false, stylingPath: 'esports', settings: [
         { key: 'currentBarBgColor', label: 'Background', type: 'colour', default: '#111111' },
+        { key: 'currentBarTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
       ]},
       { key: 'lastLapIcon', label: 'Last Lap Icon', toggleable: false, stylingPath: 'esports', settings: [
         { key: 'lastLapIconColor', label: 'Colour', type: 'colour', default: '#16a34a' },
@@ -247,12 +249,14 @@ export const registry: Record<string, RegistryEntry> = {
       FADE_SETTING,
     ],
     components: [
+      { key: 'lapCounter', label: 'Lap Counter', toggleable: true, settings: [], stylingPath: 'minimal' },
       { key: 'lapBadge', label: 'Lap Badge', toggleable: false, stylingPath: 'minimal', settings: [
         { key: 'badgeBgColor', label: 'Background', type: 'colour', default: '#ffffff' },
         { key: 'badgeTextColor', label: 'Text', type: 'colour', default: '#222222' },
       ]},
       { key: 'stats', label: 'Stats', toggleable: false, stylingPath: 'minimal', settings: [
-        { key: 'statLabelColor', label: 'Label colour', type: 'colour', default: '#aaaaaa' },
+        { key: 'statTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+        { key: 'statLabelColor', label: 'Label', type: 'colour', default: '#aaaaaa' },
       ]},
     ],
   },
@@ -272,8 +276,10 @@ export const registry: Record<string, RegistryEntry> = {
       { key: 'divider', label: 'Divider', toggleable: false, stylingPath: 'modern', settings: [
         { key: 'dividerColor', label: 'Colour', type: 'colour', default: 'rgba(255,255,255,0.2)' },
       ]},
+      { key: 'lapCounter', label: 'Lap Counter', toggleable: true, settings: [], stylingPath: 'modern' },
       { key: 'stats', label: 'Stats', toggleable: false, stylingPath: 'modern', settings: [
-        { key: 'statLabelColor', label: 'Label colour', type: 'colour', default: 'rgba(255,255,255,0.5)' },
+        { key: 'statTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+        { key: 'statLabelColor', label: 'Label', type: 'colour', default: 'rgba(255,255,255,0.5)' },
       ]},
     ],
   },

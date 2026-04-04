@@ -166,7 +166,9 @@ export interface EsportsStyling {
   accentBarColor?: string // accent bar gradient start  (default: #2563eb)
   accentBarColorEnd?: string // accent bar gradient end    (default: #7c3aed)
   timePanelsBgColor?: string // time panels background     (default: #3f4755)
+  timePanelTextColor?: string // time panels text          (default: #ffffff)
   currentBarBgColor?: string // current time bar bg        (default: #111)
+  currentBarTextColor?: string // current time bar text     (default: #ffffff)
   labelColor?: string // CURRENT label & icon tint  (default: #9ca3af)
   lastLapIconColor?: string // last lap icon background   (default: #16a34a)
   sessionBestIconColor?: string // session best icon bg       (default: #7c3aed)
@@ -177,6 +179,7 @@ export interface MinimalStyling {
   bgColor?: string // card background          (default: rgba(20,22,28,0.88))
   badgeBgColor?: string // lap number badge bg      (default: white)
   badgeTextColor?: string // lap number badge text    (default: #222222)
+  statTextColor?: string // stat value text color   (default: #ffffff)
   statLabelColor?: string // stat column label color  (default: #aaaaaa)
 }
 
@@ -185,6 +188,7 @@ export interface ModernStyling {
   bgColor?: string // container background   (default: rgba(13,15,20,0.88))
   stripeOpacity?: number // bg stripe opacity      (default: 0.035)
   dividerColor?: string // vertical divider color (default: rgba(255,255,255,0.2))
+  statTextColor?: string // stat value text color (default: #ffffff)
   statLabelColor?: string // stat label color       (default: rgba(255,255,255,0.5))
 }
 
