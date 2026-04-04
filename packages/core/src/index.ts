@@ -176,11 +176,16 @@ export interface EsportsStyling {
 
 export interface MinimalStyling {
   margin?: MarginConfig // overlay margin in reference px (default: all 0)
-  bgColor?: string // card background          (default: rgba(20,22,28,0.88))
-  badgeBgColor?: string // lap number badge bg      (default: white)
-  badgeTextColor?: string // lap number badge text    (default: #222222)
-  statTextColor?: string // stat value text color   (default: #ffffff)
-  statLabelColor?: string // stat column label color  (default: #aaaaaa)
+  bgColor?: string // card background             (default: rgba(20,22,28,0.88))
+  badgeBgColor?: string // lap counter badge bg        (default: white)
+  badgeTextColor?: string // lap counter badge text      (default: #222222)
+  elapsedTextColor?: string // lap timer text              (default: #ffffff)
+  positionTextColor?: string // position stat text          (default: #ffffff)
+  positionLabelColor?: string // position stat label         (default: #aaaaaa)
+  lastLapTextColor?: string // last lap stat text          (default: #ffffff)
+  lastLapLabelColor?: string // last lap stat label         (default: #aaaaaa)
+  sessionBestTextColor?: string // session best stat text     (default: #ffffff)
+  sessionBestLabelColor?: string // session best stat label    (default: #aaaaaa)
 }
 
 export interface ModernStyling {

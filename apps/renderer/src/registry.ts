@@ -249,13 +249,24 @@ export const registry: Record<string, RegistryEntry> = {
       FADE_SETTING,
     ],
     components: [
-      { key: 'lapCounter', label: 'Lap Counter', toggleable: false, stylingPath: 'minimal', settings: [
+      { key: 'lapCounter', label: 'Lap Counter', toggleable: true, stylingPath: 'minimal', settings: [
         { key: 'badgeBgColor', label: 'Background', type: 'colour', default: '#ffffff' },
         { key: 'badgeTextColor', label: 'Text', type: 'colour', default: '#222222' },
       ]},
-      { key: 'stats', label: 'Stats', toggleable: false, stylingPath: 'minimal', settings: [
-        { key: 'statTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
-        { key: 'statLabelColor', label: 'Label', type: 'colour', default: '#aaaaaa' },
+      { key: 'lapTimer', label: 'Lap Timer', toggleable: true, stylingPath: 'minimal', settings: [
+        { key: 'elapsedTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+      ]},
+      { key: 'position', label: 'Position', toggleable: true, stylingPath: 'minimal', settings: [
+        { key: 'positionTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+        { key: 'positionLabelColor', label: 'Label', type: 'colour', default: '#aaaaaa' },
+      ]},
+      { key: 'lastLap', label: 'Last Lap', toggleable: true, stylingPath: 'minimal', settings: [
+        { key: 'lastLapTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+        { key: 'lastLapLabelColor', label: 'Label', type: 'colour', default: '#aaaaaa' },
+      ]},
+      { key: 'sessionBest', label: 'Session Best', toggleable: true, stylingPath: 'minimal', settings: [
+        { key: 'sessionBestTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
+        { key: 'sessionBestLabelColor', label: 'Label', type: 'colour', default: '#aaaaaa' },
       ]},
     ],
   },

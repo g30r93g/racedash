@@ -97,7 +97,9 @@ export const Minimal: React.FC<OverlayProps> = ({
   const cardBgColor = mn?.bgColor ?? 'rgba(20, 22, 28, 0.88)'
   const badgeBgColor = mn?.badgeBgColor ?? 'white'
   const badgeTextColor = mn?.badgeTextColor ?? '#222222'
-  const statLabelColor = mn?.statLabelColor ?? '#aaaaaa'
+  const positionLabelColor = mn?.positionLabelColor ?? '#aaaaaa'
+  const lastLapLabelColor = mn?.lastLapLabelColor ?? '#aaaaaa'
+  const sessionBestLabelColor = mn?.sessionBestLabelColor ?? '#aaaaaa'
 
   const styles = useMemo(() => {
     const configMargin = styling?.minimal?.margin
@@ -169,7 +171,7 @@ export const Minimal: React.FC<OverlayProps> = ({
         gap: 20 * scale,
       },
     }
-  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor, statLabelColor])
+  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor])
 
   if (hidden) return null
 
@@ -187,10 +189,10 @@ export const Minimal: React.FC<OverlayProps> = ({
             label="POSITION"
             value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
             scale={scale}
-            labelColor={statLabelColor}
+            labelColor={positionLabelColor}
           />
-          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
-          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={statLabelColor} />
+          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={lastLapLabelColor} />
+          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={sessionBestLabelColor} />
         </div>
       </div>
       {showTable && (
