@@ -94,19 +94,21 @@ export function EditorTabsPane({
           </div>
         </TabsList>
 
-        <TabsContent value="timing" className="mt-0 flex-1 overflow-auto">
-          <TimingTab
-            project={project}
-            videoInfo={videoInfo}
-            currentTime={currentTime}
-            playing={playing}
-            overrides={overrides}
-            onOverridesChange={onOverridesChange}
-            timestampsResult={timestampsResult}
-            timingLoading={timingLoading}
-            timingError={timingError}
-            onProjectUpdate={onProjectUpdate}
-          />
+        <TabsContent value="timing" className="mt-0 flex-1 overflow-auto" forceMount={undefined}>
+          {activeTab === 'timing' && (
+            <TimingTab
+              project={project}
+              videoInfo={videoInfo}
+              currentTime={currentTime}
+              playing={playing}
+              overrides={overrides}
+              onOverridesChange={onOverridesChange}
+              timestampsResult={timestampsResult}
+              timingLoading={timingLoading}
+              timingError={timingError}
+              onProjectUpdate={onProjectUpdate}
+            />
+          )}
         </TabsContent>
         <TabsContent value="style" className="mt-0 flex-1 overflow-auto">
           <StyleTab
