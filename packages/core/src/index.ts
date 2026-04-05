@@ -207,6 +207,9 @@ export interface OverlayComponentsConfig {
   lapTimer?: ComponentToggle
   deltaBadge?: ComponentToggle
   lapList?: ComponentToggle
+  position?: ComponentToggle
+  lastLap?: ComponentToggle
+  sessionBest?: ComponentToggle
 }
 
 export function isOverlayComponentEnabled(value: ComponentToggle | undefined): boolean {

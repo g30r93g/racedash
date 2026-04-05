@@ -67,8 +67,8 @@ export const Esports: React.FC<OverlayProps> = ({
   const lastLapIconColor = es?.lastLapIconColor ?? '#16a34a'
   const sessionBestIconColor = es?.sessionBestIconColor ?? '#7c3aed'
 
+  const configMargin = es?.margin
   const styles = useMemo(() => {
-    const configMargin = styling?.esports?.margin
     const mt = (configMargin?.top ?? 20) * sc
     const mr = (configMargin?.right ?? 20) * sc
     const mb = (configMargin?.bottom ?? 20) * sc
@@ -165,7 +165,7 @@ export const Esports: React.FC<OverlayProps> = ({
       },
       stopwatchSize: 18 * sc,
     }
-  }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor])
+  }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor, configMargin?.top, configMargin?.right, configMargin?.bottom, configMargin?.left])
 
   if (hidden) return null
 

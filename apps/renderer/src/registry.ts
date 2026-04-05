@@ -284,10 +284,13 @@ export const registry: Record<string, RegistryEntry> = {
       FADE_SETTING,
     ],
     components: [
+      { key: 'lapTimer', label: 'Lap Timer', toggleable: true, stylingPath: 'modern', settings: [] },
       { key: 'divider', label: 'Divider', toggleable: false, stylingPath: 'modern', settings: [
         { key: 'dividerColor', label: 'Colour', type: 'colour', default: 'rgba(255,255,255,0.2)' },
       ]},
-      { key: 'lapCounter', label: 'Lap Counter', toggleable: true, settings: [], stylingPath: 'modern' },
+      { key: 'position', label: 'Position', toggleable: true, stylingPath: 'modern', settings: [] },
+      { key: 'lastLap', label: 'Last Lap', toggleable: true, stylingPath: 'modern', settings: [] },
+      { key: 'sessionBest', label: 'Session Best', toggleable: true, stylingPath: 'modern', settings: [] },
       { key: 'stats', label: 'Stats', toggleable: false, stylingPath: 'modern', settings: [
         { key: 'statTextColor', label: 'Text', type: 'colour', default: '#ffffff' },
         { key: 'statLabelColor', label: 'Label', type: 'colour', default: 'rgba(255,255,255,0.5)' },

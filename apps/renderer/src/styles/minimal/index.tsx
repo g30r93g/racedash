@@ -77,6 +77,14 @@ export const Minimal: React.FC<OverlayProps> = ({
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
   const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
+  const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
+  const showPosition = isOverlayComponentEnabled(overlayComponents?.position)
+  const showLastLap = isOverlayComponentEnabled(overlayComponents?.lastLap)
+  const showSessionBest = isOverlayComponentEnabled(overlayComponents?.sessionBest)
+  const showStatRow = showPosition || showLastLap || showSessionBest
+  const showTopRow = showLapCounter || showLapTimer
+  const showCard = showTopRow || showStatRow
 
   const raceStart = session.timestamps[0].ytSeconds
   const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
@@ -102,8 +110,8 @@ export const Minimal: React.FC<OverlayProps> = ({
   const lastLapLabelColor = mn?.lastLapLabelColor ?? '#aaaaaa'
   const sessionBestLabelColor = mn?.sessionBestLabelColor ?? '#aaaaaa'
 
+  const configMargin = mn?.margin
   const styles = useMemo(() => {
-    const configMargin = styling?.minimal?.margin
     const mt = (configMargin?.top ?? 20) * scale
     const mr = (configMargin?.right ?? 20) * scale
     const mb = (configMargin?.bottom ?? 20) * scale
@@ -172,30 +180,44 @@ export const Minimal: React.FC<OverlayProps> = ({
         gap: 20 * scale,
       },
     }
-  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor])
+  }, [scale, boxPosition, cardBgColor, cardBorderRadius, badgeBgColor, badgeTextColor, configMargin?.top, configMargin?.right, configMargin?.bottom, configMargin?.left])
 
   if (hidden) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>
-      <div style={styles.card}>
-        <div style={styles.row}>
-          <div style={styles.badge}>
-            <span style={styles.badgeText}>{currentLap.lap.number}</span>
-          </div>
-          <span style={styles.elapsed}>{elapsedFormatted}</span>
+      {showCard && (
+        <div style={styles.card}>
+          {showTopRow && (
+            <div style={styles.row}>
+              {showLapCounter && (
+                <div style={styles.badge}>
+                  <span style={styles.badgeText}>{currentLap.lap.number}</span>
+                </div>
+              )}
+              {showLapTimer && <span style={styles.elapsed}>{elapsedFormatted}</span>}
+            </div>
+          )}
+          {showStatRow && (
+            <div style={styles.statRow}>
+              {showPosition && (
+                <StatColumn
+                  label="POSITION"
+                  value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
+                  scale={scale}
+                  labelColor={positionLabelColor}
+                />
+              )}
+              {showLastLap && (
+                <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={lastLapLabelColor} />
+              )}
+              {showSessionBest && (
+                <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={sessionBestLabelColor} />
+              )}
+            </div>
+          )}
         </div>
-        <div style={styles.statRow}>
-          <StatColumn
-            label="POSITION"
-            value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
-            scale={scale}
-            labelColor={positionLabelColor}
-          />
-          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={lastLapLabelColor} />
-          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={sessionBestLabelColor} />
-        </div>
-      </div>
+      )}
       {showTable && (
         <LeaderboardTable
           mode={mode}

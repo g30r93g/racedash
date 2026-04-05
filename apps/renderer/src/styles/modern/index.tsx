@@ -41,6 +41,12 @@ export const Modern: React.FC<OverlayProps> = ({
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
   const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
+  const showPosition = isOverlayComponentEnabled(overlayComponents?.position)
+  const showLastLap = isOverlayComponentEnabled(overlayComponents?.lastLap)
+  const showSessionBest = isOverlayComponentEnabled(overlayComponents?.sessionBest)
+  const showStats = showPosition || showLastLap || showSessionBest
+  const showContainer = showLapTimer || showStats
 
   const raceStart = session.timestamps[0].ytSeconds
   const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
@@ -62,11 +68,11 @@ export const Modern: React.FC<OverlayProps> = ({
   const dividerColor = mo?.dividerColor ?? 'rgba(255,255,255,0.2)'
   const statLabelColor = mo?.statLabelColor ?? 'rgba(255,255,255,0.5)'
 
+  const configMargin = mo?.margin
   const styles = useMemo(() => {
     const padX = 20 * scale
     const statGap = 14 * scale
     const dividerMargin = 14 * scale
-    const configMargin = styling?.modern?.margin
     const mt = (configMargin?.top ?? 0) * scale
     const mr = (configMargin?.right ?? 0) * scale
     const mb = (configMargin?.bottom ?? 0) * scale
@@ -157,30 +163,40 @@ export const Modern: React.FC<OverlayProps> = ({
         fontVariantNumeric: 'tabular-nums',
       },
     }
-  }, [boxPosition, scale, stripeOpacity, bgColor, dividerColor, statLabelColor])
+  }, [boxPosition, scale, stripeOpacity, bgColor, dividerColor, statLabelColor, configMargin?.top, configMargin?.right, configMargin?.bottom, configMargin?.left])
 
   if (hidden) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>
-      <div style={styles.container}>
-        <span style={styles.elapsed}>{elapsedFormatted}</span>
-        <div style={styles.divider} />
-        <div style={styles.statGroup}>
-          <div style={styles.posStatCol}>
-            <span style={styles.label}>POS</span>
-            <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
-          </div>
-          <div style={styles.timeStatCol}>
-            <span style={styles.label}>LAST</span>
-            <span style={styles.statValue}>{lastLapTime}</span>
-          </div>
-          <div style={styles.timeStatCol}>
-            <span style={styles.label}>BEST</span>
-            <span style={styles.statValue}>{sessionBestTime}</span>
-          </div>
+      {showContainer && (
+        <div style={styles.container}>
+          {showLapTimer && <span style={styles.elapsed}>{elapsedFormatted}</span>}
+          {showLapTimer && showStats && <div style={styles.divider} />}
+          {showStats && (
+            <div style={styles.statGroup}>
+              {showPosition && (
+                <div style={styles.posStatCol}>
+                  <span style={styles.label}>POS</span>
+                  <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
+                </div>
+              )}
+              {showLastLap && (
+                <div style={styles.timeStatCol}>
+                  <span style={styles.label}>LAST</span>
+                  <span style={styles.statValue}>{lastLapTime}</span>
+                </div>
+              )}
+              {showSessionBest && (
+                <div style={styles.timeStatCol}>
+                  <span style={styles.label}>BEST</span>
+                  <span style={styles.statValue}>{sessionBestTime}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
       {showTable && (
         <LeaderboardTable
           mode={mode}
