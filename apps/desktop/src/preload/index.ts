@@ -46,8 +46,12 @@ const api: RacedashAPI = {
       boxPosition?: BoxPosition
       qualifyingTablePosition?: CornerPosition
       overlayComponents?: OverlayComponentsConfig
+      segmentStyles?: Record<string, Partial<OverlayStyling>>
     },
   ) => ipcRenderer.invoke('racedash:saveStyleToConfig', configPath, overlayType, styling, configOptions),
+
+  saveStylePreset: (preset) => ipcRenderer.invoke('racedash:saveStylePreset', preset),
+  loadStylePreset: () => ipcRenderer.invoke('racedash:loadStylePreset'),
 
   previewDrivers: (segments) => ipcRenderer.invoke('racedash:previewDrivers', segments),
   previewTimestamps: (segments, selectedDrivers) =>

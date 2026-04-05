@@ -255,7 +255,7 @@ export async function updateProjectConfigOverridesHandler(
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
-export function saveStyleToConfigHandler(
+export async function saveStyleToConfigHandler(
   configPath: string,
   overlayType: string,
   styling: OverlayStyling,
@@ -263,12 +263,13 @@ export function saveStyleToConfigHandler(
     boxPosition?: string
     qualifyingTablePosition?: string
     overlayComponents?: OverlayComponentsConfig
+    segmentStyles?: Record<string, Partial<OverlayStyling>>
   },
-): void {
+): Promise<void> {
   if (typeof configPath !== 'string' || configPath.trim().length === 0) {
     throw new Error('saveStyleToConfig: configPath must be a non-empty string')
   }
-  const raw = fs.readFileSync(configPath, 'utf-8')
+  const raw = await fs.promises.readFile(configPath, 'utf-8')
   const config = JSON.parse(raw) as Record<string, unknown>
   config.overlayType = overlayType
   config.styling = styling
@@ -287,7 +288,50 @@ export function saveStyleToConfigHandler(
   } else {
     delete config.overlayComponents
   }
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+  if (configOptions?.segmentStyles !== undefined && Object.keys(configOptions.segmentStyles).length > 0) {
+    config.segmentStyles = configOptions.segmentStyles
+  } else {
+    delete config.segmentStyles
+  }
+  await fs.promises.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
+}
+
+export interface StylePreset {
+  name: string
+  overlayType: string
+  styling: OverlayStyling
+  overlayComponents?: OverlayComponentsConfig
+}
+
+export async function saveStylePresetHandler(
+  preset: StylePreset,
+  parentWindow?: BrowserWindow | null,
+): Promise<string | null> {
+  const result = await dialog.showSaveDialog(parentWindow ?? BrowserWindow.getFocusedWindow()!, {
+    title: 'Save Style Preset',
+    defaultPath: path.join(os.homedir(), `${preset.name || 'style-preset'}.json`),
+    filters: [{ name: 'Style Preset', extensions: ['json'] }],
+  })
+  if (result.canceled || !result.filePath) return null
+  fs.writeFileSync(result.filePath, JSON.stringify(preset, null, 2), 'utf-8')
+  return result.filePath
+}
+
+export async function loadStylePresetHandler(
+  parentWindow?: BrowserWindow | null,
+): Promise<StylePreset | null> {
+  const result = await dialog.showOpenDialog(parentWindow ?? BrowserWindow.getFocusedWindow()!, {
+    title: 'Load Style Preset',
+    filters: [{ name: 'Style Preset', extensions: ['json'] }],
+    properties: ['openFile'],
+  })
+  if (result.canceled || result.filePaths.length === 0) return null
+  const raw = fs.readFileSync(result.filePaths[0], 'utf-8')
+  const parsed = JSON.parse(raw) as Record<string, unknown>
+  if (typeof parsed.overlayType !== 'string' || typeof parsed.styling !== 'object') {
+    throw new Error('Invalid style preset file')
+  }
+  return parsed as unknown as StylePreset
 }
 
 export async function renameProjectHandler(projectPath: string, name: string): Promise<ProjectData> {
@@ -893,9 +937,12 @@ export function registerIpcHandlers(): void {
         boxPosition?: string
         qualifyingTablePosition?: string
         overlayComponents?: OverlayComponentsConfig
+        segmentStyles?: Record<string, Partial<OverlayStyling>>
       },
     ) => saveStyleToConfigHandler(configPath, overlayType, styling, configOptions),
   )
+  ipcMain.handle('racedash:saveStylePreset', (_event, preset: StylePreset) => saveStylePresetHandler(preset))
+  ipcMain.handle('racedash:loadStylePreset', () => loadStylePresetHandler())
 
   // Timing — engine integration
   ipcMain.handle('racedash:previewDrivers', (_event, segments: WizardSegmentConfig[]) => previewDriversImpl(segments))

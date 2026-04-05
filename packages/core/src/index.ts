@@ -61,18 +61,48 @@ export interface SessionSegment {
 export interface FadeStyling {
   enabled?: boolean // whether to fade in the overlay          (default: true)
   durationSeconds?: number // fade-in duration in seconds             (default: 1)
+  fadeOutDurationSeconds?: number // fade-out duration in seconds            (default: 1)
   preRollSeconds?: number // seconds before first timestamp to show  (default: 3)
+  postRollSeconds?: number // seconds after last timestamp to hold    (default: 2)
 }
 
 export const DEFAULT_FADE_ENABLED = true
 export const DEFAULT_FADE_DURATION_SECONDS = 1
+export const DEFAULT_FADE_OUT_DURATION_SECONDS = 1
 export const DEFAULT_FADE_PRE_ROLL_SECONDS = 3
+export const DEFAULT_FADE_POST_ROLL_SECONDS = 2
 export const DEFAULT_LABEL_WINDOW_SECONDS = 2
 
 export interface SegmentLabelStyling {
-  bgColor?: string // pill background    (default: rgba(0,0,0,0.72))
-  textColor?: string // text color         (default: white)
-  borderRadius?: number // in reference px    (default: 8)
+  enabled?: boolean // whether to show segment labels           (default: true)
+  bgColor?: string // pill background                         (default: rgba(0,0,0,0.72))
+  textColor?: string // text color                              (default: white)
+  borderRadius?: number // in reference px                         (default: 8)
+  fadeInDurationSeconds?: number // label fade-in duration in seconds       (default: 0.5)
+  fadeOutDurationSeconds?: number // label fade-out duration in seconds      (default: 0.5)
+  preRollSeconds?: number // seconds before segment start to show    (default: 2)
+  postRollSeconds?: number // seconds after segment start to hold     (default: 2)
+}
+
+export const DEFAULT_SEGMENT_LABEL_ENABLED = true
+export const DEFAULT_SEGMENT_LABEL_FADE_IN_SECONDS = 0.5
+export const DEFAULT_SEGMENT_LABEL_FADE_OUT_SECONDS = 0.5
+export const DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS = 2
+export const DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS = 2
+
+export interface MarginConfig {
+  top?: number // top margin in reference px     (default: 0)
+  right?: number // right margin in reference px   (default: 0)
+  bottom?: number // bottom margin in reference px  (default: 0)
+  left?: number // left margin in reference px    (default: 0)
+}
+
+export interface LapListStyling {
+  maxRows?: number | 'all' // max visible rows          (default: 'all')
+  bgColor?: string // row background             (default: rgba(0,0,0,0.65))
+  textColor?: string // lap number/time text       (default: white)
+  bestLapColor?: string // best lap highlight color   (default: #00FF87)
+  position?: BoxPosition // screen position            (default: bottom-right)
 }
 
 export interface DeltaBadgeStyling {
@@ -96,7 +126,10 @@ export interface LeaderboardStyling {
 }
 
 export interface BannerStyling {
-  bgColor?: string // banner background color        (default: inherits OverlayStyling.accentColor)
+  accentColor?: string // accent color for P1, borders   (default: #3DD73D)
+  textColor?: string // driver name text color         (default: white)
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
+  bgColor?: string // banner background color        (default: inherits accentColor)
   bgOpacity?: number // banner background opacity      (default: 0.82)
   borderRadius?: number // outer border radius in ref px  (default: 10)
   timerTextColor?: string // lap timer text color           (default: white)
@@ -110,6 +143,9 @@ export interface BannerStyling {
 }
 
 export interface GeometricBannerStyling {
+  accentColor?: string // accent color                 (default: #3DD73D)
+  textColor?: string // text colour                  (default: white)
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   positionCounterColor?: string // position-counter fill        (default: #0bc770)
   lastLapColor?: string // last-lap fill                (default: #16aa9c)
   lapTimerNeutralColor?: string // lap-timer neutral fill       (default: #0e0ab8)
@@ -126,43 +162,65 @@ export interface GeometricBannerStyling {
 }
 
 export interface EsportsStyling {
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   accentBarColor?: string // accent bar gradient start  (default: #2563eb)
   accentBarColorEnd?: string // accent bar gradient end    (default: #7c3aed)
   timePanelsBgColor?: string // time panels background     (default: #3f4755)
+  timePanelTextColor?: string // time panels text          (default: #ffffff)
   currentBarBgColor?: string // current time bar bg        (default: #111)
+  currentBarTextColor?: string // current time bar text     (default: #ffffff)
   labelColor?: string // CURRENT label & icon tint  (default: #9ca3af)
   lastLapIconColor?: string // last lap icon background   (default: #16a34a)
   sessionBestIconColor?: string // session best icon bg       (default: #7c3aed)
 }
 
 export interface MinimalStyling {
-  bgColor?: string // card background          (default: rgba(20,22,28,0.88))
-  badgeBgColor?: string // lap number badge bg      (default: white)
-  badgeTextColor?: string // lap number badge text    (default: #222222)
-  statLabelColor?: string // stat column label color  (default: #aaaaaa)
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
+  bgColor?: string // card background             (default: rgba(20,22,28,0.88))
+  borderRadius?: number // card border radius in ref px (default: 12)
+  badgeBgColor?: string // lap counter badge bg        (default: white)
+  badgeTextColor?: string // lap counter badge text      (default: #222222)
+  elapsedTextColor?: string // lap timer text              (default: #ffffff)
+  positionTextColor?: string // position stat text          (default: #ffffff)
+  positionLabelColor?: string // position stat label         (default: #aaaaaa)
+  lastLapTextColor?: string // last lap stat text          (default: #ffffff)
+  lastLapLabelColor?: string // last lap stat label         (default: #aaaaaa)
+  sessionBestTextColor?: string // session best stat text     (default: #ffffff)
+  sessionBestLabelColor?: string // session best stat label    (default: #aaaaaa)
 }
 
 export interface ModernStyling {
+  margin?: MarginConfig // overlay margin in reference px (default: all 0)
   bgColor?: string // container background   (default: rgba(13,15,20,0.88))
   stripeOpacity?: number // bg stripe opacity      (default: 0.035)
   dividerColor?: string // vertical divider color (default: rgba(255,255,255,0.2))
+  statTextColor?: string // stat value text color (default: #ffffff)
   statLabelColor?: string // stat label color       (default: rgba(255,255,255,0.5))
 }
 
+export type ComponentToggle = 'off' | 'on' | boolean
+
 export interface OverlayComponentsConfig {
-  leaderboard?: 'off' | 'on' | boolean
+  leaderboard?: ComponentToggle
+  positionCounter?: ComponentToggle
+  lapCounter?: ComponentToggle
+  lapTimer?: ComponentToggle
+  deltaBadge?: ComponentToggle
+  lapList?: ComponentToggle
+  position?: ComponentToggle
+  lastLap?: ComponentToggle
+  sessionBest?: ComponentToggle
 }
 
-export function isOverlayComponentEnabled(value: OverlayComponentsConfig['leaderboard'] | undefined): boolean {
+export function isOverlayComponentEnabled(value: ComponentToggle | undefined): boolean {
   return value !== 'off' && value !== false
 }
 
 export interface OverlayStyling {
-  accentColor?: string // global accent      (default: #3DD73D)
-  textColor?: string // global text color  (default: white)
   fade?: FadeStyling
   segmentLabel?: SegmentLabelStyling
   deltaBadge?: DeltaBadgeStyling
+  lapList?: LapListStyling
   leaderboard?: LeaderboardStyling
   banner?: BannerStyling
   geometricBanner?: GeometricBannerStyling

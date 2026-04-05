@@ -7,6 +7,7 @@ export function RaceDashClerkProvider({ children }: PropsWithChildren): React.Re
     <BaseClerkProvider
       Clerk={getClerkInstance()}
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      telemetry={false}
     >
       {children}
     </BaseClerkProvider>

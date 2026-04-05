@@ -1,16 +1,16 @@
 import React from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
+import { useFadeOpacity } from '../../useFadeOpacity'
+import { useLabelOpacity } from '../../useLabelOpacity'
 import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { SegmentLabel } from '../../SegmentLabel'
 import { getLapElapsed } from '../../timing'
 import { BannerBackground } from './BannerBackground'
@@ -36,10 +36,11 @@ export const Banner: React.FC<OverlayProps> = ({
   const scale = width / 1920
   const currentTime = frame / fps
 
-  const { segment, isEnd, label } = useActiveSegment(
+  const { segment, isEnd, segEnd, label, labelStart, labelEnd } = useActiveSegment(
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+    styling?.segmentLabel,
   )
   const { session, sessionAllLaps, mode } = segment
 
@@ -47,9 +48,13 @@ export const Banner: React.FC<OverlayProps> = ({
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showPositionCounter = isOverlayComponentEnabled(overlayComponents?.positionCounter)
+  const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
+  const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
 
-  const accent = styling?.accentColor ?? DEFAULT_ACCENT
-  const text = styling?.textColor ?? 'white'
+  const accent = styling?.banner?.accentColor ?? DEFAULT_ACCENT
+  const text = styling?.banner?.textColor ?? 'white'
   const bannerBg = styling?.banner?.bgColor ?? accent
   const bannerOpacity = styling?.banner?.bgOpacity ?? 0.82
   const bannerRadius = (styling?.banner?.borderRadius ?? 10) * scale
@@ -60,25 +65,21 @@ export const Banner: React.FC<OverlayProps> = ({
   })
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom = raceStart - preRoll
+  const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
-  if (currentTime < showFrom && !isEnd) return null
+  const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity =
-    fadeEnabled && !isEnd
-      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-      : 1
+  if (hidden) return null
 
   const bannerHeight = 80 * scale
+  const margin = styling?.banner?.margin
 
   const outerStyle: React.CSSProperties = {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: (margin?.top ?? 0) * scale,
+    left: (margin?.left ?? 0) * scale,
+    right: (margin?.right ?? 0) * scale,
     height: bannerHeight,
     borderBottomLeftRadius: bannerRadius,
     borderBottomRightRadius: bannerRadius,
@@ -132,19 +133,21 @@ export const Banner: React.FC<OverlayProps> = ({
             timerFill={timerBackground}
           />
           <div style={wrapperStyle}>
-            <PositionCounter
-              timestamps={session.timestamps}
-              currentLaps={session.laps}
-              sessionAllLaps={sessionAllLaps}
-              currentIdx={currentIdx}
-              currentTime={currentTime}
-              mode={mode}
-              startingGridPosition={startingGridPosition}
-              textColor={text}
-              livePosition={livePosition}
-              positionOverrides={segment.positionOverrides}
-              placeholderText={POSITION_PLACEHOLDER}
-            />
+            {showPositionCounter && (
+              <PositionCounter
+                timestamps={session.timestamps}
+                currentLaps={session.laps}
+                sessionAllLaps={sessionAllLaps}
+                currentIdx={currentIdx}
+                currentTime={currentTime}
+                mode={mode}
+                startingGridPosition={startingGridPosition}
+                textColor={text}
+                livePosition={livePosition}
+                positionOverrides={segment.positionOverrides}
+                placeholderText={POSITION_PLACEHOLDER}
+              />
+            )}
             {infoSegments.leftSegment !== 'none' ? (
               <div style={{ flex: 1 }}>
                 <InfoSegmentPanel
@@ -160,7 +163,7 @@ export const Banner: React.FC<OverlayProps> = ({
             ) : infoSegments.rightSegment !== 'none' ? (
               <div style={{ flex: 1 }} />
             ) : null}
-            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
+            {showLapTimer && <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />}
             {infoSegments.rightSegment !== 'none' ? (
               <div style={{ flex: 1 }}>
                 <InfoSegmentPanel
@@ -176,13 +179,15 @@ export const Banner: React.FC<OverlayProps> = ({
             ) : infoSegments.leftSegment !== 'none' ? (
               <div style={{ flex: 1 }} />
             ) : null}
-            <LapCounter
-              timestamps={session.timestamps}
-              currentLap={currentLap}
-              currentTime={currentTime}
-              textColor={text}
-              placeholderText={LAP_PLACEHOLDER}
-            />
+            {showLapCounter && (
+              <LapCounter
+                timestamps={session.timestamps}
+                currentLap={currentLap}
+                currentTime={currentTime}
+                textColor={text}
+                placeholderText={LAP_PLACEHOLDER}
+              />
+            )}
           </div>
         </div>
         {showTable && (
@@ -198,7 +203,8 @@ export const Banner: React.FC<OverlayProps> = ({
             raceLapSnapshots={segment.raceLapSnapshots}
           />
         )}
-        {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
+        {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
+        {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
       </AbsoluteFill>
     )
   }
@@ -215,29 +221,35 @@ export const Banner: React.FC<OverlayProps> = ({
           timerFill={timerBackground}
         />
         <div style={wrapperStyle}>
-          <PositionCounter
-            timestamps={session.timestamps}
-            currentLaps={session.laps}
-            sessionAllLaps={sessionAllLaps}
-            currentIdx={currentIdx}
-            currentTime={currentTime}
-            mode={mode}
-            startingGridPosition={startingGridPosition}
-            textColor={text}
-            livePosition={livePosition}
-            positionOverrides={segment.positionOverrides}
-            placeholderText={POSITION_PLACEHOLDER}
-          />
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
-          </div>
-          <LapCounter
-            timestamps={session.timestamps}
-            currentLap={currentLap}
-            currentTime={currentTime}
-            textColor={text}
-            placeholderText={LAP_PLACEHOLDER}
-          />
+          {showPositionCounter && (
+            <PositionCounter
+              timestamps={session.timestamps}
+              currentLaps={session.laps}
+              sessionAllLaps={sessionAllLaps}
+              currentIdx={currentIdx}
+              currentTime={currentTime}
+              mode={mode}
+              startingGridPosition={startingGridPosition}
+              textColor={text}
+              livePosition={livePosition}
+              positionOverrides={segment.positionOverrides}
+              placeholderText={POSITION_PLACEHOLDER}
+            />
+          )}
+          {showLapTimer && (
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <LapTimerTrap {...lapTimerProps} placeholderText={TIME_PLACEHOLDER} />
+            </div>
+          )}
+          {showLapCounter && (
+            <LapCounter
+              timestamps={session.timestamps}
+              currentLap={currentLap}
+              currentTime={currentTime}
+              textColor={text}
+              placeholderText={LAP_PLACEHOLDER}
+            />
+          )}
         </div>
       </div>
       {showTable && (
@@ -252,7 +264,8 @@ export const Banner: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
+      {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
 }

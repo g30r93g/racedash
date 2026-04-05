@@ -3,7 +3,7 @@ import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
-import { Timeline } from '@/components/video/Timeline'
+import { Timeline, type TimelineHandle } from '@/components/video/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
@@ -64,16 +64,23 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const [timingRevision, setTimingRevision] = useState(0)
   const multiVideoInfo = useMultiVideo(projectState.videoPaths)
 
-  // Derive a VideoInfo-compatible object for downstream components:
-  const videoInfo: VideoInfo | null = multiVideoInfo
-    ? {
-        fps: multiVideoInfo.fps,
-        durationSeconds: multiVideoInfo.totalDurationSeconds,
-        width: multiVideoInfo.width,
-        height: multiVideoInfo.height,
-      }
-    : null
+  // Derive a VideoInfo-compatible object for downstream components (memoized to avoid
+  // re-triggering the generateTimestamps effect on every render):
+  const videoInfo: VideoInfo | null = useMemo(
+    () =>
+      multiVideoInfo
+        ? {
+            fps: multiVideoInfo.fps,
+            durationSeconds: multiVideoInfo.totalDurationSeconds,
+            width: multiVideoInfo.width,
+            height: multiVideoInfo.height,
+          }
+        : null,
+    [multiVideoInfo],
+  )
 
+  const timelineRef = useRef<TimelineHandle>(null)
+  const currentTimeRef = useRef(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
@@ -121,9 +128,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         const qualifyingTablePosition = config.qualifyingTablePosition as CornerPosition | undefined
         const overlayComponents =
           (config.overlayComponents as OverlayComponentsConfig | undefined) ?? DEFAULT_STYLE_STATE.overlayComponents
+        const segmentStyles = (config.segmentStyles as StyleState['segmentStyles']) ?? undefined
         dispatchStyle({
           type: 'init',
-          initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents },
+          initial: { overlayType, styling, boxPosition, qualifyingTablePosition, overlayComponents, segmentStyles },
         })
       })
       .catch(() => {
@@ -139,6 +147,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           boxPosition: next.boxPosition,
           qualifyingTablePosition: next.qualifyingTablePosition,
           overlayComponents: next.overlayComponents,
+          segmentStyles: next.segmentStyles,
         })
         .catch((err: unknown) => {
           console.warn('[Editor] saveStyleToConfig failed:', err)
@@ -249,7 +258,17 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
-  const handleTimeUpdate = useCallback((t: number) => setCurrentTime(t), [])
+  // Update timeline imperatively every frame; batch React state at 4Hz for TimingTab
+  const timeUpdateFrameRef = useRef(0)
+  const handleTimeUpdate = useCallback((t: number) => {
+    currentTimeRef.current = t
+    timelineRef.current?.seek(t)
+    // Throttle React state updates to ~4Hz (every 15 frames at 60fps)
+    timeUpdateFrameRef.current++
+    if (timeUpdateFrameRef.current % 15 === 0) {
+      setCurrentTime(t)
+    }
+  }, [])
   const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
   const togglePlayPause = useCallback(() => {
     if (playing) {
@@ -314,10 +333,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           overlayProps={overlayProps}
         />
         <Timeline
+          ref={timelineRef}
           project={projectState}
           videoInfo={videoInfo}
           multiVideoInfo={multiVideoInfo}
-          currentTime={currentTime}
           timestampsResult={timestampsResult}
           overrides={overrides}
           onSeek={handleSeek}

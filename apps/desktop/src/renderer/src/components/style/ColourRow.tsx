@@ -1,32 +1,20 @@
-import React, { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import React, { useMemo } from 'react'
+import { ColourPicker } from './ColourPicker'
 
-// Parse hex (#rrggbb) or rgba(r, g, b, a) → { hex, alpha 0-100 }
-function parseColour(value: string): { hex: string; alpha: number } {
+function formatColourLabel(value: string): string {
   const rgba = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)$/)
   if (rgba) {
     const r = parseInt(rgba[1], 10)
     const g = parseInt(rgba[2], 10)
     const b = parseInt(rgba[3], 10)
-    const a = rgba[4] !== undefined ? Math.round(parseFloat(rgba[4]) * 100) : 100
-    const hex = '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')
-    return { hex, alpha: Math.min(100, Math.max(0, a)) }
+    const a = rgba[4] !== undefined ? parseFloat(rgba[4]) : 1
+    const hex = `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`
+    return `${hex}, ${Math.round(a * 100)}%`
   }
-  if (/^#[0-9a-fA-F]{6}$/.test(value)) return { hex: value, alpha: 100 }
-  return { hex: '#000000', alpha: 100 }
-}
-
-// Serialize { hex, alpha } → rgba string (or plain hex when fully opaque)
-function serializeColour(hex: string, alpha: number): string {
-  if (alpha >= 100) return hex
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${(alpha / 100).toFixed(2)})`
-}
-
-function isValidHex(value: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(value)
+  if (/^#[0-9a-fA-F]{6}$/.test(value)) return `${value}, 100%`
+  return value
 }
 
 interface ColourRowProps {
@@ -36,84 +24,25 @@ interface ColourRowProps {
 }
 
 export function ColourRow({ label, value, onChange }: ColourRowProps): React.ReactElement {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const parsed = useMemo(() => parseColour(value), [value])
-
-  // Reset draft when the external value prop changes
-  const [draft, setDraft] = useState(parsed.hex)
-  const [prevValue, setPrevValue] = useState(value)
-  if (value !== prevValue) {
-    setPrevValue(value)
-    setDraft(parsed.hex)
-  }
-
-  function emit(h: string, a: number) {
-    onChange(serializeColour(h, a))
-  }
-
-  function handleNativeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const h = e.target.value
-    setDraft(h)
-    emit(h, parsed.alpha)
-  }
-
-  function handleHexInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value
-    setDraft(raw)
-    if (isValidHex(raw)) {
-      emit(raw, parsed.alpha)
-    }
-  }
-
-  function handleHexBlur() {
-    if (!isValidHex(draft)) setDraft(parsed.hex)
-  }
-
-  function handleAlphaChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const a = Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0))
-    emit(parsed.hex, a)
-  }
+  const display = useMemo(() => formatColourLabel(value), [value])
 
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
-        <input
-          ref={inputRef}
-          type="color"
-          value={isValidHex(parsed.hex) ? parsed.hex : '#000000'}
-          onChange={handleNativeChange}
-          className="sr-only"
-          tabIndex={-1}
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => inputRef.current?.click()}
-          className="h-5 w-5 rounded border border-border p-0"
-          style={{ backgroundColor: isValidHex(parsed.hex) ? parsed.hex : '#000000', opacity: parsed.alpha / 100 }}
-          aria-label={`Pick colour for ${label}`}
-        />
-        <input
-          type="text"
-          value={draft}
-          onChange={handleHexInput}
-          onBlur={handleHexBlur}
-          maxLength={7}
-          className="w-20 rounded border border-border bg-accent px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={parsed.alpha}
-            onChange={handleAlphaChange}
-            className="w-12 rounded border border-border bg-accent px-2 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <span className="text-xs text-muted-foreground">%</span>
-        </div>
-      </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" className="flex h-auto items-center gap-2 rounded px-1 py-0.5 hover:bg-background">
+            <div
+              className="h-4 w-4 shrink-0 rounded border border-border"
+              style={{ backgroundColor: value }}
+            />
+            <span className="font-mono text-xs text-muted-foreground">{display}</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-3" side="left" align="start">
+          <ColourPicker value={value} onChange={onChange} />
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

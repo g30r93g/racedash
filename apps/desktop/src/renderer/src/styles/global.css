@@ -18,7 +18,10 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-lap-fastest: var(--lap-fastest);
   --color-lap-fastest-foreground: var(--lap-fastest-foreground);
   --color-toggle-bg: var(--toggle-bg);
@@ -69,9 +72,12 @@
   --primary-foreground: #ffffff;
   --secondary: #1a2a3a;
   --secondary-foreground: #e0e0e0;
+  --popover: #1c1c1c;
+  --popover-foreground: #e8e8e8;
   --accent: #242424;
   --accent-foreground: #e8e8e8;
   --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
   --lap-fastest: #4c1d95;
   --lap-fastest-foreground: #ede9fe;
   --toggle-bg: #1e1e1e;

@@ -1,15 +1,15 @@
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import React, { useMemo } from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import { useActiveSegment } from '../../activeSegment'
+import { useFadeOpacity } from '../../useFadeOpacity'
+import { useLabelOpacity } from '../../useLabelOpacity'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { fontFamily } from '../../Root'
 import { SegmentLabel } from '../../SegmentLabel'
 import { useCardOverlayState } from '../../useCardOverlayState'
@@ -31,27 +31,30 @@ export const Modern: React.FC<OverlayProps> = ({
   const scale = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(
+  const { segment, isEnd, segEnd, label, labelStart, labelEnd } = useActiveSegment(
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+    styling?.segmentLabel,
   )
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
+  const showPosition = isOverlayComponentEnabled(overlayComponents?.position)
+  const showLastLap = isOverlayComponentEnabled(overlayComponents?.lastLap)
+  const showSessionBest = isOverlayComponentEnabled(overlayComponents?.sessionBest)
+  const showStats = showPosition || showLastLap || showSessionBest
+  const showContainer = showLapTimer || showStats
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom = raceStart - preRoll
+  const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
-  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity =
-    fadeEnabled && !isEnd
-      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-      : 1
+  const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+  const { currentIdx, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
     segment,
     isEnd,
     currentTime,
@@ -65,15 +68,20 @@ export const Modern: React.FC<OverlayProps> = ({
   const dividerColor = mo?.dividerColor ?? 'rgba(255,255,255,0.2)'
   const statLabelColor = mo?.statLabelColor ?? 'rgba(255,255,255,0.5)'
 
+  const configMargin = mo?.margin
   const styles = useMemo(() => {
     const padX = 20 * scale
     const statGap = 14 * scale
     const dividerMargin = 14 * scale
-    const verticalPos = boxPosition.startsWith('top') ? { top: 0 } : { bottom: 0 }
+    const mt = (configMargin?.top ?? 0) * scale
+    const mr = (configMargin?.right ?? 0) * scale
+    const mb = (configMargin?.bottom ?? 0) * scale
+    const ml = (configMargin?.left ?? 0) * scale
+    const verticalPos = boxPosition.startsWith('top') ? { top: mt } : { bottom: mb }
     const horizontalPos = boxPosition.endsWith('left')
-      ? { left: 0 }
+      ? { left: ml }
       : boxPosition.endsWith('right')
-        ? { right: 0 }
+        ? { right: mr }
         : { left: '50%', transform: 'translateX(-50%)' }
     return {
       container: {
@@ -155,30 +163,40 @@ export const Modern: React.FC<OverlayProps> = ({
         fontVariantNumeric: 'tabular-nums',
       },
     }
-  }, [boxPosition, scale, stripeOpacity, bgColor, dividerColor, statLabelColor])
+  }, [boxPosition, scale, stripeOpacity, bgColor, dividerColor, statLabelColor, configMargin?.top, configMargin?.right, configMargin?.bottom, configMargin?.left])
 
-  if (currentTime < showFrom && !isEnd) return null
+  if (hidden) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>
-      <div style={styles.container}>
-        <span style={styles.elapsed}>{elapsedFormatted}</span>
-        <div style={styles.divider} />
-        <div style={styles.statGroup}>
-          <div style={styles.posStatCol}>
-            <span style={styles.label}>POS</span>
-            <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
-          </div>
-          <div style={styles.timeStatCol}>
-            <span style={styles.label}>LAST</span>
-            <span style={styles.statValue}>{lastLapTime}</span>
-          </div>
-          <div style={styles.timeStatCol}>
-            <span style={styles.label}>BEST</span>
-            <span style={styles.statValue}>{sessionBestTime}</span>
-          </div>
+      {showContainer && (
+        <div style={styles.container}>
+          {showLapTimer && <span style={styles.elapsed}>{elapsedFormatted}</span>}
+          {showLapTimer && showStats && <div style={styles.divider} />}
+          {showStats && (
+            <div style={styles.statGroup}>
+              {showPosition && (
+                <div style={styles.posStatCol}>
+                  <span style={styles.label}>POS</span>
+                  <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
+                </div>
+              )}
+              {showLastLap && (
+                <div style={styles.timeStatCol}>
+                  <span style={styles.label}>LAST</span>
+                  <span style={styles.statValue}>{lastLapTime}</span>
+                </div>
+              )}
+              {showSessionBest && (
+                <div style={styles.timeStatCol}>
+                  <span style={styles.label}>BEST</span>
+                  <span style={styles.statValue}>{sessionBestTime}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      )}
       {showTable && (
         <LeaderboardTable
           mode={mode}
@@ -190,7 +208,8 @@ export const Modern: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
+      {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
 }

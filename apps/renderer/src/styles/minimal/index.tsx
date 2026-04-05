@@ -1,15 +1,15 @@
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import React, { useMemo } from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import { useActiveSegment } from '../../activeSegment'
+import { useFadeOpacity } from '../../useFadeOpacity'
+import { useLabelOpacity } from '../../useLabelOpacity'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { fontFamily } from '../../Root'
 import { SegmentLabel } from '../../SegmentLabel'
 import { useCardOverlayState } from '../../useCardOverlayState'
@@ -67,27 +67,32 @@ export const Minimal: React.FC<OverlayProps> = ({
   const scale = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(
+  const { segment, isEnd, segEnd, label, labelStart, labelEnd } = useActiveSegment(
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+    styling?.segmentLabel,
   )
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
+  const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
+  const showPosition = isOverlayComponentEnabled(overlayComponents?.position)
+  const showLastLap = isOverlayComponentEnabled(overlayComponents?.lastLap)
+  const showSessionBest = isOverlayComponentEnabled(overlayComponents?.sessionBest)
+  const showStatRow = showPosition || showLastLap || showSessionBest
+  const showTopRow = showLapCounter || showLapTimer
+  const showCard = showTopRow || showStatRow
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom = raceStart - preRoll
+  const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
-  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity =
-    fadeEnabled && !isEnd
-      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-      : 1
+  const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { currentLap, effectiveTime: _effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
+  const { currentLap, currentIdx, effectiveTime: _effectiveTime, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } =
     useCardOverlayState({
       segment,
       isEnd,
@@ -98,17 +103,24 @@ export const Minimal: React.FC<OverlayProps> = ({
 
   const mn = styling?.minimal
   const cardBgColor = mn?.bgColor ?? 'rgba(20, 22, 28, 0.88)'
+  const cardBorderRadius = mn?.borderRadius ?? 12
   const badgeBgColor = mn?.badgeBgColor ?? 'white'
   const badgeTextColor = mn?.badgeTextColor ?? '#222222'
-  const statLabelColor = mn?.statLabelColor ?? '#aaaaaa'
+  const positionLabelColor = mn?.positionLabelColor ?? '#aaaaaa'
+  const lastLapLabelColor = mn?.lastLapLabelColor ?? '#aaaaaa'
+  const sessionBestLabelColor = mn?.sessionBestLabelColor ?? '#aaaaaa'
 
+  const configMargin = mn?.margin
   const styles = useMemo(() => {
-    const margin = 20 * scale
-    const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+    const mt = (configMargin?.top ?? 20) * scale
+    const mr = (configMargin?.right ?? 20) * scale
+    const mb = (configMargin?.bottom ?? 20) * scale
+    const ml = (configMargin?.left ?? 20) * scale
+    const vPos = boxPosition.startsWith('top') ? { top: mt } : { bottom: mb }
     const hPos = boxPosition.endsWith('left')
-      ? { left: margin }
+      ? { left: ml }
       : boxPosition.endsWith('right')
-        ? { right: margin }
+        ? { right: mr }
         : { left: '50%', transform: 'translateX(-50%)' }
     const padV = 14 * scale
     const padH = 20 * scale
@@ -121,7 +133,7 @@ export const Minimal: React.FC<OverlayProps> = ({
         width: 440 * scale,
         height: 150 * scale,
         background: cardBgColor,
-        borderRadius: 12 * scale,
+        borderRadius: cardBorderRadius * scale,
         padding: `${padV}px ${padH}px`,
         boxSizing: 'border-box' as const,
         display: 'flex',
@@ -168,30 +180,44 @@ export const Minimal: React.FC<OverlayProps> = ({
         gap: 20 * scale,
       },
     }
-  }, [scale, boxPosition, cardBgColor, badgeBgColor, badgeTextColor, statLabelColor])
+  }, [scale, boxPosition, cardBgColor, cardBorderRadius, badgeBgColor, badgeTextColor, configMargin?.top, configMargin?.right, configMargin?.bottom, configMargin?.left])
 
-  if (currentTime < showFrom && !isEnd) return null
+  if (hidden) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>
-      <div style={styles.card}>
-        <div style={styles.row}>
-          <div style={styles.badge}>
-            <span style={styles.badgeText}>{currentLap.lap.number}</span>
-          </div>
-          <span style={styles.elapsed}>{elapsedFormatted}</span>
+      {showCard && (
+        <div style={styles.card}>
+          {showTopRow && (
+            <div style={styles.row}>
+              {showLapCounter && (
+                <div style={styles.badge}>
+                  <span style={styles.badgeText}>{currentLap.lap.number}</span>
+                </div>
+              )}
+              {showLapTimer && <span style={styles.elapsed}>{elapsedFormatted}</span>}
+            </div>
+          )}
+          {showStatRow && (
+            <div style={styles.statRow}>
+              {showPosition && (
+                <StatColumn
+                  label="POSITION"
+                  value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
+                  scale={scale}
+                  labelColor={positionLabelColor}
+                />
+              )}
+              {showLastLap && (
+                <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={lastLapLabelColor} />
+              )}
+              {showSessionBest && (
+                <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={sessionBestLabelColor} />
+              )}
+            </div>
+          )}
         </div>
-        <div style={styles.statRow}>
-          <StatColumn
-            label="POSITION"
-            value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
-            scale={scale}
-            labelColor={statLabelColor}
-          />
-          <StatColumn label="LAST LAP" value={lastLapTime} scale={scale} labelColor={statLabelColor} />
-          <StatColumn label="SESSION BEST" value={sessionBestTime} scale={scale} labelColor={statLabelColor} />
-        </div>
-      </div>
+      )}
       {showTable && (
         <LeaderboardTable
           mode={mode}
@@ -203,7 +229,8 @@ export const Minimal: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={scale} styling={styling?.segmentLabel} />}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={scale} styling={styling?.lapList} />}
+      {showLabel && <SegmentLabel label={label!} scale={scale} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
 }

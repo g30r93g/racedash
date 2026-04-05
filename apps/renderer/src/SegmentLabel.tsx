@@ -6,9 +6,10 @@ interface Props {
   label: string
   scale: number
   styling?: SegmentLabelStyling
+  opacity?: number
 }
 
-export const SegmentLabel: React.FC<Props> = ({ label, scale, styling }) => (
+export const SegmentLabel: React.FC<Props> = ({ label, scale, styling, opacity = 1 }) => (
   <div
     style={{
       position: 'absolute',
@@ -20,6 +21,7 @@ export const SegmentLabel: React.FC<Props> = ({ label, scale, styling }) => (
       alignItems: 'center',
       justifyContent: 'center',
       pointerEvents: 'none',
+      opacity,
     }}
   >
     <div

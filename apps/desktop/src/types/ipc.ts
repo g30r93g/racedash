@@ -380,8 +380,23 @@ export interface RacedashAPI {
       boxPosition?: BoxPosition
       qualifyingTablePosition?: CornerPosition
       overlayComponents?: OverlayComponentsConfig
+      segmentStyles?: Record<string, Partial<OverlayStyling>>
     },
   ): Promise<void>
+
+  saveStylePreset(preset: {
+    name: string
+    overlayType: string
+    styling: OverlayStyling
+    overlayComponents?: OverlayComponentsConfig
+  }): Promise<string | null>
+
+  loadStylePreset(): Promise<{
+    name: string
+    overlayType: string
+    styling: OverlayStyling
+    overlayComponents?: OverlayComponentsConfig
+  } | null>
 
   // Engine — Timing tab (implemented in Timing tab sub-plan)
   previewDrivers(segments: SegmentConfig[]): Promise<DriversResult>

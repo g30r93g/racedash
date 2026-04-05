@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react'
 import { useUser, useSession, useClerk } from '@clerk/react'
 import type { AuthUser, AuthLicense, FetchWithAuthResponse } from '../../../types/ipc'
 
@@ -26,9 +26,10 @@ export function useAuth(): UseAuthReturn {
   const [profile, setProfile] = useState<{ user: AuthUser; license: AuthLicense | null } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Sync session token to main process whenever it changes
+  // Sync session token to main process whenever session ID changes (not on every session object reference change)
+  const sessionId = session?.id
   useEffect(() => {
-    if (!session) return
+    if (!session || !sessionId) return
 
     let cancelled = false
 
@@ -36,12 +37,10 @@ export function useAuth(): UseAuthReturn {
       try {
         const token = await session!.getToken({ skipCache: true })
         if (token && !cancelled) {
-          // The client token is synced by the Clerk interceptors in lib/clerk.ts
-          // Here we sync the session JWT that main process uses for API calls
           await window.racedash.auth.saveSessionToken(token)
         }
       } catch {
-        // Token fetch failed — will retry on next render
+        // Token fetch failed — will retry on next interval
       }
     }
 
@@ -53,7 +52,7 @@ export function useAuth(): UseAuthReturn {
       cancelled = true
       clearInterval(interval)
     }
-  }, [session])
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps -- session is captured in closure, only re-run when session ID changes
 
   // Fetch user profile + license from API after sign-in
   useEffect(() => {
@@ -114,12 +113,15 @@ export function useAuth(): UseAuthReturn {
     setProfile(null)
   }, [clerk])
 
-  return {
-    user: profile?.user ?? null,
-    license: profile?.license ?? null,
-    isSignedIn: isSignedIn === true,
-    isLoading: isLoading || !userLoaded,
-    signIn,
-    signOut,
-  }
+  return useMemo(
+    () => ({
+      user: profile?.user ?? null,
+      license: profile?.license ?? null,
+      isSignedIn: isSignedIn === true,
+      isLoading: isLoading || !userLoaded,
+      signIn,
+      signOut,
+    }),
+    [profile, isSignedIn, isLoading, userLoaded, signIn, signOut],
+  )
 }

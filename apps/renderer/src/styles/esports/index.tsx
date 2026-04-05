@@ -1,96 +1,22 @@
 import React, { useMemo } from 'react'
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
-  DEFAULT_FADE_DURATION_SECONDS,
-  DEFAULT_FADE_ENABLED,
-  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
+import { useFadeOpacity } from '../../useFadeOpacity'
+import { useLabelOpacity } from '../../useLabelOpacity'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
+import { LapHistory } from '../../components/shared/LapHistory'
 import { useCardOverlayState } from '../../useCardOverlayState'
+import { StopwatchIcon } from './StopwatchIcon'
+import { TimePanel } from './TimePanel'
 
 const EMPTY_TIME = '—:--.---'
-
-function StopwatchIcon({ size, color = 'white' }: { size: number; color?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2v2" />
-      <path d="M10 2h4" />
-      <circle cx="12" cy="13" r="8" />
-      <polyline points="12 9 12 13 15 13" />
-    </svg>
-  )
-}
-
-interface TimePanelProps {
-  iconBg: string
-  label: string
-  time: string
-  labelColor: string
-  sc: number
-}
-
-const TimePanel = React.memo(function TimePanel({ iconBg, label, time, labelColor, sc }: TimePanelProps) {
-  const iconBgSize = 40 * sc
-  const iconSize = 22 * sc
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 * sc }}>
-      <div
-        style={{
-          width: iconBgSize,
-          height: iconBgSize,
-          background: iconBg,
-          borderRadius: 6 * sc,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <StopwatchIcon size={iconSize} />
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 * sc }}>
-        <span
-          style={{
-            fontSize: 10 * sc,
-            fontWeight: 400,
-            color: labelColor,
-            letterSpacing: 1.5 * sc,
-            textTransform: 'uppercase',
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            fontSize: 26 * sc,
-            fontWeight: 400,
-            color: 'white',
-            letterSpacing: 0.5 * sc,
-            lineHeight: 1,
-          }}
-        >
-          {time}
-        </span>
-      </div>
-    </div>
-  )
-})
 
 export const Esports: React.FC<OverlayProps> = ({
   segments,
@@ -107,27 +33,24 @@ export const Esports: React.FC<OverlayProps> = ({
   const sc = width / 1920
 
   const currentTime = frame / fps
-  const { segment, isEnd, label } = useActiveSegment(
+  const { segment, isEnd, segEnd, label, labelStart, labelEnd } = useActiveSegment(
     segments,
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
+    styling?.segmentLabel,
   )
   const { session, mode } = segment
 
   const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
+  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
 
   const raceStart = session.timestamps[0].ytSeconds
-  const preRoll = styling?.fade?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
-  const showFrom = raceStart - preRoll
+  const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
-  const fadeEnabled = styling?.fade?.enabled ?? DEFAULT_FADE_ENABLED
-  const fadeDuration = styling?.fade?.durationSeconds ?? DEFAULT_FADE_DURATION_SECONDS
-  const opacity =
-    fadeEnabled && !isEnd
-      ? interpolate(currentTime - showFrom, [0, fadeDuration], [0, 1], { extrapolateRight: 'clamp' })
-      : 1
+  const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { currentLap, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+  const { currentLap, currentIdx, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
     segment,
     isEnd,
     currentTime,
@@ -144,14 +67,18 @@ export const Esports: React.FC<OverlayProps> = ({
   const lastLapIconColor = es?.lastLapIconColor ?? '#16a34a'
   const sessionBestIconColor = es?.sessionBestIconColor ?? '#7c3aed'
 
+  const configMargin = es?.margin
   const styles = useMemo(() => {
-    const margin = 20 * sc
+    const mt = (configMargin?.top ?? 20) * sc
+    const mr = (configMargin?.right ?? 20) * sc
+    const mb = (configMargin?.bottom ?? 20) * sc
+    const ml = (configMargin?.left ?? 20) * sc
     const pad = 16 * sc
-    const vPos = boxPosition.startsWith('top') ? { top: margin } : { bottom: margin }
+    const vPos = boxPosition.startsWith('top') ? { top: mt } : { bottom: mb }
     const hPos = boxPosition.endsWith('left')
-      ? { left: margin }
+      ? { left: ml }
       : boxPosition.endsWith('right')
-        ? { right: margin }
+        ? { right: mr }
         : { left: '50%', transform: 'translateX(-50%)' }
     return {
       container: {
@@ -238,9 +165,9 @@ export const Esports: React.FC<OverlayProps> = ({
       },
       stopwatchSize: 18 * sc,
     }
-  }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor])
+  }, [sc, boxPosition, accentBarColor, accentBarColorEnd, timePanelsBgColor, currentBarBgColor, labelColor, configMargin?.top, configMargin?.right, configMargin?.bottom, configMargin?.left])
 
-  if (currentTime < showFrom && !isEnd) return null
+  if (hidden) return null
 
   return (
     <AbsoluteFill style={{ opacity }}>
@@ -281,7 +208,8 @@ export const Esports: React.FC<OverlayProps> = ({
           raceLapSnapshots={segment.raceLapSnapshots}
         />
       )}
-      {label && <SegmentLabel label={label} scale={sc} styling={styling?.segmentLabel} />}
+      {showLapList && <LapHistory timestamps={session.timestamps} currentIdx={currentIdx} sessionBestTime={null} scale={sc} styling={styling?.lapList} />}
+      {showLabel && <SegmentLabel label={label!} scale={sc} styling={styling?.segmentLabel} opacity={labelOpacity} />}
     </AbsoluteFill>
   )
 }
