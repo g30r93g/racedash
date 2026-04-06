@@ -1036,6 +1036,8 @@ export function registerIpcHandlers(): void {
         style: opts.style,
         outputResolution,
         onlyRenderOverlay: opts.renderMode === 'overlay-only',
+        cutRegions: opts.cutRegions,
+        transitions: opts.transitions,
       },
       (progress) => {
         if (activeRenderCancelled) {

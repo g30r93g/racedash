@@ -39,6 +39,10 @@ export interface RenderOptions {
   labelWindowSeconds?: number
   noCache?: boolean
   onlyRenderOverlay?: boolean
+  /** Cut regions to remove from the exported video. */
+  cutRegions?: Array<{ id: string; startFrame: number; endFrame: number }>
+  /** Transitions at seam boundaries (unused in FFmpeg pipeline for now). */
+  transitions?: Array<{ id: string; boundaryId: string; type: string; durationMs: number }>
 }
 
 export interface RenderProgressEvent {

@@ -1,4 +1,5 @@
 import type { OverlayProps } from '@racedash/core'
+export { trimVideo } from './cuts'
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition } from '@remotion/renderer'
 import { execFile, spawn } from 'node:child_process'

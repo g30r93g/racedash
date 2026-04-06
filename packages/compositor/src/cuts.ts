@@ -1,10 +1,12 @@
-interface CutRegion {
+import { spawn } from 'node:child_process'
+
+export interface CutRegion {
   id: string
   startFrame: number
   endFrame: number
 }
 
-interface Transition {
+export interface Transition {
   id: string
   boundaryId: string
   type: string
@@ -86,4 +88,59 @@ export function buildCutConcatArgs(
       '-y', outputPath,
     ],
   }
+}
+
+/**
+ * Apply cut regions to a video file, producing a trimmed output.
+ * Returns true if trimming was performed, false if no cuts needed.
+ */
+export async function trimVideo(
+  sourcePath: string,
+  outputPath: string,
+  cuts: CutRegion[],
+  transitions: Transition[],
+  fps: number,
+  totalDurationSeconds: number,
+  onProgress?: (progress: number) => void,
+): Promise<boolean> {
+  const result = buildCutConcatArgs(sourcePath, outputPath, cuts, transitions, fps, totalDurationSeconds)
+  if (!result.trimFilterUsed) return false
+
+  await runFfmpegWithProgress(result.args, totalDurationSeconds, onProgress)
+  return true
+}
+
+function runFfmpegWithProgress(
+  args: string[],
+  totalSeconds: number,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('ffmpeg', args)
+    let stderr = ''
+    let settled = false
+
+    proc.stderr.on('data', (chunk: Buffer) => {
+      const text = chunk.toString()
+      stderr += text
+      const match = text.match(/time=(\d+):(\d+):(\d+\.\d+)/)
+      if (match) {
+        const processed = parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60 + parseFloat(match[3])
+        onProgress?.(Math.max(0, Math.min(1, processed / totalSeconds)))
+      }
+    })
+    proc.on('close', (code: number | null, signal: string | null) => {
+      if (settled) return
+      settled = true
+      if (code === 0) resolve()
+      else if (signal) reject(new Error(`ffmpeg killed by signal ${signal}\n${stderr}`))
+      else reject(new Error(`ffmpeg exited with code ${code}\n${stderr}`))
+    })
+    proc.on('error', (error: NodeJS.ErrnoException) => {
+      if (settled) return
+      settled = true
+      if (error.code === 'ENOENT') reject(new Error('ffmpeg was not found on PATH.'))
+      else reject(error)
+    })
+  })
 }

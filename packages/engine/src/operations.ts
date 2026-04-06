@@ -11,6 +11,7 @@ import {
   getVideoResolution,
   joinVideos as compositorJoinVideos,
   renderOverlay,
+  trimVideo,
 } from '@racedash/compositor'
 import type { BoxPosition, CornerPosition } from '@racedash/core'
 import { DEFAULT_LABEL_WINDOW_SECONDS } from '@racedash/core'
@@ -194,23 +195,44 @@ export async function renderSession(
       return { outputPath: overlayPath, overlayReused }
     }
 
+    // If we have cut regions, composite to a temp file then trim; otherwise composite directly to output.
+    const hasCuts = opts.cutRegions && opts.cutRegions.length > 0
+    const compositeOutputPath = hasCuts
+      ? path.join(tmpdir(), `racedash-composite-${randomUUID()}.mp4`)
+      : opts.outputPath
+
     await compositeVideo(
       videoPath,
       overlayPath,
-      opts.outputPath,
+      compositeOutputPath,
       {
         fps,
         overlayX: opts.overlayX ?? 0,
         overlayY,
         durationSeconds,
-        // Only pass output dimensions when an explicit resolution preset was requested.
-        // Passing undefined lets FFmpeg skip the scale filter and use source dimensions.
         outputWidth: opts.outputResolution?.width,
         outputHeight: opts.outputResolution?.height,
         onDiagnostic,
       },
-      (progress) => onProgress({ phase: 'Compositing', progress }),
+      (progress) => onProgress({ phase: 'Compositing', progress: hasCuts ? progress * 0.85 : progress }),
     )
+
+    // Apply cut regions to remove dead content
+    if (hasCuts) {
+      try {
+        await trimVideo(
+          compositeOutputPath,
+          opts.outputPath,
+          opts.cutRegions!,
+          opts.transitions ?? [],
+          fps,
+          durationSeconds,
+          (progress) => onProgress({ phase: 'Trimming', progress: 0.85 + progress * 0.15 }),
+        )
+      } finally {
+        await unlink(compositeOutputPath).catch(() => {})
+      }
+    }
 
     return { outputPath: opts.outputPath, overlayReused }
   } finally {
