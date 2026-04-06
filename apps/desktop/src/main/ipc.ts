@@ -257,17 +257,17 @@ export async function updateProjectConfigOverridesHandler(
 }
 
 export async function updateProjectVideoEditingHandler(
-  configPath: string,
+  projectPath: string,
   data: { cutRegions: Array<{ id: string; startFrame: number; endFrame: number }>; transitions: Array<{ id: string; boundaryId: string; type: string; durationMs: number }> },
 ): Promise<void> {
-  if (typeof configPath !== 'string' || configPath.trim().length === 0) {
-    throw new Error('updateProjectVideoEditing: configPath must be a non-empty string')
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('updateProjectVideoEditing: projectPath must be a non-empty string')
   }
-  const raw = fs.readFileSync(configPath, 'utf-8') as string
-  const config = JSON.parse(raw) as Record<string, unknown>
-  config.cutRegions = data.cutRegions
-  config.transitions = data.transitions
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+  const raw = fs.readFileSync(projectPath, 'utf-8') as string
+  const project = JSON.parse(raw) as Record<string, unknown>
+  project.cutRegions = data.cutRegions
+  project.transitions = data.transitions
+  fs.writeFileSync(projectPath, JSON.stringify(project, null, 2), 'utf-8')
 }
 
 export async function saveStyleToConfigHandler(
@@ -574,6 +574,8 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
     videoPaths: opts.videoPaths,
     segments: segmentsWithIds,
     selectedDrivers: opts.selectedDrivers,
+    cutRegions: [],
+    transitions: [],
   }
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
 
@@ -958,8 +960,8 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(
     'racedash:updateProjectVideoEditing',
-    (_event, configPath: string, data: { cutRegions: unknown[]; transitions: unknown[] }) =>
-      updateProjectVideoEditingHandler(configPath, data as Parameters<typeof updateProjectVideoEditingHandler>[1]),
+    (_event, projectPath: string, data: { cutRegions: unknown[]; transitions: unknown[] }) =>
+      updateProjectVideoEditingHandler(projectPath, data as Parameters<typeof updateProjectVideoEditingHandler>[1]),
   )
   ipcMain.handle(
     'racedash:saveStyleToConfig',

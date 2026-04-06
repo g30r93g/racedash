@@ -39,9 +39,9 @@ const api: RacedashAPI = {
     overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>,
   ) => ipcRenderer.invoke('racedash:updateProjectConfigOverrides', configPath, overrides),
   updateProjectVideoEditing: (
-    configPath: string,
+    projectPath: string,
     data: { cutRegions: unknown[]; transitions: unknown[] },
-  ) => ipcRenderer.invoke('racedash:updateProjectVideoEditing', configPath, data),
+  ) => ipcRenderer.invoke('racedash:updateProjectVideoEditing', projectPath, data),
   saveStyleToConfig: (
     configPath: string,
     overlayType: string,

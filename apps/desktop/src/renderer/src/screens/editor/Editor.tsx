@@ -267,10 +267,13 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [overrides, projectState.configPath])
 
-  // Auto-save video editing state to config.json
+  // Auto-save video editing state to project.json
+  const videoEditingSavedRef = useRef(false)
   useEffect(() => {
+    if (!videoEditingSavedRef.current && cutRegions.length === 0 && transitions.length === 0) return
+    videoEditingSavedRef.current = true
     window.racedash
-      .updateProjectVideoEditing(projectState.configPath, { cutRegions, transitions })
+      .updateProjectVideoEditing(projectState.projectPath, { cutRegions, transitions })
       .catch((err: unknown) => {
         console.warn('[Editor] failed to save video editing state:', err)
       })
@@ -297,7 +300,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     })
   }, [projectState.segments, timestampsResult, fps])
 
-  const boundaries = useBoundaries(totalFrames, cutRegions, segmentSpansWithIds)
+  const boundaries = useBoundaries(totalFrames, cutRegions, segmentSpansWithIds, fps)
   const frameMapping = useFrameMapping(cutRegions, transitions, fps)
 
   const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)

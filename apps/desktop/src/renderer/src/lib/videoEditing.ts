@@ -77,14 +77,13 @@ export function toOutputFrame(
   _transitions: Transition[],
   _fps: number
 ): number {
+  const sorted = [...cuts].sort((a, b) => a.startFrame - b.startFrame)
   let offset = 0
 
-  for (const cut of cuts) {
+  for (const cut of sorted) {
     if (cut.startFrame >= sourceFrame) {
-      // Cut starts at or after the source frame — doesn't affect output position
       break
     }
-    // Cut starts before sourceFrame; clamp its contribution
     const effectiveEnd = Math.min(cut.endFrame, sourceFrame)
     offset += effectiveEnd - cut.startFrame
   }

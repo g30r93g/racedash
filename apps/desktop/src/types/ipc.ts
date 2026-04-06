@@ -376,7 +376,7 @@ export interface RacedashAPI {
     overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>,
   ): Promise<void>
   updateProjectVideoEditing(
-    configPath: string,
+    projectPath: string,
     data: { cutRegions: CutRegion[]; transitions: Transition[] },
   ): Promise<void>
   saveStyleToConfig(

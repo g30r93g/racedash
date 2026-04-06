@@ -314,7 +314,7 @@ export function ExportTab({
 
   const isCloudDisabled =
     !authUser || !licenseTier || (estimatedCost !== null && creditBalance !== null && creditBalance < estimatedCost)
-  const isBusy = rendering || cloudUploading
+  const isBusy = rendering || cloudUploading || !hasContent
 
   return (
     <div className="flex flex-col gap-6 p-4">

@@ -25,8 +25,9 @@ export function useBoundaries(
   totalFrames: number,
   cuts: CutRegion[],
   segmentSpans: Array<{ id: string; startFrame: number; endFrame: number }>,
+  fps: number,
 ): Boundary[] {
-  return useMemo(() => computeBoundaries(totalFrames, cuts, segmentSpans), [totalFrames, cuts, segmentSpans])
+  return useMemo(() => computeBoundaries(totalFrames, cuts, segmentSpans, fps), [totalFrames, cuts, segmentSpans, fps])
 }
 
 export function useFrameMapping(
