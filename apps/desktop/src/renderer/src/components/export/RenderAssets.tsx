@@ -180,7 +180,7 @@ export function RenderAssets({
         <CollapsibleTrigger className="flex w-full items-center justify-between py-1">
           <SectionLabel className="mb-0">Render Assets</SectionLabel>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="tabular-nums text-[10px] text-muted-foreground">
               {selectedSegmentCount}/{segments.length} segments · {selectedLapCount}/{totalLaps} laps
             </span>
             <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} />
@@ -228,7 +228,7 @@ export function RenderAssets({
                           <div className="flex flex-1 flex-col">
                             <span className="text-xs font-medium text-foreground">{seg.label}</span>
                             <span className="text-[10px] text-muted-foreground">
-                              {formatTime(seg.startSeconds)} – {formatTime(seg.endSeconds)} · {seg.laps.length} laps
+                              <span className="tabular-nums">{formatTime(seg.startSeconds)} – {formatTime(seg.endSeconds)}</span> · {seg.laps.length} laps
                             </span>
                           </div>
                         </label>
@@ -291,7 +291,7 @@ export function RenderAssets({
                                         Fastest Lap
                                       </Badge>
                                     )}
-                                    <span className={`text-[10px] ${isFastest ? 'text-purple-400' : 'text-muted-foreground'}`}>{formatLapTime(lap.lapTime)}</span>
+                                    <span className={`tabular-nums text-[10px] ${isFastest ? 'text-purple-400' : 'text-muted-foreground'}`}>{formatLapTime(lap.lapTime)}</span>
                                   </div>
                                 </div>
                               </label>

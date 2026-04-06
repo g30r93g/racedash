@@ -174,7 +174,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
             className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
             style={{ left: pct(t, displayDuration) }}
           >
-            <span className="text-[10px] text-muted-foreground">{formatRulerLabel(t)}</span>
+            <span className="tabular-nums text-[10px] text-muted-foreground">{formatRulerLabel(t)}</span>
             <div className="h-1.5 w-px bg-border" />
           </div>
         ))}

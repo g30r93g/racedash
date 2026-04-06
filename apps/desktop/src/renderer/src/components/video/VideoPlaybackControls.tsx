@@ -92,7 +92,7 @@ export function VideoPlaybackControls({
 
         <Button
           variant="ghost"
-          className="h-7 shrink-0 px-2 font-mono text-xs text-muted-foreground"
+          className="h-7 shrink-0 px-2 font-mono tabular-nums text-xs text-muted-foreground"
           onClick={() => setJumpOpen(true)}
         >
           {frame} F &bull; {formatTimecode(displayCurrentTime)}

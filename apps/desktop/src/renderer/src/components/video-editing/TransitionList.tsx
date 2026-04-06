@@ -132,9 +132,9 @@ function TransitionCard({
       <button className="flex w-full flex-col gap-0.5 rounded-md border border-border bg-accent/50 px-2 py-1.5 text-left hover:bg-accent">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-medium text-foreground">{TYPE_LABELS[transition.type]}</span>
-          <span className="text-[10px] text-muted-foreground">{transition.durationMs}ms</span>
+          <span className="tabular-nums text-[10px] text-muted-foreground">{transition.durationMs}ms</span>
         </div>
-        <span className="text-[10px] text-muted-foreground">{boundary.label} · {formatTime(boundary.frameInSource, fps)}</span>
+        <span className="tabular-nums text-[10px] text-muted-foreground">{boundary.label} · {formatTime(boundary.frameInSource, fps)}</span>
       </button>
     </TransitionPopover>
   )

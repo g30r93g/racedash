@@ -48,7 +48,7 @@ export function CutRegionList({
           {cuts.map((cut) => (
             <CutRegionPopover key={cut.id} cut={cut} fps={fps} onUpdate={onUpdate} onDelete={onDelete}>
               <button className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs hover:bg-accent">
-                <span className="flex-1 truncate">{formatRange(cut, fps)}</span>
+                <span className="flex-1 truncate tabular-nums">{formatRange(cut, fps)}</span>
                 {warningCutIds?.has(cut.id) && <AlertTriangle className="h-3 w-3 shrink-0 text-yellow-500" />}
               </button>
             </CutRegionPopover>
