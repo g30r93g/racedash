@@ -234,8 +234,9 @@ export const TimelineTracks = React.memo(function TimelineTracks({
             <BoundaryMarker
               key={b.id}
               boundary={b}
-              duration={duration}
+              duration={displayDuration}
               fps={fps}
+              positionSeconds={mapTime(b.frameInSource / fps)}
               transition={transitions?.find((t) => t.boundaryId === b.id)}
               onAddTransition={onAddTransition}
               onUpdateTransition={onTransitionUpdate}

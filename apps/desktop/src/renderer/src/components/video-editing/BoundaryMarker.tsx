@@ -8,6 +8,8 @@ interface BoundaryMarkerProps {
   boundary: Boundary
   duration: number
   fps: number
+  /** Pre-mapped position in seconds (accounts for Project view time mapping). */
+  positionSeconds?: number
   transition?: Transition
   onAddTransition?: (boundaryId: string, type: TransitionType) => void
   onUpdateTransition?: (updated: Transition) => void
@@ -18,13 +20,14 @@ export function BoundaryMarker({
   boundary,
   duration,
   fps,
+  positionSeconds: positionSecondsProp,
   transition,
   onAddTransition,
   onUpdateTransition,
   onDeleteTransition,
 }: BoundaryMarkerProps): React.ReactElement {
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const posSeconds = boundary.frameInSource / fps
+  const posSeconds = positionSecondsProp ?? boundary.frameInSource / fps
 
   const handleClick = () => {
     if (transition) {
