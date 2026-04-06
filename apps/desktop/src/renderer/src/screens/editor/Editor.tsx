@@ -1,8 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
-import type { CutRegion, Transition } from '../../../../types/videoEditing'
+import type { Boundary, CutRegion, Transition, TransitionType } from '../../../../types/videoEditing'
 import { VideoEditingDrawer } from '@/components/video-editing/VideoEditingDrawer'
+import { CutRegionList } from '@/components/video-editing/CutRegionList'
+import { TransitionPills } from '@/components/video-editing/TransitionPills'
+import { inferCutBounds } from '@/lib/videoEditing'
+import { useSegmentBuffers, useBoundaries, useReconciledTransitions } from '@/hooks/useVideoEditing'
+import { toast } from 'sonner'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline, type TimelineHandle } from '@/components/video/Timeline'
@@ -262,6 +267,93 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [overrides, projectState.configPath])
 
+  // ── Video editing: segment spans, boundaries, transitions ──────────────────
+  const fps = videoInfo?.fps ?? 60
+  const totalFrames = Math.ceil((videoInfo?.durationSeconds ?? 0) * fps)
+
+  const segmentBuffers = useSegmentBuffers(styleState.styling, fps)
+
+  const segmentSpansWithIds = useMemo(() => {
+    return (projectState.segments ?? []).map((seg, i) => {
+      const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
+      const rawSeg = timestampsResult?.segments[i] as any
+      const laps = rawSeg?.selectedDriver?.laps as Array<{ cumulative: number }> | undefined
+      const lastLap = laps?.[laps.length - 1]
+      const endSeconds = lastLap ? startSeconds + lastLap.cumulative : startSeconds
+      return {
+        id: seg.id,
+        startFrame: Math.round(startSeconds * fps),
+        endFrame: Math.round(endSeconds * fps),
+      }
+    })
+  }, [projectState.segments, timestampsResult, fps])
+
+  const boundaries = useBoundaries(totalFrames, cutRegions, segmentSpansWithIds)
+
+  const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
+
+  useEffect(() => {
+    if (removed.length > 0) {
+      setTransitions(reconciledTransitions)
+    }
+  }, [removed.length]) // Only react to changes in removed count
+
+  const handleAddCut = useCallback(() => {
+    const playheadFrame = Math.round(currentTimeRef.current * fps)
+    const spans = segmentSpansWithIds.map(({ startFrame, endFrame }) => ({ startFrame, endFrame }))
+    const newCut = inferCutBounds(playheadFrame, spans, segmentBuffers, totalFrames)
+    if (!newCut) {
+      toast.error('No dead space at playhead position')
+      return
+    }
+    setCutRegions((prev) => [...prev, newCut])
+  }, [fps, segmentSpansWithIds, segmentBuffers, totalFrames])
+
+  const handleUpdateCut = useCallback((updated: CutRegion) => {
+    setCutRegions((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+  }, [])
+
+  const handleDeleteCut = useCallback((id: string) => {
+    setCutRegions((prev) => prev.filter((c) => c.id !== id))
+    setTransitions((prev) => prev.filter((t) => t.boundaryId !== `cut:${id}`))
+  }, [])
+
+  const handleAddTransition = useCallback((type: TransitionType, boundaryId?: string) => {
+    const targetId = boundaryId ?? boundaries.find((b) => !transitions.some((t) => t.boundaryId === b.id))?.id
+    if (!targetId) {
+      toast.error('No available boundary for transition')
+      return
+    }
+
+    const boundary = boundaries.find((b) => b.id === targetId)
+    if (!boundary) return
+
+    if (transitions.some((t) => t.boundaryId === targetId)) {
+      toast.error('This boundary already has a transition')
+      return
+    }
+
+    if (!boundary.allowedTypes.includes(type)) {
+      toast.error(`${type} is not compatible with ${boundary.label}`)
+      return
+    }
+
+    setTransitions((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      boundaryId: targetId,
+      type,
+      durationMs: 500,
+    }])
+  }, [boundaries, transitions])
+
+  const handleUpdateTransition = useCallback((updated: Transition) => {
+    setTransitions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+  }, [])
+
+  const handleDeleteTransition = useCallback((id: string) => {
+    setTransitions((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
   const [timelineViewMode, setTimelineViewMode] = useState<TimelineViewMode>('source')
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
@@ -332,7 +424,15 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       {/* Left drawer — video editing controls */}
       {drawerOpen && (
         <VideoEditingDrawer>
-          {/* Placeholder — wired in later tasks */}
+          <CutRegionList
+            cuts={cutRegions}
+            fps={fps}
+            onAdd={handleAddCut}
+            onUpdate={handleUpdateCut}
+            onDelete={handleDeleteCut}
+            disabled={!timestampsResult}
+          />
+          <TransitionPills onAdd={handleAddTransition} />
         </VideoEditingDrawer>
       )}
 
@@ -356,6 +456,12 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           onSeek={handleSeek}
           viewMode={timelineViewMode}
           onViewModeChange={setTimelineViewMode}
+          cutRegions={cutRegions}
+          onCutClick={handleUpdateCut}
+          boundaries={boundaries}
+          transitions={transitions}
+          onTransitionUpdate={handleUpdateTransition}
+          onTransitionDelete={handleDeleteTransition}
         />
       </div>
 

@@ -2,8 +2,10 @@ import React from 'react'
 import type { MultiVideoInfo, TimestampsResult } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { Override } from '../../../screens/editor/tabs/TimingTab'
-import type { CutRegion } from '../../../../../types/videoEditing'
+import type { Boundary, CutRegion, Transition } from '../../../../../types/videoEditing'
 import { CutRegionOverlay } from '@/components/video-editing/CutRegionOverlay'
+import { BoundaryMarker } from '@/components/video-editing/BoundaryMarker'
+import { TransitionBar } from '@/components/video-editing/TransitionBar'
 import {
   SEGMENT_COLOURS,
   LAP_COLOUR,
@@ -32,6 +34,10 @@ interface TimelineTracksProps {
   viewMode?: 'source' | 'project'
   onCutClick?: (cut: CutRegion) => void
   onSeek?: (time: number) => void
+  boundaries?: Boundary[]
+  transitions?: Transition[]
+  onTransitionUpdate?: (updated: Transition) => void
+  onTransitionDelete?: (id: string) => void
   children?: React.ReactNode // Playhead slot
 }
 
@@ -47,6 +53,10 @@ export const TimelineTracks = React.memo(function TimelineTracks({
   viewMode,
   onCutClick,
   onSeek,
+  boundaries,
+  transitions,
+  onTransitionUpdate,
+  onTransitionDelete,
   children,
 }: TimelineTracksProps): React.ReactElement {
   // Use engine-computed offsets (globalised) when available, fall back to raw videoOffsetFrame.
@@ -208,6 +218,30 @@ export const TimelineTracks = React.memo(function TimelineTracks({
           {viewMode !== 'project' && cutRegions && cutRegions.length > 0 && (
             <CutRegionOverlay cuts={cutRegions} duration={duration} fps={fps} onClick={onCutClick} />
           )}
+          {boundaries?.map((b) => (
+            <BoundaryMarker
+              key={b.id}
+              boundary={b}
+              duration={duration}
+              fps={fps}
+              hasTransition={transitions?.some((t) => t.boundaryId === b.id) ?? false}
+            />
+          ))}
+          {transitions?.map((t) => {
+            const boundary = boundaries?.find((b) => b.id === t.boundaryId)
+            if (!boundary) return null
+            return (
+              <TransitionBar
+                key={t.id}
+                transition={t}
+                boundary={boundary}
+                duration={duration}
+                fps={fps}
+                onUpdate={onTransitionUpdate!}
+                onDelete={onTransitionDelete!}
+              />
+            )
+          })}
         </div>
 
         {/* SEGMENTS */}

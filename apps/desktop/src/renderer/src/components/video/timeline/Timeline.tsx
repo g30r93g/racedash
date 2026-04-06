@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } 
 import type { MultiVideoInfo, TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { Override } from '../../../screens/editor/tabs/TimingTab'
-import type { CutRegion } from '../../../../../types/videoEditing'
+import type { Boundary, CutRegion, Transition } from '../../../../../types/videoEditing'
 import { ZOOM_LEVELS, TRACK_LABELS, TRACK_PADDING_PX, formatRulerLabel, pct } from './types'
 import { TimelineTracks } from './TimelineTracks'
 
@@ -26,10 +26,14 @@ export interface TimelineProps {
   onSeek?: (time: number) => void
   viewMode?: TimelineViewMode
   onViewModeChange?: (mode: TimelineViewMode) => void
+  boundaries?: Boundary[]
+  transitions?: Transition[]
+  onTransitionUpdate?: (updated: Transition) => void
+  onTransitionDelete?: (id: string) => void
 }
 
 export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function Timeline(
-  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onSeek, viewMode, onViewModeChange },
+  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onSeek, viewMode, onViewModeChange, boundaries, transitions, onTransitionUpdate, onTransitionDelete },
   ref,
 ) {
   const duration = videoInfo?.durationSeconds ?? 30
@@ -137,6 +141,10 @@ export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function
             viewMode={viewMode}
             onCutClick={onCutClick}
             onSeek={onSeek}
+            boundaries={boundaries}
+            transitions={transitions}
+            onTransitionUpdate={onTransitionUpdate}
+            onTransitionDelete={onTransitionDelete}
           >
             {/* Playhead — positioned imperatively via ref, zero React re-renders */}
             <div
