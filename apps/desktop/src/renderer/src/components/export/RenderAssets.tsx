@@ -176,19 +176,24 @@ export function RenderAssets({
   // Show laps for all segments (not just selected ones) — laps are independently selectable
   const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
 
-  const summaryParts: string[] = []
-  if (selection.entireProject) summaryParts.push('Entire Project')
-  if (selectedSegmentCount > 0) summaryParts.push(`${selectedSegmentCount}/${segments.length} segments`)
-  if (selectedLapCount > 0) summaryParts.push(`${selectedLapCount}/${totalLaps} laps`)
-  const summary = summaryParts.length > 0 ? summaryParts.join(' · ') : 'None selected'
-
   return (
     <section>
       <SectionLabel>Render Assets</SectionLabel>
       <Collapsible open={open} onOpenChange={setOpen}>
         {/* Collapsed summary card */}
-        <div className="flex items-center justify-between rounded-md border border-border bg-accent px-3 py-2">
-          <span className="tabular-nums text-sm text-foreground">{summary}</span>
+        <div className="flex items-start justify-between rounded-md border border-border bg-accent px-3 py-2">
+          <div className="flex flex-col gap-0.5 text-xs text-foreground">
+            {selection.entireProject && <span>Entire Project</span>}
+            {selectedSegmentCount > 0 && (
+              <span className="tabular-nums text-muted-foreground">{selectedSegmentCount}/{segments.length} segments</span>
+            )}
+            {selectedLapCount > 0 && (
+              <span className="tabular-nums text-muted-foreground">{selectedLapCount}/{totalLaps} laps</span>
+            )}
+            {!selection.entireProject && selectedSegmentCount === 0 && selectedLapCount === 0 && (
+              <span className="text-muted-foreground">None selected</span>
+            )}
+          </div>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm">
               {open ? 'Close' : 'Configure'}
