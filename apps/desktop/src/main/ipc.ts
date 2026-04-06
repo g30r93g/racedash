@@ -1,6 +1,7 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import type { WebContents } from 'electron'
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -476,6 +477,17 @@ export async function openProjectHandler(projectPath: string): Promise<ProjectDa
   if (!project.configPath) {
     project.configPath = path.join(path.dirname(projectPath), 'config.json')
   }
+  // Migrate existing segments that are missing a stable UUID.
+  let needsSave = false
+  for (const seg of project.segments ?? []) {
+    if (!seg.id) {
+      seg.id = randomUUID()
+      needsSave = true
+    }
+  }
+  if (needsSave) {
+    fs.writeFileSync(projectPath, JSON.stringify(project, null, 2), 'utf-8')
+  }
   return project
 }
 
@@ -537,12 +549,16 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 
   // Write app metadata (project.json) — wizard-format segments for UI display.
   const projectPath = path.join(saveDir, 'project.json')
+  const segmentsWithIds = opts.segments.map((seg) => ({
+    ...seg,
+    id: seg.id ?? randomUUID(),
+  }))
   const projectData: ProjectData = {
     name: opts.name,
     projectPath,
     configPath,
     videoPaths: opts.videoPaths,
-    segments: opts.segments,
+    segments: segmentsWithIds,
     selectedDrivers: opts.selectedDrivers,
   }
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')

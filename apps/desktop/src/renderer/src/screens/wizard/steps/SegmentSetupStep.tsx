@@ -76,8 +76,10 @@ function buildSegmentConfig(draft: {
   manualLaps: ManualLapEntry[]
   videoIndices: number[]
   videoOffsetFrame: number
+  id?: string
 }): SegmentConfig {
   return {
+    id: draft.id ?? crypto.randomUUID(),
     label: draft.label.trim(),
     source: draft.source,
     session: draft.session,
@@ -381,6 +383,7 @@ export function SegmentSetupStep({
   }, [formMode, onFormActiveChange])
 
   // --- Draft state for the inline form ---
+  const [draftId, setDraftId] = useState<string | undefined>(undefined)
   const [label, setLabel] = useState('')
   const [session, setSession] = useState<SessionMode>('race')
   const [source, setSource] = useState<TimingSource>('alphaTiming')
@@ -409,6 +412,7 @@ export function SegmentSetupStep({
   }, [session, formMode, segments])
 
   function resetForm() {
+    setDraftId(undefined)
     setLabel('')
     setSession('race')
     setSource('alphaTiming')
@@ -423,6 +427,7 @@ export function SegmentSetupStep({
   }
 
   function loadSegmentIntoDraft(seg: SegmentConfig, driverName: string) {
+    setDraftId(seg.id)
     setLabel(seg.label)
     setSession(seg.session ?? 'race')
     setSource(seg.source)
@@ -477,7 +482,7 @@ export function SegmentSetupStep({
   function handleSave() {
     if (!canSave) return
     const seg = buildSegmentConfig({
-      label, session, source, url, eventId, emailPath, manualLaps, videoIndices, videoOffsetFrame,
+      label, session, source, url, eventId, emailPath, manualLaps, videoIndices, videoOffsetFrame, id: draftId,
     })
 
     const newDrivers = { ...selectedDrivers, [seg.label]: driver }
