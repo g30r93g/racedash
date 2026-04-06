@@ -163,7 +163,7 @@ export function RenderAssets({
     <section>
       <div className="flex items-center justify-between">
         <SectionLabel className="mb-0">Render Assets</SectionLabel>
-        <Button variant="link" size="sm" className="h-auto p-0 text-[10px] text-muted-foreground" onClick={() => setModalOpen(true)} disabled={disabled}>
+        <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground" onClick={() => setModalOpen(true)} disabled={disabled}>
           Configure
         </Button>
       </div>
