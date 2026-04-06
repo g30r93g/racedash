@@ -3,7 +3,8 @@ import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
-import { ChevronRight, Link2 } from 'lucide-react'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { ChevronRight, Info, Link2 } from 'lucide-react'
 import type { ProjectData } from '../../../../../types/project'
 import type { TimestampsResult } from '../../../../../types/ipc'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
@@ -210,7 +211,23 @@ export function RenderAssets({
 
             {/* SEGMENTS */}
             <div className={selection.entireProject ? 'opacity-40 pointer-events-none' : ''}>
-              <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
+              <div className="mb-1.5 flex items-center gap-1">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
+                <HoverCard openDelay={200}>
+                  <HoverCardTrigger asChild>
+                    <Info className="h-3 w-3 cursor-help text-muted-foreground/50" />
+                  </HoverCardTrigger>
+                  <HoverCardContent side="top" className="w-64 text-xs">
+                    <p className="font-medium">Segment Selection</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Choose which timing segments to include in the export. Deselected segments will have their video content included but no overlay graphics rendered for that portion.
+                    </p>
+                    <p className="mt-1 text-muted-foreground">
+                      Adjacent segments can be linked so they select together — useful when one session has multiple timing sources.
+                    </p>
+                  </HoverCardContent>
+                </HoverCard>
+              </div>
               <div className="rounded-md border border-border bg-accent">
                 {segments.map((seg, i) => {
                   const isAdjacentDown = seg.adjacentTo !== null && seg.adjacentTo === i + 1
@@ -277,7 +294,20 @@ export function RenderAssets({
             {/* LAPS — independently selectable regardless of segment selection */}
             {segmentsWithLaps.length > 0 && (
               <div className={selection.entireProject ? 'opacity-40 pointer-events-none' : ''}>
-                <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
+                <div className="mb-1.5 flex items-center gap-1">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
+                  <HoverCard openDelay={200}>
+                    <HoverCardTrigger asChild>
+                      <Info className="h-3 w-3 cursor-help text-muted-foreground/50" />
+                    </HoverCardTrigger>
+                    <HoverCardContent side="top" className="w-64 text-xs">
+                      <p className="font-medium">Lap Selection</p>
+                      <p className="mt-1 text-muted-foreground">
+                        Choose which laps to show in the overlay. Deselected laps will be excluded from the timing graphics but their video content remains in the export.
+                      </p>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <div className="rounded-md border border-border bg-accent">
                   {segmentsWithLaps.map((seg, si) => {
                     const fastestTime = Math.min(...seg.laps.map((l) => l.lapTime))
