@@ -18,6 +18,7 @@ import type { StyleState } from './tabs/StyleTab'
 import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayProps } from '@racedash/core'
 import { useAuth } from '../../hooks/useAuth'
 import { useLicense } from '../../hooks/useLicense'
+import { DndContext, type DragEndEvent, DragOverlay } from '@dnd-kit/core'
 
 function parsePositionString(pos: string): number {
   return parseInt(pos.replace(/^P/i, ''), 10)
@@ -340,34 +341,6 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     setTransitions((prev) => prev.filter((t) => t.boundaryId !== `cut:${id}`))
   }, [])
 
-  const handleAddTransition = useCallback((type: TransitionType, boundaryId?: string) => {
-    const targetId = boundaryId ?? boundaries.find((b) => !transitions.some((t) => t.boundaryId === b.id))?.id
-    if (!targetId) {
-      toast.error('No available boundary for transition')
-      return
-    }
-
-    const boundary = boundaries.find((b) => b.id === targetId)
-    if (!boundary) return
-
-    if (transitions.some((t) => t.boundaryId === targetId)) {
-      toast.error('This boundary already has a transition')
-      return
-    }
-
-    if (!boundary.allowedTypes.includes(type)) {
-      toast.error(`${type} is not compatible with ${boundary.label}`)
-      return
-    }
-
-    setTransitions((prev) => [...prev, {
-      id: crypto.randomUUID(),
-      boundaryId: targetId,
-      type,
-      durationMs: 500,
-    }])
-  }, [boundaries, transitions])
-
   const handleUpdateTransition = useCallback((updated: Transition) => {
     setTransitions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
   }, [])
@@ -375,6 +348,37 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const handleDeleteTransition = useCallback((id: string) => {
     setTransitions((prev) => prev.filter((t) => t.id !== id))
   }, [])
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over) return
+
+    const activeData = active.data.current
+    const overData = over.data.current
+
+    // Transition pill dropped on a boundary marker
+    if (activeData?.type === 'transition-pill' && overData?.type === 'boundary') {
+      const boundary = overData.boundary as Boundary
+      const transitionType = activeData.transitionType as TransitionType
+
+      if (transitions.some((t) => t.boundaryId === boundary.id)) {
+        toast.error('This boundary already has a transition')
+        return
+      }
+
+      if (!boundary.allowedTypes.includes(transitionType)) {
+        toast.error(`${transitionType} is not compatible with ${boundary.label}`)
+        return
+      }
+
+      setTransitions((prev) => [...prev, {
+        id: crypto.randomUUID(),
+        boundaryId: boundary.id,
+        type: transitionType,
+        durationMs: 500,
+      }])
+    }
+  }, [transitions])
 
   const [timelineViewMode, setTimelineViewMode] = useState<TimelineViewMode>('source')
   const [playing, setPlaying] = useState(false)
@@ -450,6 +454,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   }, [timestampsResult, videoInfo, styleState])
 
   return (
+    <DndContext onDragEnd={handleDragEnd}>
     <div className={`grid h-full w-full overflow-hidden ${drawerOpen ? 'grid-cols-[256px_1fr_430px]' : 'grid-cols-[1fr_430px]'}`}>
       {/* Left drawer — video editing controls */}
       {drawerOpen && (
@@ -462,7 +467,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
             onDelete={handleDeleteCut}
             disabled={!timestampsResult}
           />
-          <TransitionPills onAdd={handleAddTransition} />
+          <TransitionPills />
         </VideoEditingDrawer>
       )}
 
@@ -530,5 +535,6 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         />
       </div>
     </div>
+    </DndContext>
   )
 }

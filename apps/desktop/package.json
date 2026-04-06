@@ -21,6 +21,8 @@
   "dependencies": {
     "@clerk/clerk-js": "^6.3.3",
     "@clerk/react": "^6.1.3",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@racedash/core": "workspace:*",
     "@racedash/engine": "workspace:*",
     "@radix-ui/react-alert-dialog": "^1.1.15",
