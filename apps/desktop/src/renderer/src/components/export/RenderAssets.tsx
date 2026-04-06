@@ -1,4 +1,3 @@
-import { InfoRow } from '@/components/shared/InfoRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -125,29 +124,76 @@ export function RenderAssets({
   const selectedSegmentCount = selection.segments.size
   const selectedLapCount = selection.laps.size
 
-  // Build summary strings for the info rows
-  const videoSummary = selection.entireProject ? 'Entire Project' : 'Selected segments only'
-  const segmentsSummary = selectedSegmentCount === 0
-    ? 'None'
-    : selectedSegmentCount === segments.length
-      ? 'All'
-      : segments.filter((s) => selection.segments.has(s.index)).map((s) => s.label).join(', ')
-  const lapsSummary = selectedLapCount === 0
-    ? 'None'
-    : selectedLapCount === totalLaps
-      ? 'All'
-      : `${selectedLapCount} of ${totalLaps}`
+  const selectedSegments = segments.filter((s) => selection.segments.has(s.index))
+
+  // Build per-segment selected laps for the summary
+  const selectedLapsBySegment = React.useMemo(() => {
+    const map = new Map<number, number[]>()
+    for (const key of selection.laps) {
+      const [segIdx, lapNum] = key.split(':').map(Number)
+      if (!map.has(segIdx)) map.set(segIdx, [])
+      map.get(segIdx)!.push(lapNum)
+    }
+    // Sort lap numbers within each segment
+    for (const laps of map.values()) laps.sort((a, b) => a - b)
+    return map
+  }, [selection.laps])
 
   return (
     <section>
       <SectionLabel>Render Assets</SectionLabel>
       {/* Read-only summary list */}
-      <div className="rounded-md border border-border bg-accent px-3">
-        <InfoRow label="Video" value={videoSummary} />
-        <div className="border-t border-border" />
-        <InfoRow label="Segments" value={segmentsSummary} />
-        <div className="border-t border-border" />
-        <InfoRow label="Laps" value={lapsSummary} />
+      <div className="rounded-md border border-border bg-accent text-xs">
+        {/* Video */}
+        {selection.entireProject && (
+          <div className="px-3 py-2 text-foreground">Entire Project</div>
+        )}
+
+        {/* Segments */}
+        {selectedSegmentCount > 0 && (
+          <>
+            {selection.entireProject && <div className="border-t border-border" />}
+            <div className="px-3 py-2">
+              <span className="text-muted-foreground">Segments</span>
+              <div className="mt-1 flex flex-col gap-0.5 pl-2">
+                {selectedSegments.map((s) => (
+                  <span key={s.index} className="text-foreground">{s.label}</span>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Laps */}
+        {selectedLapCount > 0 && (
+          <>
+            {(selection.entireProject || selectedSegmentCount > 0) && <div className="border-t border-border" />}
+            <div className="px-3 py-2">
+              <span className="text-muted-foreground">Laps</span>
+              <div className="mt-1 flex flex-col gap-1 pl-2">
+                {segments.map((seg) => {
+                  const laps = selectedLapsBySegment.get(seg.index)
+                  if (!laps?.length) return null
+                  return (
+                    <div key={seg.index}>
+                      <span className="text-muted-foreground">{seg.label}</span>
+                      <div className="flex flex-col gap-0.5 pl-2">
+                        {laps.map((num) => (
+                          <span key={num} className="text-foreground">Lap {num}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Nothing selected */}
+        {!selection.entireProject && selectedSegmentCount === 0 && selectedLapCount === 0 && (
+          <div className="px-3 py-2 text-muted-foreground">None selected</div>
+        )}
       </div>
       <Button variant="ghost" size="sm" className="mt-1.5 w-full" onClick={() => setModalOpen(true)} disabled={disabled}>
         Configure
