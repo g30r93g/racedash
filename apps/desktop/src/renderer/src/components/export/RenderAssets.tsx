@@ -171,6 +171,21 @@ export function RenderAssets({
     onSelectionChange({ ...selection, laps: nextLaps })
   }
 
+  const allSelected = selectedSegmentCount === segments.length && selectedLapCount === totalLaps
+
+  const toggleAll = () => {
+    if (allSelected) {
+      onSelectionChange({ ...selection, segments: new Set(), laps: new Set() })
+    } else {
+      const allSegments = new Set(segments.map((s) => s.index))
+      const allLaps = new Set<string>()
+      for (const seg of segments) {
+        for (const lap of seg.laps) allLaps.add(`${seg.index}:${lap.number}`)
+      }
+      onSelectionChange({ ...selection, segments: allSegments, laps: allLaps })
+    }
+  }
+
   // Show laps for all segments (not just selected ones) — laps are independently selectable
   const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
 
@@ -189,6 +204,16 @@ export function RenderAssets({
 
         <CollapsibleContent>
           <div className="flex flex-col gap-4 pt-2">
+            {/* SELECT ALL */}
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-accent px-3 py-2 hover:bg-accent/80">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={toggleAll}
+                disabled={disabled}
+              />
+              <span className="text-xs font-medium text-foreground">Entire Project</span>
+            </label>
+
             {/* SEGMENTS */}
             <div>
               <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
