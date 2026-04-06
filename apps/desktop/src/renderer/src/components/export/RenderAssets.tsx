@@ -202,17 +202,18 @@ export function RenderAssets({
                     <React.Fragment key={seg.index}>
                       {i > 0 && !isLinkedUp && <div className="border-t border-border" />}
                       <div className="flex items-stretch">
-                        {/* Link indicator column */}
-                        <div className="relative flex w-6 shrink-0 items-center justify-center">
-                          {isLinkedUp && (
-                            <div className="absolute top-0 bottom-1/2 left-1/2 w-px -translate-x-1/2 bg-primary" />
+                        {/* Link indicator column: line → icon → line */}
+                        <div className="relative flex w-6 shrink-0 flex-col items-center">
+                          {/* Top half of line */}
+                          <div className={`w-px flex-1 ${isLinkedUp ? 'bg-primary' : 'bg-transparent'}`} />
+                          {/* Link icon in the middle (only when part of a link) */}
+                          {(isLinkedUp || isLinkedDown) ? (
+                            <Link2 className="my-0.5 h-3 w-3 shrink-0 text-primary" />
+                          ) : (
+                            <div className="my-0.5 h-3 w-3 shrink-0" />
                           )}
-                          {isLinkedDown && (
-                            <div className="absolute top-1/2 bottom-0 left-1/2 w-px -translate-x-1/2 bg-primary" />
-                          )}
-                          {(isLinkedUp || isLinkedDown) && (
-                            <Link2 className="relative z-10 h-3 w-3 text-primary" />
-                          )}
+                          {/* Bottom half of line */}
+                          <div className={`w-px flex-1 ${isLinkedDown ? 'bg-primary' : 'bg-transparent'}`} />
                         </div>
 
                         {/* Segment row */}
