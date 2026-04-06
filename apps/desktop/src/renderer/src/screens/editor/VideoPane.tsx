@@ -179,25 +179,52 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   // When the video element loads new src (file switch), seek to correct position + auto-play
   const handleLoadedMetadata = useCallback(
     (_duration: number) => {
+      // Cut-skip file changes are handled by the dedicated effect below
+      if (cutSkipFileChangeRef.current) return
       const file = files[activeFileIndexRef.current]
       if (!file) return
       const expectedLocalTime = globalTimeRef.current - file.startSeconds
       if (expectedLocalTime > 0.1 && videoRef.current) {
         videoRef.current.currentTime = expectedLocalTime
       }
-      const shouldPlay = playing || cutSkipFileChangeRef.current
-      if (cutSkipFileChangeRef.current) {
-        cutSkipFileChangeRef.current = false
-        // Restore playing state that was cleared by the src-unload pause event
-        setPlaying(true)
-        onPlayingChange?.(true)
-      }
-      if (shouldPlay) {
+      if (playing) {
         videoRef.current?.play().catch(() => {})
       }
     },
-    [files, playing, onPlayingChange],
+    [files, playing],
   )
+
+  // Dedicated effect for resuming playback after a cross-file cut-skip.
+  // Listens for canplay on the video element since loadedMetadata is unreliable
+  // in Electron with custom protocols after a src change.
+  useEffect(() => {
+    if (!cutSkipFileChangeRef.current) return
+    const video = videoRef.current
+    if (!video) return
+
+    const resume = () => {
+      cutSkipFileChangeRef.current = false
+      const file = files[activeFileIndexRef.current]
+      if (!file) return
+      const expectedLocalTime = globalTimeRef.current - file.startSeconds
+      if (expectedLocalTime > 0.1) {
+        video.currentTime = expectedLocalTime
+      }
+      setPlaying(true)
+      onPlayingChange?.(true)
+      video.play().catch(() => {})
+    }
+
+    // Video may already be ready if cached
+    if (video.readyState >= 3) {
+      resume()
+    } else {
+      video.addEventListener('canplay', resume, { once: true })
+      // Also load explicitly in case the browser is waiting
+      video.load()
+      return () => video.removeEventListener('canplay', resume)
+    }
+  }, [activeFileIndex, files, onPlayingChange])
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
