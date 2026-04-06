@@ -205,12 +205,12 @@ export function RenderAssets({
               />
               <div className="flex flex-col">
                 <span className="text-xs font-medium text-foreground">Entire Project</span>
-                <span className="text-[10px] text-muted-foreground">Render all segments and laps</span>
+                <span className="text-[10px] text-muted-foreground">Include the full video in the render</span>
               </div>
             </label>
 
             {/* SEGMENTS */}
-            <div className={selection.entireProject ? 'opacity-40 pointer-events-none' : ''}>
+            <div>
               <div className="mb-1.5 flex items-center gap-1">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
                 <HoverCard openDelay={200}>
@@ -293,7 +293,7 @@ export function RenderAssets({
 
             {/* LAPS — independently selectable regardless of segment selection */}
             {segmentsWithLaps.length > 0 && (
-              <div className={selection.entireProject ? 'opacity-40 pointer-events-none' : ''}>
+              <div>
                 <div className="mb-1.5 flex items-center gap-1">
                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
                   <HoverCard openDelay={200}>
