@@ -73,6 +73,13 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
     if (!playing || !activeFile) return
     let rafId: number
     const tick = () => {
+      // While a cross-file cut-skip is in progress, keep the loop alive
+      // but don't read the video element — it's loading the new source.
+      if (cutSkipFileChangeRef.current) {
+        rafId = requestAnimationFrame(tick)
+        return
+      }
+
       const video = videoRef.current
       if (!video) { rafId = requestAnimationFrame(tick); return }
 
