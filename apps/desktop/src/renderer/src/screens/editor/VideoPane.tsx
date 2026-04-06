@@ -63,8 +63,8 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       .map((c) => ({ startSec: c.startFrame / fps, endSec: c.endFrame / fps }))
   }, [cutRegions, skipCutRegions, fps])
 
-  // Track whether we're in the middle of a cut-skip seek to suppress the pause event
-  const skipSeekingRef = useRef(false)
+  // Timestamp until which pause events should be suppressed (cut-skip seeks can fire multiple pause/play cycles)
+  const suppressPauseUntilRef = useRef(0)
   // Track whether a file switch is due to a cut-skip (force play on loadedMetadata)
   const cutSkipFileChangeRef = useRef(false)
 
@@ -111,7 +111,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
 
           // Same file — seek directly without going through state
           console.log('[CutSkip] Same-file: seeking to', resolved.localTime)
-          skipSeekingRef.current = true
+          suppressPauseUntilRef.current = Date.now() + 500
           video.currentTime = resolved.localTime
           global = skipTarget
           break
@@ -234,8 +234,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       const expectedLocalTime = globalTimeRef.current - file.startSeconds
       console.log('[CutSkip] resume: seeking to localTime=', expectedLocalTime, 'globalTime=', globalTimeRef.current, 'fileStart=', file.startSeconds)
       if (expectedLocalTime > 0.1) {
-        // Suppress the pause event that the seek will trigger
-        skipSeekingRef.current = true
+        suppressPauseUntilRef.current = Date.now() + 500
         video.currentTime = expectedLocalTime
       }
       setPlaying(true)
@@ -267,10 +266,9 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
           onPlayingChange?.(true)
         }}
         onPause={() => {
-          console.log('[VideoPane] onPause', { skipSeeking: skipSeekingRef.current, cutSkipFileChange: cutSkipFileChangeRef.current })
-          // Suppress pause events caused by cut-skip seeks (same-file)
-          if (skipSeekingRef.current) {
-            skipSeekingRef.current = false
+          console.log('[VideoPane] onPause', { suppressUntil: suppressPauseUntilRef.current, now: Date.now(), cutSkipFileChange: cutSkipFileChangeRef.current })
+          // Suppress pause events during cut-skip seek window
+          if (Date.now() < suppressPauseUntilRef.current) {
             videoRef.current?.play().catch(() => {})
             return
           }
