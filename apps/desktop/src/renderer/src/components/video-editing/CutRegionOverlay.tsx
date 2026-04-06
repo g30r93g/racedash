@@ -113,14 +113,14 @@ function CutRegionItem({
     >
       {/* Left (start) drag handle — extends outside the cut region so it's always reachable */}
       <div
-        className="absolute top-0 bottom-0 w-3 -left-1.5 cursor-col-resize z-10 flex items-center justify-center group"
+        className="absolute top-0 bottom-0 w-3 -left-1.5 cursor-col-resize z-30 flex items-center justify-center group"
         onPointerDown={(e) => startDrag(e, 'start')}
       >
         <div className="h-6 w-1 rounded-full bg-red-400/60 group-hover:bg-red-400 group-active:bg-red-300 transition-colors" />
       </div>
       {/* Right (end) drag handle — extends outside the cut region */}
       <div
-        className="absolute top-0 bottom-0 w-3 -right-1.5 cursor-col-resize z-10 flex items-center justify-center group"
+        className="absolute top-0 bottom-0 w-3 -right-1.5 cursor-col-resize z-30 flex items-center justify-center group"
         onPointerDown={(e) => startDrag(e, 'end')}
       >
         <div className="h-6 w-1 rounded-full bg-red-400/60 group-hover:bg-red-400 group-active:bg-red-300 transition-colors" />
