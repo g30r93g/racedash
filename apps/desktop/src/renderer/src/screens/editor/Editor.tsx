@@ -6,7 +6,7 @@ import { VideoEditingDrawer } from '@/components/video-editing/VideoEditingDrawe
 import { CutRegionList } from '@/components/video-editing/CutRegionList'
 import { TransitionPills } from '@/components/video-editing/TransitionPills'
 import { inferCutBounds } from '@/lib/videoEditing'
-import { useSegmentBuffers, useBoundaries, useReconciledTransitions } from '@/hooks/useVideoEditing'
+import { useSegmentBuffers, useBoundaries, useReconciledTransitions, useFrameMapping } from '@/hooks/useVideoEditing'
 import { toast } from 'sonner'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
@@ -289,6 +289,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   }, [projectState.segments, timestampsResult, fps])
 
   const boundaries = useBoundaries(totalFrames, cutRegions, segmentSpansWithIds)
+  const frameMapping = useFrameMapping(cutRegions, transitions, fps)
 
   const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
 
@@ -361,14 +362,22 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const timeUpdateFrameRef = useRef(0)
   const handleTimeUpdate = useCallback((t: number) => {
     currentTimeRef.current = t
-    timelineRef.current?.seek(t)
+    const displayTime = timelineViewMode === 'project'
+      ? frameMapping.toOutput(Math.round(t * fps)) / fps
+      : t
+    timelineRef.current?.seek(displayTime)
     // Throttle React state updates to ~4Hz (every 15 frames at 60fps)
     timeUpdateFrameRef.current++
     if (timeUpdateFrameRef.current % 15 === 0) {
-      setCurrentTime(t)
+      setCurrentTime(displayTime)
     }
-  }, [])
-  const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
+  }, [timelineViewMode, frameMapping, fps])
+  const handleSeek = useCallback((t: number) => {
+    const sourceTime = timelineViewMode === 'project'
+      ? frameMapping.toSource(Math.round(t * fps)) / fps
+      : t
+    videoPaneRef.current?.seek(sourceTime)
+  }, [timelineViewMode, frameMapping, fps])
   const togglePlayPause = useCallback(() => {
     if (playing) {
       videoPaneRef.current?.pause()
