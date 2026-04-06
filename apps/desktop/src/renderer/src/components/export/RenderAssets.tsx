@@ -2,6 +2,7 @@ import React from 'react'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Badge } from '@/components/ui/badge'
 import { ChevronRight, Link2 } from 'lucide-react'
 import type { ProjectData } from '../../../../../types/project'
 import type { TimestampsResult } from '../../../../../types/ipc'
@@ -282,12 +283,15 @@ export function RenderAssets({
                                   className="h-3.5 w-3.5"
                                 />
                                 <div className="flex flex-1 items-center justify-between">
-                                  <span className={`text-[11px] ${isFastest ? 'font-semibold text-purple-400' : 'text-foreground'}`}>
-                                    Lap {lap.number}{isFastest ? ' ★' : ''}
-                                  </span>
-                                  <span className={`text-[10px] ${isFastest ? 'font-medium text-purple-400' : 'text-muted-foreground'}`}>
-                                    {formatLapTime(lap.lapTime)}
-                                  </span>
+                                  <span className="text-[11px] text-foreground">Lap {lap.number}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    {isFastest && (
+                                      <Badge className="bg-purple-500/15 text-purple-400 hover:bg-purple-500/15 border-purple-500/30 px-1.5 py-0 text-[9px] font-medium">
+                                        Fastest Lap
+                                      </Badge>
+                                    )}
+                                    <span className="text-[10px] text-muted-foreground">{formatLapTime(lap.lapTime)}</span>
+                                  </div>
                                 </div>
                               </label>
                             </React.Fragment>
