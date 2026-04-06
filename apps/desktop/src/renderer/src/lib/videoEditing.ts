@@ -274,13 +274,11 @@ interface SegmentSpanWithId {
 /**
  * Computes all Boundary objects for a project:
  * - projectStart / projectEnd always included
- * - one 'cut' boundary per CutRegion
- * - one 'fileJoin' boundary at each video file join point
+ * - one 'cut' boundary per CutRegion (where a transition can bridge the seam)
  */
 export function computeBoundaries(
   totalFrames: number,
   cuts: CutRegion[],
-  fileJoinFrames: number[],
   fps: number
 ): Boundary[] {
   const boundaries: Boundary[] = []
@@ -305,7 +303,7 @@ export function computeBoundaries(
     allowedTypes: ['fadeToBlack', 'fadeThroughBlack'],
   })
 
-  // Cut boundaries
+  // Cut boundaries — each cut creates a seam in the output where a transition can go
   for (const cut of cuts) {
     boundaries.push({
       id: `cut:${cut.id}`,
@@ -313,19 +311,6 @@ export function computeBoundaries(
       frameInSource: cut.startFrame,
       oneSided: false,
       label: `Cut at ${formatFrameAsTime(cut.startFrame, fps)}`,
-      allowedTypes: ['fadeFromBlack', 'fadeToBlack', 'fadeThroughBlack', 'crossfade'],
-    })
-  }
-
-  // File join boundaries: where one source video file ends and the next begins
-  for (let i = 0; i < fileJoinFrames.length; i++) {
-    const joinFrame = fileJoinFrames[i]
-    boundaries.push({
-      id: `fileJoin:${i}`,
-      kind: 'segment',
-      frameInSource: joinFrame,
-      oneSided: false,
-      label: `File join at ${formatFrameAsTime(joinFrame, fps)}`,
       allowedTypes: ['fadeFromBlack', 'fadeToBlack', 'fadeThroughBlack', 'crossfade'],
     })
   }

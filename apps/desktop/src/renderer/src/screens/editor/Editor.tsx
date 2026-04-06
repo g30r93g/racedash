@@ -300,15 +300,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     })
   }, [projectState.segments, timestampsResult, fps])
 
-  // File join frames: where each source video file ends (boundary between files)
-  const fileJoinFrames = useMemo(() => {
-    if (!multiVideoInfo || multiVideoInfo.files.length <= 1) return []
-    return multiVideoInfo.files.slice(0, -1).map((file) =>
-      Math.round((file.startSeconds + file.durationSeconds) * fps)
-    )
-  }, [multiVideoInfo, fps])
-
-  const boundaries = useBoundaries(totalFrames, cutRegions, fileJoinFrames, fps)
+  const boundaries = useBoundaries(totalFrames, cutRegions, fps)
   const frameMapping = useFrameMapping(cutRegions, transitions, fps)
   const keptRanges = useKeptRanges(cutRegions, totalFrames)
   const outputDuration = useMemo(

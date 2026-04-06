@@ -24,10 +24,9 @@ export function useSegmentBuffers(
 export function useBoundaries(
   totalFrames: number,
   cuts: CutRegion[],
-  fileJoinFrames: number[],
   fps: number,
 ): Boundary[] {
-  return useMemo(() => computeBoundaries(totalFrames, cuts, fileJoinFrames, fps), [totalFrames, cuts, fileJoinFrames, fps])
+  return useMemo(() => computeBoundaries(totalFrames, cuts, fps), [totalFrames, cuts, fps])
 }
 
 export function useFrameMapping(

@@ -287,14 +287,14 @@ describe('computeBoundaries', () => {
   const fps = 30
 
   it('always includes projectStart and projectEnd', () => {
-    const result = computeBoundaries(300, [], [], fps)
+    const result = computeBoundaries(300, [], fps)
     const kinds = result.map((b) => b.kind)
     expect(kinds).toContain('projectStart')
     expect(kinds).toContain('projectEnd')
   })
 
   it('projectStart is one-sided with correct allowedTypes', () => {
-    const result = computeBoundaries(300, [], [], fps)
+    const result = computeBoundaries(300, [], fps)
     const start = result.find((b) => b.kind === 'projectStart')!
     expect(start.oneSided).toBe(true)
     expect(start.frameInSource).toBe(0)
@@ -305,7 +305,7 @@ describe('computeBoundaries', () => {
   })
 
   it('projectEnd is one-sided with correct allowedTypes', () => {
-    const result = computeBoundaries(300, [], [], fps)
+    const result = computeBoundaries(300, [], fps)
     const end = result.find((b) => b.kind === 'projectEnd')!
     expect(end.oneSided).toBe(true)
     expect(end.frameInSource).toBe(300)
@@ -320,14 +320,14 @@ describe('computeBoundaries', () => {
       { id: 'c1', startFrame: 30, endFrame: 60 },
       { id: 'c2', startFrame: 90, endFrame: 120 },
     ]
-    const result = computeBoundaries(300, cuts, [], fps)
+    const result = computeBoundaries(300, cuts, fps)
     const cutBoundaries = result.filter((b) => b.kind === 'cut')
     expect(cutBoundaries).toHaveLength(2)
   })
 
   it('cut boundaries have correct allowedTypes (all 4)', () => {
     const cuts: CutRegion[] = [{ id: 'c1', startFrame: 30, endFrame: 60 }]
-    const result = computeBoundaries(300, cuts, [], fps)
+    const result = computeBoundaries(300, cuts, fps)
     const cutBoundary = result.find((b) => b.kind === 'cut')!
     expect(cutBoundary.allowedTypes).toEqual(
       expect.arrayContaining(['fadeFromBlack', 'fadeToBlack', 'fadeThroughBlack', 'crossfade'])
@@ -335,28 +335,13 @@ describe('computeBoundaries', () => {
     expect(cutBoundary.allowedTypes).toHaveLength(4)
   })
 
-  it('adds file join boundaries', () => {
-    const result = computeBoundaries(300, [], [150], fps)
-    const fileJoins = result.filter((b) => b.kind === 'segment')
-    expect(fileJoins).toHaveLength(1)
-    expect(fileJoins[0].frameInSource).toBe(150)
-  })
-
-  it('file join boundaries allow all 4 transition types', () => {
-    const result = computeBoundaries(300, [], [150], fps)
-    const join = result.find((b) => b.kind === 'segment')!
-    expect(join.oneSided).toBe(false)
-    expect(join.allowedTypes).toHaveLength(4)
-  })
-
-  it('adds multiple file join boundaries', () => {
-    const result = computeBoundaries(900, [], [300, 600], fps)
-    const fileJoins = result.filter((b) => b.kind === 'segment')
-    expect(fileJoins).toHaveLength(2)
+  it('no boundaries besides start/end when no cuts', () => {
+    const result = computeBoundaries(300, [], fps)
+    expect(result).toHaveLength(2)
   })
 
   it('boundaries have labels', () => {
-    const result = computeBoundaries(300, [], [], fps)
+    const result = computeBoundaries(300, [], fps)
     result.forEach((b) => {
       expect(typeof b.label).toBe('string')
       expect(b.label.length).toBeGreaterThan(0)
