@@ -321,6 +321,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   // Resolve transitions to source-time positions for CSS preview
   const transitionPreviewData = useMemo(() => {
+    console.log('[Editor] transitionPreviewData compute', { transitionsCount: transitions.length, boundariesCount: boundaries.length, transitions, boundaries })
     if (transitions.length === 0 || boundaries.length === 0) return undefined
     return transitions.map((t) => {
       const boundary = boundaries.find((b) => b.id === t.boundaryId)
