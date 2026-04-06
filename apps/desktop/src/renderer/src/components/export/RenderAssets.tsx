@@ -1,14 +1,14 @@
-import React from 'react'
 import { SectionLabel } from '@/components/shared/SectionLabel'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import { Info, Link2 } from 'lucide-react'
-import type { ProjectData } from '../../../../../types/project'
-import type { TimestampsResult } from '../../../../../types/ipc'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
+import { Info, Link2 } from 'lucide-react'
+import React from 'react'
+import type { TimestampsResult } from '../../../../../types/ipc'
+import type { ProjectData } from '../../../../../types/project'
 
 export interface RenderAssetsSelection {
   /** When true, render the entire project — segment/lap selections are ignored. */
@@ -98,21 +98,15 @@ export function buildDefaultSelection(
   timestampsResult: TimestampsResult | null | undefined,
   fps: number,
 ): RenderAssetsSelection {
-  const segments = new Set(project.segments.map((_, i) => i))
-  const laps = new Set<string>()
   const linkedPairs = new Set<string>()
-
   const infos = buildSegmentInfos(project, timestampsResult, fps)
   for (const seg of infos) {
-    for (const lap of seg.laps) {
-      laps.add(`${seg.index}:${lap.number}`)
-    }
     if (seg.adjacentTo !== null && seg.adjacentTo > seg.index) {
       linkedPairs.add(pairKey(seg.index, seg.adjacentTo))
     }
   }
 
-  return { entireProject: true, segments, laps, linkedPairs }
+  return { entireProject: true, segments: new Set<number>(), laps: new Set<string>(), linkedPairs }
 }
 
 export function RenderAssets({
@@ -229,7 +223,7 @@ export function RenderAssets({
                       Choose which timing segments to include in the export. Deselected segments will have their video content included but no overlay graphics rendered for that portion.
                     </p>
                     <p className="mt-1 text-muted-foreground">
-                      Adjacent segments can be linked so they select together — useful when one session has multiple timing sources.
+                      Adjacent segments can be linked so they produce a single continuous overlay without a break in the graphics. This is ideal for segments that are logically separate in the project but should appear seamless in the render (e.g. a practice/qualifying session).
                     </p>
                   </HoverCardContent>
                 </HoverCard>
