@@ -63,25 +63,41 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       .map((c) => ({ startSec: c.startFrame / fps, endSec: c.endFrame / fps }))
   }, [cutRegions, skipCutRegions, fps])
 
+  // Track whether we're in the middle of a cut-skip seek to suppress the pause event
+  const skipSeekingRef = useRef(false)
+
   // rAF loop — compute global time from local video time + file start offset
   useEffect(() => {
     if (!playing || !activeFile) return
     let rafId: number
     const tick = () => {
-      const localT = videoRef.current?.currentTime ?? 0
+      const video = videoRef.current
+      if (!video) { rafId = requestAnimationFrame(tick); return }
+
+      const localT = video.currentTime
       let global = activeFile.startSeconds + localT
 
       // Skip over cut regions in Project view
       for (const cut of cutRangesSeconds) {
         if (global >= cut.startSec && global < cut.endSec) {
-          // Seek to end of cut
           const resolved = resolveFileAtTime(files, cut.endSec)
-          activeFileIndexRef.current = resolved.fileIndex
-          setActiveFileIndex(resolved.fileIndex)
-          if (videoRef.current) {
-            videoRef.current.currentTime = resolved.localTime
+
+          if (resolved.fileIndex !== activeFileIndexRef.current) {
+            // Different file — need to switch source, which will trigger loadedMetadata → auto-play
+            activeFileIndexRef.current = resolved.fileIndex
+            setActiveFileIndex(resolved.fileIndex)
+            globalTimeRef.current = cut.endSec
+            setGlobalTime(cut.endSec)
+            onTimeUpdate?.(cut.endSec)
+            return // Stop rAF — file switch will restart
           }
+
+          // Same file — seek directly without going through state
+          skipSeekingRef.current = true
+          video.currentTime = resolved.localTime
           global = cut.endSec
+          // Let the video continue playing — the seeking event will fire but
+          // we suppress the pause via skipSeekingRef
           break
         }
       }
@@ -185,6 +201,12 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
           onPlayingChange?.(true)
         }}
         onPause={() => {
+          // Suppress pause events caused by cut-skip seeks
+          if (skipSeekingRef.current) {
+            skipSeekingRef.current = false
+            videoRef.current?.play().catch(() => {})
+            return
+          }
           setPlaying(false)
           onPlayingChange?.(false)
         }}
