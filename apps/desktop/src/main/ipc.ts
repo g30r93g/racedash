@@ -256,6 +256,20 @@ export async function updateProjectConfigOverridesHandler(
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
+export async function updateProjectVideoEditingHandler(
+  configPath: string,
+  data: { cutRegions: Array<{ id: string; startFrame: number; endFrame: number }>; transitions: Array<{ id: string; boundaryId: string; type: string; durationMs: number }> },
+): Promise<void> {
+  if (typeof configPath !== 'string' || configPath.trim().length === 0) {
+    throw new Error('updateProjectVideoEditing: configPath must be a non-empty string')
+  }
+  const raw = fs.readFileSync(configPath, 'utf-8') as string
+  const config = JSON.parse(raw) as Record<string, unknown>
+  config.cutRegions = data.cutRegions
+  config.transitions = data.transitions
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
+}
+
 export async function saveStyleToConfigHandler(
   configPath: string,
   overlayType: string,
@@ -941,6 +955,11 @@ export function registerIpcHandlers(): void {
     'racedash:updateProjectConfigOverrides',
     (_event, configPath: string, overrides: ConfigPositionOverride[]) =>
       updateProjectConfigOverridesHandler(configPath, overrides),
+  )
+  ipcMain.handle(
+    'racedash:updateProjectVideoEditing',
+    (_event, configPath: string, data: { cutRegions: unknown[]; transitions: unknown[] }) =>
+      updateProjectVideoEditingHandler(configPath, data as Parameters<typeof updateProjectVideoEditingHandler>[1]),
   )
   ipcMain.handle(
     'racedash:saveStyleToConfig',

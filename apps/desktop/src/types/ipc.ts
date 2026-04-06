@@ -1,4 +1,5 @@
 import type { ProjectData, CreateProjectOpts, SegmentConfig } from './project'
+import type { CutRegion, Transition } from './videoEditing'
 import type {
   BoxPosition,
   CornerPosition,
@@ -371,6 +372,10 @@ export interface RacedashAPI {
   updateProjectConfigOverrides(
     configPath: string,
     overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>,
+  ): Promise<void>
+  updateProjectVideoEditing(
+    configPath: string,
+    data: { cutRegions: CutRegion[]; transitions: Transition[] },
   ): Promise<void>
   saveStyleToConfig(
     configPath: string,

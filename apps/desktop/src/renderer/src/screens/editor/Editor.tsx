@@ -267,6 +267,15 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [overrides, projectState.configPath])
 
+  // Auto-save video editing state to config.json
+  useEffect(() => {
+    window.racedash
+      .updateProjectVideoEditing(projectState.configPath, { cutRegions, transitions })
+      .catch((err: unknown) => {
+        console.warn('[Editor] failed to save video editing state:', err)
+      })
+  }, [cutRegions, transitions, projectState.configPath])
+
   // ── Video editing: segment spans, boundaries, transitions ──────────────────
   const fps = videoInfo?.fps ?? 60
   const totalFrames = Math.ceil((videoInfo?.durationSeconds ?? 0) * fps)
