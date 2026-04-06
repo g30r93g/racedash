@@ -36,6 +36,9 @@ function CutRegionItem({
 }): React.ReactElement {
   const dragRef = useRef<DragState | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  // Keep latest cut in a ref so window event handlers always see current values
+  const cutRef = useRef(cut)
+  cutRef.current = cut
 
   const startDrag = useCallback(
     (e: React.PointerEvent, edge: DragEdge) => {
@@ -56,14 +59,15 @@ function CutRegionItem({
         pxPerSec,
       }
 
-      const target = e.currentTarget as HTMLElement
-      target.setPointerCapture(e.pointerId)
+      // Attach move/up to window so dragging works even when pointer leaves the handle
+      window.addEventListener('pointermove', onWindowPointerMove)
+      window.addEventListener('pointerup', onWindowPointerUp)
     },
     [cut, duration],
   )
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
+  const onWindowPointerMove = useCallback(
+    (e: PointerEvent) => {
       const drag = dragRef.current
       if (!drag || !onUpdate) return
 
@@ -71,23 +75,26 @@ function CutRegionItem({
       const deltaSec = deltaPx / drag.pxPerSec
       const deltaFrames = Math.round(deltaSec * fps)
       const newFrame = Math.max(0, drag.initialFrame + deltaFrames)
+      const c = cutRef.current
 
       if (drag.edge === 'start') {
-        if (newFrame < cut.endFrame) {
-          onUpdate({ ...cut, startFrame: newFrame })
+        if (newFrame < c.endFrame) {
+          onUpdate({ ...c, startFrame: newFrame })
         }
       } else {
-        if (newFrame > cut.startFrame) {
-          onUpdate({ ...cut, endFrame: newFrame })
+        if (newFrame > c.startFrame) {
+          onUpdate({ ...c, endFrame: newFrame })
         }
       }
     },
-    [cut, fps, onUpdate],
+    [fps, onUpdate],
   )
 
-  const onPointerUp = useCallback(() => {
+  const onWindowPointerUp = useCallback(() => {
     dragRef.current = null
-  }, [])
+    window.removeEventListener('pointermove', onWindowPointerMove)
+    window.removeEventListener('pointerup', onWindowPointerUp)
+  }, [onWindowPointerMove])
 
   const startSec = cut.startFrame / fps
   const widthSec = (cut.endFrame - cut.startFrame) / fps
@@ -108,8 +115,6 @@ function CutRegionItem({
       <div
         className="absolute top-0 bottom-0 w-3 -left-1.5 cursor-col-resize z-10 flex items-center justify-center group"
         onPointerDown={(e) => startDrag(e, 'start')}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
       >
         <div className="h-6 w-1 rounded-full bg-red-400/60 group-hover:bg-red-400 group-active:bg-red-300 transition-colors" />
       </div>
@@ -117,8 +122,6 @@ function CutRegionItem({
       <div
         className="absolute top-0 bottom-0 w-3 -right-1.5 cursor-col-resize z-10 flex items-center justify-center group"
         onPointerDown={(e) => startDrag(e, 'end')}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
       >
         <div className="h-6 w-1 rounded-full bg-red-400/60 group-hover:bg-red-400 group-active:bg-red-300 transition-colors" />
       </div>
