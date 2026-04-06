@@ -6,6 +6,7 @@ import { VideoEditingDrawer } from '@/components/video-editing/VideoEditingDrawe
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline, type TimelineHandle } from '@/components/video/Timeline'
+import type { TimelineViewMode } from '@/components/video/timeline/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
@@ -261,6 +262,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [overrides, projectState.configPath])
 
+  const [timelineViewMode, setTimelineViewMode] = useState<TimelineViewMode>('source')
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   // Update timeline imperatively every frame; batch React state at 4Hz for TimingTab
@@ -352,6 +354,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           timestampsResult={timestampsResult}
           overrides={overrides}
           onSeek={handleSeek}
+          viewMode={timelineViewMode}
+          onViewModeChange={setTimelineViewMode}
         />
       </div>
 

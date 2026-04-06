@@ -1,10 +1,13 @@
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { MultiVideoInfo, TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { Override } from '../../../screens/editor/tabs/TimingTab'
 import { ZOOM_LEVELS, TRACK_LABELS, TRACK_PADDING_PX, formatRulerLabel, pct } from './types'
 import { TimelineTracks } from './TimelineTracks'
+
+export type TimelineViewMode = 'source' | 'project'
 
 export interface TimelineHandle {
   /** Update playhead position without triggering a React re-render. */
@@ -18,10 +21,12 @@ export interface TimelineProps {
   timestampsResult?: TimestampsResult | null
   overrides?: Override[]
   onSeek?: (time: number) => void
+  viewMode?: TimelineViewMode
+  onViewModeChange?: (mode: TimelineViewMode) => void
 }
 
 export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function Timeline(
-  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], onSeek },
+  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], onSeek, viewMode, onViewModeChange },
   ref,
 ) {
   const duration = videoInfo?.durationSeconds ?? 30
@@ -67,7 +72,17 @@ export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function
     <div className="flex h-45 shrink-0 flex-col border-t border-border bg-background" style={{ fontSize: 11 }}>
       {/* Header */}
       <div className="flex h-8 shrink-0 items-center justify-between border-b border-border px-3">
-        <span className="text-xs font-medium tracking-widest text-muted-foreground">TIMELINE</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium tracking-widest text-muted-foreground">TIMELINE</span>
+          {onViewModeChange && (
+            <Tabs value={viewMode ?? 'source'} onValueChange={(v) => onViewModeChange(v as TimelineViewMode)}>
+              <TabsList className="h-6">
+                <TabsTrigger value="source" className="h-5 px-2 text-[10px]">Source</TabsTrigger>
+                <TabsTrigger value="project" className="h-5 px-2 text-[10px]">Project</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{zoom}×</span>
           <Button
