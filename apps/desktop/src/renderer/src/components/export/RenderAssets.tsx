@@ -2,7 +2,7 @@ import React from 'react'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronRight, Link2, Unlink } from 'lucide-react'
+import { ChevronRight, Link2 } from 'lucide-react'
 import type { ProjectData } from '../../../../../types/project'
 import type { TimestampsResult } from '../../../../../types/ipc'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
@@ -193,51 +193,59 @@ export function RenderAssets({
               <div className="rounded-md border border-border bg-accent">
                 {segments.map((seg, i) => {
                   const isAdjacentDown = seg.adjacentTo !== null && seg.adjacentTo === i + 1
-                  const isLinked = isAdjacentDown && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
+                  const isLinkedDown = isAdjacentDown && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
+                  const isAdjacentUp = seg.adjacentTo !== null && seg.adjacentTo === i - 1
+                  const isLinkedUp = isAdjacentUp && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
+                  const canLink = isAdjacentDown || isAdjacentUp
 
                   return (
                     <React.Fragment key={seg.index}>
-                      {i > 0 && <div className="border-t border-border" />}
-                      <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 hover:bg-accent/80">
-                        <Checkbox
-                          checked={selection.segments.has(seg.index)}
-                          onCheckedChange={() => toggleSegment(seg.index)}
-                          disabled={disabled}
-                        />
-                        <div className="flex flex-1 items-center justify-between">
-                          <span className="text-xs font-medium text-foreground">{seg.label}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {formatTime(seg.startSeconds)} – {formatTime(seg.endSeconds)} · {seg.laps.length} laps
-                          </span>
+                      {i > 0 && !isLinkedUp && <div className="border-t border-border" />}
+                      <div className="flex items-stretch">
+                        {/* Link indicator column */}
+                        <div className="relative flex w-6 shrink-0 items-center justify-center">
+                          {isLinkedUp && (
+                            <div className="absolute top-0 bottom-1/2 left-1/2 w-px -translate-x-1/2 bg-primary" />
+                          )}
+                          {isLinkedDown && (
+                            <div className="absolute top-1/2 bottom-0 left-1/2 w-px -translate-x-1/2 bg-primary" />
+                          )}
+                          {(isLinkedUp || isLinkedDown) && (
+                            <Link2 className="relative z-10 h-3 w-3 text-primary" />
+                          )}
                         </div>
-                      </label>
 
-                      {/* Link/unlink toggle between adjacent segments */}
-                      {isAdjacentDown && (
-                        <div className="flex items-center justify-center border-t border-border/50 py-0.5">
+                        {/* Segment row */}
+                        <label className="flex flex-1 cursor-pointer items-center gap-2.5 py-2 pr-2 hover:bg-accent/80">
+                          <Checkbox
+                            checked={selection.segments.has(seg.index)}
+                            onCheckedChange={() => toggleSegment(seg.index)}
+                            disabled={disabled}
+                          />
+                          <div className="flex flex-1 flex-col">
+                            <span className="text-xs font-medium text-foreground">{seg.label}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatTime(seg.startSeconds)} – {formatTime(seg.endSeconds)} · {seg.laps.length} laps
+                            </span>
+                          </div>
+                        </label>
+
+                        {/* Link button */}
+                        {canLink && isAdjacentDown && (
                           <button
-                            className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] transition-colors ${
-                              isLinked
-                                ? 'text-primary hover:text-primary/80'
-                                : 'text-muted-foreground hover:text-foreground'
+                            className={`flex shrink-0 items-center px-2 text-[10px] transition-colors ${
+                              isLinkedDown ? 'text-primary hover:text-primary/80' : 'text-muted-foreground/40 hover:text-muted-foreground'
                             }`}
                             onClick={() => toggleLink(seg.index, seg.adjacentTo!)}
                             disabled={disabled}
+                            title={isLinkedDown ? 'Unlink segments' : 'Link segments'}
                           >
-                            {isLinked ? (
-                              <>
-                                <Link2 className="h-3 w-3" />
-                                Linked
-                              </>
-                            ) : (
-                              <>
-                                <Unlink className="h-3 w-3" />
-                                Unlinked
-                              </>
-                            )}
+                            Link
                           </button>
-                        </div>
-                      )}
+                        )}
+                        {/* Spacer for non-linkable rows to keep alignment */}
+                        {!isAdjacentDown && <div className="w-[42px] shrink-0" />}
+                      </div>
                     </React.Fragment>
                   )
                 })}
