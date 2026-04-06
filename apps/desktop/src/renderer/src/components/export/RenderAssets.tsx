@@ -130,30 +130,21 @@ export function RenderAssets({
 
   const toggleSegment = (index: number) => {
     const next = new Set(selection.segments)
-    const nextLaps = new Set(selection.laps)
     const seg = segments[index]
 
     if (next.has(index)) {
       next.delete(index)
-      for (const lap of seg.laps) nextLaps.delete(`${index}:${lap.number}`)
-
       // If linked to a partner, deselect partner too
       if (seg.adjacentTo !== null && selection.linkedPairs.has(pairKey(index, seg.adjacentTo))) {
-        const partner = segments[seg.adjacentTo]
-        next.delete(partner.index)
-        for (const lap of partner.laps) nextLaps.delete(`${partner.index}:${lap.number}`)
+        next.delete(seg.adjacentTo)
       }
     } else {
       next.add(index)
-      for (const lap of seg.laps) nextLaps.add(`${index}:${lap.number}`)
-
       if (seg.adjacentTo !== null && selection.linkedPairs.has(pairKey(index, seg.adjacentTo))) {
-        const partner = segments[seg.adjacentTo]
-        next.add(partner.index)
-        for (const lap of partner.laps) nextLaps.add(`${partner.index}:${lap.number}`)
+        next.add(seg.adjacentTo)
       }
     }
-    onSelectionChange({ ...selection, segments: next, laps: nextLaps })
+    onSelectionChange({ ...selection, segments: next })
   }
 
   const toggleLink = (a: number, b: number) => {
@@ -178,7 +169,8 @@ export function RenderAssets({
     onSelectionChange({ ...selection, laps: nextLaps })
   }
 
-  const selectedSegments = segments.filter((s) => selection.segments.has(s.index))
+  // Show laps for all segments (not just selected ones) — laps are independently selectable
+  const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
 
   return (
     <section>
@@ -252,15 +244,15 @@ export function RenderAssets({
               </div>
             </div>
 
-            {/* LAPS */}
-            {selectedSegments.length > 0 && (
+            {/* LAPS — independently selectable regardless of segment selection */}
+            {segmentsWithLaps.length > 0 && (
               <div>
                 <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
                 <div className="rounded-md border border-border bg-accent">
-                  {selectedSegments.map((seg, si) => (
+                  {segmentsWithLaps.map((seg, si) => (
                     <React.Fragment key={seg.index}>
                       {si > 0 && <div className="border-t border-border" />}
-                      {selectedSegments.length > 1 && (
+                      {segmentsWithLaps.length > 1 && (
                         <div className="px-3 pt-2 pb-1">
                           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{seg.label}</span>
                         </div>
@@ -269,7 +261,7 @@ export function RenderAssets({
                         const key = `${seg.index}:${lap.number}`
                         return (
                           <React.Fragment key={key}>
-                            {(li > 0 || (selectedSegments.length > 1)) && <div className="border-t border-border/50" />}
+                            {(li > 0 || segmentsWithLaps.length > 1) && <div className="border-t border-border/50" />}
                             <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 hover:bg-accent/80">
                               <Checkbox
                                 checked={selection.laps.has(key)}
