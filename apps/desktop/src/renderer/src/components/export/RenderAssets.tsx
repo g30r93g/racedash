@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
-import { Info, Link2 } from 'lucide-react'
+import { Check, Film, Info, Layers, Link2, Timer } from 'lucide-react'
 import React from 'react'
 import type { TimestampsResult } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
@@ -139,61 +139,114 @@ export function RenderAssets({
     return map
   }, [selection.laps])
 
+  // Find fastest lap per segment for badge display
+  const fastestBySegment = React.useMemo(() => {
+    const map = new Map<number, number>()
+    for (const seg of segments) {
+      if (seg.laps.length > 0) {
+        const fastest = Math.min(...seg.laps.map((l) => l.lapTime))
+        const fastestLap = seg.laps.find((l) => l.lapTime === fastest)
+        if (fastestLap) map.set(seg.index, fastestLap.number)
+      }
+    }
+    return map
+  }, [segments])
+
+  // Find the lap time for display
+  const getLapTime = (segIndex: number, lapNum: number): string => {
+    const seg = segments.find((s) => s.index === segIndex)
+    const lap = seg?.laps.find((l) => l.number === lapNum)
+    return lap ? formatLapTime(lap.lapTime) : ''
+  }
+
   return (
     <section>
       <SectionLabel>Render Assets</SectionLabel>
-      {/* Read-only summary list */}
-      <div className="rounded-md border border-border bg-accent text-xs">
+      <div className="rounded-md border border-border bg-accent">
         {/* Video */}
-        {selection.entireProject && (
-          <div className="px-3 py-2 text-foreground">Entire Project</div>
-        )}
+        <div className="flex items-center gap-2.5 px-3 py-2">
+          <Film className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <div className="flex flex-1 items-center justify-between">
+            <span className="text-xs text-muted-foreground">Video</span>
+            {selection.entireProject ? (
+              <div className="flex items-center gap-1">
+                <Check className="h-3 w-3 text-green-500" />
+                <span className="text-xs text-foreground">Entire Project</span>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground/60">Segments only</span>
+            )}
+          </div>
+        </div>
 
         {/* Segments */}
-        {selectedSegmentCount > 0 && (
-          <>
-            {selection.entireProject && <div className="border-t border-border" />}
-            <div className="px-3 py-2">
-              <span className="text-muted-foreground">Segments</span>
-              <div className="mt-1 flex flex-col gap-0.5 pl-2">
-                {selectedSegments.map((s) => (
-                  <span key={s.index} className="text-foreground">{s.label}</span>
-                ))}
-              </div>
+        <div className="border-t border-border" />
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2.5">
+            <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Segments</span>
+            {selectedSegmentCount > 0 && (
+              <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[9px]">
+                {selectedSegmentCount}/{segments.length}
+              </Badge>
+            )}
+          </div>
+          {selectedSegmentCount > 0 ? (
+            <div className="mt-1.5 ml-6 flex flex-wrap gap-1">
+              {selectedSegments.map((s) => (
+                <Badge key={s.index} variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
+                  {s.label}
+                </Badge>
+              ))}
             </div>
-          </>
-        )}
+          ) : (
+            <span className="mt-1 ml-6 block text-[10px] text-muted-foreground/50">None selected</span>
+          )}
+        </div>
 
         {/* Laps */}
-        {selectedLapCount > 0 && (
-          <>
-            {(selection.entireProject || selectedSegmentCount > 0) && <div className="border-t border-border" />}
-            <div className="px-3 py-2">
-              <span className="text-muted-foreground">Laps</span>
-              <div className="mt-1 flex flex-col gap-1 pl-2">
-                {segments.map((seg) => {
-                  const laps = selectedLapsBySegment.get(seg.index)
-                  if (!laps?.length) return null
-                  return (
-                    <div key={seg.index}>
-                      <span className="text-muted-foreground">{seg.label}</span>
-                      <div className="flex flex-col gap-0.5 pl-2">
-                        {laps.map((num) => (
-                          <span key={num} className="text-foreground">Lap {num}</span>
-                        ))}
-                      </div>
+        <div className="border-t border-border" />
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-2.5">
+            <Timer className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Laps</span>
+            {selectedLapCount > 0 && (
+              <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[9px]">
+                {selectedLapCount}/{totalLaps}
+              </Badge>
+            )}
+          </div>
+          {selectedLapCount > 0 ? (
+            <div className="mt-1.5 ml-6 flex flex-col gap-1.5">
+              {segments.map((seg) => {
+                const laps = selectedLapsBySegment.get(seg.index)
+                if (!laps?.length) return null
+                return (
+                  <div key={seg.index}>
+                    <span className="text-[10px] text-muted-foreground">{seg.label}</span>
+                    <div className="mt-0.5 flex flex-wrap gap-1">
+                      {laps.map((num) => {
+                        const isFastest = fastestBySegment.get(seg.index) === num
+                        return (
+                          <Badge
+                            key={num}
+                            variant="outline"
+                            className={`tabular-nums px-1.5 py-0 text-[10px] font-normal ${isFastest ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' : ''}`}
+                          >
+                            L{num}
+                            <span className="ml-1 text-[9px] text-muted-foreground">{getLapTime(seg.index, num)}</span>
+                          </Badge>
+                        )
+                      })}
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )
+              })}
             </div>
-          </>
-        )}
-
-        {/* Nothing selected */}
-        {!selection.entireProject && selectedSegmentCount === 0 && selectedLapCount === 0 && (
-          <div className="px-3 py-2 text-muted-foreground">None selected</div>
-        )}
+          ) : (
+            <span className="mt-1 ml-6 block text-[10px] text-muted-foreground/50">None selected</span>
+          )}
+        </div>
       </div>
       <Button variant="ghost" size="sm" className="mt-1.5 w-full" onClick={() => setModalOpen(true)} disabled={disabled}>
         Configure
