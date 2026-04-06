@@ -93,6 +93,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const timelineRef = useRef<TimelineHandle>(null)
   const currentTimeRef = useRef(0)
   const [currentTime, setCurrentTime] = useState(0)
+  /** Source time for TimingTab — always in source coordinates regardless of view mode. */
+  const [sourceTime, setSourceTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
   const [timingError, setTimingError] = useState<string | null>(null)
@@ -401,6 +403,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     timeUpdateFrameRef.current++
     if (timeUpdateFrameRef.current % 15 === 0) {
       setCurrentTime(displayTime)
+      setSourceTime(t)
     }
   }, [timelineViewMode, frameMapping, fps])
   const handleSeek = useCallback((t: number) => {
@@ -525,7 +528,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         <EditorTabsPane
           project={projectState}
           videoInfo={videoInfo}
-          currentTime={currentTime}
+          currentTime={sourceTime}
           playing={playing}
           onSave={handleSave}
           overrides={overrides}
