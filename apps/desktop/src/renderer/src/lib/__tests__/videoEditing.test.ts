@@ -335,37 +335,24 @@ describe('computeBoundaries', () => {
     expect(cutBoundary.allowedTypes).toHaveLength(4)
   })
 
-  it('adds segment seam boundaries between adjacent segments not separated by a cut', () => {
-    // Two segments with no cut between them
-    const spans = [
-      { id: 's1', startFrame: 0, endFrame: 100 },
-      { id: 's2', startFrame: 100, endFrame: 200 },
-    ]
-    const result = computeBoundaries(300, [], spans, fps)
-    const seamBoundaries = result.filter((b) => b.kind === 'segment')
-    expect(seamBoundaries).toHaveLength(1)
+  it('adds file join boundaries', () => {
+    const result = computeBoundaries(300, [], [150], fps)
+    const fileJoins = result.filter((b) => b.kind === 'segment')
+    expect(fileJoins).toHaveLength(1)
+    expect(fileJoins[0].frameInSource).toBe(150)
   })
 
-  it('does not add segment seam when segments are separated by a cut', () => {
-    const cuts: CutRegion[] = [{ id: 'c1', startFrame: 80, endFrame: 120 }]
-    const spans = [
-      { id: 's1', startFrame: 0, endFrame: 100 },
-      { id: 's2', startFrame: 100, endFrame: 200 },
-    ]
-    const result = computeBoundaries(300, cuts, spans, fps)
-    const seamBoundaries = result.filter((b) => b.kind === 'segment')
-    expect(seamBoundaries).toHaveLength(0)
+  it('file join boundaries allow all 4 transition types', () => {
+    const result = computeBoundaries(300, [], [150], fps)
+    const join = result.find((b) => b.kind === 'segment')!
+    expect(join.oneSided).toBe(false)
+    expect(join.allowedTypes).toHaveLength(4)
   })
 
-  it('two-sided segment seam allows all 4 transition types', () => {
-    const spans = [
-      { id: 's1', startFrame: 0, endFrame: 100 },
-      { id: 's2', startFrame: 100, endFrame: 200 },
-    ]
-    const result = computeBoundaries(300, [], spans, fps)
-    const seam = result.find((b) => b.kind === 'segment')!
-    expect(seam.oneSided).toBe(false)
-    expect(seam.allowedTypes).toHaveLength(4)
+  it('adds multiple file join boundaries', () => {
+    const result = computeBoundaries(900, [], [300, 600], fps)
+    const fileJoins = result.filter((b) => b.kind === 'segment')
+    expect(fileJoins).toHaveLength(2)
   })
 
   it('boundaries have labels', () => {

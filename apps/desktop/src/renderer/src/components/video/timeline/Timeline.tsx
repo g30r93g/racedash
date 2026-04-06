@@ -30,12 +30,13 @@ export interface TimelineProps {
   onViewModeChange?: (mode: TimelineViewMode) => void
   boundaries?: Boundary[]
   transitions?: Transition[]
+  onAddTransition?: (boundaryId: string, type: import('../../../../../types/videoEditing').TransitionType) => void
   onTransitionUpdate?: (updated: Transition) => void
   onTransitionDelete?: (id: string) => void
 }
 
 export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function Timeline(
-  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onCutUpdate, onSeek, viewMode, onViewModeChange, boundaries, transitions, onTransitionUpdate, onTransitionDelete },
+  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onCutUpdate, onSeek, viewMode, onViewModeChange, boundaries, transitions, onAddTransition, onTransitionUpdate, onTransitionDelete },
   ref,
 ) {
   const duration = videoInfo?.durationSeconds ?? 30
@@ -167,6 +168,7 @@ export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function
             onSeek={onSeek}
             boundaries={boundaries}
             transitions={transitions}
+            onAddTransition={onAddTransition}
             onTransitionUpdate={onTransitionUpdate}
             onTransitionDelete={onTransitionDelete}
           >

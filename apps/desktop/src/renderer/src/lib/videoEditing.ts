@@ -275,13 +275,12 @@ interface SegmentSpanWithId {
  * Computes all Boundary objects for a project:
  * - projectStart / projectEnd always included
  * - one 'cut' boundary per CutRegion
- * - one 'segment' seam boundary for each pair of adjacent segments NOT
- *   separated by a cut
+ * - one 'fileJoin' boundary at each video file join point
  */
 export function computeBoundaries(
   totalFrames: number,
   cuts: CutRegion[],
-  segmentSpans: SegmentSpanWithId[],
+  fileJoinFrames: number[],
   fps: number
 ): Boundary[] {
   const boundaries: Boundary[] = []
@@ -292,7 +291,7 @@ export function computeBoundaries(
     kind: 'projectStart',
     frameInSource: 0,
     oneSided: true,
-    label: formatFrameAsTime(0, fps),
+    label: 'Project Start',
     allowedTypes: ['fadeFromBlack', 'fadeThroughBlack'],
   })
 
@@ -302,7 +301,7 @@ export function computeBoundaries(
     kind: 'projectEnd',
     frameInSource: totalFrames,
     oneSided: true,
-    label: formatFrameAsTime(totalFrames, fps),
+    label: 'Project End',
     allowedTypes: ['fadeToBlack', 'fadeThroughBlack'],
   })
 
@@ -313,40 +312,25 @@ export function computeBoundaries(
       kind: 'cut',
       frameInSource: cut.startFrame,
       oneSided: false,
-      label: formatFrameAsTime(cut.startFrame, fps),
+      label: `Cut at ${formatFrameAsTime(cut.startFrame, fps)}`,
       allowedTypes: ['fadeFromBlack', 'fadeToBlack', 'fadeThroughBlack', 'crossfade'],
     })
   }
 
-  // Segment seam boundaries: between adjacent segments not separated by a cut
-  if (segmentSpans.length >= 2) {
-    const sortedSpans = [...segmentSpans].sort((a, b) => a.startFrame - b.startFrame)
-
-    for (let i = 0; i < sortedSpans.length - 1; i++) {
-      const a = sortedSpans[i]
-      const b = sortedSpans[i + 1]
-
-      // Check if any cut separates these two segments
-      const separatedByCut = cuts.some(
-        (cut) =>
-          cut.startFrame < b.startFrame && cut.endFrame > a.endFrame
-      )
-
-      if (!separatedByCut) {
-        const seamFrame = a.endFrame
-        boundaries.push({
-          id: `segment:${a.id}:${b.id}`,
-          kind: 'segment',
-          frameInSource: seamFrame,
-          oneSided: false,
-          label: formatFrameAsTime(seamFrame, fps),
-          allowedTypes: ['fadeFromBlack', 'fadeToBlack', 'fadeThroughBlack', 'crossfade'],
-        })
-      }
-    }
+  // File join boundaries: where one source video file ends and the next begins
+  for (let i = 0; i < fileJoinFrames.length; i++) {
+    const joinFrame = fileJoinFrames[i]
+    boundaries.push({
+      id: `fileJoin:${i}`,
+      kind: 'segment',
+      frameInSource: joinFrame,
+      oneSided: false,
+      label: `File join at ${formatFrameAsTime(joinFrame, fps)}`,
+      allowedTypes: ['fadeFromBlack', 'fadeToBlack', 'fadeThroughBlack', 'crossfade'],
+    })
   }
 
-  return boundaries
+  return boundaries.sort((a, b) => a.frameInSource - b.frameInSource)
 }
 
 /**

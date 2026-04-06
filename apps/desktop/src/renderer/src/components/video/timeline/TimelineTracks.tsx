@@ -5,7 +5,6 @@ import type { Override } from '../../../screens/editor/tabs/TimingTab'
 import type { Boundary, CutRegion, Transition } from '../../../../../types/videoEditing'
 import { CutRegionOverlay } from '@/components/video-editing/CutRegionOverlay'
 import { BoundaryMarker } from '@/components/video-editing/BoundaryMarker'
-import { TransitionBar } from '@/components/video-editing/TransitionBar'
 import {
   SEGMENT_COLOURS,
   LAP_COLOUR,
@@ -41,6 +40,7 @@ interface TimelineTracksProps {
   onSeek?: (time: number) => void
   boundaries?: Boundary[]
   transitions?: Transition[]
+  onAddTransition?: (boundaryId: string, type: import('../../../../../types/videoEditing').TransitionType) => void
   onTransitionUpdate?: (updated: Transition) => void
   onTransitionDelete?: (id: string) => void
   children?: React.ReactNode // Playhead slot
@@ -63,6 +63,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
   onSeek,
   boundaries,
   transitions,
+  onAddTransition,
   onTransitionUpdate,
   onTransitionDelete,
   children,
@@ -235,24 +236,12 @@ export const TimelineTracks = React.memo(function TimelineTracks({
               boundary={b}
               duration={duration}
               fps={fps}
-              hasTransition={transitions?.some((t) => t.boundaryId === b.id) ?? false}
+              transition={transitions?.find((t) => t.boundaryId === b.id)}
+              onAddTransition={onAddTransition}
+              onUpdateTransition={onTransitionUpdate}
+              onDeleteTransition={onTransitionDelete}
             />
           ))}
-          {transitions?.map((t) => {
-            const boundary = boundaries?.find((b) => b.id === t.boundaryId)
-            if (!boundary) return null
-            return (
-              <TransitionBar
-                key={t.id}
-                transition={t}
-                boundary={boundary}
-                duration={duration}
-                fps={fps}
-                onUpdate={onTransitionUpdate!}
-                onDelete={onTransitionDelete!}
-              />
-            )
-          })}
         </div>
 
         {/* SEGMENTS */}
