@@ -145,6 +145,7 @@ export function EditorTabsPane({
             onSignIn={onSignIn}
             cutRegions={cutRegions}
             transitions={transitions}
+            timestampsResult={timestampsResult}
           />
         </TabsContent>
       </Tabs>

@@ -1,5 +1,6 @@
 import { CloudRenderControls } from '@/components/export/CloudRenderControls'
 import { LocalRenderControls } from '@/components/export/LocalRenderControls'
+import { RenderAssets, type RenderAssetsSelection } from '@/components/export/RenderAssets'
 import { RenderSettings } from '@/components/export/RenderSettings'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { OfflineState } from '@/components/shared/OfflineState'
@@ -16,6 +17,7 @@ import type {
   OutputResolution,
   RenderCompleteResult,
   RenderMode,
+  TimestampsResult,
   VideoInfo,
 } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
@@ -64,6 +66,7 @@ interface ExportTabProps {
   onSignIn?: () => void
   cutRegions?: CutRegion[]
   transitions?: Transition[]
+  timestampsResult?: TimestampsResult | null
 }
 
 interface LastRender {
@@ -82,9 +85,32 @@ export function ExportTab({
   onSignIn,
   cutRegions = [],
   transitions = [],
+  timestampsResult,
 }: ExportTabProps): React.ReactElement {
   const licensed = hasCloudLicense(licenseTier)
   const online = useOnline()
+  const fps = videoInfo?.fps ?? 60
+
+  // Render assets selection — default all segments and laps selected
+  const [renderAssets, setRenderAssets] = useState<RenderAssetsSelection>(() => {
+    const segments = new Set(project.segments.map((_, i) => i))
+    const laps = new Set<string>()
+    // Select all laps initially (populated when timestampsResult loads)
+    return { segments, laps }
+  })
+
+  // Auto-select all laps when timestampsResult loads or changes
+  useEffect(() => {
+    if (!timestampsResult) return
+    const laps = new Set<string>()
+    timestampsResult.segments.forEach((seg, i) => {
+      const rawSeg = seg as { selectedDriver?: { laps: Array<{ number: number }> } }
+      for (const lap of rawSeg.selectedDriver?.laps ?? []) {
+        laps.add(`${i}:${lap.number}`)
+      }
+    })
+    setRenderAssets((prev) => ({ segments: prev.segments, laps }))
+  }, [timestampsResult])
 
   const hasContent = useMemo(() => {
     if (!videoInfo) return true
@@ -348,6 +374,16 @@ export function ExportTab({
         renderMode={renderMode}
         setRenderMode={setRenderMode}
         licenseTier={licenseTier}
+        disabled={isBusy}
+      />
+
+      {/* RENDER ASSETS */}
+      <RenderAssets
+        project={project}
+        timestampsResult={timestampsResult}
+        fps={fps}
+        selection={renderAssets}
+        onSelectionChange={setRenderAssets}
         disabled={isBusy}
       />
 
