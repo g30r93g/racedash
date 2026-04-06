@@ -3,8 +3,9 @@ import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import { ChevronRight, Info, Link2 } from 'lucide-react'
+import { Info, Link2 } from 'lucide-react'
 import type { ProjectData } from '../../../../../types/project'
 import type { TimestampsResult } from '../../../../../types/ipc'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
@@ -181,18 +182,23 @@ export function RenderAssets({
   // Show laps for all segments (not just selected ones) — laps are independently selectable
   const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
 
+  const summary = selection.entireProject
+    ? 'Entire Project'
+    : `${selectedSegmentCount}/${segments.length} segments · ${selectedLapCount}/${totalLaps} laps`
+
   return (
     <section>
+      <SectionLabel>Render Assets</SectionLabel>
       <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="flex w-full items-center justify-between py-1">
-          <SectionLabel className="mb-0">Render Assets</SectionLabel>
-          <div className="flex items-center gap-2">
-            <span className="tabular-nums text-[10px] text-muted-foreground">
-              {selectedSegmentCount}/{segments.length} segments · {selectedLapCount}/{totalLaps} laps
-            </span>
-            <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`} />
-          </div>
-        </CollapsibleTrigger>
+        {/* Collapsed summary card */}
+        <div className="flex items-center justify-between rounded-md border border-border bg-accent px-3 py-2">
+          <span className="tabular-nums text-sm text-foreground">{summary}</span>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm">
+              {open ? 'Close' : 'Configure'}
+            </Button>
+          </CollapsibleTrigger>
+        </div>
 
         <CollapsibleContent>
           <div className="flex flex-col gap-4 pt-2">
