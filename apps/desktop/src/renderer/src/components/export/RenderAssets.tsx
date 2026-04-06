@@ -44,8 +44,9 @@ function formatTime(seconds: number): string {
 
 function formatLapTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
-  const s = (seconds % 60).toFixed(3)
-  return m > 0 ? `${m}:${s.padStart(6, '0')}` : `${s}s`
+  const s = Math.floor(seconds % 60)
+  const ms = Math.round((seconds % 1) * 1000)
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
 }
 
 function pairKey(a: number, b: number): string {
