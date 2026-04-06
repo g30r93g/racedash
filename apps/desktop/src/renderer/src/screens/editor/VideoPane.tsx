@@ -234,6 +234,8 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       const expectedLocalTime = globalTimeRef.current - file.startSeconds
       console.log('[CutSkip] resume: seeking to localTime=', expectedLocalTime, 'globalTime=', globalTimeRef.current, 'fileStart=', file.startSeconds)
       if (expectedLocalTime > 0.1) {
+        // Suppress the pause event that the seek will trigger
+        skipSeekingRef.current = true
         video.currentTime = expectedLocalTime
       }
       setPlaying(true)
