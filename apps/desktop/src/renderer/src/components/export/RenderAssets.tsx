@@ -161,7 +161,12 @@ export function RenderAssets({
 
   return (
     <section>
-      <SectionLabel>Render Assets</SectionLabel>
+      <div className="flex items-center justify-between">
+        <SectionLabel className="mb-0">Render Assets</SectionLabel>
+        <Button variant="ghost" size="sm" onClick={() => setModalOpen(true)} disabled={disabled}>
+          Configure
+        </Button>
+      </div>
       <div className="rounded-md border border-border bg-accent">
         {/* Video */}
         <div className="flex items-center gap-2.5 px-3 py-2">
@@ -248,9 +253,6 @@ export function RenderAssets({
           )}
         </div>
       </div>
-      <Button variant="ghost" size="sm" className="mt-1.5 w-full" onClick={() => setModalOpen(true)} disabled={disabled}>
-        Configure
-      </Button>
 
       {/* Configuration modal */}
       <RenderAssetsModal
