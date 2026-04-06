@@ -466,6 +466,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           onPlayingChange={setPlaying}
           overlayType={styleState.overlayType}
           overlayProps={overlayProps}
+          cutRegions={cutRegions}
+          skipCutRegions={timelineViewMode === 'project'}
         />
         <Timeline
           ref={timelineRef}

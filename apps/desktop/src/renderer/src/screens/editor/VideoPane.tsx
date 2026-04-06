@@ -3,6 +3,7 @@ import { type PlayerRef } from '@remotion/player'
 import type { OverlayProps } from '@racedash/core'
 import type { OverlayType } from '@/screens/editor/tabs/OverlayPickerModal'
 import type { MultiVideoInfo } from '../../../../types/ipc'
+import type { CutRegion } from '../../../../types/videoEditing'
 import { resolveFileAtTime } from '@/hooks/useMultiVideo'
 import { VideoPlayer } from '@/components/video/VideoPlayer'
 import { VideoPlaybackControls } from '@/components/video/VideoPlaybackControls'
@@ -19,10 +20,14 @@ interface VideoPaneProps {
   onPlayingChange?: (playing: boolean) => void
   overlayType?: OverlayType
   overlayProps?: OverlayProps
+  /** When set and skipCutRegions is true, playback auto-skips over these frame ranges. */
+  cutRegions?: CutRegion[]
+  /** Enable cut-region skipping during playback (Project view). */
+  skipCutRegions?: boolean
 }
 
 export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(function VideoPane(
-  { multiVideoInfo, onTimeUpdate, onPlayingChange, overlayType, overlayProps },
+  { multiVideoInfo, onTimeUpdate, onPlayingChange, overlayType, overlayProps, cutRegions, skipCutRegions },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -45,13 +50,36 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
     globalTimeRef.current = globalTime
   }, [globalTime])
 
+  // Sorted cut regions in seconds for skip logic
+  const cutRangesSeconds = React.useMemo(() => {
+    if (!cutRegions?.length || !skipCutRegions) return []
+    return [...cutRegions]
+      .sort((a, b) => a.startFrame - b.startFrame)
+      .map((c) => ({ startSec: c.startFrame / fps, endSec: c.endFrame / fps }))
+  }, [cutRegions, skipCutRegions, fps])
+
   // rAF loop — compute global time from local video time + file start offset
   useEffect(() => {
     if (!playing || !activeFile) return
     let rafId: number
     const tick = () => {
       const localT = videoRef.current?.currentTime ?? 0
-      const global = activeFile.startSeconds + localT
+      let global = activeFile.startSeconds + localT
+
+      // Skip over cut regions in Project view
+      for (const cut of cutRangesSeconds) {
+        if (global >= cut.startSec && global < cut.endSec) {
+          // Seek to end of cut
+          const resolved = resolveFileAtTime(files, cut.endSec)
+          activeFileIndexRef.current = resolved.fileIndex
+          setActiveFileIndex(resolved.fileIndex)
+          if (videoRef.current) {
+            videoRef.current.currentTime = resolved.localTime
+          }
+          global = cut.endSec
+          break
+        }
+      }
 
       setGlobalTime(global)
       globalTimeRef.current = global
@@ -73,7 +101,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
     }
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [playing, activeFile, onTimeUpdate, overlayProps?.fps, files.length])
+  }, [playing, activeFile, onTimeUpdate, overlayProps?.fps, files.length, cutRangesSeconds, files])
 
   const handlePlay = useCallback(() => {
     videoRef.current?.play().catch(() => {})
