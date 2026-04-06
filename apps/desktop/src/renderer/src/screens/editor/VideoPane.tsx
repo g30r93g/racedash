@@ -89,10 +89,13 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       let global = activeFile.startSeconds + localT
 
       // Skip over cut regions in Project view
+      // Add one frame of padding past cut.endSec to avoid floating-point re-entry
+      const frameDuration = 1 / fps
       for (const cut of cutRangesSeconds) {
         if (global >= cut.startSec && global < cut.endSec) {
-          console.log('[CutSkip] Hit cut region', { global, cutStart: cut.startSec, cutEnd: cut.endSec })
-          const resolved = resolveFileAtTime(files, cut.endSec)
+          const skipTarget = cut.endSec + frameDuration
+          console.log('[CutSkip] Hit cut region', { global, cutStart: cut.startSec, cutEnd: cut.endSec, skipTarget })
+          const resolved = resolveFileAtTime(files, skipTarget)
           console.log('[CutSkip] Resolved target', { targetFileIndex: resolved.fileIndex, currentFileIndex: activeFileIndexRef.current, localTime: resolved.localTime })
 
           if (resolved.fileIndex !== activeFileIndexRef.current) {
@@ -100,9 +103,9 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
             cutSkipFileChangeRef.current = true
             activeFileIndexRef.current = resolved.fileIndex
             setActiveFileIndex(resolved.fileIndex)
-            globalTimeRef.current = cut.endSec
-            setGlobalTime(cut.endSec)
-            onTimeUpdate?.(cut.endSec)
+            globalTimeRef.current = skipTarget
+            setGlobalTime(skipTarget)
+            onTimeUpdate?.(skipTarget)
             return // Stop rAF — file switch will restart via canplay effect
           }
 
@@ -110,7 +113,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
           console.log('[CutSkip] Same-file: seeking to', resolved.localTime)
           skipSeekingRef.current = true
           video.currentTime = resolved.localTime
-          global = cut.endSec
+          global = skipTarget
           break
         }
       }
