@@ -116,25 +116,18 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
     videoRef.current?.pause()
   }, [])
 
-  const handleSeek = useCallback(
-    (seekTime: number) => {
+  /** Seek to an absolute source-time position. Used by the imperative handle and internally. */
+  const seekToSource = useCallback(
+    (globalT: number) => {
       if (files.length === 0) return
-      // In Project view, slider emits display (output) time — convert back to source time
-      const globalT = skipCutRegions && cutRegions?.length
-        ? toSourceFrame(Math.round(seekTime * fps), cutRegions, [], fps) / fps
-        : seekTime
       const resolved = resolveFileAtTime(files, globalT)
 
-      // Always update ref + state for the active file
       activeFileIndexRef.current = resolved.fileIndex
       setActiveFileIndex(resolved.fileIndex)
       setGlobalTime(globalT)
       globalTimeRef.current = globalT
       onTimeUpdate?.(globalT)
 
-      // Set the local time on the video element — works whether it's the same
-      // file or a different one (if different, onLoadedMetadata will also seek,
-      // but setting it here handles the same-file case immediately).
       if (videoRef.current) {
         videoRef.current.currentTime = resolved.localTime
       }
@@ -144,11 +137,22 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
         playerRef.current?.seekTo(Math.round(globalT * overlayFps))
       }
     },
-    [files, onTimeUpdate, overlayProps?.fps, skipCutRegions, cutRegions, fps],
+    [files, onTimeUpdate, overlayProps?.fps],
   )
 
-  useImperativeHandle(ref, () => ({ seek: handleSeek, play: handlePlay, pause: handlePause }), [
-    handleSeek,
+  /** Seek handler for the slider — in Project view the slider emits display time, so convert back. */
+  const handleSliderSeek = useCallback(
+    (seekTime: number) => {
+      const sourceTime = skipCutRegions && cutRegions?.length
+        ? toSourceFrame(Math.round(seekTime * fps), cutRegions, [], fps) / fps
+        : seekTime
+      seekToSource(sourceTime)
+    },
+    [skipCutRegions, cutRegions, fps, seekToSource],
+  )
+
+  useImperativeHandle(ref, () => ({ seek: seekToSource, play: handlePlay, pause: handlePause }), [
+    seekToSource,
     handlePlay,
     handlePause,
   ])
@@ -202,7 +206,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
         muted={muted}
         onPlay={handlePlay}
         onPause={handlePause}
-        onSeek={handleSeek}
+        onSeek={handleSliderSeek}
         onMuteToggle={() => setMuted((m) => !m)}
         displayDuration={displayDurationProp}
         displayCurrentTime={mapTimeToDisplay ? mapTimeToDisplay(globalTime) : undefined}
