@@ -12,6 +12,8 @@ import {
   joinVideos as compositorJoinVideos,
   renderOverlay,
   trimVideo,
+  computeKeptRanges,
+  type ResolvedTransition,
 } from '@racedash/compositor'
 import type { BoxPosition, CornerPosition } from '@racedash/core'
 import { DEFAULT_LABEL_WINDOW_SECONDS } from '@racedash/core'
@@ -217,14 +219,56 @@ export async function renderSession(
       (progress) => onProgress({ phase: 'Compositing', progress: hasCuts ? progress * 0.85 : progress }),
     )
 
-    // Apply cut regions to remove dead content
+    // Apply cut regions and transitions
     if (hasCuts) {
+      // Resolve transitions from boundary IDs to seam indices
+      const totalFrames = Math.ceil(durationSeconds * fps)
+      const keptRanges = computeKeptRanges(totalFrames, opts.cutRegions!)
+      const rawTransitions = opts.transitions ?? []
+
+      const resolved: ResolvedTransition[] = []
+      for (const t of rawTransitions) {
+        if (t.boundaryId === 'start') {
+          resolved.push({ seam: 'start', type: t.type as ResolvedTransition['type'], durationMs: t.durationMs })
+        } else if (t.boundaryId === 'end') {
+          resolved.push({ seam: 'end', type: t.type as ResolvedTransition['type'], durationMs: t.durationMs })
+        } else {
+          // fileJoin:N or cut:ID — find which seam this boundary falls between
+          // The boundary frameInSource is encoded in the transition's context;
+          // match by finding which pair of kept ranges this cut falls between.
+          // For fileJoin boundaries, the frame is stored as part of the boundary
+          // computation; for cut boundaries, it's the cut's startFrame.
+          // We check all seams (gaps between kept ranges) and match.
+          const cutId = t.boundaryId.startsWith('cut:') ? t.boundaryId.slice(4) : null
+          const cut = cutId ? opts.cutRegions!.find((c) => c.id === cutId) : null
+
+          for (let si = 0; si < keptRanges.length - 1; si++) {
+            const gapStart = keptRanges[si].endFrame
+            const gapEnd = keptRanges[si + 1].startFrame
+            // Check if this transition's boundary falls within this gap
+            if (cut && cut.startFrame >= gapStart && cut.endFrame <= gapEnd) {
+              resolved.push({ seam: si, type: t.type as ResolvedTransition['type'], durationMs: t.durationMs })
+              break
+            }
+            // For fileJoin boundaries, extract index and check if any cut in this gap contains it
+            if (t.boundaryId.startsWith('fileJoin:')) {
+              // The boundary is between these two ranges if any cut spans this gap
+              const boundaryInGap = gapStart <= gapEnd // There is a gap
+              if (boundaryInGap) {
+                resolved.push({ seam: si, type: t.type as ResolvedTransition['type'], durationMs: t.durationMs })
+                break
+              }
+            }
+          }
+        }
+      }
+
       try {
         await trimVideo(
           compositeOutputPath,
           opts.outputPath,
           opts.cutRegions!,
-          opts.transitions ?? [],
+          resolved,
           fps,
           durationSeconds,
           (progress) => onProgress({ phase: 'Trimming', progress: 0.85 + progress * 0.15 }),

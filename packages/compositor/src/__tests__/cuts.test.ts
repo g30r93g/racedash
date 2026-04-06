@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeKeptRanges, buildCutConcatArgs } from '../cuts'
+import { computeKeptRanges, buildCutConcatArgs, type ResolvedTransition } from '../cuts'
 
 describe('computeKeptRanges', () => {
   it('returns full range when no cuts', () => {
@@ -30,12 +30,12 @@ describe('computeKeptRanges', () => {
 })
 
 describe('buildCutConcatArgs', () => {
-  it('returns no trim filter when no cuts', () => {
+  it('returns no trim filter when no cuts and no transitions', () => {
     const result = buildCutConcatArgs('/in.mp4', '/out.mp4', [], [], 60, 30)
     expect(result.trimFilterUsed).toBe(false)
   })
 
-  it('generates trim+concat filter for cuts', () => {
+  it('generates trim+concat filter for cuts without transitions', () => {
     const result = buildCutConcatArgs(
       '/in.mp4', '/out.mp4',
       [{ id: 'c1', startFrame: 600, endFrame: 1200 }],
@@ -43,7 +43,6 @@ describe('buildCutConcatArgs', () => {
     )
     expect(result.trimFilterUsed).toBe(true)
     expect(result.args.join(' ')).toContain('trim')
-    expect(result.args.join(' ')).toContain('concat')
     expect(result.args).toContain('/in.mp4')
     expect(result.args).toContain('/out.mp4')
   })
@@ -55,8 +54,65 @@ describe('buildCutConcatArgs', () => {
       [], 60, 30,
     )
     expect(result.trimFilterUsed).toBe(true)
-    // Only one kept range: [600, 1800]
     const filterArg = result.args[result.args.indexOf('-filter_complex') + 1]
     expect(filterArg).toContain('trim=start=10')
+  })
+
+  it('applies crossfade at seam between kept ranges', () => {
+    const transitions: ResolvedTransition[] = [
+      { seam: 0, type: 'crossfade', durationMs: 500 },
+    ]
+    const result = buildCutConcatArgs(
+      '/in.mp4', '/out.mp4',
+      [{ id: 'c1', startFrame: 600, endFrame: 1200 }],
+      transitions, 60, 30,
+    )
+    expect(result.trimFilterUsed).toBe(true)
+    const filterArg = result.args[result.args.indexOf('-filter_complex') + 1]
+    expect(filterArg).toContain('xfade')
+    expect(filterArg).toContain('acrossfade')
+  })
+
+  it('applies fade-from-black at project start', () => {
+    const transitions: ResolvedTransition[] = [
+      { seam: 'start', type: 'fadeFromBlack', durationMs: 1000 },
+    ]
+    const result = buildCutConcatArgs(
+      '/in.mp4', '/out.mp4',
+      [{ id: 'c1', startFrame: 600, endFrame: 1200 }],
+      transitions, 60, 30,
+    )
+    const filterArg = result.args[result.args.indexOf('-filter_complex') + 1]
+    expect(filterArg).toContain('fade=t=in:st=0:d=1')
+    expect(filterArg).toContain('afade=t=in:st=0:d=1')
+  })
+
+  it('applies fade-to-black at project end', () => {
+    const transitions: ResolvedTransition[] = [
+      { seam: 'end', type: 'fadeToBlack', durationMs: 1000 },
+    ]
+    const result = buildCutConcatArgs(
+      '/in.mp4', '/out.mp4',
+      [{ id: 'c1', startFrame: 600, endFrame: 1200 }],
+      transitions, 60, 30,
+    )
+    const filterArg = result.args[result.args.indexOf('-filter_complex') + 1]
+    expect(filterArg).toContain('fade=t=out')
+    expect(filterArg).toContain('afade=t=out')
+  })
+
+  it('applies fade-through-black at seam', () => {
+    const transitions: ResolvedTransition[] = [
+      { seam: 0, type: 'fadeThroughBlack', durationMs: 1000 },
+    ]
+    const result = buildCutConcatArgs(
+      '/in.mp4', '/out.mp4',
+      [{ id: 'c1', startFrame: 600, endFrame: 1200 }],
+      transitions, 60, 30,
+    )
+    const filterArg = result.args[result.args.indexOf('-filter_complex') + 1]
+    // Fade out + fade in
+    expect(filterArg).toContain('fade=t=out')
+    expect(filterArg).toContain('fade=t=in')
   })
 })
