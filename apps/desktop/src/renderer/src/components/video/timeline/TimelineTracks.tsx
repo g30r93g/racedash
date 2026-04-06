@@ -32,6 +32,10 @@ interface TimelineTracksProps {
   overrides?: Override[]
   cutRegions?: CutRegion[]
   viewMode?: 'source' | 'project'
+  /** Maps source-time seconds to display-time seconds. Identity in Source view, remaps in Project view. */
+  mapTime?: (sourceSeconds: number) => number
+  /** Display duration (output duration in Project view, source duration in Source view). */
+  displayDuration?: number
   onCutClick?: (cut: CutRegion) => void
   onSeek?: (time: number) => void
   boundaries?: Boundary[]
@@ -51,6 +55,8 @@ export const TimelineTracks = React.memo(function TimelineTracks({
   overrides = [],
   cutRegions,
   viewMode,
+  mapTime: mapTimeProp,
+  displayDuration: displayDurationProp,
   onCutClick,
   onSeek,
   boundaries,
@@ -59,20 +65,21 @@ export const TimelineTracks = React.memo(function TimelineTracks({
   onTransitionDelete,
   children,
 }: TimelineTracksProps): React.ReactElement {
+  const mapTime = mapTimeProp ?? ((s: number) => s)
+  const displayDuration = displayDurationProp ?? duration
   // Use engine-computed offsets (globalised) when available, fall back to raw videoOffsetFrame.
   // Segment length = sum of lap times (from the last lap's cumulative value).
   const segmentSpans = React.useMemo(
     () =>
       project.segments.map((seg, i) => {
         const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
-        // Derive end from lap data: offset + last lap's cumulative time
         const rawSeg = timestampsResult?.segments[i] as RawSegment | undefined
         const laps = rawSeg?.selectedDriver?.laps as RawLap[] | undefined
         const lastLap = laps?.[laps.length - 1]
         const endSeconds = lastLap ? startSeconds + lastLap.cumulative : startSeconds
-        return { label: seg.label, startSeconds, endSeconds }
+        return { label: seg.label, startSeconds: mapTime(startSeconds), endSeconds: mapTime(endSeconds) }
       }),
-    [project.segments, timestampsResult, fps],
+    [project.segments, timestampsResult, fps, mapTime],
   )
 
   const lapSpans: LapSpan[] = React.useMemo(() => {
@@ -80,20 +87,22 @@ export const TimelineTracks = React.memo(function TimelineTracks({
     const allSpans: LapSpan[] = []
     timestampsResult.segments.forEach((seg, i) => {
       const offsetSeconds = timestampsResult.offsets[i] ?? 0
-      allSpans.push(...deriveLapSpans(seg as RawSegment, offsetSeconds))
+      const spans = deriveLapSpans(seg as RawSegment, offsetSeconds)
+      allSpans.push(...spans.map((s) => ({ ...s, startSeconds: mapTime(s.startSeconds), endSeconds: mapTime(s.endSeconds) })))
     })
     return allSpans
-  }, [timestampsResult])
+  }, [timestampsResult, mapTime])
 
   const rawReplayDots = React.useMemo(() => {
     if (!timestampsResult) return []
     const all: Omit<PositionDot, 'direction'>[] = []
     timestampsResult.segments.forEach((seg, i) => {
       const offsetSeconds = timestampsResult.offsets[i] ?? 0
-      all.push(...derivePositionDots(seg as RawSegment, offsetSeconds))
+      const dots = derivePositionDots(seg as RawSegment, offsetSeconds)
+      all.push(...dots.map((d) => ({ ...d, videoSeconds: mapTime(d.videoSeconds) })))
     })
     return all
-  }, [timestampsResult])
+  }, [timestampsResult, mapTime])
 
   const { positionDots, overrideDots } = React.useMemo(() => {
     // Parse overrides into raw dots
@@ -136,13 +145,13 @@ export const TimelineTracks = React.memo(function TimelineTracks({
 
   const gridLines = React.useMemo(() => {
     const lines: { t: number; major: boolean }[] = []
-    for (let t = 5; t < duration; t += 5) {
+    for (let t = 5; t < displayDuration; t += 5) {
       lines.push({ t, major: t % 15 === 0 })
     }
     return lines
-  }, [duration])
+  }, [displayDuration])
 
-  const ticks = rulerTicks(duration, zoom)
+  const ticks = rulerTicks(displayDuration, zoom)
 
   return (
     <div
@@ -160,7 +169,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
           <div
             key={t}
             className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center"
-            style={{ left: pct(t, duration) }}
+            style={{ left: pct(t, displayDuration) }}
           >
             <span className="text-[10px] text-muted-foreground">{formatRulerLabel(t)}</span>
             <div className="h-1.5 w-px bg-border" />
@@ -176,7 +185,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
             key={t}
             className="pointer-events-none absolute inset-y-0"
             style={{
-              left: pct(t, duration),
+              left: pct(t, displayDuration),
               width: major ? 1.5 : 1,
               backgroundColor: major ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)',
             }}
@@ -193,8 +202,8 @@ export const TimelineTracks = React.memo(function TimelineTracks({
                   key={i}
                   className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm bg-[#3a3a3a] px-1"
                   style={{
-                    left: pct(file.startSeconds, duration),
-                    width: pct(file.durationSeconds, duration),
+                    left: pct(mapTime(file.startSeconds), displayDuration),
+                    width: pct(mapTime(file.startSeconds + file.durationSeconds) - mapTime(file.startSeconds), displayDuration),
                     // Subtle alternating shade to distinguish files
                     backgroundColor: i % 2 === 0 ? '#3a3a3a' : '#444444',
                   }}
@@ -254,8 +263,8 @@ export const TimelineTracks = React.memo(function TimelineTracks({
                 key={i}
                 className="absolute inset-y-1 flex items-center overflow-hidden rounded-sm px-1 cursor-pointer transition-[filter] duration-150 hover:brightness-110 active:brightness-90"
                 style={{
-                  left: pct(seg.startSeconds, duration),
-                  width: pct(seg.endSeconds - seg.startSeconds, duration),
+                  left: pct(seg.startSeconds, displayDuration),
+                  width: pct(seg.endSeconds - seg.startSeconds, displayDuration),
                   backgroundColor: SEGMENT_COLOURS[i % SEGMENT_COLOURS.length],
                 }}
                 onClick={() => onSeek?.(seg.startSeconds)}
@@ -276,8 +285,8 @@ export const TimelineTracks = React.memo(function TimelineTracks({
                 key={i}
                 className="absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-full px-1 cursor-pointer transition-[filter] duration-150 hover:brightness-110 active:brightness-90"
                 style={{
-                  left: pct(lap.startSeconds, duration),
-                  width: pct(lap.endSeconds - lap.startSeconds, duration),
+                  left: pct(lap.startSeconds, displayDuration),
+                  width: pct(lap.endSeconds - lap.startSeconds, displayDuration),
                   backgroundColor: lap.fastest ? 'var(--lap-fastest)' : LAP_COLOUR,
                 }}
                 onClick={() => onSeek?.(lap.startSeconds)}
@@ -299,7 +308,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
                   key={i}
                   className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer hover:scale-125 active:scale-110 transition-transform"
                   style={{
-                    left: pct(dot.videoSeconds, duration),
+                    left: pct(dot.videoSeconds, displayDuration),
                     backgroundColor: positionDotColor(dot.direction),
                   }}
                   onClick={() => onSeek?.(dot.videoSeconds)}
@@ -310,7 +319,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
                   key={`override-${i}`}
                   className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 cursor-pointer hover:scale-125 active:scale-110 transition-transform"
                   style={{
-                    left: pct(dot.videoSeconds, duration),
+                    left: pct(dot.videoSeconds, displayDuration),
                     backgroundColor: positionDotColor(dot.direction),
                   }}
                   onClick={() => onSeek?.(dot.videoSeconds)}
