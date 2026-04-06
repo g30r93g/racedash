@@ -155,8 +155,41 @@ export async function renderSession(
       overlayY = boxPosition.startsWith('bottom') ? outputResolution.height - scaledStrip : 0
     }
 
+    // Filter segments and laps based on render asset selection
+    const filteredSegments = segments.map((segment, index) => {
+      // If selectedSegments is set and this index isn't in it, clear the segment's data
+      if (opts.selectedSegments && !opts.selectedSegments.includes(index)) {
+        return {
+          ...segment,
+          session: { ...segment.session, laps: [], timestamps: [] },
+          sessionAllLaps: [],
+          leaderboardDrivers: [],
+          raceLapSnapshots: [],
+        }
+      }
+
+      // If selectedLaps is set, filter this segment's laps
+      if (opts.selectedLaps) {
+        const selectedForSegment = new Set(
+          opts.selectedLaps
+            .filter((key) => key.startsWith(`${index}:`))
+            .map((key) => parseInt(key.split(':')[1], 10)),
+        )
+        if (selectedForSegment.size > 0 && selectedForSegment.size < segment.session.laps.length) {
+          const filteredLaps = segment.session.laps.filter((l) => selectedForSegment.has(l.number))
+          const filteredTimestamps = segment.session.timestamps.filter((t) => selectedForSegment.has(t.lap.number))
+          return {
+            ...segment,
+            session: { ...segment.session, laps: filteredLaps, timestamps: filteredTimestamps },
+          }
+        }
+      }
+
+      return segment
+    })
+
     const overlayProps = {
-      segments,
+      segments: filteredSegments,
       startingGridPosition,
       fps,
       durationInFrames: Math.ceil(durationSeconds * fps),

@@ -41,8 +41,12 @@ export interface RenderOptions {
   onlyRenderOverlay?: boolean
   /** Cut regions to remove from the exported video. */
   cutRegions?: Array<{ id: string; startFrame: number; endFrame: number }>
-  /** Transitions at seam boundaries (unused in FFmpeg pipeline for now). */
+  /** Transitions at seam boundaries. */
   transitions?: Array<{ id: string; boundaryId: string; type: string; durationMs: number }>
+  /** Segment indices to include in the overlay. Undefined = all segments. */
+  selectedSegments?: number[]
+  /** Lap keys ("segmentIndex:lapNumber") to include in the overlay. Undefined = all laps. */
+  selectedLaps?: string[]
 }
 
 export interface RenderProgressEvent {

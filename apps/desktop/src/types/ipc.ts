@@ -127,6 +127,8 @@ export interface RenderStartOpts {
   renderMode: RenderMode
   cutRegions: CutRegion[]
   transitions: Transition[]
+  selectedSegments?: number[]
+  selectedLaps?: string[]
 }
 
 export interface RenderCompleteResult {

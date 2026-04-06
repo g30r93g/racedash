@@ -1038,6 +1038,8 @@ export function registerIpcHandlers(): void {
         onlyRenderOverlay: opts.renderMode === 'overlay-only',
         cutRegions: opts.cutRegions,
         transitions: opts.transitions,
+        selectedSegments: opts.selectedSegments,
+        selectedLaps: opts.selectedLaps,
       },
       (progress) => {
         if (activeRenderCancelled) {

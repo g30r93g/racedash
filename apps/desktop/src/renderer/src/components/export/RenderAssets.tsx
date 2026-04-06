@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
+import { cn } from '@/lib/utils'
 import { Check, Film, Info, Layers, Link2, Timer } from 'lucide-react'
 import React from 'react'
 import type { TimestampsResult } from '../../../../../types/ipc'
@@ -161,18 +162,18 @@ export function RenderAssets({
 
   return (
     <section>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <SectionLabel className="mb-0">Render Assets</SectionLabel>
-        <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground" onClick={() => setModalOpen(true)} disabled={disabled}>
+        <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] bg-accent text-foreground hover:text-foreground" onClick={() => setModalOpen(true)} disabled={disabled}>
           Configure
         </Button>
       </div>
       <div className="rounded-md border border-border bg-accent">
         {/* Video */}
         <div className="flex items-center gap-2.5 px-3 py-2">
-          <Film className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <Film className="h-3.5 w-3.5 shrink-0 text-foreground" />
           <div className="flex flex-1 items-center justify-between">
-            <span className="text-xs text-muted-foreground">Video</span>
+            <span className="text-xs text-foreground">Video</span>
             {selection.entireProject ? (
               <div className="flex items-center gap-1">
                 <Check className="h-3 w-3 text-green-500" />
@@ -188,8 +189,8 @@ export function RenderAssets({
         <div className="border-t border-border" />
         <div className="px-3 py-2">
           <div className="flex items-center gap-2.5">
-            <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Individual Segments</span>
+            <Layers className="h-3.5 w-3.5 shrink-0 text-foreground" />
+            <span className="text-xs text-foreground">Individual Segments</span>
             {selectedSegmentCount > 0 && (
               <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[9px]">
                 {selectedSegmentCount}/{segments.length}
@@ -199,7 +200,7 @@ export function RenderAssets({
           {selectedSegmentCount > 0 ? (
             <div className="mt-1.5 ml-6 flex flex-wrap gap-1">
               {selectedSegments.map((s) => (
-                <Badge key={s.index} variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
+                <Badge key={s.index} variant="outline" className="px-1.5 py-0 text-[10px] font-medium border-accent-foreground/30 bg-muted-foreground/30 text-foreground">
                   {s.label}
                 </Badge>
               ))}
@@ -213,8 +214,8 @@ export function RenderAssets({
         <div className="border-t border-border" />
         <div className="px-3 py-2">
           <div className="flex items-center gap-2.5">
-            <Timer className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Individual Laps</span>
+            <Timer className="h-3.5 w-3.5 shrink-0 text-foreground" />
+            <span className="text-xs text-foreground">Individual Laps</span>
             {selectedLapCount > 0 && (
               <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[9px]">
                 {selectedLapCount}/{totalLaps}
@@ -236,10 +237,10 @@ export function RenderAssets({
                           <Badge
                             key={num}
                             variant="outline"
-                            className={`tabular-nums px-1.5 py-0 text-[10px] font-normal ${isFastest ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' : ''}`}
+                            className={`tabular-nums px-1.5 py-0 text-[10px] font-medium ${isFastest ? 'border-purple-500/30 bg-purple-500/10 text-purple-400' : 'border-accent-foreground/30 bg-muted-foreground/30 text-foreground'}`}
                           >
                             L{num}
-                            <span className="ml-1 text-[9px] text-muted-foreground">{getLapTime(seg.index, num)}</span>
+                            <span className={cn("ml-1 text-[9px] text-muted-foreground", isFastest ? "text-purple-400" : "text-foreground/80")}>{getLapTime(seg.index, num)}</span>
                           </Badge>
                         )
                       })}

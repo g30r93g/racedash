@@ -224,6 +224,8 @@ export function ExportTab({
         renderMode,
         cutRegions,
         transitions,
+        selectedSegments: renderAssets.entireProject ? undefined : [...renderAssets.segments],
+        selectedLaps: renderAssets.laps.size > 0 ? [...renderAssets.laps] : undefined,
       })
     } catch (err) {
       stopRendering()
