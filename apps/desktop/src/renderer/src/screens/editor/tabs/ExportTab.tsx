@@ -7,7 +7,7 @@ import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { OptionGroup } from '@/components/ui/option-group'
 import { hasCloudLicense } from '@/lib/license'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useOnline } from '../../../hooks/useOnline'
 import { toast } from 'sonner'
 import type {
@@ -19,6 +19,8 @@ import type {
   VideoInfo,
 } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
+import type { CutRegion, Transition } from '../../../../../types/videoEditing'
+import { computeKeptRanges } from '@/lib/videoEditing'
 import type { OverlayType } from './OverlayPickerModal'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -60,6 +62,8 @@ interface ExportTabProps {
   authUser?: { name: string } | null
   licenseTier?: 'plus' | 'pro' | null
   onSignIn?: () => void
+  cutRegions?: CutRegion[]
+  transitions?: Transition[]
 }
 
 interface LastRender {
@@ -76,9 +80,17 @@ export function ExportTab({
   authUser,
   licenseTier,
   onSignIn,
+  cutRegions = [],
+  transitions = [],
 }: ExportTabProps): React.ReactElement {
   const licensed = hasCloudLicense(licenseTier)
   const online = useOnline()
+
+  const hasContent = useMemo(() => {
+    if (!videoInfo) return true
+    const totalFrames = Math.ceil(videoInfo.durationSeconds * videoInfo.fps)
+    return computeKeptRanges(totalFrames, cutRegions).length > 0
+  }, [videoInfo, cutRegions])
   const defaultOutputPath = `${dirname(project.projectPath)}/output.mp4`
   const [outputPath, setOutputPath] = useState(defaultOutputPath)
   const [outputResolution, setOutputResolution] = useState<OutputResolution>('source')
@@ -192,6 +204,8 @@ export function ExportTab({
         outputResolution,
         outputFrameRate,
         renderMode,
+        cutRegions,
+        transitions,
       })
     } catch (err) {
       stopRendering()

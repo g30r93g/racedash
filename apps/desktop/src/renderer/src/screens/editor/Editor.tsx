@@ -508,6 +508,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           onSignIn={signIn}
           drawerOpen={drawerOpen}
           onToggleDrawer={() => setDrawerOpen((o) => !o)}
+          cutRegions={cutRegions}
+          transitions={transitions}
         />
       </div>
     </div>

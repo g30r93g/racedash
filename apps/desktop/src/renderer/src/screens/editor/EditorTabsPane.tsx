@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PanelLeft, Save } from 'lucide-react'
 import React, { useState } from 'react'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import type { CutRegion, Transition } from '../../../../types/videoEditing'
 import type { ProjectData } from '../../../../types/project'
 import { ExportTab } from './tabs/ExportTab'
 import { StyleTab } from './tabs/StyleTab'
@@ -32,6 +33,8 @@ interface EditorTabsPaneProps {
   onSignIn?: () => void
   drawerOpen?: boolean
   onToggleDrawer?: () => void
+  cutRegions?: CutRegion[]
+  transitions?: Transition[]
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -66,6 +69,8 @@ export function EditorTabsPane({
   onSignIn,
   drawerOpen,
   onToggleDrawer,
+  cutRegions,
+  transitions,
 }: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('timing')
@@ -138,6 +143,8 @@ export function EditorTabsPane({
             authUser={authUser}
             licenseTier={licenseTier}
             onSignIn={onSignIn}
+            cutRegions={cutRegions}
+            transitions={transitions}
           />
         </TabsContent>
       </Tabs>

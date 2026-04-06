@@ -125,6 +125,8 @@ export interface RenderStartOpts {
   outputResolution: OutputResolution
   outputFrameRate: OutputFrameRate
   renderMode: RenderMode
+  cutRegions: CutRegion[]
+  transitions: Transition[]
 }
 
 export interface RenderCompleteResult {
