@@ -83,6 +83,19 @@ export async function cleanupEmptyRacedashTempDirs(
 }
 
 app.whenReady().then(async () => {
+  // Load React DevTools in development
+  if (!app.isPackaged) {
+    const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import(
+      'electron-devtools-installer'
+    )
+    try {
+      const ext = await installExtension(REACT_DEVELOPER_TOOLS)
+      console.log(`Loaded extension: ${ext.name}`)
+    } catch (err) {
+      console.warn('Failed to install React DevTools:', err)
+    }
+  }
+
   // Clerk dev instances require third-party cookies (.clerk.accounts.dev
   // from localhost origin). Flush in-memory cookies to disk so they survive
   // between sessions.
