@@ -104,20 +104,24 @@ function CutRegionItem({
       }}
       onClick={() => onClick?.(cut)}
     >
-      {/* Left (start) drag handle */}
+      {/* Left (start) drag handle — extends outside the cut region so it's always reachable */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-red-400/50 active:bg-red-400/70 transition-colors"
+        className="absolute top-0 bottom-0 w-3 -left-1.5 cursor-col-resize z-10 flex items-center justify-center group"
         onPointerDown={(e) => startDrag(e, 'start')}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-      />
-      {/* Right (end) drag handle */}
+      >
+        <div className="h-6 w-1 rounded-full bg-red-400/60 group-hover:bg-red-400 group-active:bg-red-300 transition-colors" />
+      </div>
+      {/* Right (end) drag handle — extends outside the cut region */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-red-400/50 active:bg-red-400/70 transition-colors"
+        className="absolute top-0 bottom-0 w-3 -right-1.5 cursor-col-resize z-10 flex items-center justify-center group"
         onPointerDown={(e) => startDrag(e, 'end')}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-      />
+      >
+        <div className="h-6 w-1 rounded-full bg-red-400/60 group-hover:bg-red-400 group-active:bg-red-300 transition-colors" />
+      </div>
     </div>
   )
 }
