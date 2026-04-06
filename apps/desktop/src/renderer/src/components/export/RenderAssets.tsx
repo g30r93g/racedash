@@ -1,8 +1,9 @@
+import { InfoRow } from '@/components/shared/InfoRow'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
 import { Info, Link2 } from 'lucide-react'
@@ -27,7 +28,6 @@ interface SegmentInfo {
   startSeconds: number
   endSeconds: number
   laps: Array<{ number: number; lapTime: number }>
-  /** Index of the adjacent segment (if close enough to pair), or null. */
   adjacentTo: number | null
 }
 
@@ -57,7 +57,6 @@ function pairKey(a: number, b: number): string {
   return `${Math.min(a, b)}:${Math.max(a, b)}`
 }
 
-/** Max gap in seconds between two segments to offer pairing. */
 const ADJACENT_GAP_THRESHOLD = 120
 
 function buildSegmentInfos(
@@ -92,7 +91,6 @@ function buildSegmentInfos(
   return infos
 }
 
-/** Build default selection with all linked pairs enabled. */
 export function buildDefaultSelection(
   project: ProjectData,
   timestampsResult: TimestampsResult | null | undefined,
@@ -105,7 +103,6 @@ export function buildDefaultSelection(
       linkedPairs.add(pairKey(seg.index, seg.adjacentTo))
     }
   }
-
   return { entireProject: true, segments: new Set<number>(), laps: new Set<string>(), linkedPairs }
 }
 
@@ -117,7 +114,7 @@ export function RenderAssets({
   onSelectionChange,
   disabled,
 }: RenderAssetsProps): React.ReactElement {
-  const [open, setOpen] = React.useState(false)
+  const [modalOpen, setModalOpen] = React.useState(false)
 
   const segments = React.useMemo(
     () => buildSegmentInfos(project, timestampsResult, fps),
@@ -128,13 +125,75 @@ export function RenderAssets({
   const selectedSegmentCount = selection.segments.size
   const selectedLapCount = selection.laps.size
 
+  // Build summary strings for the info rows
+  const videoSummary = selection.entireProject ? 'Entire Project' : 'Selected segments only'
+  const segmentsSummary = selectedSegmentCount === 0
+    ? 'None'
+    : selectedSegmentCount === segments.length
+      ? 'All'
+      : segments.filter((s) => selection.segments.has(s.index)).map((s) => s.label).join(', ')
+  const lapsSummary = selectedLapCount === 0
+    ? 'None'
+    : selectedLapCount === totalLaps
+      ? 'All'
+      : `${selectedLapCount} of ${totalLaps}`
+
+  return (
+    <section>
+      <SectionLabel>Render Assets</SectionLabel>
+      {/* Read-only summary list */}
+      <div className="rounded-md border border-border bg-accent px-3">
+        <InfoRow label="Video" value={videoSummary} />
+        <div className="border-t border-border" />
+        <InfoRow label="Segments" value={segmentsSummary} />
+        <div className="border-t border-border" />
+        <InfoRow label="Laps" value={lapsSummary} />
+      </div>
+      <Button variant="ghost" size="sm" className="mt-1.5 w-full" onClick={() => setModalOpen(true)} disabled={disabled}>
+        Configure
+      </Button>
+
+      {/* Configuration modal */}
+      <RenderAssetsModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        segments={segments}
+        totalLaps={totalLaps}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+      />
+    </section>
+  )
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+
+function RenderAssetsModal({
+  open,
+  onOpenChange,
+  segments,
+  totalLaps,
+  selection,
+  onSelectionChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  segments: SegmentInfo[]
+  totalLaps: number
+  selection: RenderAssetsSelection
+  onSelectionChange: (selection: RenderAssetsSelection) => void
+}): React.ReactElement {
+  const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
+
+  const toggleEntireProject = () => {
+    onSelectionChange({ ...selection, entireProject: !selection.entireProject })
+  }
+
   const toggleSegment = (index: number) => {
     const next = new Set(selection.segments)
     const seg = segments[index]
-
     if (next.has(index)) {
       next.delete(index)
-      // If linked to a partner, deselect partner too
       if (seg.adjacentTo !== null && selection.linkedPairs.has(pairKey(index, seg.adjacentTo))) {
         next.delete(seg.adjacentTo)
       }
@@ -169,200 +228,162 @@ export function RenderAssets({
     onSelectionChange({ ...selection, laps: nextLaps })
   }
 
-  const toggleEntireProject = () => {
-    onSelectionChange({ ...selection, entireProject: !selection.entireProject })
-  }
-
-  // Show laps for all segments (not just selected ones) — laps are independently selectable
-  const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
-
   return (
-    <section>
-      <SectionLabel>Render Assets</SectionLabel>
-      <Collapsible open={open} onOpenChange={setOpen}>
-        {/* Collapsed summary card */}
-        <div className="flex items-start justify-between rounded-md border border-border bg-accent px-3 py-2">
-          <div className="flex flex-col gap-0.5 text-xs text-foreground">
-            {selection.entireProject && <span>Entire Project</span>}
-            {selectedSegmentCount > 0 && (
-              <span className="tabular-nums text-muted-foreground">{selectedSegmentCount}/{segments.length} segments</span>
-            )}
-            {selectedLapCount > 0 && (
-              <span className="tabular-nums text-muted-foreground">{selectedLapCount}/{totalLaps} laps</span>
-            )}
-            {!selection.entireProject && selectedSegmentCount === 0 && selectedLapCount === 0 && (
-              <span className="text-muted-foreground">None selected</span>
-            )}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] max-w-md overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Render Assets</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-5 pt-2">
+          {/* ENTIRE PROJECT */}
+          <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-accent px-3 py-2 hover:bg-accent/80">
+            <Checkbox
+              checked={selection.entireProject}
+              onCheckedChange={toggleEntireProject}
+            />
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-foreground">Entire Project</span>
+              <span className="text-[10px] text-muted-foreground">Include the full video in the render</span>
+            </div>
+          </label>
+
+          {/* SEGMENTS */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-1">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
+              <HoverCard openDelay={200}>
+                <HoverCardTrigger asChild>
+                  <Info className="h-3 w-3 cursor-help text-muted-foreground/50" />
+                </HoverCardTrigger>
+                <HoverCardContent side="top" className="w-64 text-xs">
+                  <p className="font-medium">Segment Selection</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Choose which timing segments to include in the export. Deselected segments will have their video content included but no overlay graphics rendered for that portion.
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    Adjacent segments can be linked so they produce a single continuous overlay without a break in the graphics.
+                  </p>
+                </HoverCardContent>
+              </HoverCard>
+            </div>
+            <div className="rounded-md border border-border bg-accent">
+              {segments.map((seg, i) => {
+                const isAdjacentDown = seg.adjacentTo !== null && seg.adjacentTo === i + 1
+                const isLinkedDown = isAdjacentDown && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
+                const isAdjacentUp = seg.adjacentTo !== null && seg.adjacentTo === i - 1
+                const isLinkedUp = isAdjacentUp && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
+
+                return (
+                  <React.Fragment key={seg.index}>
+                    {i > 0 && !isLinkedUp && <div className="border-t border-border" />}
+                    <div className="flex items-stretch">
+                      {/* Link indicator column */}
+                      <div className="relative flex w-6 shrink-0 flex-col items-center">
+                        <div className={`w-px flex-1 ${isLinkedUp ? 'bg-primary' : 'bg-transparent'}`} />
+                        {(isLinkedUp || isLinkedDown) ? (
+                          <Link2 className="my-0.5 h-3 w-3 shrink-0 text-primary" />
+                        ) : (
+                          <div className="my-0.5 h-3 w-3 shrink-0" />
+                        )}
+                        <div className={`w-px flex-1 ${isLinkedDown ? 'bg-primary' : 'bg-transparent'}`} />
+                      </div>
+
+                      <label className="flex flex-1 cursor-pointer items-center gap-2.5 py-2 pr-2 hover:bg-accent/80">
+                        <Checkbox
+                          checked={selection.segments.has(seg.index)}
+                          onCheckedChange={() => toggleSegment(seg.index)}
+                        />
+                        <div className="flex flex-1 flex-col">
+                          <span className="text-xs font-medium text-foreground">{seg.label}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            <span className="tabular-nums">{formatTime(seg.startSeconds)} – {formatTime(seg.endSeconds)}</span> · {seg.laps.length} laps
+                          </span>
+                        </div>
+                      </label>
+
+                      {isAdjacentDown && (
+                        <button
+                          className={`flex shrink-0 items-center px-2 text-[10px] transition-colors ${
+                            isLinkedDown ? 'text-primary hover:text-primary/80' : 'text-muted-foreground/40 hover:text-muted-foreground'
+                          }`}
+                          onClick={() => toggleLink(seg.index, seg.adjacentTo!)}
+                          title={isLinkedDown ? 'Unlink segments' : 'Link segments'}
+                        >
+                          Link
+                        </button>
+                      )}
+                      {!isAdjacentDown && <div className="w-[42px] shrink-0" />}
+                    </div>
+                  </React.Fragment>
+                )
+              })}
+            </div>
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm">
-              {open ? 'Close' : 'Configure'}
-            </Button>
-          </CollapsibleTrigger>
-        </div>
 
-        <CollapsibleContent>
-          <div className="flex flex-col gap-4 pt-2">
-            {/* ENTIRE PROJECT */}
-            <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-accent px-3 py-2 hover:bg-accent/80">
-              <Checkbox
-                checked={selection.entireProject}
-                onCheckedChange={toggleEntireProject}
-                disabled={disabled}
-              />
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-foreground">Entire Project</span>
-                <span className="text-[10px] text-muted-foreground">Include the full video in the render</span>
-              </div>
-            </label>
-
-            {/* SEGMENTS */}
+          {/* LAPS */}
+          {segmentsWithLaps.length > 0 && (
             <div>
               <div className="mb-1.5 flex items-center gap-1">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
                 <HoverCard openDelay={200}>
                   <HoverCardTrigger asChild>
                     <Info className="h-3 w-3 cursor-help text-muted-foreground/50" />
                   </HoverCardTrigger>
                   <HoverCardContent side="top" className="w-64 text-xs">
-                    <p className="font-medium">Segment Selection</p>
+                    <p className="font-medium">Lap Selection</p>
                     <p className="mt-1 text-muted-foreground">
-                      Choose which timing segments to include in the export. Deselected segments will have their video content included but no overlay graphics rendered for that portion.
-                    </p>
-                    <p className="mt-1 text-muted-foreground">
-                      Adjacent segments can be linked so they produce a single continuous overlay without a break in the graphics. This is ideal for segments that are logically separate in the project but should appear seamless in the render (e.g. a practice/qualifying session).
+                      Choose which laps to show in the overlay. Deselected laps will be excluded from the timing graphics but their video content remains in the export.
                     </p>
                   </HoverCardContent>
                 </HoverCard>
               </div>
               <div className="rounded-md border border-border bg-accent">
-                {segments.map((seg, i) => {
-                  const isAdjacentDown = seg.adjacentTo !== null && seg.adjacentTo === i + 1
-                  const isLinkedDown = isAdjacentDown && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
-                  const isAdjacentUp = seg.adjacentTo !== null && seg.adjacentTo === i - 1
-                  const isLinkedUp = isAdjacentUp && selection.linkedPairs.has(pairKey(seg.index, seg.adjacentTo!))
-                  const canLink = isAdjacentDown || isAdjacentUp
-
+                {segmentsWithLaps.map((seg, si) => {
+                  const fastestTime = Math.min(...seg.laps.map((l) => l.lapTime))
                   return (
                     <React.Fragment key={seg.index}>
-                      {i > 0 && !isLinkedUp && <div className="border-t border-border" />}
-                      <div className="flex items-stretch">
-                        {/* Link indicator column: line → icon → line */}
-                        <div className="relative flex w-6 shrink-0 flex-col items-center">
-                          {/* Top half of line */}
-                          <div className={`w-px flex-1 ${isLinkedUp ? 'bg-primary' : 'bg-transparent'}`} />
-                          {/* Link icon in the middle (only when part of a link) */}
-                          {(isLinkedUp || isLinkedDown) ? (
-                            <Link2 className="my-0.5 h-3 w-3 shrink-0 text-primary" />
-                          ) : (
-                            <div className="my-0.5 h-3 w-3 shrink-0" />
-                          )}
-                          {/* Bottom half of line */}
-                          <div className={`w-px flex-1 ${isLinkedDown ? 'bg-primary' : 'bg-transparent'}`} />
+                      {si > 0 && <div className="border-t border-border" />}
+                      {segmentsWithLaps.length > 1 && (
+                        <div className="px-3 pt-2 pb-1">
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{seg.label}</span>
                         </div>
-
-                        {/* Segment row */}
-                        <label className="flex flex-1 cursor-pointer items-center gap-2.5 py-2 pr-2 hover:bg-accent/80">
-                          <Checkbox
-                            checked={selection.segments.has(seg.index)}
-                            onCheckedChange={() => toggleSegment(seg.index)}
-                            disabled={disabled}
-                          />
-                          <div className="flex flex-1 flex-col">
-                            <span className="text-xs font-medium text-foreground">{seg.label}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              <span className="tabular-nums">{formatTime(seg.startSeconds)} – {formatTime(seg.endSeconds)}</span> · {seg.laps.length} laps
-                            </span>
-                          </div>
-                        </label>
-
-                        {/* Link button */}
-                        {canLink && isAdjacentDown && (
-                          <button
-                            className={`flex shrink-0 items-center px-2 text-[10px] transition-colors ${
-                              isLinkedDown ? 'text-primary hover:text-primary/80' : 'text-muted-foreground/40 hover:text-muted-foreground'
-                            }`}
-                            onClick={() => toggleLink(seg.index, seg.adjacentTo!)}
-                            disabled={disabled}
-                            title={isLinkedDown ? 'Unlink segments' : 'Link segments'}
-                          >
-                            Link
-                          </button>
-                        )}
-                        {/* Spacer for non-linkable rows to keep alignment */}
-                        {!isAdjacentDown && <div className="w-[42px] shrink-0" />}
-                      </div>
+                      )}
+                      {seg.laps.map((lap, li) => {
+                        const key = `${seg.index}:${lap.number}`
+                        const isFastest = lap.lapTime === fastestTime
+                        return (
+                          <React.Fragment key={key}>
+                            {(li > 0 || segmentsWithLaps.length > 1) && <div className="border-t border-border/50" />}
+                            <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 hover:bg-accent/80">
+                              <Checkbox
+                                checked={selection.laps.has(key)}
+                                onCheckedChange={() => toggleLap(seg.index, lap.number)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <div className="flex flex-1 items-center justify-between">
+                                <span className="text-[11px] text-foreground">Lap {lap.number}</span>
+                                <div className="flex items-center gap-1.5">
+                                  {isFastest && (
+                                    <Badge className="border-purple-500/30 bg-purple-500/15 px-1.5 py-0 text-[9px] font-medium text-purple-400 hover:bg-purple-500/15">
+                                      Fastest Lap
+                                    </Badge>
+                                  )}
+                                  <span className={`tabular-nums text-[10px] ${isFastest ? 'text-purple-400' : 'text-muted-foreground'}`}>{formatLapTime(lap.lapTime)}</span>
+                                </div>
+                              </div>
+                            </label>
+                          </React.Fragment>
+                        )
+                      })}
                     </React.Fragment>
                   )
                 })}
               </div>
             </div>
-
-            {/* LAPS — independently selectable regardless of segment selection */}
-            {segmentsWithLaps.length > 0 && (
-              <div>
-                <div className="mb-1.5 flex items-center gap-1">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
-                  <HoverCard openDelay={200}>
-                    <HoverCardTrigger asChild>
-                      <Info className="h-3 w-3 cursor-help text-muted-foreground/50" />
-                    </HoverCardTrigger>
-                    <HoverCardContent side="top" className="w-64 text-xs">
-                      <p className="font-medium">Lap Selection</p>
-                      <p className="mt-1 text-muted-foreground">
-                        Choose which laps to show in the overlay. Deselected laps will be excluded from the timing graphics but their video content remains in the export.
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-                <div className="rounded-md border border-border bg-accent">
-                  {segmentsWithLaps.map((seg, si) => {
-                    const fastestTime = Math.min(...seg.laps.map((l) => l.lapTime))
-                    return (
-                      <React.Fragment key={seg.index}>
-                        {si > 0 && <div className="border-t border-border" />}
-                        {segmentsWithLaps.length > 1 && (
-                          <div className="px-3 pt-2 pb-1">
-                            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{seg.label}</span>
-                          </div>
-                        )}
-                        {seg.laps.map((lap, li) => {
-                          const key = `${seg.index}:${lap.number}`
-                          const isFastest = lap.lapTime === fastestTime
-                          return (
-                            <React.Fragment key={key}>
-                              {(li > 0 || segmentsWithLaps.length > 1) && <div className="border-t border-border/50" />}
-                              <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 hover:bg-accent/80">
-                                <Checkbox
-                                  checked={selection.laps.has(key)}
-                                  onCheckedChange={() => toggleLap(seg.index, lap.number)}
-                                  disabled={disabled}
-                                  className="h-3.5 w-3.5"
-                                />
-                                <div className="flex flex-1 items-center justify-between">
-                                  <span className="text-[11px] text-foreground">Lap {lap.number}</span>
-                                  <div className="flex items-center gap-1.5">
-                                    {isFastest && (
-                                      <Badge className="bg-purple-500/15 text-purple-400 hover:bg-purple-500/15 border-purple-500/30 px-1.5 py-0 text-[9px] font-medium">
-                                        Fastest Lap
-                                      </Badge>
-                                    )}
-                                    <span className={`tabular-nums text-[10px] ${isFastest ? 'text-purple-400' : 'text-muted-foreground'}`}>{formatLapTime(lap.lapTime)}</span>
-                                  </div>
-                                </div>
-                              </label>
-                            </React.Fragment>
-                          )
-                        })}
-                      </React.Fragment>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    </section>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
