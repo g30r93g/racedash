@@ -65,6 +65,8 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
 
   // Track whether we're in the middle of a cut-skip seek to suppress the pause event
   const skipSeekingRef = useRef(false)
+  // Track whether a file switch is due to a cut-skip (force play on loadedMetadata)
+  const cutSkipFileChangeRef = useRef(false)
 
   // rAF loop — compute global time from local video time + file start offset
   useEffect(() => {
@@ -84,12 +86,13 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
 
           if (resolved.fileIndex !== activeFileIndexRef.current) {
             // Different file — need to switch source, which will trigger loadedMetadata → auto-play
+            cutSkipFileChangeRef.current = true
             activeFileIndexRef.current = resolved.fileIndex
             setActiveFileIndex(resolved.fileIndex)
             globalTimeRef.current = cut.endSec
             setGlobalTime(cut.endSec)
             onTimeUpdate?.(cut.endSec)
-            return // Stop rAF — file switch will restart
+            return // Stop rAF — file switch will restart via loadedMetadata
           }
 
           // Same file — seek directly without going through state
@@ -182,11 +185,18 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       if (expectedLocalTime > 0.1 && videoRef.current) {
         videoRef.current.currentTime = expectedLocalTime
       }
-      if (playing) {
+      const shouldPlay = playing || cutSkipFileChangeRef.current
+      if (cutSkipFileChangeRef.current) {
+        cutSkipFileChangeRef.current = false
+        // Restore playing state that was cleared by the src-unload pause event
+        setPlaying(true)
+        onPlayingChange?.(true)
+      }
+      if (shouldPlay) {
         videoRef.current?.play().catch(() => {})
       }
     },
-    [files, playing],
+    [files, playing, onPlayingChange],
   )
 
   return (
@@ -201,12 +211,14 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
           onPlayingChange?.(true)
         }}
         onPause={() => {
-          // Suppress pause events caused by cut-skip seeks
+          // Suppress pause events caused by cut-skip seeks (same-file)
           if (skipSeekingRef.current) {
             skipSeekingRef.current = false
             videoRef.current?.play().catch(() => {})
             return
           }
+          // Suppress pause events caused by src unload during cut-skip file change
+          if (cutSkipFileChangeRef.current) return
           setPlaying(false)
           onPlayingChange?.(false)
         }}
