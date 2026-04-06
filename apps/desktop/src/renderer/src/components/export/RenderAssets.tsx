@@ -9,6 +9,8 @@ import type { TimestampsResult } from '../../../../../types/ipc'
 import type { RawLap, RawSegment } from '@/components/video/timeline/types'
 
 export interface RenderAssetsSelection {
+  /** When true, render the entire project — segment/lap selections are ignored. */
+  entireProject: boolean
   /** Segment indices that are selected for export. */
   segments: Set<number>
   /** Lap keys (segmentIndex:lapNumber) that are selected for export. */
@@ -108,7 +110,7 @@ export function buildDefaultSelection(
     }
   }
 
-  return { segments, laps, linkedPairs }
+  return { entireProject: true, segments, laps, linkedPairs }
 }
 
 export function RenderAssets({
@@ -171,19 +173,8 @@ export function RenderAssets({
     onSelectionChange({ ...selection, laps: nextLaps })
   }
 
-  const allSelected = selectedSegmentCount === segments.length && selectedLapCount === totalLaps
-
-  const toggleAll = () => {
-    if (allSelected) {
-      onSelectionChange({ ...selection, segments: new Set(), laps: new Set() })
-    } else {
-      const allSegments = new Set(segments.map((s) => s.index))
-      const allLaps = new Set<string>()
-      for (const seg of segments) {
-        for (const lap of seg.laps) allLaps.add(`${seg.index}:${lap.number}`)
-      }
-      onSelectionChange({ ...selection, segments: allSegments, laps: allLaps })
-    }
+  const toggleEntireProject = () => {
+    onSelectionChange({ ...selection, entireProject: !selection.entireProject })
   }
 
   // Show laps for all segments (not just selected ones) — laps are independently selectable
@@ -204,18 +195,21 @@ export function RenderAssets({
 
         <CollapsibleContent>
           <div className="flex flex-col gap-4 pt-2">
-            {/* SELECT ALL */}
+            {/* ENTIRE PROJECT */}
             <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border bg-accent px-3 py-2 hover:bg-accent/80">
               <Checkbox
-                checked={allSelected}
-                onCheckedChange={toggleAll}
+                checked={selection.entireProject}
+                onCheckedChange={toggleEntireProject}
                 disabled={disabled}
               />
-              <span className="text-xs font-medium text-foreground">Entire Project</span>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-foreground">Entire Project</span>
+                <span className="text-[10px] text-muted-foreground">Render all segments and laps</span>
+              </div>
             </label>
 
             {/* SEGMENTS */}
-            <div>
+            <div className={selection.entireProject ? 'opacity-40 pointer-events-none' : ''}>
               <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Segments</span>
               <div className="rounded-md border border-border bg-accent">
                 {segments.map((seg, i) => {
@@ -282,7 +276,7 @@ export function RenderAssets({
 
             {/* LAPS — independently selectable regardless of segment selection */}
             {segmentsWithLaps.length > 0 && (
-              <div>
+              <div className={selection.entireProject ? 'opacity-40 pointer-events-none' : ''}>
                 <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
                 <div className="rounded-md border border-border bg-accent">
                   {segmentsWithLaps.map((seg, si) => {
