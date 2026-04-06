@@ -1,6 +1,6 @@
 import { CloudRenderControls } from '@/components/export/CloudRenderControls'
 import { LocalRenderControls } from '@/components/export/LocalRenderControls'
-import { RenderAssets, type RenderAssetsSelection } from '@/components/export/RenderAssets'
+import { RenderAssets, type RenderAssetsSelection, buildDefaultSelection } from '@/components/export/RenderAssets'
 import { RenderSettings } from '@/components/export/RenderSettings'
 import { InfoRow } from '@/components/shared/InfoRow'
 import { OfflineState } from '@/components/shared/OfflineState'
@@ -91,26 +91,18 @@ export function ExportTab({
   const online = useOnline()
   const fps = videoInfo?.fps ?? 60
 
-  // Render assets selection — default all segments and laps selected
-  const [renderAssets, setRenderAssets] = useState<RenderAssetsSelection>(() => {
-    const segments = new Set(project.segments.map((_, i) => i))
-    const laps = new Set<string>()
-    // Select all laps initially (populated when timestampsResult loads)
-    return { segments, laps }
-  })
+  // Render assets selection — default all segments, laps, and adjacent pairs selected
+  const [renderAssets, setRenderAssets] = useState<RenderAssetsSelection>(() =>
+    buildDefaultSelection(project, timestampsResult, fps),
+  )
 
-  // Auto-select all laps when timestampsResult loads or changes
+  // Rebuild selection when timestampsResult loads (laps become available)
+  const timestampsLoadedRef = useRef(false)
   useEffect(() => {
-    if (!timestampsResult) return
-    const laps = new Set<string>()
-    timestampsResult.segments.forEach((seg, i) => {
-      const rawSeg = seg as { selectedDriver?: { laps: Array<{ number: number }> } }
-      for (const lap of rawSeg.selectedDriver?.laps ?? []) {
-        laps.add(`${i}:${lap.number}`)
-      }
-    })
-    setRenderAssets((prev) => ({ segments: prev.segments, laps }))
-  }, [timestampsResult])
+    if (!timestampsResult || timestampsLoadedRef.current) return
+    timestampsLoadedRef.current = true
+    setRenderAssets(buildDefaultSelection(project, timestampsResult, fps))
+  }, [timestampsResult, project, fps])
 
   const hasContent = useMemo(() => {
     if (!videoInfo) return true
