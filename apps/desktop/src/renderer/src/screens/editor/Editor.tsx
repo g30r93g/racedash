@@ -279,7 +279,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       .catch((err: unknown) => {
         console.warn('[Editor] failed to save video editing state:', err)
       })
-  }, [cutRegions, transitions, projectState.configPath])
+  }, [cutRegions, transitions, projectState.projectPath])
 
   // ── Video editing: segment spans, boundaries, transitions ──────────────────
   const fps = videoInfo?.fps ?? 60
@@ -343,13 +343,17 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     }).filter((x): x is NonNullable<typeof x> => x !== null)
   }, [transitions, boundaries, fps, mapTimeToDisplay])
 
+  // Only reconcile transitions once multiVideoInfo is loaded (so fileJoinFrames are populated).
+  // Without this guard, initial mount with empty fileJoinFrames would orphan all fileJoin transitions.
   const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
+  const videoInfoLoaded = multiVideoInfo !== null
 
   useEffect(() => {
+    if (!videoInfoLoaded) return
     if (removed.length > 0) {
       setTransitions(reconciledTransitions)
     }
-  }, [removed.length]) // Only react to changes in removed count
+  }, [removed.length, videoInfoLoaded]) // Only react to changes in removed count, after video info loads
 
   const handleAddCut = useCallback(() => {
     const playheadFrame = Math.round(currentTimeRef.current * fps)
