@@ -319,9 +319,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     [frameMapping, fps],
   )
 
-  // Resolve transitions to source-time positions for CSS preview
+  // Resolve transitions to output-time positions for CSS preview.
+  // In Project view, the seam transitions need to be positioned in output time
+  // (after cut regions are removed) since playback skips over cuts.
   const transitionPreviewData = useMemo(() => {
-    console.log('[Editor] transitionPreviewData compute', { transitionsCount: transitions.length, boundariesCount: boundaries.length, transitions, boundaries })
     if (transitions.length === 0 || boundaries.length === 0) return undefined
     return transitions.map((t) => {
       const boundary = boundaries.find((b) => b.id === t.boundaryId)
@@ -329,14 +330,16 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       const position = boundary.kind === 'projectStart' ? 'start' as const
         : boundary.kind === 'projectEnd' ? 'end' as const
         : 'seam' as const
+      // Map source frame to output time so the preview works in Project view
+      const outputTimeSec = mapTimeToDisplay(boundary.frameInSource / fps)
       return {
-        sourceTimeSec: boundary.frameInSource / fps,
+        sourceTimeSec: outputTimeSec,
         type: t.type as 'fadeFromBlack' | 'fadeToBlack' | 'fadeThroughBlack' | 'crossfade',
         durationMs: t.durationMs,
         position,
       }
     }).filter((x): x is NonNullable<typeof x> => x !== null)
-  }, [transitions, boundaries, fps])
+  }, [transitions, boundaries, fps, mapTimeToDisplay])
 
   const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
 

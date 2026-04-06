@@ -242,8 +242,8 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   // Returns 0 (fully black) to 1 (fully visible) based on proximity to transition boundaries.
   const transitionOpacity = React.useMemo(() => {
     if (!transitionPreview?.length) return 1
-    console.log('[TransitionPreview]', { globalTime, count: transitionPreview.length, first: transitionPreview[0] })
-    const t = globalTime
+    // Use display time (output time) since transition positions are in output time
+    const t = mapTimeToDisplay ? mapTimeToDisplay(globalTime) : globalTime
     for (const tr of transitionPreview) {
       const durSec = tr.durationMs / 1000
       const halfDur = durSec / 2
@@ -291,7 +291,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       }
     }
     return 1
-  }, [globalTime, transitionPreview])
+  }, [globalTime, transitionPreview, mapTimeToDisplay])
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
