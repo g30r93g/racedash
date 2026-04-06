@@ -176,9 +176,11 @@ export function RenderAssets({
   // Show laps for all segments (not just selected ones) — laps are independently selectable
   const segmentsWithLaps = segments.filter((s) => s.laps.length > 0)
 
-  const summary = selection.entireProject
-    ? 'Entire Project'
-    : `${selectedSegmentCount}/${segments.length} segments · ${selectedLapCount}/${totalLaps} laps`
+  const summaryParts: string[] = []
+  if (selection.entireProject) summaryParts.push('Entire Project')
+  if (selectedSegmentCount > 0) summaryParts.push(`${selectedSegmentCount}/${segments.length} segments`)
+  if (selectedLapCount > 0) summaryParts.push(`${selectedLapCount}/${totalLaps} laps`)
+  const summary = summaryParts.length > 0 ? summaryParts.join(' · ') : 'None selected'
 
   return (
     <section>
