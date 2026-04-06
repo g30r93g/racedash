@@ -242,6 +242,8 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   // Returns 0 (fully black) to 1 (fully visible) based on proximity to transition boundaries.
   const transitionOpacity = React.useMemo(() => {
     if (!transitionPreview?.length) return 1
+    // Debug: uncomment to verify data flow
+    // console.log('[TransitionPreview]', { globalTime, transitions: transitionPreview })
     const t = globalTime
     for (const tr of transitionPreview) {
       const durSec = tr.durationMs / 1000
@@ -294,43 +296,45 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* Black overlay for transition fade preview */}
-      {transitionOpacity < 1 && (
-        <div
-          className="pointer-events-none absolute inset-0 z-10 bg-black"
-          style={{ opacity: 1 - transitionOpacity }}
+      {/* Video area with transition fade overlay */}
+      <div className="relative flex-1 overflow-hidden">
+        {transitionOpacity < 1 && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 bg-black"
+            style={{ opacity: 1 - transitionOpacity }}
+          />
+        )}
+        <VideoPlayer
+          ref={videoRef}
+          videoPath={videoPath}
+          muted={muted}
+          onLoadedMetadata={handleLoadedMetadata}
+          onPlay={() => {
+            setPlaying(true)
+            onPlayingChange?.(true)
+          }}
+          onPause={() => {
+            // Suppress pause events during cut-skip seek window
+            if (Date.now() < suppressPauseUntilRef.current) {
+              videoRef.current?.play().catch(() => {})
+              return
+            }
+            // Suppress pause events caused by src unload during cut-skip file change
+            if (cutSkipFileChangeRef.current) return
+            setPlaying(false)
+            onPlayingChange?.(false)
+          }}
+          onEnded={() => {
+            // If there are more files, the rAF tick will auto-advance; don't stop.
+            if (activeFileIndexRef.current < files.length - 1) return
+            setPlaying(false)
+            onPlayingChange?.(false)
+          }}
+          overlayType={overlayType}
+          overlayProps={overlayProps}
+          playerRef={playerRef}
         />
-      )}
-      <VideoPlayer
-        ref={videoRef}
-        videoPath={videoPath}
-        muted={muted}
-        onLoadedMetadata={handleLoadedMetadata}
-        onPlay={() => {
-          setPlaying(true)
-          onPlayingChange?.(true)
-        }}
-        onPause={() => {
-          // Suppress pause events during cut-skip seek window
-          if (Date.now() < suppressPauseUntilRef.current) {
-            videoRef.current?.play().catch(() => {})
-            return
-          }
-          // Suppress pause events caused by src unload during cut-skip file change
-          if (cutSkipFileChangeRef.current) return
-          setPlaying(false)
-          onPlayingChange?.(false)
-        }}
-        onEnded={() => {
-          // If there are more files, the rAF tick will auto-advance; don't stop.
-          if (activeFileIndexRef.current < files.length - 1) return
-          setPlaying(false)
-          onPlayingChange?.(false)
-        }}
-        overlayType={overlayType}
-        overlayProps={overlayProps}
-        playerRef={playerRef}
-      />
+      </div>
       <VideoPlaybackControls
         duration={totalDuration}
         currentTime={globalTime}
