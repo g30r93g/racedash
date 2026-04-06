@@ -290,7 +290,7 @@ export function RenderAssets({
                                         Fastest Lap
                                       </Badge>
                                     )}
-                                    <span className="text-[10px] text-muted-foreground">{formatLapTime(lap.lapTime)}</span>
+                                    <span className={`text-[10px] ${isFastest ? 'text-purple-400' : 'text-muted-foreground'}`}>{formatLapTime(lap.lapTime)}</span>
                                   </div>
                                 </div>
                               </label>
