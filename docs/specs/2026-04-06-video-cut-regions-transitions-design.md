@@ -302,6 +302,29 @@ Derived state (kept ranges, boundaries, segment buffers, frame mapping) should b
 
 These hooks ensure the timeline and drawer re-render efficiently when cut regions, transitions, or component configs change.
 
+### Transition Rendering: FFmpeg Export + CSS Preview (ADR)
+
+**Decision:** Transitions are rendered via FFmpeg filter chains at export time, with CSS opacity-based preview in the editor.
+
+**Context:** Three approaches were evaluated:
+
+1. **Remotion for everything** — Remotion's `<TransitionSeries>` with `<OffthreadVideo>` would render video + overlay + transitions in a single composition. Preview would exactly match export. However, Remotion renders frame-by-frame via Chromium, making it significantly slower and more expensive than FFmpeg for both local and cloud renders. For long race videos (30–45 min), this is a deal-breaker.
+
+2. **Hybrid (Remotion preview + FFmpeg export)** — Remotion for in-editor preview, FFmpeg for export. Gives accurate preview but introduces a split where the preview and export use different renderers. Transitions may render subtly differently between the two, setting a false expectation for the customer. If a user sees a specific transition look in preview, they expect the export to match exactly.
+
+3. **FFmpeg export + CSS preview** — FFmpeg handles all transition rendering at export time using hardware-accelerated filter chains (`xfade`, `fade`, `acrossfade`). The in-editor preview approximates transitions via CSS opacity on the `<video>` element. Crossfade is approximated as fade-through-black in preview (true crossfade requires two simultaneous video sources).
+
+**Choice:** Option 3.
+
+**Rationale:**
+- Render speed is the top priority. FFmpeg with hardware acceleration (VideoToolbox on macOS, NVENC on Windows) is an order of magnitude faster than Remotion for video processing.
+- Cloud render cost is directly tied to render time. Slower renders = more expensive.
+- Fade effects (fadeFromBlack, fadeToBlack, fadeThroughBlack) are visually identical between CSS opacity and FFmpeg's fade filter — there is no perceptible difference.
+- Crossfade is the only transition that differs: CSS can only approximate it as a fade-through-black. This is acceptable for preview; the export produces a true crossfade.
+- Avoiding a split renderer eliminates the false-expectation risk of Option 2.
+
+**Trade-off accepted:** Preview of crossfade transitions is approximate (shown as fade-through-black). All other transitions preview accurately.
+
 ### Backward Compatibility
 
 Existing `project.json` files without `cutRegions` or `transitions` fields default to `[]` on load. No migration needed — projects behave as before (full video exported, no cuts or transitions).

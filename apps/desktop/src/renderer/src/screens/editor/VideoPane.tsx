@@ -29,10 +29,17 @@ interface VideoPaneProps {
   displayDuration?: number
   /** Maps source seconds to display seconds for playback controls (Project view). */
   mapTimeToDisplay?: (sourceSeconds: number) => number
+  /** Resolved transitions for CSS preview. Each has a source-time position and type/duration. */
+  transitionPreview?: Array<{
+    sourceTimeSec: number
+    type: 'fadeFromBlack' | 'fadeToBlack' | 'fadeThroughBlack' | 'crossfade'
+    durationMs: number
+    position: 'start' | 'end' | 'seam'
+  }>
 }
 
 export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(function VideoPane(
-  { multiVideoInfo, onTimeUpdate, onPlayingChange, overlayType, overlayProps, cutRegions, skipCutRegions, displayDuration: displayDurationProp, mapTimeToDisplay },
+  { multiVideoInfo, onTimeUpdate, onPlayingChange, overlayType, overlayProps, cutRegions, skipCutRegions, displayDuration: displayDurationProp, mapTimeToDisplay, transitionPreview },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -231,8 +238,69 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
     return () => video.removeEventListener('canplay', resume)
   }, [activeFileIndex, files, onPlayingChange])
 
+  // Compute CSS opacity for transition preview.
+  // Returns 0 (fully black) to 1 (fully visible) based on proximity to transition boundaries.
+  const transitionOpacity = React.useMemo(() => {
+    if (!transitionPreview?.length) return 1
+    const t = globalTime
+    for (const tr of transitionPreview) {
+      const durSec = tr.durationMs / 1000
+      const halfDur = durSec / 2
+
+      if (tr.position === 'start' && (tr.type === 'fadeFromBlack' || tr.type === 'fadeThroughBlack')) {
+        // Fade in at project start: opacity ramps 0→1 over duration
+        if (t < tr.sourceTimeSec + durSec) {
+          return Math.min(1, Math.max(0, (t - tr.sourceTimeSec) / durSec))
+        }
+      }
+
+      if (tr.position === 'end' && (tr.type === 'fadeToBlack' || tr.type === 'fadeThroughBlack')) {
+        // Fade out at project end: opacity ramps 1→0 over duration
+        const fadeStart = tr.sourceTimeSec - durSec
+        if (t > fadeStart) {
+          return Math.min(1, Math.max(0, (tr.sourceTimeSec - t) / durSec))
+        }
+      }
+
+      if (tr.position === 'seam') {
+        if (tr.type === 'crossfade' || tr.type === 'fadeThroughBlack') {
+          // Approximate as fade-out then fade-in around the seam point
+          const fadeOutStart = tr.sourceTimeSec - halfDur
+          const fadeInEnd = tr.sourceTimeSec + halfDur
+          if (t >= fadeOutStart && t < tr.sourceTimeSec) {
+            // Fading out
+            return Math.max(0, (tr.sourceTimeSec - t) / halfDur)
+          }
+          if (t >= tr.sourceTimeSec && t < fadeInEnd) {
+            // Fading in
+            return Math.max(0, (t - tr.sourceTimeSec) / halfDur)
+          }
+        }
+        if (tr.type === 'fadeToBlack') {
+          const fadeStart = tr.sourceTimeSec - durSec
+          if (t >= fadeStart && t < tr.sourceTimeSec) {
+            return Math.max(0, (tr.sourceTimeSec - t) / durSec)
+          }
+        }
+        if (tr.type === 'fadeFromBlack') {
+          if (t >= tr.sourceTimeSec && t < tr.sourceTimeSec + durSec) {
+            return Math.max(0, (t - tr.sourceTimeSec) / durSec)
+          }
+        }
+      }
+    }
+    return 1
+  }, [globalTime, transitionPreview])
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      {/* Black overlay for transition fade preview */}
+      {transitionOpacity < 1 && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 bg-black"
+          style={{ opacity: 1 - transitionOpacity }}
+        />
+      )}
       <VideoPlayer
         ref={videoRef}
         videoPath={videoPath}

@@ -319,6 +319,24 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
     [frameMapping, fps],
   )
 
+  // Resolve transitions to source-time positions for CSS preview
+  const transitionPreviewData = useMemo(() => {
+    if (transitions.length === 0 || boundaries.length === 0) return undefined
+    return transitions.map((t) => {
+      const boundary = boundaries.find((b) => b.id === t.boundaryId)
+      if (!boundary) return null
+      const position = boundary.kind === 'projectStart' ? 'start' as const
+        : boundary.kind === 'projectEnd' ? 'end' as const
+        : 'seam' as const
+      return {
+        sourceTimeSec: boundary.frameInSource / fps,
+        type: t.type as 'fadeFromBlack' | 'fadeToBlack' | 'fadeThroughBlack' | 'crossfade',
+        durationMs: t.durationMs,
+        position,
+      }
+    }).filter((x): x is NonNullable<typeof x> => x !== null)
+  }, [transitions, boundaries, fps])
+
   const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
 
   useEffect(() => {
@@ -475,6 +493,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           skipCutRegions={timelineViewMode === 'project'}
           displayDuration={timelineViewMode === 'project' ? outputDuration : undefined}
           mapTimeToDisplay={timelineViewMode === 'project' ? mapTimeToDisplay : undefined}
+          transitionPreview={transitionPreviewData}
         />
         <Timeline
           ref={timelineRef}
