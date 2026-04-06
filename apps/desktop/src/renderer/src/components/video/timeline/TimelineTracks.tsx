@@ -2,6 +2,8 @@ import React from 'react'
 import type { MultiVideoInfo, TimestampsResult } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { Override } from '../../../screens/editor/tabs/TimingTab'
+import type { CutRegion } from '../../../../../types/videoEditing'
+import { CutRegionOverlay } from '@/components/video-editing/CutRegionOverlay'
 import {
   SEGMENT_COLOURS,
   LAP_COLOUR,
@@ -26,6 +28,9 @@ interface TimelineTracksProps {
   multiVideoInfo?: MultiVideoInfo | null
   timestampsResult?: TimestampsResult | null
   overrides?: Override[]
+  cutRegions?: CutRegion[]
+  viewMode?: 'source' | 'project'
+  onCutClick?: (cut: CutRegion) => void
   onSeek?: (time: number) => void
   children?: React.ReactNode // Playhead slot
 }
@@ -38,6 +43,9 @@ export const TimelineTracks = React.memo(function TimelineTracks({
   multiVideoInfo,
   timestampsResult,
   overrides = [],
+  cutRegions,
+  viewMode,
+  onCutClick,
   onSeek,
   children,
 }: TimelineTracksProps): React.ReactElement {
@@ -196,6 +204,9 @@ export const TimelineTracks = React.memo(function TimelineTracks({
                 </span>
               )}
             </div>
+          )}
+          {viewMode !== 'project' && cutRegions && cutRegions.length > 0 && (
+            <CutRegionOverlay cuts={cutRegions} duration={duration} fps={fps} onClick={onCutClick} />
           )}
         </div>
 

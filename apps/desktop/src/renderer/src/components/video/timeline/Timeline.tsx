@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } 
 import type { MultiVideoInfo, TimestampsResult, VideoInfo } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 import type { Override } from '../../../screens/editor/tabs/TimingTab'
+import type { CutRegion } from '../../../../../types/videoEditing'
 import { ZOOM_LEVELS, TRACK_LABELS, TRACK_PADDING_PX, formatRulerLabel, pct } from './types'
 import { TimelineTracks } from './TimelineTracks'
 
@@ -20,13 +21,15 @@ export interface TimelineProps {
   multiVideoInfo?: MultiVideoInfo | null
   timestampsResult?: TimestampsResult | null
   overrides?: Override[]
+  cutRegions?: CutRegion[]
+  onCutClick?: (cut: CutRegion) => void
   onSeek?: (time: number) => void
   viewMode?: TimelineViewMode
   onViewModeChange?: (mode: TimelineViewMode) => void
 }
 
 export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function Timeline(
-  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], onSeek, viewMode, onViewModeChange },
+  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onSeek, viewMode, onViewModeChange },
   ref,
 ) {
   const duration = videoInfo?.durationSeconds ?? 30
@@ -130,6 +133,9 @@ export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function
             multiVideoInfo={multiVideoInfo}
             timestampsResult={timestampsResult}
             overrides={overrides}
+            cutRegions={cutRegions}
+            viewMode={viewMode}
+            onCutClick={onCutClick}
             onSeek={onSeek}
           >
             {/* Playhead — positioned imperatively via ref, zero React re-renders */}
