@@ -258,36 +258,44 @@ export function RenderAssets({
               <div>
                 <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Laps</span>
                 <div className="rounded-md border border-border bg-accent">
-                  {segmentsWithLaps.map((seg, si) => (
-                    <React.Fragment key={seg.index}>
-                      {si > 0 && <div className="border-t border-border" />}
-                      {segmentsWithLaps.length > 1 && (
-                        <div className="px-3 pt-2 pb-1">
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{seg.label}</span>
-                        </div>
-                      )}
-                      {seg.laps.map((lap, li) => {
-                        const key = `${seg.index}:${lap.number}`
-                        return (
-                          <React.Fragment key={key}>
-                            {(li > 0 || segmentsWithLaps.length > 1) && <div className="border-t border-border/50" />}
-                            <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 hover:bg-accent/80">
-                              <Checkbox
-                                checked={selection.laps.has(key)}
-                                onCheckedChange={() => toggleLap(seg.index, lap.number)}
-                                disabled={disabled}
-                                className="h-3.5 w-3.5"
-                              />
-                              <div className="flex flex-1 items-center justify-between">
-                                <span className="text-[11px] text-foreground">Lap {lap.number}</span>
-                                <span className="text-[10px] text-muted-foreground">{formatLapTime(lap.lapTime)}</span>
-                              </div>
-                            </label>
-                          </React.Fragment>
-                        )
-                      })}
-                    </React.Fragment>
-                  ))}
+                  {segmentsWithLaps.map((seg, si) => {
+                    const fastestTime = Math.min(...seg.laps.map((l) => l.lapTime))
+                    return (
+                      <React.Fragment key={seg.index}>
+                        {si > 0 && <div className="border-t border-border" />}
+                        {segmentsWithLaps.length > 1 && (
+                          <div className="px-3 pt-2 pb-1">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{seg.label}</span>
+                          </div>
+                        )}
+                        {seg.laps.map((lap, li) => {
+                          const key = `${seg.index}:${lap.number}`
+                          const isFastest = lap.lapTime === fastestTime
+                          return (
+                            <React.Fragment key={key}>
+                              {(li > 0 || segmentsWithLaps.length > 1) && <div className="border-t border-border/50" />}
+                              <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 hover:bg-accent/80">
+                                <Checkbox
+                                  checked={selection.laps.has(key)}
+                                  onCheckedChange={() => toggleLap(seg.index, lap.number)}
+                                  disabled={disabled}
+                                  className="h-3.5 w-3.5"
+                                />
+                                <div className="flex flex-1 items-center justify-between">
+                                  <span className={`text-[11px] ${isFastest ? 'font-semibold text-purple-400' : 'text-foreground'}`}>
+                                    Lap {lap.number}{isFastest ? ' ★' : ''}
+                                  </span>
+                                  <span className={`text-[10px] ${isFastest ? 'font-medium text-purple-400' : 'text-muted-foreground'}`}>
+                                    {formatLapTime(lap.lapTime)}
+                                  </span>
+                                </div>
+                              </label>
+                            </React.Fragment>
+                          )
+                        })}
+                      </React.Fragment>
+                    )
+                  })}
                 </div>
               </div>
             )}
