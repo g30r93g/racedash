@@ -189,7 +189,7 @@ export function RenderAssets({
         <div className="px-3 py-2">
           <div className="flex items-center gap-2.5">
             <Layers className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Segments</span>
+            <span className="text-xs text-muted-foreground">Individual Segments</span>
             {selectedSegmentCount > 0 && (
               <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[9px]">
                 {selectedSegmentCount}/{segments.length}
@@ -214,7 +214,7 @@ export function RenderAssets({
         <div className="px-3 py-2">
           <div className="flex items-center gap-2.5">
             <Timer className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Laps</span>
+            <span className="text-xs text-muted-foreground">Individual Laps</span>
             {selectedLapCount > 0 && (
               <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[9px]">
                 {selectedLapCount}/{totalLaps}
