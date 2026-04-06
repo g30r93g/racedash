@@ -4,6 +4,7 @@ import type { OverlayProps } from '@racedash/core'
 import type { OverlayType } from '@/screens/editor/tabs/OverlayPickerModal'
 import type { MultiVideoInfo } from '../../../../types/ipc'
 import type { CutRegion } from '../../../../types/videoEditing'
+import { toSourceFrame } from '../../lib/videoEditing'
 import { resolveFileAtTime } from '@/hooks/useMultiVideo'
 import { VideoPlayer } from '@/components/video/VideoPlayer'
 import { VideoPlaybackControls } from '@/components/video/VideoPlaybackControls'
@@ -24,10 +25,14 @@ interface VideoPaneProps {
   cutRegions?: CutRegion[]
   /** Enable cut-region skipping during playback (Project view). */
   skipCutRegions?: boolean
+  /** Display duration for playback controls (output duration in Project view). */
+  displayDuration?: number
+  /** Maps source seconds to display seconds for playback controls (Project view). */
+  mapTimeToDisplay?: (sourceSeconds: number) => number
 }
 
 export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(function VideoPane(
-  { multiVideoInfo, onTimeUpdate, onPlayingChange, overlayType, overlayProps, cutRegions, skipCutRegions },
+  { multiVideoInfo, onTimeUpdate, onPlayingChange, overlayType, overlayProps, cutRegions, skipCutRegions, displayDuration: displayDurationProp, mapTimeToDisplay },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -112,8 +117,12 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   }, [])
 
   const handleSeek = useCallback(
-    (globalT: number) => {
+    (seekTime: number) => {
       if (files.length === 0) return
+      // In Project view, slider emits display (output) time — convert back to source time
+      const globalT = skipCutRegions && cutRegions?.length
+        ? toSourceFrame(Math.round(seekTime * fps), cutRegions, [], fps) / fps
+        : seekTime
       const resolved = resolveFileAtTime(files, globalT)
 
       // Always update ref + state for the active file
@@ -135,7 +144,7 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
         playerRef.current?.seekTo(Math.round(globalT * overlayFps))
       }
     },
-    [files, onTimeUpdate, overlayProps?.fps],
+    [files, onTimeUpdate, overlayProps?.fps, skipCutRegions, cutRegions, fps],
   )
 
   useImperativeHandle(ref, () => ({ seek: handleSeek, play: handlePlay, pause: handlePause }), [
@@ -195,6 +204,8 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
         onPause={handlePause}
         onSeek={handleSeek}
         onMuteToggle={() => setMuted((m) => !m)}
+        displayDuration={displayDurationProp}
+        displayCurrentTime={mapTimeToDisplay ? mapTimeToDisplay(globalTime) : undefined}
       />
     </div>
   )

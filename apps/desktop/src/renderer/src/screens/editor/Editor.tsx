@@ -6,7 +6,7 @@ import { VideoEditingDrawer } from '@/components/video-editing/VideoEditingDrawe
 import { CutRegionList } from '@/components/video-editing/CutRegionList'
 import { TransitionPills } from '@/components/video-editing/TransitionPills'
 import { inferCutBounds } from '@/lib/videoEditing'
-import { useSegmentBuffers, useBoundaries, useReconciledTransitions, useFrameMapping } from '@/hooks/useVideoEditing'
+import { useSegmentBuffers, useBoundaries, useReconciledTransitions, useFrameMapping, useKeptRanges } from '@/hooks/useVideoEditing'
 import { toast } from 'sonner'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
@@ -302,6 +302,15 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
 
   const boundaries = useBoundaries(totalFrames, cutRegions, segmentSpansWithIds, fps)
   const frameMapping = useFrameMapping(cutRegions, transitions, fps)
+  const keptRanges = useKeptRanges(cutRegions, totalFrames)
+  const outputDuration = useMemo(
+    () => keptRanges.reduce((sum, r) => sum + (r.endFrame - r.startFrame), 0) / fps,
+    [keptRanges, fps],
+  )
+  const mapTimeToDisplay = useCallback(
+    (sourceSeconds: number) => frameMapping.toOutput(Math.round(sourceSeconds * fps)) / fps,
+    [frameMapping, fps],
+  )
 
   const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
 
@@ -468,6 +477,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           overlayProps={overlayProps}
           cutRegions={cutRegions}
           skipCutRegions={timelineViewMode === 'project'}
+          displayDuration={timelineViewMode === 'project' ? outputDuration : undefined}
+          mapTimeToDisplay={timelineViewMode === 'project' ? mapTimeToDisplay : undefined}
         />
         <Timeline
           ref={timelineRef}
