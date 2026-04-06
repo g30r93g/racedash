@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import type { CutRegion, Transition } from '../../../../types/videoEditing'
+import { VideoEditingDrawer } from '@/components/video-editing/VideoEditingDrawer'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline, type TimelineHandle } from '@/components/video/Timeline'
@@ -62,6 +64,9 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const [projectState, setProjectState] = useState(project)
   const [configRevision, setConfigRevision] = useState(0)
   const [timingRevision, setTimingRevision] = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [cutRegions, setCutRegions] = useState<CutRegion[]>(projectState.cutRegions ?? [])
+  const [transitions, setTransitions] = useState<Transition[]>(projectState.transitions ?? [])
   const multiVideoInfo = useMultiVideo(projectState.videoPaths)
 
   // Derive a VideoInfo-compatible object for downstream components (memoized to avoid
@@ -321,8 +326,15 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   }, [timestampsResult, videoInfo, styleState])
 
   return (
-    <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
-      {/* Left pane — video fills remaining height, timeline pinned to bottom */}
+    <div className={`grid h-full w-full overflow-hidden ${drawerOpen ? 'grid-cols-[256px_1fr_430px]' : 'grid-cols-[1fr_430px]'}`}>
+      {/* Left drawer — video editing controls */}
+      {drawerOpen && (
+        <VideoEditingDrawer>
+          {/* Placeholder — wired in later tasks */}
+        </VideoEditingDrawer>
+      )}
+
+      {/* Center pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
         <VideoPane
           ref={videoPaneRef}
@@ -366,6 +378,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           authUser={user ? { name: user.name } : null}
           licenseTier={displayLicense?.tier ?? null}
           onSignIn={signIn}
+          drawerOpen={drawerOpen}
+          onToggleDrawer={() => setDrawerOpen((o) => !o)}
         />
       </div>
     </div>
