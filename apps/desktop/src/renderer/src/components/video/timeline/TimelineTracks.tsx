@@ -37,6 +37,7 @@ interface TimelineTracksProps {
   /** Display duration (output duration in Project view, source duration in Source view). */
   displayDuration?: number
   onCutClick?: (cut: CutRegion) => void
+  onCutUpdate?: (updated: CutRegion) => void
   onSeek?: (time: number) => void
   boundaries?: Boundary[]
   transitions?: Transition[]
@@ -58,6 +59,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
   mapTime: mapTimeProp,
   displayDuration: displayDurationProp,
   onCutClick,
+  onCutUpdate,
   onSeek,
   boundaries,
   transitions,
@@ -225,7 +227,7 @@ export const TimelineTracks = React.memo(function TimelineTracks({
             </div>
           )}
           {viewMode !== 'project' && cutRegions && cutRegions.length > 0 && (
-            <CutRegionOverlay cuts={cutRegions} duration={duration} fps={fps} onClick={onCutClick} />
+            <CutRegionOverlay cuts={cutRegions} duration={duration} fps={fps} onClick={onCutClick} onUpdate={onCutUpdate} />
           )}
           {boundaries?.map((b) => (
             <BoundaryMarker

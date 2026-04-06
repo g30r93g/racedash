@@ -492,6 +492,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           onViewModeChange={setTimelineViewMode}
           cutRegions={cutRegions}
           onCutClick={handleUpdateCut}
+          onCutUpdate={handleUpdateCut}
           boundaries={boundaries}
           transitions={transitions}
           onTransitionUpdate={handleUpdateTransition}

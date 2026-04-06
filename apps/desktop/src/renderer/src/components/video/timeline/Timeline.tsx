@@ -24,6 +24,7 @@ export interface TimelineProps {
   overrides?: Override[]
   cutRegions?: CutRegion[]
   onCutClick?: (cut: CutRegion) => void
+  onCutUpdate?: (updated: CutRegion) => void
   onSeek?: (time: number) => void
   viewMode?: TimelineViewMode
   onViewModeChange?: (mode: TimelineViewMode) => void
@@ -34,7 +35,7 @@ export interface TimelineProps {
 }
 
 export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function Timeline(
-  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onSeek, viewMode, onViewModeChange, boundaries, transitions, onTransitionUpdate, onTransitionDelete },
+  { project, videoInfo, multiVideoInfo, timestampsResult, overrides = [], cutRegions, onCutClick, onCutUpdate, onSeek, viewMode, onViewModeChange, boundaries, transitions, onTransitionUpdate, onTransitionDelete },
   ref,
 ) {
   const duration = videoInfo?.durationSeconds ?? 30
@@ -162,6 +163,7 @@ export const Timeline = React.forwardRef<TimelineHandle, TimelineProps>(function
             mapTime={mapTime}
             displayDuration={displayDuration}
             onCutClick={onCutClick}
+            onCutUpdate={onCutUpdate}
             onSeek={onSeek}
             boundaries={boundaries}
             transitions={transitions}

@@ -65,19 +65,17 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
 
   // Timestamp until which pause events should be suppressed (cut-skip seeks can fire multiple pause/play cycles)
   const suppressPauseUntilRef = useRef(0)
-  // Track whether a file switch is due to a cut-skip (force play on loadedMetadata)
+  // Track whether a file switch is due to a cut-skip (force play on canplay)
   const cutSkipFileChangeRef = useRef(false)
 
   // rAF loop — compute global time from local video time + file start offset
   useEffect(() => {
-    console.log('[VideoPane] rAF effect', { playing, activeFileIndex, activeFilePath: activeFile?.path })
     if (!playing || !activeFile) return
     let rafId: number
     const tick = () => {
       // While a cross-file cut-skip is in progress, keep the loop alive
       // but don't read the video element — it's loading the new source.
       if (cutSkipFileChangeRef.current) {
-        console.log('[CutSkip] rAF tick: waiting for file load...')
         rafId = requestAnimationFrame(tick)
         return
       }
@@ -94,12 +92,9 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       for (const cut of cutRangesSeconds) {
         if (global >= cut.startSec && global < cut.endSec) {
           const skipTarget = cut.endSec + frameDuration
-          console.log('[CutSkip] Hit cut region', { global, cutStart: cut.startSec, cutEnd: cut.endSec, skipTarget })
           const resolved = resolveFileAtTime(files, skipTarget)
-          console.log('[CutSkip] Resolved target', { targetFileIndex: resolved.fileIndex, currentFileIndex: activeFileIndexRef.current, localTime: resolved.localTime })
 
           if (resolved.fileIndex !== activeFileIndexRef.current) {
-            console.log('[CutSkip] Cross-file: switching from', activeFileIndexRef.current, 'to', resolved.fileIndex)
             cutSkipFileChangeRef.current = true
             activeFileIndexRef.current = resolved.fileIndex
             setActiveFileIndex(resolved.fileIndex)
@@ -110,7 +105,6 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
           }
 
           // Same file — seek directly without going through state
-          console.log('[CutSkip] Same-file: seeking to', resolved.localTime)
           suppressPauseUntilRef.current = Date.now() + 500
           video.currentTime = resolved.localTime
           global = skipTarget
@@ -192,7 +186,6 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   // When the video element loads new src (file switch), seek to correct position + auto-play
   const handleLoadedMetadata = useCallback(
     (_duration: number) => {
-      console.log('[VideoPane] loadedMetadata', { cutSkipFileChange: cutSkipFileChangeRef.current, playing })
       // Cut-skip file changes are handled by the dedicated effect below
       if (cutSkipFileChangeRef.current) return
       const file = files[activeFileIndexRef.current]
@@ -212,45 +205,30 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   // We must wait for the new src to be applied to the DOM (after React render)
   // then call load() and wait for canplay before seeking + playing.
   useEffect(() => {
-    console.log('[CutSkip] canplay effect running', { cutSkipFileChangeRef: cutSkipFileChangeRef.current, activeFileIndex, videoSrc: videoRef.current?.src })
     if (!cutSkipFileChangeRef.current) return
     const video = videoRef.current
-    if (!video) {
-      console.log('[CutSkip] canplay effect: no video ref!')
-      return
-    }
-
-    console.log('[CutSkip] canplay effect: setting up listener, video.src=', video.src, 'readyState=', video.readyState)
+    if (!video) return
 
     const resume = () => {
-      console.log('[CutSkip] canplay fired!', { cutSkipFileChangeRef: cutSkipFileChangeRef.current, readyState: video.readyState, src: video.src })
       if (!cutSkipFileChangeRef.current) return
       cutSkipFileChangeRef.current = false
       const file = files[activeFileIndexRef.current]
-      if (!file) {
-        console.log('[CutSkip] resume: no file at index', activeFileIndexRef.current)
-        return
-      }
+      if (!file) return
       const expectedLocalTime = globalTimeRef.current - file.startSeconds
-      console.log('[CutSkip] resume: seeking to localTime=', expectedLocalTime, 'globalTime=', globalTimeRef.current, 'fileStart=', file.startSeconds)
       if (expectedLocalTime > 0.1) {
         suppressPauseUntilRef.current = Date.now() + 500
         video.currentTime = expectedLocalTime
       }
       setPlaying(true)
       onPlayingChange?.(true)
-      video.play().catch((err) => console.warn('[CutSkip] play() failed:', err))
+      video.play().catch(() => {})
     }
 
     // Always load + wait for canplay. Don't trust readyState — it reflects
     // the OLD source until load() completes with the new src.
     video.addEventListener('canplay', resume, { once: true })
-    console.log('[CutSkip] calling video.load()')
     video.load()
-    return () => {
-      console.log('[CutSkip] canplay effect cleanup')
-      video.removeEventListener('canplay', resume)
-    }
+    return () => video.removeEventListener('canplay', resume)
   }, [activeFileIndex, files, onPlayingChange])
 
   return (
@@ -261,12 +239,10 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
         muted={muted}
         onLoadedMetadata={handleLoadedMetadata}
         onPlay={() => {
-          console.log('[VideoPane] onPlay')
           setPlaying(true)
           onPlayingChange?.(true)
         }}
         onPause={() => {
-          console.log('[VideoPane] onPause', { suppressUntil: suppressPauseUntilRef.current, now: Date.now(), cutSkipFileChange: cutSkipFileChangeRef.current })
           // Suppress pause events during cut-skip seek window
           if (Date.now() < suppressPauseUntilRef.current) {
             videoRef.current?.play().catch(() => {})
