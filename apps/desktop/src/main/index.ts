@@ -85,12 +85,14 @@ export async function cleanupEmptyRacedashTempDirs(
 app.whenReady().then(async () => {
   // Load React DevTools in development
   if (!app.isPackaged) {
-    const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import(
-      'electron-devtools-installer'
-    )
     try {
-      const ext = await installExtension(REACT_DEVELOPER_TOOLS)
-      console.log(`Loaded extension: ${ext.name}`)
+      const devtools = await import('electron-devtools-installer')
+      const installExtension = devtools.default ?? devtools
+      const REACT_DEVELOPER_TOOLS = (devtools as Record<string, unknown>).REACT_DEVELOPER_TOOLS
+      if (installExtension && REACT_DEVELOPER_TOOLS) {
+        const ext = await (installExtension as Function)(REACT_DEVELOPER_TOOLS)
+        console.log(`Loaded extension: ${ext?.name ?? ext}`)
+      }
     } catch (err) {
       console.warn('Failed to install React DevTools:', err)
     }

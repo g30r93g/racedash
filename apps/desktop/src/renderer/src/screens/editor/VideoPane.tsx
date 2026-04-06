@@ -195,14 +195,15 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
   )
 
   // Dedicated effect for resuming playback after a cross-file cut-skip.
-  // Listens for canplay on the video element since loadedMetadata is unreliable
-  // in Electron with custom protocols after a src change.
+  // We must wait for the new src to be applied to the DOM (after React render)
+  // then call load() and wait for canplay before seeking + playing.
   useEffect(() => {
     if (!cutSkipFileChangeRef.current) return
     const video = videoRef.current
     if (!video) return
 
     const resume = () => {
+      if (!cutSkipFileChangeRef.current) return
       cutSkipFileChangeRef.current = false
       const file = files[activeFileIndexRef.current]
       if (!file) return
@@ -215,15 +216,11 @@ export const VideoPane = React.forwardRef<VideoPaneHandle, VideoPaneProps>(funct
       video.play().catch(() => {})
     }
 
-    // Video may already be ready if cached
-    if (video.readyState >= 3) {
-      resume()
-    } else {
-      video.addEventListener('canplay', resume, { once: true })
-      // Also load explicitly in case the browser is waiting
-      video.load()
-      return () => video.removeEventListener('canplay', resume)
-    }
+    // Always load + wait for canplay. Don't trust readyState — it reflects
+    // the OLD source until load() completes with the new src.
+    video.addEventListener('canplay', resume, { once: true })
+    video.load()
+    return () => video.removeEventListener('canplay', resume)
   }, [activeFileIndex, files, onPlayingChange])
 
   return (
