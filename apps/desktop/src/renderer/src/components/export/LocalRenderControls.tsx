@@ -1,20 +1,22 @@
+import { RenderJobQueue } from '@/components/export/RenderJobQueue'
 import { SectionLabel } from '@/components/shared/SectionLabel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
 import React from 'react'
-import { Play, Loader2 } from 'lucide-react'
+import { Play } from 'lucide-react'
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── types ────────────────────────────────────────────────────────────────────
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.ceil(seconds)}s`
-  const m = Math.floor(seconds / 60)
-  const s = Math.ceil(seconds % 60)
-  return s > 0 ? `${m}m ${s}s` : `${m}m`
+interface RenderJob {
+  id: string
+  label: string
+  status: 'queued' | 'rendering' | 'completed' | 'error' | 'skipped'
+  progress: number
+  phase: string
+  error?: string
 }
 
-// ── component ─────────────────────────────────────────────────────────────────
+// ── component ────────────────────────────────────────────────────────────────
 
 interface LocalRenderControlsProps {
   outputPath: string
@@ -23,20 +25,10 @@ interface LocalRenderControlsProps {
   onRender: () => void
   isBusy: boolean
   rendering: boolean
-  renderPhase: string
-  renderProgress: number
-  renderFrames: { rendered: number; total: number } | null
-  etaSeconds: number | null
-}
-
-const shimmerStyle: React.CSSProperties = {
-  background:
-    'linear-gradient(90deg, #6e6e6e 0%, #6e6e6e 25%, #e8e8e8 45%, #ffffff 50%, #e8e8e8 55%, #6e6e6e 75%, #6e6e6e 100%)',
-  backgroundSize: '400% 100%',
-  backgroundClip: 'text',
-  WebkitBackgroundClip: 'text',
-  color: 'transparent',
-  animation: 'shimmer 3.5s linear infinite',
+  jobs: RenderJob[]
+  onRetry: (jobId: string) => void
+  onRetryAll: () => void
+  onCancel: () => void
 }
 
 export function LocalRenderControls({
@@ -46,11 +38,13 @@ export function LocalRenderControls({
   onRender,
   isBusy,
   rendering,
-  renderPhase,
-  renderProgress,
-  renderFrames,
-  etaSeconds,
+  jobs,
+  onRetry,
+  onRetryAll,
+  onCancel,
 }: LocalRenderControlsProps): React.ReactElement {
+  const hasJobs = jobs.length > 0
+
   return (
     <>
       {/* OUTPUT PATH */}
@@ -69,43 +63,28 @@ export function LocalRenderControls({
         </div>
       </section>
 
-      {/* RENDER BUTTON / PROGRESS */}
+      {/* RENDER BUTTON / JOB QUEUE */}
       <section>
-        {!rendering ? (
-          <Button onClick={onRender} className="w-full gap-2">
+        {!hasJobs ? (
+          <Button onClick={onRender} className="w-full gap-2" disabled={isBusy}>
             <Play size={14} aria-hidden="true" />
             Render
           </Button>
-        ) : renderProgress === 0 ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="animate-spin h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>Starting render job</span>
-            </div>
-            <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
-              Cancel
-            </Button>
-          </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs">
-              <span style={shimmerStyle}>{renderPhase}</span>
-              <span>{Math.round(renderProgress * 100)}%</span>
-            </div>
-            <Progress value={Math.round(renderProgress * 100)} />
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              {renderFrames && (
-                <span>
-                  Frame {renderFrames.rendered} of {renderFrames.total}
-                </span>
-              )}
-              {etaSeconds != null && (
-                <span className={renderFrames ? '' : 'ml-auto'}>{formatDuration(etaSeconds)} remaining</span>
-              )}
-            </div>
-            <Button variant="outline" onClick={() => window.racedash.cancelRender()}>
-              Cancel
-            </Button>
+          <div className="flex flex-col gap-3">
+            <RenderJobQueue
+              jobs={jobs}
+              onRetry={onRetry}
+              onRetryAll={onRetryAll}
+              onCancel={onCancel}
+              batchActive={rendering}
+            />
+            {!rendering && (
+              <Button onClick={onRender} className="w-full gap-2" disabled={isBusy}>
+                <Play size={14} aria-hidden="true" />
+                Render
+              </Button>
+            )}
           </div>
         )}
       </section>

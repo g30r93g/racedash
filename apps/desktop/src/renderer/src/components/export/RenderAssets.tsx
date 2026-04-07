@@ -12,7 +12,7 @@ import type { TimestampsResult } from '../../../../../types/ipc'
 import type { ProjectData } from '../../../../../types/project'
 
 export interface RenderAssetsSelection {
-  /** When true, render the entire project — segment/lap selections are ignored. */
+  /** When true, add a job for the full project. Does NOT suppress segment/lap selections. */
   entireProject: boolean
   /** Segment indices that are selected for export. */
   segments: Set<number>
@@ -22,7 +22,7 @@ export interface RenderAssetsSelection {
   linkedPairs: Set<string>
 }
 
-interface SegmentInfo {
+export interface SegmentInfo {
   index: number
   label: string
   startSeconds: number
@@ -59,7 +59,7 @@ function pairKey(a: number, b: number): string {
 
 const ADJACENT_GAP_THRESHOLD = 120
 
-function buildSegmentInfos(
+export function buildSegmentInfos(
   project: ProjectData,
   timestampsResult: TimestampsResult | null | undefined,
   fps: number,
