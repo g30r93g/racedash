@@ -2,7 +2,7 @@ import type { OverlayProps } from '@racedash/core'
 export { trimVideo, computeKeptRanges, type ResolvedTransition } from './cuts'
 export { extractClip, probeActualStartSeconds, buildExtractClipArgs } from './clip'
 import { bundle } from '@remotion/bundler'
-import { renderMedia, selectComposition } from '@remotion/renderer'
+import { renderMedia, selectComposition, makeCancelSignal } from '@remotion/renderer'
 import { execFile, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { unlink, writeFile } from 'node:fs/promises'
@@ -152,6 +152,13 @@ export async function renderOverlay(
   const profile = getOverlayRenderProfile(runtimePlatform)
   const totalFrames = comp.durationInFrames
 
+  // Bridge native AbortSignal to Remotion's CancelSignal
+  let remotionCancelSignal: ReturnType<typeof makeCancelSignal> | undefined
+  if (signal) {
+    remotionCancelSignal = makeCancelSignal()
+    signal.addEventListener('abort', () => remotionCancelSignal!.cancel(), { once: true })
+  }
+
   if (profile.codec === 'prores') {
     await renderMedia({
       serveUrl,
@@ -165,7 +172,7 @@ export async function renderOverlay(
       chromiumOptions: { gl: 'angle' },
       hardwareAcceleration: 'required',
       concurrency: cpus().length,
-      cancelSignal: signal,
+      cancelSignal: remotionCancelSignal?.cancelSignal,
       onProgress: onProgress
         ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
         : undefined,
@@ -183,7 +190,7 @@ export async function renderOverlay(
     inputProps,
     chromiumOptions: { gl: 'angle' },
     concurrency: cpus().length,
-    cancelSignal: signal,
+    cancelSignal: remotionCancelSignal?.cancelSignal,
     onProgress: onProgress
       ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
       : undefined,
