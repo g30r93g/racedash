@@ -483,13 +483,10 @@ async function renderLapJob(
   const lapStartSeconds = lapTimestamps[0].ytSeconds
   const lapEndSeconds = lapTimestamps[lapTimestamps.length - 1].ytSeconds
 
-  // Use the full segment time range for clip extraction (to get context)
-  // but pass lap-specific info for overlay
-  const segStartSeconds = timestamps[0].ytSeconds
-  const segEndSeconds = timestamps[timestamps.length - 1].ytSeconds
-
+  // Use the lap time range for clip extraction (not full segment)
+  // The 5s pre/post-roll is added by computeClipRange inside renderSubClip
   await renderSubClip(
-    opts, ctx, job, [segIndex], segStartSeconds, segEndSeconds, onJobProgress, signal,
+    opts, ctx, job, [segIndex], lapStartSeconds, lapEndSeconds, onJobProgress, signal,
     { targetLapNumber: job.lapNumber, lapStartSeconds, lapEndSeconds },
   )
 }
@@ -562,9 +559,21 @@ async function renderSubClip(
       if (signal.aborted) return
 
       // Rebase segments for the clip's actual start time
-      const rebasedSegments: SessionSegment[] = segmentIndices.map((segIndex) =>
+      let rebasedSegments: SessionSegment[] = segmentIndices.map((segIndex) =>
         rebaseSegment(ctx.segments[segIndex], actualStartSeconds, ctx.fps),
       )
+
+      // For lap jobs, filter segment data to only the target lap
+      if (lapInfo) {
+        rebasedSegments = rebasedSegments.map((seg) => ({
+          ...seg,
+          session: {
+            ...seg.session,
+            laps: seg.session.laps.filter((l) => l.number === lapInfo.targetLapNumber),
+            timestamps: seg.session.timestamps.filter((t) => t.lap.number === lapInfo.targetLapNumber),
+          },
+        }))
+      }
 
       // Probe clip duration for overlay frame count
       const clipDuration = await getVideoDuration(tempClipPath)
