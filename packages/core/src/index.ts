@@ -242,3 +242,9 @@ export interface OverlayProps {
   styling?: OverlayStyling
   labelWindowSeconds?: number // default 2
 }
+
+export interface LapOverlayProps extends OverlayProps {
+  targetLapNumber: number
+  targetLapStartFrame: number
+  targetLapEndFrame: number
+}

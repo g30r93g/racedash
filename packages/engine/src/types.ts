@@ -43,10 +43,6 @@ export interface RenderOptions {
   cutRegions?: Array<{ id: string; startFrame: number; endFrame: number }>
   /** Transitions at seam boundaries. */
   transitions?: Array<{ id: string; boundaryId: string; type: string; durationMs: number }>
-  /** Segment indices to include in the overlay. Undefined = all segments. */
-  selectedSegments?: number[]
-  /** Lap keys ("segmentIndex:lapNumber") to include in the overlay. Undefined = all laps. */
-  selectedLaps?: string[]
 }
 
 export interface RenderProgressEvent {
@@ -60,4 +56,39 @@ export interface RenderProgressEvent {
 export interface RenderResult {
   outputPath: string
   overlayReused: boolean
+}
+
+export type RenderJobType = 'entireProject' | 'segment' | 'linkedSegment' | 'lap'
+
+export interface RenderJobOpts {
+  id: string
+  type: RenderJobType
+  segmentIndices: number[]
+  lapNumber?: number
+  outputPath: string
+}
+
+export interface BatchRenderOpts {
+  configPath: string
+  videoPaths: string[]
+  rendererEntry: string
+  style: string
+  outputResolution?: { width: number; height: number }
+  renderMode?: 'overlay+footage' | 'overlay-only'
+  jobs: RenderJobOpts[]
+  cutRegions?: Array<{ id: string; startFrame: number; endFrame: number }>
+  transitions?: Array<{ id: string; boundaryId: string; type: string; durationMs: number }>
+}
+
+export interface BatchJobProgressEvent {
+  jobId: string
+  phase: string
+  progress: number
+  renderedFrames?: number
+  totalFrames?: number
+}
+
+export interface BatchJobResult {
+  jobId: string
+  outputPath: string
 }
