@@ -12,7 +12,7 @@ import type {
   OpenDirectoryOptions,
   VideoInfo,
   MultiVideoInfo,
-  RenderStartOpts,
+  RenderBatchOpts,
   OutputResolution,
   DriversResult,
 } from '../types/ipc'
@@ -22,7 +22,7 @@ import {
   joinVideos,
   listDrivers,
   generateTimestamps,
-  renderSession,
+  renderBatch,
   parseFpsValue,
   buildRaceLapSnapshots,
   buildSessionSegments,
@@ -718,11 +718,12 @@ const RESOLUTION_MAP: Record<Exclude<OutputResolution, 'source'>, { width: numbe
 const RENDERER_ENTRY = path.resolve(__dirname, '../../../../apps/renderer/src/index.ts')
 
 // ---------------------------------------------------------------------------
-// Active render state (one render at a time)
+// Active batch render state
 // ---------------------------------------------------------------------------
 
-let activeRenderCancelled = false
-let activeRenderSender: WebContents | null = null
+let activeBatchController: AbortController | null = null
+let activeBatchOpts: RenderBatchOpts | null = null
+let activeBatchSender: WebContents | null = null
 
 // ---------------------------------------------------------------------------
 // previewDrivers — wizard helper
@@ -1020,52 +1021,110 @@ export function registerIpcHandlers(): void {
     return { available, unavailable }
   })
 
-  // Export — startRender (non-blocking; progress pushed via webContents.send)
-  ipcMain.handle('racedash:startRender', (event, opts: RenderStartOpts) => {
-    activeRenderCancelled = false
-    activeRenderSender = event.sender
+  // Export — startBatchRender (non-blocking; progress pushed via webContents.send)
+  ipcMain.handle('racedash:renderBatch:start', (event, opts: RenderBatchOpts) => {
+    const controller = new AbortController()
+    activeBatchController = controller
+    activeBatchOpts = opts
+    activeBatchSender = event.sender
 
     const outputResolution = opts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[opts.outputResolution]
 
-    renderSession(
+    const send = (channel: string, ...args: unknown[]) => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, ...args)
+    }
+
+    renderBatch(
       {
         configPath: opts.configPath,
         videoPaths: opts.videoPaths,
-        outputPath: opts.outputPath,
         rendererEntry: RENDERER_ENTRY,
         style: opts.style,
         outputResolution,
-        onlyRenderOverlay: opts.renderMode === 'overlay-only',
+        renderMode: opts.renderMode,
+        jobs: opts.jobs,
         cutRegions: opts.cutRegions,
         transitions: opts.transitions,
-        selectedSegments: opts.selectedSegments,
-        selectedLaps: opts.selectedLaps,
       },
-      (progress) => {
-        if (activeRenderCancelled) {
-          throw new Error('Render cancelled by user')
-        }
-        event.sender.send('racedash:render-progress', progress)
-      },
+      (progressEvent) => send('racedash:renderBatch:job-progress', progressEvent),
+      (result) => send('racedash:renderBatch:job-complete', result),
+      (jobId, error) => send('racedash:renderBatch:job-error', { jobId, message: error.message }),
+      controller.signal,
     )
-      .then((result) => {
-        activeRenderSender = null
-        event.sender.send('racedash:render-complete', result)
+      .then(() => {
+        activeBatchController = null
+        activeBatchOpts = null
+        activeBatchSender = null
+        send('racedash:renderBatch:complete')
       })
       .catch((err: unknown) => {
-        activeRenderSender = null
+        activeBatchController = null
+        activeBatchOpts = null
+        activeBatchSender = null
         const message = err instanceof Error ? err.message : String(err)
-        event.sender.send('racedash:render-error', { message })
+        send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
+        send('racedash:renderBatch:complete')
       })
   })
 
-  // Export — cancelRender
-  ipcMain.handle('racedash:cancelRender', () => {
-    activeRenderCancelled = true
-    if (activeRenderSender && !activeRenderSender.isDestroyed()) {
-      activeRenderSender.send('racedash:render-error', { message: 'Render cancelled by user' })
+  // Export — cancelBatchRender
+  ipcMain.handle('racedash:renderBatch:cancel', () => {
+    if (activeBatchController) {
+      activeBatchController.abort()
+      activeBatchController = null
+      activeBatchOpts = null
+      activeBatchSender = null
     }
-    activeRenderSender = null
+  })
+
+  // Export — retryBatchJobs (re-queue specific failed jobs)
+  ipcMain.handle('racedash:renderBatch:retry', (event, jobIds: string[]) => {
+    if (!activeBatchOpts) throw new Error('No batch render to retry — start a new batch instead')
+
+    const originalOpts = activeBatchOpts
+    const retryJobs = originalOpts.jobs.filter((j) => jobIds.includes(j.id))
+    if (retryJobs.length === 0) throw new Error('None of the specified job IDs match the last batch')
+
+    const controller = new AbortController()
+    activeBatchController = controller
+    activeBatchSender = event.sender
+
+    const outputResolution =
+      originalOpts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[originalOpts.outputResolution]
+
+    const send = (channel: string, ...args: unknown[]) => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, ...args)
+    }
+
+    renderBatch(
+      {
+        configPath: originalOpts.configPath,
+        videoPaths: originalOpts.videoPaths,
+        rendererEntry: RENDERER_ENTRY,
+        style: originalOpts.style,
+        outputResolution,
+        renderMode: originalOpts.renderMode,
+        jobs: retryJobs,
+        cutRegions: originalOpts.cutRegions,
+        transitions: originalOpts.transitions,
+      },
+      (progressEvent) => send('racedash:renderBatch:job-progress', progressEvent),
+      (result) => send('racedash:renderBatch:job-complete', result),
+      (jobId, error) => send('racedash:renderBatch:job-error', { jobId, message: error.message }),
+      controller.signal,
+    )
+      .then(() => {
+        activeBatchController = null
+        activeBatchSender = null
+        send('racedash:renderBatch:complete')
+      })
+      .catch((err: unknown) => {
+        activeBatchController = null
+        activeBatchSender = null
+        const message = err instanceof Error ? err.message : String(err)
+        send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
+        send('racedash:renderBatch:complete')
+      })
   })
 
   // Cloud render handlers

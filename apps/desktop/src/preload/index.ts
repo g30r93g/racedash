@@ -2,7 +2,9 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type {
   RacedashAPI,
-  RenderCompleteResult,
+  BatchJobProgressEvent,
+  BatchJobCompleteEvent,
+  BatchJobErrorEvent,
   LicenseInfo,
   CreditBalance,
   CreateCloudJobOpts,
@@ -66,23 +68,29 @@ const api: RacedashAPI = {
   getVideoInfo: (videoPath) => ipcRenderer.invoke('racedash:getVideoInfo', videoPath),
   getMultiVideoInfo: (videoPaths: string[]) => ipcRenderer.invoke('racedash:getMultiVideoInfo', videoPaths),
   validateVideoPaths: (videoPaths: string[]) => ipcRenderer.invoke('racedash:validateVideoPaths', videoPaths),
-  startRender: (opts) => ipcRenderer.invoke('racedash:startRender', opts),
-  cancelRender: () => ipcRenderer.invoke('racedash:cancelRender'),
+  startBatchRender: (opts) => ipcRenderer.invoke('racedash:renderBatch:start', opts),
+  cancelBatchRender: () => ipcRenderer.invoke('racedash:renderBatch:cancel'),
+  retryBatchJobs: (jobIds: string[]) => ipcRenderer.invoke('racedash:renderBatch:retry', jobIds),
 
-  onRenderProgress: (cb) => {
-    const handler = (_: IpcRendererEvent, event: { phase: string; progress: number }) => cb(event)
-    ipcRenderer.on('racedash:render-progress', handler)
-    return () => ipcRenderer.removeListener('racedash:render-progress', handler)
+  onBatchJobProgress: (cb) => {
+    const handler = (_: IpcRendererEvent, event: BatchJobProgressEvent) => cb(event)
+    ipcRenderer.on('racedash:renderBatch:job-progress', handler)
+    return () => ipcRenderer.removeListener('racedash:renderBatch:job-progress', handler)
   },
-  onRenderComplete: (cb) => {
-    const handler = (_: IpcRendererEvent, result: RenderCompleteResult) => cb(result)
-    ipcRenderer.on('racedash:render-complete', handler)
-    return () => ipcRenderer.removeListener('racedash:render-complete', handler)
+  onBatchJobComplete: (cb) => {
+    const handler = (_: IpcRendererEvent, event: BatchJobCompleteEvent) => cb(event)
+    ipcRenderer.on('racedash:renderBatch:job-complete', handler)
+    return () => ipcRenderer.removeListener('racedash:renderBatch:job-complete', handler)
   },
-  onRenderError: (cb) => {
-    const handler = (_: IpcRendererEvent, err: { message: string }) => cb(err)
-    ipcRenderer.on('racedash:render-error', handler)
-    return () => ipcRenderer.removeListener('racedash:render-error', handler)
+  onBatchJobError: (cb) => {
+    const handler = (_: IpcRendererEvent, event: BatchJobErrorEvent) => cb(event)
+    ipcRenderer.on('racedash:renderBatch:job-error', handler)
+    return () => ipcRenderer.removeListener('racedash:renderBatch:job-error', handler)
+  },
+  onBatchComplete: (cb) => {
+    const handler = (_: IpcRendererEvent) => cb()
+    ipcRenderer.on('racedash:renderBatch:complete', handler)
+    return () => ipcRenderer.removeListener('racedash:renderBatch:complete', handler)
   },
 
   onUpdateAvailable: (cb) => {
