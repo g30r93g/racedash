@@ -13,6 +13,10 @@ interface Props {
   textColor?: string
   flashDuration?: number
   placeholderText?: string
+  /** When true, lap-gating is active and isLapActive controls visibility. */
+  isLapRender?: boolean
+  /** Whether the current frame is within the target lap range. */
+  isLapActive?: boolean
 }
 
 function formatTime(seconds: number): string {
@@ -33,6 +37,8 @@ export const LapTimerTrap: React.FC<Props> = ({
   textColor = 'white',
   flashDuration,
   placeholderText,
+  isLapRender = false,
+  isLapActive = true,
 }) => {
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -56,7 +62,9 @@ export const LapTimerTrap: React.FC<Props> = ({
 
   let displayText: string
 
-  if (currentTime < raceStart) {
+  if (isLapRender && !isLapActive) {
+    displayText = formatTime(0)
+  } else if (currentTime < raceStart) {
     displayText = placeholderText!
   } else if (currentTime >= raceEnd) {
     const timeSinceEnd = currentTime - raceEnd
