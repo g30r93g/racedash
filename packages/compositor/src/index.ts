@@ -143,6 +143,7 @@ export async function renderOverlay(
   outputPath: string,
   onProgress?: (event: { progress: number; renderedFrames: number; totalFrames: number }) => void,
   runtimePlatform: NodeJS.Platform = process.platform,
+  signal?: AbortSignal,
 ): Promise<void> {
   const serveUrl = await bundle({ entryPoint: rendererEntryPoint })
   const inputProps = props as unknown as Record<string, unknown>
@@ -163,6 +164,7 @@ export async function renderOverlay(
       chromiumOptions: { gl: 'angle' },
       hardwareAcceleration: 'required',
       concurrency: cpus().length,
+      cancelSignal: signal,
       onProgress: onProgress
         ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
         : undefined,
@@ -180,6 +182,7 @@ export async function renderOverlay(
     inputProps,
     chromiumOptions: { gl: 'angle' },
     concurrency: cpus().length,
+    cancelSignal: signal,
     onProgress: onProgress
       ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
       : undefined,
@@ -636,6 +639,7 @@ export async function compositeVideo(
   outputPath: string,
   opts: CompositeOptions = {},
   onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const {
     fps = 60,
@@ -671,7 +675,7 @@ export async function compositeVideo(
         ? buildMacCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
         : buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
 
-  await runFFmpegWithProgress(plan.args, totalSeconds, onProgress)
+  await runFFmpegWithProgress(plan.args, totalSeconds, onProgress, signal)
 }
 
 /**
@@ -749,7 +753,7 @@ export async function getVideoResolution(videoPath: string): Promise<{ width: nu
  * Concatenate video files losslessly using FFmpeg's concat demuxer.
  * Writes a temporary file list to os.tmpdir(), runs ffmpeg -c copy, then cleans up.
  */
-export async function joinVideos(inputs: string[], outputPath: string): Promise<void> {
+export async function joinVideos(inputs: string[], outputPath: string, signal?: AbortSignal): Promise<void> {
   if (inputs.length < 2) throw new Error('joinVideos requires at least 2 input files')
 
   const durations = await Promise.all(inputs.map(getVideoDuration))
@@ -768,6 +772,7 @@ export async function joinVideos(inputs: string[], outputPath: string): Promise<
           `\rProgress: ${Math.round(pct * 100)}% (${formatSeconds(processed)} / ${formatSeconds(totalSeconds)})`,
         )
       },
+      signal,
     )
     process.stderr.write('\n')
   } finally {
@@ -787,6 +792,7 @@ function runFFmpegWithProgress(
   args: string[],
   totalSeconds: number,
   onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolvePromise, rejectPromise) => {
     const proc = spawn('ffmpeg', args)
@@ -803,6 +809,12 @@ function runFFmpegWithProgress(
       if (settled) return
       settled = true
       resolvePromise()
+    }
+
+    if (signal) {
+      const onAbort = () => proc.kill('SIGTERM')
+      signal.addEventListener('abort', onAbort, { once: true })
+      proc.on('close', () => signal.removeEventListener('abort', onAbort))
     }
 
     proc.stderr.on('data', (chunk: Buffer) => {

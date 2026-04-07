@@ -210,11 +210,12 @@ export async function trimVideo(
   fps: number,
   totalDurationSeconds: number,
   onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<boolean> {
   const result = buildCutConcatArgs(sourcePath, outputPath, cuts, resolvedTransitions, fps, totalDurationSeconds)
   if (!result.trimFilterUsed) return false
 
-  await runFfmpegWithProgress(result.args, totalDurationSeconds, onProgress)
+  await runFfmpegWithProgress(result.args, totalDurationSeconds, onProgress, signal)
   return true
 }
 
@@ -222,11 +223,18 @@ function runFfmpegWithProgress(
   args: string[],
   totalSeconds: number,
   onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn('ffmpeg', args)
     let stderr = ''
     let settled = false
+
+    if (signal) {
+      const onAbort = () => proc.kill('SIGTERM')
+      signal.addEventListener('abort', onAbort, { once: true })
+      proc.on('close', () => signal.removeEventListener('abort', onAbort))
+    }
 
     proc.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString()
@@ -237,11 +245,11 @@ function runFfmpegWithProgress(
         onProgress?.(Math.max(0, Math.min(1, processed / totalSeconds)))
       }
     })
-    proc.on('close', (code: number | null, signal: string | null) => {
+    proc.on('close', (code: number | null, sig: string | null) => {
       if (settled) return
       settled = true
       if (code === 0) resolve()
-      else if (signal) reject(new Error(`ffmpeg killed by signal ${signal}\n${stderr}`))
+      else if (sig) reject(new Error(`ffmpeg killed by signal ${sig}\n${stderr}`))
       else reject(new Error(`ffmpeg exited with code ${code}\n${stderr}`))
     })
     proc.on('error', (error: NodeJS.ErrnoException) => {
