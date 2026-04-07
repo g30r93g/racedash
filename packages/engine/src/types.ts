@@ -1,5 +1,5 @@
-import type { BoxPosition, CornerPosition } from '@racedash/core'
-import type { DriversCommandSegment, ResolvedTimingSegment } from './timingSources'
+import type { BoxPosition, CornerPosition, OverlayComponentsConfig, OverlayStyling, SessionSegment } from '@racedash/core'
+import type { DriversCommandSegment, ResolvedTimingSegment, SegmentConfig } from './timingSources'
 
 export interface DriversOptions {
   configPath: string
@@ -91,4 +91,33 @@ export interface BatchJobProgressEvent {
 export interface BatchJobResult {
   jobId: string
   outputPath: string
+}
+
+export interface PrecomputedContext {
+  /** Path to the (possibly joined) source video. */
+  videoPath: string
+  /** Temp file to clean up if videos were joined, or null. */
+  tempJoinedVideo: string | null
+  fps: number
+  durationSeconds: number
+  videoResolution: { width: number; height: number }
+  outputResolution: { width: number; height: number }
+  /** Frame ranges for each source file (inclusive start, exclusive end). */
+  fileFrameRanges: Array<{ path: string; startFrame: number; endFrame: number }>
+  /** Fully built session segments with position overrides attached. */
+  segments: SessionSegment[]
+  startingGridPosition?: number
+  /** Segment configs from the timing config file. */
+  segmentConfigs: SegmentConfig[]
+  /** Resolved timing segments (pre-build). */
+  resolvedSegments: ResolvedTimingSegment[]
+  /** Snapped offsets per segment. */
+  offsets: number[]
+  overlayY: number
+  boxPosition: BoxPosition
+  qualifyingTablePosition?: CornerPosition
+  overlayComponents?: OverlayComponentsConfig
+  styling?: OverlayStyling
+  configBoxPosition?: string
+  configTablePosition?: string
 }
