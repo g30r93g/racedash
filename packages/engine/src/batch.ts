@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto'
 import type { BoxPosition, CornerPosition, LapOverlayProps, OverlayProps, SessionSegment } from '@racedash/core'
 import { DEFAULT_LABEL_WINDOW_SECONDS } from '@racedash/core'
 import {
+  bundleRenderer,
   compositeVideo,
   extractClip,
   getOverlayOutputPath,
@@ -208,6 +209,9 @@ export async function buildPrecomputedContext(
     mkdirSync(path.dirname(job.outputPath), { recursive: true })
   }
 
+  // Bundle the Remotion renderer once for all jobs
+  const serveUrl = await bundleRenderer(opts.rendererEntry)
+
   return {
     videoPath,
     tempJoinedVideo,
@@ -228,6 +232,7 @@ export async function buildPrecomputedContext(
     styling,
     configBoxPosition,
     configTablePosition,
+    serveUrl,
   }
 }
 
@@ -306,9 +311,9 @@ async function renderEntireProject(
 
   if (signal.aborted) return
 
-  // Render overlay
+  // Render overlay (using pre-bundled serveUrl)
   await renderOverlay(
-    opts.rendererEntry,
+    ctx.serveUrl,
     opts.style,
     overlayProps,
     overlayPath,
@@ -622,9 +627,9 @@ async function renderSubClip(
 
       if (signal.aborted) return
 
-      // Render overlay
+      // Render overlay (using pre-bundled serveUrl)
       await renderOverlay(
-        opts.rendererEntry,
+        ctx.serveUrl,
         opts.style,
         overlayProps,
         overlayPath,

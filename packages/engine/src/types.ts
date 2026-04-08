@@ -120,4 +120,6 @@ export interface PrecomputedContext {
   styling?: OverlayStyling
   configBoxPosition?: string
   configTablePosition?: string
+  /** Pre-bundled Remotion serve URL — bundle once, reuse across all jobs. */
+  serveUrl: string
 }

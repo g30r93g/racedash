@@ -1,6 +1,7 @@
 import type { OverlayProps } from '@racedash/core'
 export { trimVideo, computeKeptRanges, type ResolvedTransition } from './cuts'
 export { extractClip, probeActualStartSeconds, buildExtractClipArgs } from './clip'
+// bundleRenderer is exported via the renderOverlay block above
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition, makeCancelSignal } from '@remotion/renderer'
 import { execFile, spawn } from 'node:child_process'
@@ -137,8 +138,16 @@ export function getOverlayOutputPath(outputPath: string, platform: NodeJS.Platfo
  * Bundle the Remotion renderer entry point, render the overlay with alpha,
  * and write it to `outputPath`.
  */
+/**
+ * Bundle the Remotion renderer entry point. Call once and reuse the serveUrl
+ * across multiple renderOverlay calls (e.g., in a batch).
+ */
+export async function bundleRenderer(rendererEntryPoint: string): Promise<string> {
+  return bundle({ entryPoint: rendererEntryPoint })
+}
+
 export async function renderOverlay(
-  rendererEntryPoint: string,
+  serveUrlOrEntryPoint: string,
   compositionId: string,
   props: OverlayProps,
   outputPath: string,
@@ -146,7 +155,10 @@ export async function renderOverlay(
   runtimePlatform: NodeJS.Platform = process.platform,
   signal?: AbortSignal,
 ): Promise<void> {
-  const serveUrl = await bundle({ entryPoint: rendererEntryPoint })
+  // Accept either a pre-bundled serveUrl (starts with /) or an entry point (bundle on the fly)
+  const serveUrl = serveUrlOrEntryPoint.startsWith('/')
+    ? serveUrlOrEntryPoint
+    : await bundle({ entryPoint: serveUrlOrEntryPoint })
   const inputProps = props as unknown as Record<string, unknown>
   const comp = await selectComposition({ serveUrl, id: compositionId, inputProps })
   const profile = getOverlayRenderProfile(runtimePlatform)
