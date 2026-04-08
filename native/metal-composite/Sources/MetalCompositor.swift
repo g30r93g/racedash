@@ -189,36 +189,35 @@ final class MetalCompositor {
             scaledOverlayTexture = device.makeTexture(descriptor: desc)
         }
 
-        // Process frames using pull model — writer drives the pace
-        var frameIndex = 0
-        var videoFinished = false
-        var audioFinished = audioOutput == nil
-        var compositeError: Error?
+        // Double-buffered pipeline:
+        //   Producer thread: decode → composite → push to ring buffer
+        //   Writer callback: pop from ring buffer → append (instant)
+        // The producer runs ahead of the encoder, so frames are always ready when the encoder asks.
 
-        let processingQueue = DispatchQueue(label: "com.racedash.metal-composite.video", qos: .userInitiated)
+        struct CompositeFrame {
+            let pixelBuffer: CVPixelBuffer
+            let presentationTime: CMTime
+        }
+
+        let bufferCapacity = 8 // ring buffer size — enough to absorb encoder latency
+        var ring: [CompositeFrame] = []
+        let ringLock = NSCondition()
+        var producerDone = false
+        var producerError: Error?
+
+        var frameIndex = 0
+        var audioFinished = audioOutput == nil
+        var videoFinished = false
+
+        let writerQueue = DispatchQueue(label: "com.racedash.metal-composite.writer", qos: .userInitiated)
         let audioQueue = DispatchQueue(label: "com.racedash.metal-composite.audio", qos: .userInitiated)
         let completionSemaphore = DispatchSemaphore(value: 0)
 
-        // Video: writer pulls frames when ready (zero-wait pull model)
-        videoInput.requestMediaDataWhenReady(on: processingQueue) { [self] in
-            while videoInput.isReadyForMoreMediaData {
-                let tFrameStart = CFAbsoluteTimeGetCurrent()
-                let shouldTime = frameIndex % 300 == 0
-
-                guard sourceReader.status == .reading else {
-                    videoInput.markAsFinished()
-                    videoFinished = true
-                    if audioFinished { completionSemaphore.signal() }
-                    return
-                }
-
-                guard let sourceSample = sourceOutput.copyNextSampleBuffer() else {
-                    videoInput.markAsFinished()
-                    videoFinished = true
-                    if audioFinished { completionSemaphore.signal() }
-                    return
-                }
-
+        // Producer: decode + composite on current thread, push to ring buffer
+        let producerThread = Thread {
+            var produced = 0
+            while sourceReader.status == .reading {
+                guard let sourceSample = sourceOutput.copyNextSampleBuffer() else { break }
                 guard let sourcePixelBuffer = CMSampleBufferGetImageBuffer(sourceSample) else { continue }
                 let presentationTime = CMSampleBufferGetPresentationTimeStamp(sourceSample)
 
@@ -229,7 +228,6 @@ final class MetalCompositor {
                 } else {
                     overlayPixelBuffer = nil
                 }
-                let tAfterDecode = CFAbsoluteTimeGetCurrent()
 
                 do {
                     guard let pool = adaptor.pixelBufferPool else {
@@ -240,12 +238,11 @@ final class MetalCompositor {
                     guard let outputPB = outPB else {
                         throw CompositorError.pixelBufferCreationFailed
                     }
-                    let outputPBTexture = try makeTexture(from: outputPB)
-                    let sourceTexture = try makeTexture(from: sourcePixelBuffer)
-                    let tAfterTex = CFAbsoluteTimeGetCurrent()
+                    let outputPBTexture = try self.makeTexture(from: outputPB)
+                    let sourceTexture = try self.makeTexture(from: sourcePixelBuffer)
 
                     if let overlayPB = overlayPixelBuffer {
-                        let rawOverlayTexture = try makeTexture(from: overlayPB)
+                        let rawOverlayTexture = try self.makeTexture(from: overlayPB)
 
                         let overlayToUse: MTLTexture
                         if needsScale, let dest = scaledOverlayTexture, let ci = ciContext {
@@ -259,34 +256,86 @@ final class MetalCompositor {
                             overlayToUse = rawOverlayTexture
                         }
 
-                        try runCompositeShader(
+                        try self.runCompositeShader(
                             source: sourceTexture, overlay: overlayToUse, output: outputPBTexture,
                             params: &compositeParams
                         )
                     } else {
-                        try blitCopy(from: sourceTexture, to: outputPBTexture)
+                        try self.blitCopy(from: sourceTexture, to: outputPBTexture)
                     }
-                    let tAfterComposite = CFAbsoluteTimeGetCurrent()
 
-                    adaptor.append(outputPB, withPresentationTime: presentationTime)
-                    let tAfterAppend = CFAbsoluteTimeGetCurrent()
+                    // Push to ring buffer (block if full)
+                    ringLock.lock()
+                    while ring.count >= bufferCapacity {
+                        ringLock.wait()
+                    }
+                    ring.append(CompositeFrame(pixelBuffer: outputPB, presentationTime: presentationTime))
+                    ringLock.signal()
+                    ringLock.unlock()
 
-                    if shouldTime {
-                        let fmt = { (v: Double) -> String in String(format: "%.1f", v * 1000) }
-                        dbg("frame \(frameIndex + 1)/\(totalFrames) — decode: \(fmt(tAfterDecode - tFrameStart))ms, tex: \(fmt(tAfterTex - tAfterDecode))ms, composite: \(fmt(tAfterComposite - tAfterTex))ms, append: \(fmt(tAfterAppend - tAfterComposite))ms — total: \(fmt(tAfterAppend - tFrameStart))ms")
+                    produced += 1
+                    if produced % 300 == 0 {
+                        self.dbg("produced \(produced)/\(totalFrames), ring: \(ring.count)")
                     }
                 } catch {
-                    compositeError = error
+                    ringLock.lock()
+                    producerError = error
+                    producerDone = true
+                    ringLock.signal()
+                    ringLock.unlock()
+                    return
+                }
+            }
+
+            ringLock.lock()
+            producerDone = true
+            ringLock.signal()
+            ringLock.unlock()
+            self.dbg("producer finished: \(produced) frames")
+        }
+        producerThread.qualityOfService = .userInitiated
+        producerThread.start()
+
+        // Consumer: writer pulls from ring buffer when encoder is ready
+        videoInput.requestMediaDataWhenReady(on: writerQueue) {
+            while videoInput.isReadyForMoreMediaData {
+                ringLock.lock()
+                while ring.isEmpty && !producerDone {
+                    ringLock.wait()
+                }
+
+                if let error = producerError {
+                    ringLock.unlock()
+                    videoInput.markAsFinished()
+                    videoFinished = true
+                    // Store error for main thread
+                    ringLock.lock()
+                    producerError = error
+                    ringLock.unlock()
+                    if audioFinished { completionSemaphore.signal() }
+                    return
+                }
+
+                if ring.isEmpty && producerDone {
+                    ringLock.unlock()
                     videoInput.markAsFinished()
                     videoFinished = true
                     if audioFinished { completionSemaphore.signal() }
                     return
                 }
 
+                let frame = ring.removeFirst()
+                ringLock.signal()
+                ringLock.unlock()
+
+                adaptor.append(frame.pixelBuffer, withPresentationTime: frame.presentationTime)
+
                 frameIndex += 1
-                if frameIndex == 1 { dbg("first frame written") }
                 if frameIndex % 30 == 0 {
                     onProgress(frameIndex, totalFrames)
+                }
+                if frameIndex % 300 == 0 {
+                    self.dbg("appended \(frameIndex)/\(totalFrames), ring: \(ring.count)")
                 }
             }
         }
@@ -309,7 +358,7 @@ final class MetalCompositor {
         // Wait for both video and audio to finish
         completionSemaphore.wait()
 
-        if let error = compositeError {
+        if let error = producerError {
             throw error
         }
 
