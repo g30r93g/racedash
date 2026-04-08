@@ -3,17 +3,20 @@ import CoreImage
 import CoreVideo
 import Foundation
 import Metal
-import MetalKit
 
-/// Composites an overlay video onto a source video using Metal GPU blending.
-/// All pixel data stays on GPU — no CPU pixel touching.
 final class MetalCompositor {
     let device: MTLDevice
     let commandQueue: MTLCommandQueue
     let pipelineState: MTLComputePipelineState
-    let ciContext: CIContext
+    let textureCache: CVMetalTextureCache
+    let verbose: Bool
 
-    init() throws {
+    private func dbg(_ msg: String) {
+        if verbose { fputs("[metal:dbg] \(msg)\n", stderr) }
+    }
+
+    init(verbose: Bool = false) throws {
+        self.verbose = verbose
         guard let device = MTLCreateSystemDefaultDevice() else {
             throw CompositorError.noMetalDevice
         }
@@ -24,22 +27,24 @@ final class MetalCompositor {
         }
         self.commandQueue = queue
 
-        // Load the alpha composite shader from the bundle
+        // Load shader
         let shaderURL = Bundle.module.url(forResource: "Shaders", withExtension: "metal")!
         let shaderSource = try String(contentsOf: shaderURL, encoding: .utf8)
         let library = try device.makeLibrary(source: shaderSource, options: nil)
-
         guard let function = library.makeFunction(name: "alphaComposite") else {
             throw CompositorError.shaderNotFound
         }
         self.pipelineState = try device.makeComputePipelineState(function: function)
 
-        self.ciContext = CIContext(mtlDevice: device, options: [
-            .workingColorSpace: CGColorSpaceCreateDeviceRGB(),
-        ])
+        // Single texture cache for the lifetime of the compositor
+        var cache: CVMetalTextureCache?
+        CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &cache)
+        guard let textureCache = cache else {
+            throw CompositorError.textureCreationFailed
+        }
+        self.textureCache = textureCache
     }
 
-    /// Run the full composite pipeline.
     func composite(
         sourcePath: String,
         overlayPath: String,
@@ -56,7 +61,9 @@ final class MetalCompositor {
         let overlayURL = URL(fileURLWithPath: overlayPath)
         let outputURL = URL(fileURLWithPath: outputPath)
 
-        // Set up readers
+        // Remove existing output
+        try? FileManager.default.removeItem(at: outputURL)
+
         let sourceAsset = AVAsset(url: sourceURL)
         let overlayAsset = AVAsset(url: overlayURL)
 
@@ -71,18 +78,26 @@ final class MetalCompositor {
         }
 
         let sourceSize = sourceVideoTrack.naturalSize
-        let totalFrames = Int(Double(sourceVideoTrack.timeRange.duration.seconds) * fps)
+        let totalFrames = Int(sourceVideoTrack.timeRange.duration.seconds * fps)
+        let outputWidth = Int(sourceSize.width)
+        let outputHeight = Int(sourceSize.height)
 
-        // Source: decode to BGRA pixel buffer
+        fputs("[metal] source: \(outputWidth)x\(outputHeight), \(totalFrames) frames\n", stderr)
+        dbg("sourceReader status: \(sourceReader.status.rawValue)")
+        dbg("overlayReader status: \(overlayReader.status.rawValue)")
+
+        // Source video: decode to BGRA
         let sourceOutput = AVAssetReaderTrackOutput(track: sourceVideoTrack, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferMetalCompatibilityKey as String: true,
         ])
         sourceOutput.alwaysCopiesSampleData = false
         sourceReader.add(sourceOutput)
 
-        // Overlay: decode to BGRA with alpha
+        // Overlay: decode to BGRA
         let overlayOutput = AVAssetReaderTrackOutput(track: overlayVideoTrack, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferMetalCompatibilityKey as String: true,
         ])
         overlayOutput.alwaysCopiesSampleData = false
         overlayReader.add(overlayOutput)
@@ -97,13 +112,13 @@ final class MetalCompositor {
             audioOutput = output
         }
 
-        // Set up writer with VideoToolbox HEVC encoding
+        // Writer
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
 
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: Int(sourceSize.width),
-            AVVideoHeightKey: Int(sourceSize.height),
+            AVVideoWidthKey: outputWidth,
+            AVVideoHeightKey: outputHeight,
             AVVideoCompressionPropertiesKey: [
                 AVVideoQualityKey: quality / 100.0,
                 AVVideoExpectedSourceFrameRateKey: fps,
@@ -114,8 +129,8 @@ final class MetalCompositor {
 
         let pixelBufferAttrs: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-            kCVPixelBufferWidthKey as String: Int(sourceSize.width),
-            kCVPixelBufferHeightKey as String: Int(sourceSize.height),
+            kCVPixelBufferWidthKey as String: outputWidth,
+            kCVPixelBufferHeightKey as String: outputHeight,
             kCVPixelBufferMetalCompatibilityKey as String: true,
         ]
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
@@ -124,7 +139,6 @@ final class MetalCompositor {
         )
         writer.add(videoInput)
 
-        // Audio input (passthrough — requires format hint for MP4 container)
         var audioInput: AVAssetWriterInput?
         if let audioTrack = sourceAudioTrack {
             let formatHint = audioTrack.formatDescriptions.first as! CMFormatDescription
@@ -134,112 +148,152 @@ final class MetalCompositor {
             audioInput = input
         }
 
-        // Start
+        // Start reading and writing
+        dbg("starting readers and writer")
         sourceReader.startReading()
         overlayReader.startReading()
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
+        dbg("writer status: \(writer.status.rawValue)")
 
-        // Compute overlay scale if needed
-        let scaleWidth = overlayScaleWidth ?? Int(overlayVideoTrack.naturalSize.width)
-        let scaleHeight = overlayScaleHeight ?? Int(overlayVideoTrack.naturalSize.height)
+        // Overlay scale dimensions
+        let overlayNativeWidth = Int(overlayVideoTrack.naturalSize.width)
+        let overlayNativeHeight = Int(overlayVideoTrack.naturalSize.height)
+        let scaleWidth = overlayScaleWidth ?? overlayNativeWidth
+        let scaleHeight = overlayScaleHeight ?? overlayNativeHeight
+        let needsScale = scaleWidth != overlayNativeWidth || scaleHeight != overlayNativeHeight
+        dbg("overlay native: \(overlayNativeWidth)x\(overlayNativeHeight), scale to: \(scaleWidth)x\(scaleHeight), needsScale: \(needsScale)")
 
-        // Create reusable textures
-        let textureLoader = MTKTextureLoader(device: device)
-        let outputWidth = Int(sourceSize.width)
-        let outputHeight = Int(sourceSize.height)
-
-        let outputTextureDesc = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .bgra8Unorm,
-            width: outputWidth,
-            height: outputHeight,
-            mipmapped: false
+        // Positioned overlay texture (full frame, reused across frames)
+        let positionedDesc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .bgra8Unorm, width: outputWidth, height: outputHeight, mipmapped: false
         )
-        outputTextureDesc.usage = [.shaderRead, .shaderWrite]
-        outputTextureDesc.storageMode = .shared
-
-        guard let outputTexture = device.makeTexture(descriptor: outputTextureDesc) else {
+        positionedDesc.usage = [.shaderRead, .shaderWrite]
+        positionedDesc.storageMode = .shared
+        guard let positionedOverlay = device.makeTexture(descriptor: positionedDesc) else {
             throw CompositorError.textureCreationFailed
+        }
+
+        // Output texture (reused)
+        guard let outputTexture = device.makeTexture(descriptor: positionedDesc) else {
+            throw CompositorError.textureCreationFailed
+        }
+
+        // CIContext for overlay scaling
+        let ciContext = needsScale ? CIContext(mtlDevice: device) : nil
+
+        // Scaled overlay texture (reused if scaling)
+        var scaledOverlayTexture: MTLTexture?
+        if needsScale {
+            let desc = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .bgra8Unorm, width: scaleWidth, height: scaleHeight, mipmapped: false
+            )
+            desc.usage = [.shaderRead, .shaderWrite]
+            desc.storageMode = .shared
+            scaledOverlayTexture = device.makeTexture(descriptor: desc)
         }
 
         // Process frames
         var frameIndex = 0
-        let frameDuration = CMTime(value: 1000, timescale: CMTimeScale(fps * 1000))
 
         while sourceReader.status == .reading {
+            // Drain audio samples to keep interleaving healthy
+            if let audioOut = audioOutput, let audioIn = audioInput {
+                while audioIn.isReadyForMoreMediaData {
+                    guard let sample = audioOut.copyNextSampleBuffer() else { break }
+                    audioIn.append(sample)
+                }
+            }
+
+            // Wait for video input to be ready (with timeout)
+            var waitCount = 0
+            while !videoInput.isReadyForMoreMediaData {
+                Thread.sleep(forTimeInterval: 0.001)
+                waitCount += 1
+                if waitCount > 5000 { // 5 second timeout
+                    throw CompositorError.writerFailed("Video input not ready after 5s (frame \(frameIndex))")
+                }
+            }
+
             guard let sourceSample = sourceOutput.copyNextSampleBuffer() else { break }
             guard let sourcePixelBuffer = CMSampleBufferGetImageBuffer(sourceSample) else { continue }
 
-            // Get overlay frame (may have ended — if so, use empty/transparent)
+            // Use source sample's presentation time
+            let presentationTime = CMSampleBufferGetPresentationTimeStamp(sourceSample)
+
+            // Get overlay frame
             let overlayPixelBuffer: CVPixelBuffer?
-            if overlayReader.status == .reading {
-                if let overlaySample = overlayOutput.copyNextSampleBuffer() {
-                    overlayPixelBuffer = CMSampleBufferGetImageBuffer(overlaySample)
-                } else {
-                    overlayPixelBuffer = nil
-                }
+            if overlayReader.status == .reading,
+               let overlaySample = overlayOutput.copyNextSampleBuffer() {
+                overlayPixelBuffer = CMSampleBufferGetImageBuffer(overlaySample)
             } else {
                 overlayPixelBuffer = nil
             }
 
-            // Create Metal textures from pixel buffers
-            let sourceTexture = try createTexture(from: sourcePixelBuffer)
+            // Create textures from pixel buffers
+            let sourceTexture = try makeTexture(from: sourcePixelBuffer)
 
             if let overlayPB = overlayPixelBuffer {
-                let rawOverlayTexture = try createTexture(from: overlayPB)
+                let rawOverlayTexture = try makeTexture(from: overlayPB)
 
-                // Scale overlay if needed and composite
-                let scaledOverlay: MTLTexture
-                if scaleWidth != Int(overlayVideoTrack.naturalSize.width) ||
-                   scaleHeight != Int(overlayVideoTrack.naturalSize.height) {
-                    scaledOverlay = try scaleTexture(
-                        rawOverlayTexture,
-                        toWidth: scaleWidth,
-                        toHeight: scaleHeight
-                    )
+                // Scale overlay if needed
+                let overlayToUse: MTLTexture
+                if needsScale, let dest = scaledOverlayTexture, let ci = ciContext {
+                    let ciImage = CIImage(mtlTexture: rawOverlayTexture, options: nil)!
+                    let scaleX = Double(scaleWidth) / Double(overlayNativeWidth)
+                    let scaleY = Double(scaleHeight) / Double(overlayNativeHeight)
+                    let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+                    ci.render(scaled, to: dest, commandBuffer: nil, bounds: scaled.extent, colorSpace: CGColorSpaceCreateDeviceRGB())
+                    overlayToUse = dest
                 } else {
-                    scaledOverlay = rawOverlayTexture
+                    overlayToUse = rawOverlayTexture
                 }
 
-                // Composite: position overlay at (overlayX, overlayY) on source
-                try compositeFrame(
-                    source: sourceTexture,
-                    overlay: scaledOverlay,
-                    output: outputTexture,
-                    overlayX: overlayX,
-                    overlayY: overlayY,
-                    outputWidth: outputWidth,
-                    outputHeight: outputHeight
+                // Clear positioned overlay, blit overlay into position, composite
+                try blitOverlayIntoPosition(
+                    overlayToUse, into: positionedOverlay,
+                    atX: overlayX, atY: overlayY,
+                    outputWidth: outputWidth, outputHeight: outputHeight
                 )
+                try runCompositeShader(source: sourceTexture, overlay: positionedOverlay, output: outputTexture)
             } else {
-                // No overlay frame — copy source directly
-                try copyTexture(from: sourceTexture, to: outputTexture)
+                // No overlay — copy source through
+                try blitCopy(from: sourceTexture, to: outputTexture)
             }
 
-            // Read pixels back to a pixel buffer for the writer
-            let presentationTime = CMTime(
-                value: CMTimeValue(frameIndex) * frameDuration.value,
-                timescale: frameDuration.timescale
-            )
-
-            while !videoInput.isReadyForMoreMediaData {
-                Thread.sleep(forTimeInterval: 0.001)
-            }
-
-            guard let outputPixelBuffer = createPixelBuffer(from: outputTexture, pool: adaptor.pixelBufferPool!) else {
+            // Write frame
+            guard let pool = adaptor.pixelBufferPool else {
                 throw CompositorError.pixelBufferCreationFailed
             }
-            adaptor.append(outputPixelBuffer, withPresentationTime: presentationTime)
+            var outPB: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &outPB)
+            guard let outputPB = outPB else {
+                throw CompositorError.pixelBufferCreationFailed
+            }
+
+            CVPixelBufferLockBaseAddress(outputPB, [])
+            let dest = CVPixelBufferGetBaseAddress(outputPB)!
+            let bytesPerRow = CVPixelBufferGetBytesPerRow(outputPB)
+            outputTexture.getBytes(dest, bytesPerRow: bytesPerRow,
+                                   from: MTLRegion(origin: .init(), size: .init(width: outputWidth, height: outputHeight, depth: 1)),
+                                   mipmapLevel: 0)
+            CVPixelBufferUnlockBaseAddress(outputPB, [])
+
+            adaptor.append(outputPB, withPresentationTime: presentationTime)
 
             frameIndex += 1
+            if frameIndex == 1 { dbg("first frame written") }
             if frameIndex % 30 == 0 {
                 onProgress(frameIndex, totalFrames)
             }
+            if frameIndex % 300 == 0 {
+                dbg("frame \(frameIndex)/\(totalFrames) — reader: \(sourceReader.status.rawValue), writer: \(writer.status.rawValue)")
+            }
         }
 
-        // Write remaining audio
+        // Drain remaining audio
         if let audioOut = audioOutput, let audioIn = audioInput {
-            while sourceReader.status == .reading {
+            while sourceReader.status == .reading || audioIn.isReadyForMoreMediaData {
                 guard let sample = audioOut.copyNextSampleBuffer() else { break }
                 while !audioIn.isReadyForMoreMediaData {
                     Thread.sleep(forTimeInterval: 0.001)
@@ -260,158 +314,99 @@ final class MetalCompositor {
         }
 
         onProgress(totalFrames, totalFrames)
+        fputs("[metal] wrote \(frameIndex) frames, writer status: \(writer.status.rawValue)\n", stderr)
     }
 
     // MARK: - Metal helpers
 
-    private func createTexture(from pixelBuffer: CVPixelBuffer) throws -> MTLTexture {
+    private func makeTexture(from pixelBuffer: CVPixelBuffer) throws -> MTLTexture {
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
 
         var cvTexture: CVMetalTexture?
-        var textureCache: CVMetalTextureCache?
-        CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &textureCache)
-
         let status = CVMetalTextureCacheCreateTextureFromImage(
-            kCFAllocatorDefault,
-            textureCache!,
-            pixelBuffer,
-            nil,
-            .bgra8Unorm,
-            width,
-            height,
-            0,
-            &cvTexture
+            kCFAllocatorDefault, textureCache, pixelBuffer, nil,
+            .bgra8Unorm, width, height, 0, &cvTexture
         )
-        guard status == kCVReturnSuccess, let cvTex = cvTexture else {
-            throw CompositorError.textureCreationFailed
-        }
-        guard let texture = CVMetalTextureGetTexture(cvTex) else {
+        guard status == kCVReturnSuccess, let tex = cvTexture,
+              let texture = CVMetalTextureGetTexture(tex) else {
             throw CompositorError.textureCreationFailed
         }
         return texture
     }
 
-    private func scaleTexture(_ source: MTLTexture, toWidth width: Int, toHeight height: Int) throws -> MTLTexture {
-        let desc = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false
-        )
-        desc.usage = [.shaderRead, .shaderWrite]
-        desc.storageMode = .shared
-        guard let dest = device.makeTexture(descriptor: desc) else {
-            throw CompositorError.textureCreationFailed
-        }
-
-        // Use CIImage for high-quality scale (uses Metal internally)
-        let ciImage = CIImage(mtlTexture: source, options: nil)!
-        let scaleX = Double(width) / Double(source.width)
-        let scaleY = Double(height) / Double(source.height)
-        let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
-
-        ciContext.render(scaled, to: dest, commandBuffer: nil, bounds: scaled.extent, colorSpace: CGColorSpaceCreateDeviceRGB())
-        return dest
-    }
-
-    private func compositeFrame(
-        source: MTLTexture,
-        overlay: MTLTexture,
-        output: MTLTexture,
-        overlayX: Int,
-        overlayY: Int,
-        outputWidth: Int,
-        outputHeight: Int
+    private func blitOverlayIntoPosition(
+        _ overlay: MTLTexture, into dest: MTLTexture,
+        atX x: Int, atY y: Int,
+        outputWidth: Int, outputHeight: Int
     ) throws {
-        // First, copy source to output
-        try copyTexture(from: source, to: output)
-
-        // Then blend overlay at the specified position
-        // We need a positioned overlay texture (full frame with overlay placed)
-        let positionedDesc = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .bgra8Unorm, width: outputWidth, height: outputHeight, mipmapped: false
-        )
-        positionedDesc.usage = [.shaderRead, .shaderWrite]
-        positionedDesc.storageMode = .shared
-        guard let positionedOverlay = device.makeTexture(descriptor: positionedDesc) else {
-            throw CompositorError.textureCreationFailed
-        }
-
-        // Clear to transparent
-        let clearRegion = MTLRegion(origin: .init(x: 0, y: 0, z: 0),
-                                     size: .init(width: outputWidth, height: outputHeight, depth: 1))
-        let zeros = [UInt8](repeating: 0, count: outputWidth * outputHeight * 4)
-        positionedOverlay.replace(region: clearRegion, mipmapLevel: 0, withBytes: zeros, bytesPerRow: outputWidth * 4)
-
-        // Copy overlay into positioned texture at (overlayX, overlayY)
-        let copyWidth = min(overlay.width, outputWidth - overlayX)
-        let copyHeight = min(overlay.height, outputHeight - overlayY)
-        if copyWidth > 0 && copyHeight > 0 {
-            guard let cmd = commandQueue.makeCommandBuffer(),
-                  let blit = cmd.makeBlitCommandEncoder() else {
-                throw CompositorError.commandBufferFailed
-            }
-            blit.copy(
-                from: overlay, sourceSlice: 0, sourceLevel: 0,
-                sourceOrigin: .init(x: 0, y: 0, z: 0),
-                sourceSize: .init(width: copyWidth, height: copyHeight, depth: 1),
-                to: positionedOverlay, destinationSlice: 0, destinationLevel: 0,
-                destinationOrigin: .init(x: overlayX, y: overlayY, z: 0)
-            )
-            blit.endEncoding()
-            cmd.commit()
-            cmd.waitUntilCompleted()
-        }
-
-        // Run alpha composite shader
-        guard let commandBuffer = commandQueue.makeCommandBuffer(),
-              let encoder = commandBuffer.makeComputeCommandEncoder() else {
-            throw CompositorError.commandBufferFailed
-        }
-
-        encoder.setComputePipelineState(pipelineState)
-        encoder.setTexture(output, index: 0)           // source (already has source video)
-        encoder.setTexture(positionedOverlay, index: 1) // overlay
-        encoder.setTexture(output, index: 2)            // output (in-place)
-
-        let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
-        let threadgroups = MTLSize(
-            width: (outputWidth + 15) / 16,
-            height: (outputHeight + 15) / 16,
-            depth: 1
-        )
-        encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadgroupSize)
-        encoder.endEncoding()
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-    }
-
-    private func copyTexture(from source: MTLTexture, to dest: MTLTexture) throws {
         guard let cmd = commandQueue.makeCommandBuffer(),
               let blit = cmd.makeBlitCommandEncoder() else {
             throw CompositorError.commandBufferFailed
         }
-        let size = MTLSize(width: min(source.width, dest.width),
-                           height: min(source.height, dest.height), depth: 1)
-        blit.copy(from: source, sourceSlice: 0, sourceLevel: 0, sourceOrigin: .init(x: 0, y: 0, z: 0), sourceSize: size,
-                  to: dest, destinationSlice: 0, destinationLevel: 0, destinationOrigin: .init(x: 0, y: 0, z: 0))
+
+        // Clear dest to transparent
+        // (We fill the whole texture via the composite shader, so just clear is enough)
+        let zeroRegion = MTLRegion(origin: .init(), size: .init(width: outputWidth, height: outputHeight, depth: 1))
+        let zeros = [UInt8](repeating: 0, count: outputWidth * outputHeight * 4)
+        dest.replace(region: zeroRegion, mipmapLevel: 0, withBytes: zeros, bytesPerRow: outputWidth * 4)
+
+        // Copy overlay into position
+        let copyW = min(overlay.width, outputWidth - x)
+        let copyH = min(overlay.height, outputHeight - y)
+        if copyW > 0 && copyH > 0 {
+            blit.copy(
+                from: overlay, sourceSlice: 0, sourceLevel: 0,
+                sourceOrigin: .init(x: 0, y: 0, z: 0),
+                sourceSize: .init(width: copyW, height: copyH, depth: 1),
+                to: dest, destinationSlice: 0, destinationLevel: 0,
+                destinationOrigin: .init(x: x, y: y, z: 0)
+            )
+        }
         blit.endEncoding()
         cmd.commit()
         cmd.waitUntilCompleted()
     }
 
-    private func createPixelBuffer(from texture: MTLTexture, pool: CVPixelBufferPool) -> CVPixelBuffer? {
-        var pixelBuffer: CVPixelBuffer?
-        CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer)
-        guard let pb = pixelBuffer else { return nil }
+    private func runCompositeShader(source: MTLTexture, overlay: MTLTexture, output: MTLTexture) throws {
+        guard let cmd = commandQueue.makeCommandBuffer(),
+              let encoder = cmd.makeComputeCommandEncoder() else {
+            throw CompositorError.commandBufferFailed
+        }
 
-        CVPixelBufferLockBaseAddress(pb, [])
-        let dest = CVPixelBufferGetBaseAddress(pb)!
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(pb)
-        let region = MTLRegion(origin: .init(x: 0, y: 0, z: 0),
-                                size: .init(width: texture.width, height: texture.height, depth: 1))
-        texture.getBytes(dest, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
-        CVPixelBufferUnlockBaseAddress(pb, [])
+        encoder.setComputePipelineState(pipelineState)
+        encoder.setTexture(source, index: 0)
+        encoder.setTexture(overlay, index: 1)
+        encoder.setTexture(output, index: 2)
 
-        return pb
+        let w = pipelineState.threadExecutionWidth
+        let h = pipelineState.maxTotalThreadsPerThreadgroup / w
+        let threadsPerGroup = MTLSize(width: w, height: h, depth: 1)
+        let threadgroups = MTLSize(
+            width: (output.width + w - 1) / w,
+            height: (output.height + h - 1) / h,
+            depth: 1
+        )
+        encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+        encoder.endEncoding()
+        cmd.commit()
+        cmd.waitUntilCompleted()
+    }
+
+    private func blitCopy(from source: MTLTexture, to dest: MTLTexture) throws {
+        guard let cmd = commandQueue.makeCommandBuffer(),
+              let blit = cmd.makeBlitCommandEncoder() else {
+            throw CompositorError.commandBufferFailed
+        }
+        blit.copy(
+            from: source, sourceSlice: 0, sourceLevel: 0,
+            sourceOrigin: .init(), sourceSize: .init(width: source.width, height: source.height, depth: 1),
+            to: dest, destinationSlice: 0, destinationLevel: 0,
+            destinationOrigin: .init()
+        )
+        blit.endEncoding()
+        cmd.commit()
+        cmd.waitUntilCompleted()
     }
 }
 
@@ -429,7 +424,7 @@ enum CompositorError: Error, LocalizedError {
         switch self {
         case .noMetalDevice: return "No Metal-capable GPU found"
         case .noCommandQueue: return "Failed to create Metal command queue"
-        case .shaderNotFound: return "Alpha composite shader not found in bundle"
+        case .shaderNotFound: return "Alpha composite shader not found"
         case .noVideoTrack(let name): return "No video track in \(name)"
         case .textureCreationFailed: return "Failed to create Metal texture"
         case .commandBufferFailed: return "Failed to create Metal command buffer"

@@ -10,6 +10,11 @@ struct Arguments {
     let overlayScaleHeight: Int?
     let quality: Float
     let fps: Double
+    let verbose: Bool
+}
+
+func log(_ msg: String) {
+    fputs("[metal] \(msg)\n", stderr)
 }
 
 func parseArguments() -> Arguments {
@@ -23,6 +28,7 @@ func parseArguments() -> Arguments {
     var overlayScaleHeight: Int?
     var quality: Float = 65
     var fps: Double = 59.94
+    var verbose = false
 
     while let arg = args.first {
         args = args.dropFirst()
@@ -45,6 +51,8 @@ func parseArguments() -> Arguments {
             quality = Float(args.first ?? "65") ?? 65; args = args.dropFirst()
         case "--fps":
             fps = Double(args.first ?? "59.94") ?? 59.94; args = args.dropFirst()
+        case "--verbose", "-v":
+            verbose = true
         default:
             break
         }
@@ -59,6 +67,7 @@ func parseArguments() -> Arguments {
         fputs("  --overlay-scale-height <int>   Scale overlay to this height\n", stderr)
         fputs("  --quality <float>              Encode quality 0-100 (default: 65)\n", stderr)
         fputs("  --fps <float>                  Frame rate (default: 59.94)\n", stderr)
+        fputs("  --verbose, -v                  Enable debug logging\n", stderr)
         exit(1)
     }
 
@@ -66,16 +75,24 @@ func parseArguments() -> Arguments {
         source: source, overlay: overlay, output: output,
         overlayX: overlayX, overlayY: overlayY,
         overlayScaleWidth: overlayScaleWidth, overlayScaleHeight: overlayScaleHeight,
-        quality: quality, fps: fps
+        quality: quality, fps: fps, verbose: verbose
     )
 }
 
 func main() {
     let args = parseArguments()
 
-    do {
-        let compositor = try MetalCompositor()
+    log("source: \(args.source)")
+    log("overlay: \(args.overlay)")
+    log("output: \(args.output)")
+    log("overlayPos: (\(args.overlayX), \(args.overlayY))")
+    log("overlayScale: \(args.overlayScaleWidth ?? -1)x\(args.overlayScaleHeight ?? -1)")
+    log("quality: \(args.quality), fps: \(args.fps)")
 
+    do {
+        let compositor = try MetalCompositor(verbose: args.verbose)
+
+        let start = CFAbsoluteTimeGetCurrent()
         try compositor.composite(
             sourcePath: args.source,
             overlayPath: args.overlay,
@@ -90,8 +107,10 @@ func main() {
                 fputs("frame=\(current)/\(total)\n", stderr)
             }
         )
+        let elapsed = CFAbsoluteTimeGetCurrent() - start
+        log("done in \(String(format: "%.1f", elapsed))s")
     } catch {
-        fputs("Error: \(error.localizedDescription)\n", stderr)
+        log("ERROR: \(error.localizedDescription)")
         exit(1)
     }
 }
