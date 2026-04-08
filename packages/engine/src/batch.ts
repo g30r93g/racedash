@@ -13,7 +13,9 @@ import {
   getVideoDuration,
   getVideoFps,
   getVideoResolution,
+  isMetalCompositorAvailable,
   joinVideos as compositorJoinVideos,
+  metalComposite,
   renderOverlay,
   trimVideo,
   computeKeptRanges,
@@ -53,6 +55,47 @@ function overlayDimensions(outputRes: { width: number; height: number }): {
     overlayWidth: OVERLAY_BASE_WIDTH,
     overlayHeight: Math.round(outputRes.height * scale),
     needsScale: true,
+  }
+}
+
+const USE_METAL_COMPOSITOR = isMetalCompositorAvailable()
+
+async function runComposite(
+  sourcePath: string,
+  overlayPath: string,
+  outputPath: string,
+  opts: {
+    fps: number
+    overlayX: number
+    overlayY: number
+    durationSeconds: number
+    outputWidth?: number
+    outputHeight?: number
+    overlayScaleWidth?: number
+    overlayScaleHeight?: number
+  },
+  onProgress: (p: number) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  if (USE_METAL_COMPOSITOR) {
+    console.log('[perf]   using Metal compositor (GPU)')
+    await metalComposite(
+      {
+        sourcePath,
+        overlayPath,
+        outputPath,
+        overlayX: opts.overlayX,
+        overlayY: opts.overlayY,
+        overlayScaleWidth: opts.overlayScaleWidth,
+        overlayScaleHeight: opts.overlayScaleHeight,
+        fps: opts.fps,
+      },
+      signal,
+      onProgress,
+    )
+  } else {
+    console.log('[perf]   using FFmpeg compositor (CPU)')
+    await compositeVideo(sourcePath, overlayPath, outputPath, opts, onProgress, signal)
   }
 }
 
@@ -392,7 +435,7 @@ async function renderEntireProject(
     : job.outputPath
 
   try {
-    await compositeVideo(
+    await runComposite(
       ctx.videoPath,
       overlayPath,
       compositeOutputPath,
@@ -401,7 +444,6 @@ async function renderEntireProject(
         overlayX: 0,
         overlayY: ctx.overlayY,
         durationSeconds: ctx.durationSeconds,
-        // Only pass output dimensions if they differ from source (avoids redundant scale filter)
         ...(opts.outputResolution && (opts.outputResolution.width !== ctx.videoResolution.width || opts.outputResolution.height !== ctx.videoResolution.height)
           ? { outputWidth: opts.outputResolution.width, outputHeight: opts.outputResolution.height }
           : {}),
@@ -716,7 +758,7 @@ async function renderSubClip(
       // Composite overlay onto clip
       phaseStart = performance.now()
       try {
-        await compositeVideo(
+        await runComposite(
           tempClipPath,
           overlayPath,
           job.outputPath,
