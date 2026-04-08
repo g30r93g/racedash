@@ -355,21 +355,26 @@ async function renderEntireProject(
     ? path.join(tmpdir(), `racedash-composite-${randomUUID()}.mp4`)
     : job.outputPath
 
-  await compositeVideo(
-    ctx.videoPath,
-    overlayPath,
-    compositeOutputPath,
-    {
-      fps: ctx.fps,
-      overlayX: 0,
-      overlayY: ctx.overlayY,
-      durationSeconds: ctx.durationSeconds,
-      outputWidth: opts.outputResolution?.width,
-      outputHeight: opts.outputResolution?.height,
-    },
-    (p) => progress('Compositing', hasCuts ? p * 0.85 : p),
-    signal,
-  )
+  try {
+    await compositeVideo(
+      ctx.videoPath,
+      overlayPath,
+      compositeOutputPath,
+      {
+        fps: ctx.fps,
+        overlayX: 0,
+        overlayY: ctx.overlayY,
+        durationSeconds: ctx.durationSeconds,
+        outputWidth: opts.outputResolution?.width,
+        outputHeight: opts.outputResolution?.height,
+      },
+      (p) => progress('Compositing', hasCuts ? p * 0.85 : p),
+      signal,
+    )
+  } finally {
+    // Clean up overlay intermediate (ProRes 4444 files are 1-2 GB/min)
+    await unlink(overlayPath).catch(() => {})
+  }
 
   // Apply cut regions and transitions
   if (hasCuts) {
@@ -612,9 +617,9 @@ async function renderSubClip(
         }))
       }
 
-      // Probe clip duration for overlay frame count
-      const clipDuration = await getVideoDuration(tempClipPath)
-      const clipFrames = Math.ceil(clipDuration * ctx.fps)
+      // Compute clip duration from frame range (avoids spawning ffprobe)
+      const clipFrames = localEndFrame - localStartFrame
+      const clipDuration = clipFrames / ctx.fps
 
       // Build overlay props
       let overlayProps: OverlayProps | LapOverlayProps = {
@@ -667,21 +672,25 @@ async function renderSubClip(
       if (signal.aborted) return
 
       // Composite overlay onto clip
-      await compositeVideo(
-        tempClipPath,
-        overlayPath,
-        job.outputPath,
-        {
-          fps: ctx.fps,
-          overlayX: 0,
-          overlayY: ctx.overlayY,
-          durationSeconds: clipDuration,
-          outputWidth: opts.outputResolution?.width,
-          outputHeight: opts.outputResolution?.height,
-        },
-        (p) => progress('Compositing', p),
-        signal,
-      )
+      try {
+        await compositeVideo(
+          tempClipPath,
+          overlayPath,
+          job.outputPath,
+          {
+            fps: ctx.fps,
+            overlayX: 0,
+            overlayY: ctx.overlayY,
+            durationSeconds: clipDuration,
+            outputWidth: opts.outputResolution?.width,
+            outputHeight: opts.outputResolution?.height,
+          },
+          (p) => progress('Compositing', p),
+          signal,
+        )
+      } finally {
+        await unlink(overlayPath).catch(() => {})
+      }
     } finally {
       await unlink(tempClipPath).catch(() => {})
     }

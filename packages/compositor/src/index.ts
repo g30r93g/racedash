@@ -201,6 +201,7 @@ export async function renderOverlay(
     outputLocation: outputPath,
     inputProps,
     chromiumOptions: { gl: 'angle' },
+    hardwareAcceleration: 'required',
     concurrency: cpus().length,
     cancelSignal: remotionCancelSignal?.cancelSignal,
     onProgress: onProgress
@@ -402,7 +403,7 @@ export async function collectDoctorDiagnostics(opts: DoctorOptions = {}): Promis
     })
     diagnostics.push({
       label: 'Output',
-      value: 'libx264 (preset slow, crf 16)',
+      value: 'libx264 (preset medium, crf 18)',
     })
     return diagnostics
   }
@@ -425,7 +426,7 @@ export async function collectDoctorDiagnostics(opts: DoctorOptions = {}): Promis
   })
   diagnostics.push({
     label: 'Output',
-    value: 'libx264 (preset slow, crf 16)',
+    value: 'libx264 (preset medium, crf 18)',
   })
   return diagnostics
 }
@@ -569,9 +570,9 @@ async function resolveWindowsCompositePlan(
       '-c:v',
       'libx264',
       '-preset',
-      'slow',
+      'medium',
       '-crf',
-      '16',
+      '18',
       '-c:a',
       'copy',
       '-y',
@@ -639,9 +640,9 @@ function buildGenericCompositePlan(
       '-c:v',
       'libx264',
       '-preset',
-      'slow',
+      'medium',
       '-crf',
-      '16',
+      '18',
       '-c:a',
       'copy',
       '-y',
