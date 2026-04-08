@@ -481,7 +481,7 @@ async function renderLapJob(
   }
 
   const lapStartSeconds = lapTimestamps[0].ytSeconds
-  const lapEndSeconds = lapTimestamps[lapTimestamps.length - 1].ytSeconds
+  const lapEndSeconds = lapTimestamps[0].ytSeconds + lapTimestamps[0].lap.lapTime
 
   // Use the lap time range for clip extraction (not full segment)
   // The 5s pre/post-roll is added by computeClipRange inside renderSubClip
