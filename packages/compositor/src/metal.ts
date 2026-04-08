@@ -90,6 +90,11 @@ export async function metalComposite(
       const text = chunk.toString()
       stderr += text
 
+      // Forward [metal] debug lines to console
+      for (const line of text.split('\n')) {
+        if (line.startsWith('[metal]')) console.log(line)
+      }
+
       // Parse progress: "frame=1500/2945"
       const match = text.match(/frame=(\d+)\/(\d+)/)
       if (match) {
