@@ -141,7 +141,7 @@ export const GeometricBanner: React.FC<OverlayProps | LapOverlayProps> = (props)
     textColor: gb?.timerTextColor ?? text,
     flashDuration: gb?.flashDuration,
     isLapRender: lapGate.isLapRender,
-    isLapActive: lapGate.isActive,
+    isLapActive: lapGate.isActive || lapGate.isPastEnd,
   }
 
   if (showTimePanels) {

@@ -103,13 +103,13 @@ export const Minimal: React.FC<OverlayProps | LapOverlayProps> = (props) => {
     startingGridPosition,
     placeholder: EMPTY_TIME,
   })
-  const gatedInactive = lapGate.isLapRender && !lapGate.isActive
+  const preRollInactive = lapGate.isLapRender && !lapGate.isActive && !lapGate.isPastEnd
   const currentLap = cardState.currentLap
   const currentIdx = cardState.currentIdx
-  const elapsedFormatted = gatedInactive ? '0:00.000' : cardState.elapsedFormatted
-  const lastLapTime = gatedInactive ? EMPTY_TIME : cardState.lastLapTime
-  const sessionBestTime = gatedInactive ? EMPTY_TIME : cardState.sessionBestTime
-  const displayedPosition = gatedInactive ? null : cardState.displayedPosition
+  const elapsedFormatted = preRollInactive ? '0:00.000' : cardState.elapsedFormatted
+  const lastLapTime = preRollInactive ? EMPTY_TIME : cardState.lastLapTime
+  const sessionBestTime = preRollInactive ? EMPTY_TIME : cardState.sessionBestTime
+  const displayedPosition = preRollInactive ? null : cardState.displayedPosition
 
   const mn = styling?.minimal
   const cardBgColor = mn?.bgColor ?? 'rgba(20, 22, 28, 0.88)'

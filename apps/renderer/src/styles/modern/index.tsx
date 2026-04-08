@@ -65,12 +65,12 @@ export const Modern: React.FC<OverlayProps | LapOverlayProps> = (props) => {
     startingGridPosition,
     placeholder: PLACEHOLDER,
   })
-  const gatedInactive = lapGate.isLapRender && !lapGate.isActive
+  const preRollInactive = lapGate.isLapRender && !lapGate.isActive && !lapGate.isPastEnd
   const currentIdx = cardState.currentIdx
-  const elapsedFormatted = gatedInactive ? '0:00.000' : cardState.elapsedFormatted
-  const lastLapTime = gatedInactive ? PLACEHOLDER : cardState.lastLapTime
-  const sessionBestTime = gatedInactive ? PLACEHOLDER : cardState.sessionBestTime
-  const displayedPosition = gatedInactive ? null : cardState.displayedPosition
+  const elapsedFormatted = preRollInactive ? '0:00.000' : cardState.elapsedFormatted
+  const lastLapTime = preRollInactive ? PLACEHOLDER : cardState.lastLapTime
+  const sessionBestTime = preRollInactive ? PLACEHOLDER : cardState.sessionBestTime
+  const displayedPosition = preRollInactive ? null : cardState.displayedPosition
 
   const mo = styling?.modern
   const stripeOpacity = mo?.stripeOpacity ?? 0.035

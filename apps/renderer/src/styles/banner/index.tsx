@@ -124,7 +124,7 @@ export const Banner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
     textColor: styling?.banner?.timerTextColor ?? text,
     flashDuration: styling?.banner?.flashDuration,
     isLapRender: lapGate.isLapRender,
-    isLapActive: lapGate.isActive,
+    isLapActive: lapGate.isActive || lapGate.isPastEnd,
   }
 
   if (showTimePanels) {
