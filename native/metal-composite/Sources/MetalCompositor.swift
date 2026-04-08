@@ -285,7 +285,11 @@ final class MetalCompositor {
 
                     produced += 1
                     if produced % 300 == 0 {
-                        self.dbg("produced \(produced)/\(totalFrames), ring: \(ring.count)")
+                        let p = produced
+                        let rc = ring.count
+                        DispatchQueue.global(qos: .utility).async {
+                            self.dbg("produced \(p)/\(totalFrames), ring: \(rc)")
+                        }
                     }
                 } catch {
                     ringLock.lock()
@@ -341,11 +345,16 @@ final class MetalCompositor {
                 adaptor.append(frame.pixelBuffer, withPresentationTime: frame.presentationTime)
 
                 frameIndex += 1
-                if frameIndex % 30 == 0 {
-                    onProgress(frameIndex, totalFrames)
-                }
-                if frameIndex % 300 == 0 {
-                    self.dbg("appended \(frameIndex)/\(totalFrames), ring: \(ring.count)")
+                if frameIndex % 120 == 0 {
+                    // Report progress on a background queue to avoid blocking the writer callback
+                    let fi = frameIndex
+                    let rc = ring.count
+                    DispatchQueue.global(qos: .utility).async {
+                        onProgress(fi, totalFrames)
+                        if fi % 300 == 0 {
+                            self.dbg("appended \(fi)/\(totalFrames), ring: \(rc)")
+                        }
+                    }
                 }
             }
         }
