@@ -226,7 +226,11 @@ final class MetalCompositor {
                 overlayPixelBuffer = nil
             }
 
-            // Get output pixel buffer from writer pool (IOSurface-backed → zero-copy to encoder)
+            // Per-frame timing (sampled every 300 frames to avoid overhead)
+            let shouldTime = frameIndex % 300 == 0
+            var t0 = CFAbsoluteTimeGetCurrent(), t1 = t0, t2 = t0, t3 = t0, t4 = t0, t5 = t0
+
+            // Get output pixel buffer from writer pool
             guard let pool = adaptor.pixelBufferPool else {
                 throw CompositorError.pixelBufferCreationFailed
             }
@@ -236,9 +240,11 @@ final class MetalCompositor {
                 throw CompositorError.pixelBufferCreationFailed
             }
             let outputPBTexture = try makeTexture(from: outputPB)
+            if shouldTime { t1 = CFAbsoluteTimeGetCurrent() }
 
             // Create textures from pixel buffers
             let sourceTexture = try makeTexture(from: sourcePixelBuffer)
+            if shouldTime { t2 = CFAbsoluteTimeGetCurrent() }
 
             if let overlayPB = overlayPixelBuffer {
                 let rawOverlayTexture = try makeTexture(from: overlayPB)
@@ -255,26 +261,30 @@ final class MetalCompositor {
                 } else {
                     overlayToUse = rawOverlayTexture
                 }
+                if shouldTime { t3 = CFAbsoluteTimeGetCurrent() }
 
-                // Composite with positioning — shader handles offset, no CPU clearing needed
+                // Composite with positioning
                 try runCompositeShader(
                     source: sourceTexture, overlay: overlayToUse, output: outputPBTexture,
                     params: &compositeParams
                 )
+                if shouldTime { t4 = CFAbsoluteTimeGetCurrent() }
             } else {
-                // No overlay — blit source directly into writer's pixel buffer
                 try blitCopy(from: sourceTexture, to: outputPBTexture)
+                if shouldTime { t3 = CFAbsoluteTimeGetCurrent(); t4 = t3 }
             }
 
             adaptor.append(outputPB, withPresentationTime: presentationTime)
+            if shouldTime { t5 = CFAbsoluteTimeGetCurrent() }
 
             frameIndex += 1
             if frameIndex == 1 { dbg("first frame written") }
             if frameIndex % 30 == 0 {
                 onProgress(frameIndex, totalFrames)
             }
-            if frameIndex % 300 == 0 {
-                dbg("frame \(frameIndex)/\(totalFrames) — reader: \(sourceReader.status.rawValue), writer: \(writer.status.rawValue)")
+            if shouldTime {
+                let fmt = { (v: Double) -> String in String(format: "%.1f", v * 1000) }
+                dbg("frame \(frameIndex)/\(totalFrames) — pool+tex: \(fmt(t1-t0))ms, srcTex: \(fmt(t2-t1))ms, scale: \(fmt(t3-t2))ms, shader: \(fmt(t4-t3))ms, append: \(fmt(t5-t4))ms — reader: \(sourceReader.status.rawValue), writer: \(writer.status.rawValue)")
             }
         }
 
