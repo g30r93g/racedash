@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:racedash}/.worktrees/feat/video-editing-exporting/native/metal-composite",
+            "name": "Debug metal-composite (.worktrees/feat/video-editing-exporting/native/metal-composite)",
+            "target": "metal-composite",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug metal-composite (.worktrees/feat/video-editing-exporting/native/metal-composite)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:racedash}/.worktrees/feat/video-editing-exporting/native/metal-composite",
+            "name": "Release metal-composite (.worktrees/feat/video-editing-exporting/native/metal-composite)",
+            "target": "metal-composite",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release metal-composite (.worktrees/feat/video-editing-exporting/native/metal-composite)"
+        }
+    ]
+}
