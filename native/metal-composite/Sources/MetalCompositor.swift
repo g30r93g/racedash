@@ -91,15 +91,20 @@ final class MetalCompositor {
         dbg("sourceReader status: \(sourceReader.status.rawValue)")
         dbg("overlayReader status: \(overlayReader.status.rawValue)")
 
-        // Source video: decode to BGRA
+        // Source video: decode to BGRA in BT.709 color space
         let sourceOutput = AVAssetReaderTrackOutput(track: sourceVideoTrack, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ] as [String: Any],
         ])
         sourceOutput.alwaysCopiesSampleData = false
         sourceReader.add(sourceOutput)
 
-        // Overlay: decode to BGRA
+        // Overlay: decode to BGRA (sRGB from Remotion ProRes)
         let overlayOutput = AVAssetReaderTrackOutput(track: overlayVideoTrack, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
@@ -124,6 +129,11 @@ final class MetalCompositor {
             AVVideoCodecKey: AVVideoCodecType.hevc,
             AVVideoWidthKey: outputWidth,
             AVVideoHeightKey: outputHeight,
+            AVVideoColorPropertiesKey: [
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ] as [String: Any],
             AVVideoCompressionPropertiesKey: [
                 AVVideoQualityKey: quality / 100.0,
                 AVVideoExpectedSourceFrameRateKey: fps,
