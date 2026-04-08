@@ -422,7 +422,8 @@ async function renderSegmentJob(
   }
 
   const segStartSeconds = timestamps[0].ytSeconds
-  const segEndSeconds = timestamps[timestamps.length - 1].ytSeconds
+  const lastTimestamp = timestamps[timestamps.length - 1]
+  const segEndSeconds = lastTimestamp.ytSeconds + lastTimestamp.lap.lapTime
 
   await renderSubClip(opts, ctx, job, [segIndex], segStartSeconds, segEndSeconds, onJobProgress, signal)
 }
@@ -444,8 +445,9 @@ async function renderLinkedSegmentJob(
   for (const segIndex of job.segmentIndices) {
     const timestamps = ctx.segments[segIndex].session.timestamps
     if (timestamps.length === 0) continue
+    const lastTs = timestamps[timestamps.length - 1]
     minStart = Math.min(minStart, timestamps[0].ytSeconds)
-    maxEnd = Math.max(maxEnd, timestamps[timestamps.length - 1].ytSeconds)
+    maxEnd = Math.max(maxEnd, lastTs.ytSeconds + lastTs.lap.lapTime)
   }
 
   if (!isFinite(minStart) || !isFinite(maxEnd)) {
