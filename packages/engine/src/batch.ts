@@ -528,6 +528,8 @@ async function renderSubClip(
   // If multiple source files needed, join them first
   let clipSourcePath = neededFiles[0].path
   let tempJoinedClip: string | null = null
+  // Frame offset to convert global frames to source-local frames
+  let sourceFrameOffset = neededFiles[0].startFrame
 
   if (neededFiles.length > 1) {
     tempJoinedClip = path.join(tmpdir(), `racedash-clip-join-${randomUUID()}.mp4`)
@@ -535,13 +537,19 @@ async function renderSubClip(
     progress('Joining source files', 0)
     await compositorJoinVideos(neededFiles.map((f) => f.path), tempJoinedClip, signal)
     clipSourcePath = tempJoinedClip
+    // When files are joined, the joined file's timeline starts at 0
+    // covering from neededFiles[0].startFrame to neededFiles[last].endFrame
+    sourceFrameOffset = neededFiles[0].startFrame
     progress('Joining source files', 1)
   }
+
+  // Convert global frame range to source-local frame range
+  const localStartFrame = clipRange.startFrame - sourceFrameOffset
+  const localEndFrame = clipRange.endFrame - sourceFrameOffset
 
   try {
     if (signal.aborted) return
 
-    // Extract the clip with -copyts
     const tempClipPath = path.join(tmpdir(), `racedash-clip-${randomUUID()}.mp4`)
 
     try {
@@ -549,8 +557,8 @@ async function renderSubClip(
       const { actualStartSeconds } = await extractClip(
         clipSourcePath,
         tempClipPath,
-        clipRange.startFrame,
-        clipRange.endFrame,
+        localStartFrame,
+        localEndFrame,
         ctx.fps,
         signal,
         (p) => progress('Extracting clip', p),
@@ -558,9 +566,11 @@ async function renderSubClip(
 
       if (signal.aborted) return
 
-      // Rebase segments for the clip's actual start time
+      // Rebase segments: actualStartSeconds is local to the source file,
+      // but ytSeconds in segments is global. Add sourceFrameOffset to get global time.
+      const globalClipStartSeconds = actualStartSeconds + sourceFrameOffset / ctx.fps
       let rebasedSegments: SessionSegment[] = segmentIndices.map((segIndex) =>
-        rebaseSegment(ctx.segments[segIndex], actualStartSeconds, ctx.fps),
+        rebaseSegment(ctx.segments[segIndex], globalClipStartSeconds, ctx.fps),
       )
 
       // For lap jobs, filter segment data to only the target lap
@@ -596,8 +606,8 @@ async function renderSubClip(
 
       // For lap jobs, add lap-specific fields
       if (lapInfo) {
-        const targetLapStartFrame = Math.round((lapInfo.lapStartSeconds - actualStartSeconds) * ctx.fps)
-        const targetLapEndFrame = Math.round((lapInfo.lapEndSeconds - actualStartSeconds) * ctx.fps)
+        const targetLapStartFrame = Math.round((lapInfo.lapStartSeconds - globalClipStartSeconds) * ctx.fps)
+        const targetLapEndFrame = Math.round((lapInfo.lapEndSeconds - globalClipStartSeconds) * ctx.fps)
         overlayProps = {
           ...overlayProps,
           targetLapNumber: lapInfo.targetLapNumber,
