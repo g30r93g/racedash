@@ -1048,7 +1048,10 @@ export function registerIpcHandlers(): void {
       },
       (progressEvent) => send('racedash:renderBatch:job-progress', progressEvent),
       (result) => send('racedash:renderBatch:job-complete', result),
-      (jobId, error) => send('racedash:renderBatch:job-error', { jobId, message: error.message }),
+      (jobId, error) => {
+        console.error(`[renderBatch] Job ${jobId} failed:`, error.message, error.stack)
+        send('racedash:renderBatch:job-error', { jobId, message: error.message })
+      },
       controller.signal,
     )
       .then(() => {
@@ -1062,6 +1065,8 @@ export function registerIpcHandlers(): void {
         activeBatchOpts = null
         activeBatchSender = null
         const message = err instanceof Error ? err.message : String(err)
+        const stack = err instanceof Error ? err.stack : undefined
+        console.error(`[renderBatch] Batch failed:`, message, stack)
         send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
         send('racedash:renderBatch:complete')
       })
