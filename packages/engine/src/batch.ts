@@ -13,9 +13,7 @@ import {
   getVideoDuration,
   getVideoFps,
   getVideoResolution,
-  isMetalCompositorAvailable,
   joinVideos as compositorJoinVideos,
-  metalComposite,
   renderOverlay,
   trimVideo,
   computeKeptRanges,
@@ -55,47 +53,6 @@ function overlayDimensions(outputRes: { width: number; height: number }): {
     overlayWidth: OVERLAY_BASE_WIDTH,
     overlayHeight: Math.round(outputRes.height * scale),
     needsScale: true,
-  }
-}
-
-const USE_METAL_COMPOSITOR = process.env.RACEDASH_METAL !== '0' && isMetalCompositorAvailable()
-
-async function runComposite(
-  sourcePath: string,
-  overlayPath: string,
-  outputPath: string,
-  opts: {
-    fps: number
-    overlayX: number
-    overlayY: number
-    durationSeconds: number
-    outputWidth?: number
-    outputHeight?: number
-    overlayScaleWidth?: number
-    overlayScaleHeight?: number
-  },
-  onProgress: (p: number) => void,
-  signal: AbortSignal,
-): Promise<void> {
-  if (USE_METAL_COMPOSITOR) {
-    console.log('[perf]   using Metal compositor (GPU)')
-    await metalComposite(
-      {
-        sourcePath,
-        overlayPath,
-        outputPath,
-        overlayX: opts.overlayX,
-        overlayY: opts.overlayY,
-        overlayScaleWidth: opts.overlayScaleWidth,
-        overlayScaleHeight: opts.overlayScaleHeight,
-        fps: opts.fps,
-      },
-      signal,
-      onProgress,
-    )
-  } else {
-    console.log('[perf]   using FFmpeg compositor (CPU)')
-    await compositeVideo(sourcePath, overlayPath, outputPath, opts, onProgress, signal)
   }
 }
 
@@ -435,7 +392,7 @@ async function renderEntireProject(
     : job.outputPath
 
   try {
-    await runComposite(
+    await compositeVideo(
       ctx.videoPath,
       overlayPath,
       compositeOutputPath,
@@ -758,7 +715,7 @@ async function renderSubClip(
       // Composite overlay onto clip
       phaseStart = performance.now()
       try {
-        await runComposite(
+        await compositeVideo(
           tempClipPath,
           overlayPath,
           job.outputPath,

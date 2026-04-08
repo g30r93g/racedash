@@ -1,7 +1,6 @@
 import type { OverlayProps } from '@racedash/core'
 export { trimVideo, computeKeptRanges, type ResolvedTransition } from './cuts'
 export { extractClip, probeActualStartSeconds, buildExtractClipArgs } from './clip'
-export { metalComposite, isMetalCompositorAvailable } from './metal'
 // bundleRenderer is exported via the renderOverlay block above
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition, makeCancelSignal } from '@remotion/renderer'

@@ -13,8 +13,7 @@
     "pack": "electron-builder --config electron-builder.config.ts",
     "dist": "electron-vite build && electron-builder --config electron-builder.config.ts",
     "dist:test": "pnpm install --frozen-lockfile && pnpm turbo build --filter=@racedash/desktop... && pnpm --filter @racedash/desktop run dist -- --publish never",
-    "build:metal": "bash ../../native/metal-composite/build.sh",
-    "prebuild": "pnpm run build:metal && pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
+    "prebuild": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
     "pretest": "pnpm --filter @racedash/core --filter @racedash/scraper --filter @racedash/timestamps --filter @racedash/compositor --filter @racedash/engine build",
     "test": "vitest run --pool forks --passWithNoTests",
     "test:coverage": "vitest run --pool forks --passWithNoTests --coverage"
