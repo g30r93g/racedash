@@ -189,123 +189,125 @@ final class MetalCompositor {
             scaledOverlayTexture = device.makeTexture(descriptor: desc)
         }
 
-        // Process frames
+        // Process frames using pull model — writer drives the pace
         var frameIndex = 0
+        var videoFinished = false
+        var audioFinished = audioOutput == nil
+        var compositeError: Error?
 
-        while sourceReader.status == .reading {
-            // Drain audio samples to keep interleaving healthy
-            if let audioOut = audioOutput, let audioIn = audioInput {
+        let processingQueue = DispatchQueue(label: "com.racedash.metal-composite.video", qos: .userInitiated)
+        let audioQueue = DispatchQueue(label: "com.racedash.metal-composite.audio", qos: .userInitiated)
+        let completionSemaphore = DispatchSemaphore(value: 0)
+
+        // Video: writer pulls frames when ready
+        videoInput.requestMediaDataWhenReady(on: processingQueue) { [self] in
+            while videoInput.isReadyForMoreMediaData {
+                guard sourceReader.status == .reading else {
+                    videoInput.markAsFinished()
+                    videoFinished = true
+                    if audioFinished { completionSemaphore.signal() }
+                    return
+                }
+
+                guard let sourceSample = sourceOutput.copyNextSampleBuffer() else {
+                    videoInput.markAsFinished()
+                    videoFinished = true
+                    if audioFinished { completionSemaphore.signal() }
+                    return
+                }
+
+                guard let sourcePixelBuffer = CMSampleBufferGetImageBuffer(sourceSample) else { continue }
+                let presentationTime = CMSampleBufferGetPresentationTimeStamp(sourceSample)
+
+                let overlayPixelBuffer: CVPixelBuffer?
+                if overlayReader.status == .reading,
+                   let overlaySample = overlayOutput.copyNextSampleBuffer() {
+                    overlayPixelBuffer = CMSampleBufferGetImageBuffer(overlaySample)
+                } else {
+                    overlayPixelBuffer = nil
+                }
+
+                do {
+                    // Get output pixel buffer from writer pool
+                    guard let pool = adaptor.pixelBufferPool else {
+                        throw CompositorError.pixelBufferCreationFailed
+                    }
+                    var outPB: CVPixelBuffer?
+                    CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &outPB)
+                    guard let outputPB = outPB else {
+                        throw CompositorError.pixelBufferCreationFailed
+                    }
+                    let outputPBTexture = try makeTexture(from: outputPB)
+                    let sourceTexture = try makeTexture(from: sourcePixelBuffer)
+
+                    if let overlayPB = overlayPixelBuffer {
+                        let rawOverlayTexture = try makeTexture(from: overlayPB)
+
+                        let overlayToUse: MTLTexture
+                        if needsScale, let dest = scaledOverlayTexture, let ci = ciContext {
+                            let ciImage = CIImage(mtlTexture: rawOverlayTexture, options: nil)!
+                            let scaleX = Double(scaleWidth) / Double(overlayNativeWidth)
+                            let scaleY = Double(scaleHeight) / Double(overlayNativeHeight)
+                            let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+                            ci.render(scaled, to: dest, commandBuffer: nil, bounds: scaled.extent, colorSpace: CGColorSpaceCreateDeviceRGB())
+                            overlayToUse = dest
+                        } else {
+                            overlayToUse = rawOverlayTexture
+                        }
+
+                        try runCompositeShader(
+                            source: sourceTexture, overlay: overlayToUse, output: outputPBTexture,
+                            params: &compositeParams
+                        )
+                    } else {
+                        try blitCopy(from: sourceTexture, to: outputPBTexture)
+                    }
+
+                    adaptor.append(outputPB, withPresentationTime: presentationTime)
+                } catch {
+                    compositeError = error
+                    videoInput.markAsFinished()
+                    videoFinished = true
+                    if audioFinished { completionSemaphore.signal() }
+                    return
+                }
+
+                frameIndex += 1
+                if frameIndex == 1 { dbg("first frame written") }
+                if frameIndex % 30 == 0 {
+                    onProgress(frameIndex, totalFrames)
+                }
+                if frameIndex % 300 == 0 {
+                    dbg("frame \(frameIndex)/\(totalFrames)")
+                }
+            }
+        }
+
+        // Audio: writer pulls samples when ready
+        if let audioOut = audioOutput, let audioIn = audioInput {
+            audioIn.requestMediaDataWhenReady(on: audioQueue) {
                 while audioIn.isReadyForMoreMediaData {
-                    guard let sample = audioOut.copyNextSampleBuffer() else { break }
+                    guard let sample = audioOut.copyNextSampleBuffer() else {
+                        audioIn.markAsFinished()
+                        audioFinished = true
+                        if videoFinished { completionSemaphore.signal() }
+                        return
+                    }
                     audioIn.append(sample)
                 }
             }
-
-            // Per-frame timing (sampled every 300 frames)
-            let shouldTime = frameIndex % 300 == 0
-            var tWaitStart = CFAbsoluteTimeGetCurrent()
-
-            // Wait for video input to be ready (with timeout)
-            var waitCount = 0
-            while !videoInput.isReadyForMoreMediaData {
-                Thread.sleep(forTimeInterval: 0.001)
-                waitCount += 1
-                if waitCount > 5000 {
-                    throw CompositorError.writerFailed("Video input not ready after 5s (frame \(frameIndex))")
-                }
-            }
-            var tAfterWait = CFAbsoluteTimeGetCurrent()
-
-            guard let sourceSample = sourceOutput.copyNextSampleBuffer() else { break }
-            guard let sourcePixelBuffer = CMSampleBufferGetImageBuffer(sourceSample) else { continue }
-            let presentationTime = CMSampleBufferGetPresentationTimeStamp(sourceSample)
-
-            let overlayPixelBuffer: CVPixelBuffer?
-            if overlayReader.status == .reading,
-               let overlaySample = overlayOutput.copyNextSampleBuffer() {
-                overlayPixelBuffer = CMSampleBufferGetImageBuffer(overlaySample)
-            } else {
-                overlayPixelBuffer = nil
-            }
-            var tAfterDecode = CFAbsoluteTimeGetCurrent()
-
-            var t0 = CFAbsoluteTimeGetCurrent(), t1 = t0, t2 = t0, t3 = t0, t4 = t0, t5 = t0
-
-            // Get output pixel buffer from writer pool
-            guard let pool = adaptor.pixelBufferPool else {
-                throw CompositorError.pixelBufferCreationFailed
-            }
-            var outPB: CVPixelBuffer?
-            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &outPB)
-            guard let outputPB = outPB else {
-                throw CompositorError.pixelBufferCreationFailed
-            }
-            let outputPBTexture = try makeTexture(from: outputPB)
-            if shouldTime { t1 = CFAbsoluteTimeGetCurrent() }
-
-            // Create textures from pixel buffers
-            let sourceTexture = try makeTexture(from: sourcePixelBuffer)
-            if shouldTime { t2 = CFAbsoluteTimeGetCurrent() }
-
-            if let overlayPB = overlayPixelBuffer {
-                let rawOverlayTexture = try makeTexture(from: overlayPB)
-
-                // Scale overlay if needed
-                let overlayToUse: MTLTexture
-                if needsScale, let dest = scaledOverlayTexture, let ci = ciContext {
-                    let ciImage = CIImage(mtlTexture: rawOverlayTexture, options: nil)!
-                    let scaleX = Double(scaleWidth) / Double(overlayNativeWidth)
-                    let scaleY = Double(scaleHeight) / Double(overlayNativeHeight)
-                    let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
-                    ci.render(scaled, to: dest, commandBuffer: nil, bounds: scaled.extent, colorSpace: CGColorSpaceCreateDeviceRGB())
-                    overlayToUse = dest
-                } else {
-                    overlayToUse = rawOverlayTexture
-                }
-                if shouldTime { t3 = CFAbsoluteTimeGetCurrent() }
-
-                // Composite with positioning
-                try runCompositeShader(
-                    source: sourceTexture, overlay: overlayToUse, output: outputPBTexture,
-                    params: &compositeParams
-                )
-                if shouldTime { t4 = CFAbsoluteTimeGetCurrent() }
-            } else {
-                try blitCopy(from: sourceTexture, to: outputPBTexture)
-                if shouldTime { t3 = CFAbsoluteTimeGetCurrent(); t4 = t3 }
-            }
-
-            adaptor.append(outputPB, withPresentationTime: presentationTime)
-            if shouldTime { t5 = CFAbsoluteTimeGetCurrent() }
-
-            frameIndex += 1
-            if frameIndex == 1 { dbg("first frame written") }
-            if frameIndex % 30 == 0 {
-                onProgress(frameIndex, totalFrames)
-            }
-            if shouldTime {
-                let fmt = { (v: Double) -> String in String(format: "%.1f", v * 1000) }
-                dbg("frame \(frameIndex)/\(totalFrames) — wait: \(fmt(tAfterWait-tWaitStart))ms, decode: \(fmt(tAfterDecode-tAfterWait))ms, pool+tex: \(fmt(t1-t0))ms, scale: \(fmt(t3-t2))ms, shader: \(fmt(t4-t3))ms, append: \(fmt(t5-t4))ms — total: \(fmt(t5-tWaitStart))ms")
-            }
         }
 
-        // Drain remaining audio
-        if let audioOut = audioOutput, let audioIn = audioInput {
-            while sourceReader.status == .reading || audioIn.isReadyForMoreMediaData {
-                guard let sample = audioOut.copyNextSampleBuffer() else { break }
-                while !audioIn.isReadyForMoreMediaData {
-                    Thread.sleep(forTimeInterval: 0.001)
-                }
-                audioIn.append(sample)
-            }
+        // Wait for both video and audio to finish
+        completionSemaphore.wait()
+
+        if let error = compositeError {
+            throw error
         }
 
-        videoInput.markAsFinished()
-        audioInput?.markAsFinished()
-
-        let semaphore = DispatchSemaphore(value: 0)
-        writer.finishWriting { semaphore.signal() }
-        semaphore.wait()
+        let finishSemaphore = DispatchSemaphore(value: 0)
+        writer.finishWriting { finishSemaphore.signal() }
+        finishSemaphore.wait()
 
         if writer.status == .failed {
             throw CompositorError.writerFailed(writer.error?.localizedDescription ?? "unknown")
