@@ -17,6 +17,9 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 app.setName('RaceDash')
+if (!app.isPackaged) {
+  app.setAppUserModelId('com.racedash.app')
+}
 
 function getDevIconPath(): string | undefined {
   if (app.isPackaged) return undefined
