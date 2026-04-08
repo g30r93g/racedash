@@ -123,15 +123,24 @@ export function resolveSourceFiles(
 export async function buildPrecomputedContext(
   opts: BatchRenderOpts,
   signal: AbortSignal,
+  onPrecomputeProgress?: (phase: string, progress: number) => void,
 ): Promise<PrecomputedContext> {
-  // Join source files if multiple
+  const report = onPrecomputeProgress ?? (() => {})
+
+  // Only join all source files if there's an entireProject job.
+  // Sub-renders (segment/lap) join only the files they need in renderSubClip.
+  const needsFullJoin = opts.videoPaths.length > 1 &&
+    opts.jobs.some((j) => j.type === 'entireProject')
+
   let videoPath = opts.videoPaths[0]
   let tempJoinedVideo: string | null = null
 
-  if (opts.videoPaths.length > 1) {
+  if (needsFullJoin) {
+    report('Joining source videos', 0)
     tempJoinedVideo = path.join(tmpdir(), `racedash-joined-${randomUUID()}.mp4`)
     await compositorJoinVideos(opts.videoPaths, tempJoinedVideo, signal)
     videoPath = tempJoinedVideo
+    report('Joining source videos', 1)
   }
 
   // Load timing config
@@ -151,21 +160,22 @@ export async function buildPrecomputedContext(
     throw new Error(`config.qualifyingTablePosition must be one of: ${VALID_TABLE_POSITIONS.join(', ')}`)
   }
 
-  // Probe source video
-  const [durationSeconds, videoResolution, fps] = await Promise.all([
-    getVideoDuration(videoPath),
-    getVideoResolution(videoPath),
-    getVideoFps(videoPath),
+  report('Probing video files', 0)
+
+  // Probe first source file for resolution/fps (all files share these)
+  const [videoResolution, fps] = await Promise.all([
+    getVideoResolution(opts.videoPaths[0]),
+    getVideoFps(opts.videoPaths[0]),
   ])
 
   const outputResolution = opts.outputResolution ?? videoResolution
   const frameDuration = 1 / fps
 
-  // Build file frame range map for multi-file sub-render resolution
+  // Build file frame range map — probe each file for duration
   const fileFrameRanges: FileFrameRange[] = []
   let cumulativeFrames = 0
   for (const filePath of opts.videoPaths) {
-    const fileDuration = filePath === videoPath ? durationSeconds : await getVideoDuration(filePath)
+    const fileDuration = await getVideoDuration(filePath)
     const fileFrames = Math.round(fileDuration * fps)
     fileFrameRanges.push({
       path: filePath,
@@ -174,6 +184,11 @@ export async function buildPrecomputedContext(
     })
     cumulativeFrames += fileFrames
   }
+
+  // Total duration across all source files
+  const durationSeconds = cumulativeFrames / fps
+
+  report('Probing video files', 1)
 
   // Resolve timing segments
   const rawOffsets = segmentConfigs.map((segment) => parseOffset(segment.offset, fps))
@@ -210,7 +225,9 @@ export async function buildPrecomputedContext(
   }
 
   // Bundle the Remotion renderer once for all jobs
+  report('Bundling renderer', 0)
   const serveUrl = await bundleRenderer(opts.rendererEntry)
+  report('Bundling renderer', 1)
 
   return {
     videoPath,
@@ -247,7 +264,10 @@ export async function renderBatch(
   onJobError: (jobId: string, error: Error) => void,
   signal: AbortSignal,
 ): Promise<void> {
-  const ctx = await buildPrecomputedContext(opts, signal)
+  const ctx = await buildPrecomputedContext(opts, signal, (phase, progress) => {
+    // Report precompute progress under a synthetic '__precompute__' job ID
+    onJobProgress({ jobId: '__precompute__', phase, progress })
+  })
 
   try {
     for (const job of opts.jobs) {

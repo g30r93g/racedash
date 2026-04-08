@@ -345,6 +345,17 @@ export function ExportTab({
     // Listen to batch events
     cleanupRef.current.push(
       window.racedash.onBatchJobProgress((event) => {
+        if (event.jobId === '__precompute__') {
+          // Show precompute progress on the first job
+          setJobs((prev) => {
+            const first = prev[0]
+            if (!first || first.status === 'completed') return prev
+            return prev.map((j, i) =>
+              i === 0 ? { ...j, status: 'rendering' as const, progress: 0, phase: event.phase } : j,
+            )
+          })
+          return
+        }
         setJobs((prev) =>
           prev.map((j) =>
             j.id === event.jobId
@@ -488,6 +499,16 @@ export function ExportTab({
 
     cleanupRef.current.push(
       window.racedash.onBatchJobProgress((event) => {
+        if (event.jobId === '__precompute__') {
+          setJobs((prev) => {
+            const firstQueued = prev.find((j) => j.status === 'queued')
+            if (!firstQueued) return prev
+            return prev.map((j) =>
+              j.id === firstQueued.id ? { ...j, status: 'rendering' as const, progress: 0, phase: event.phase } : j,
+            )
+          })
+          return
+        }
         setJobs((prev) =>
           prev.map((j) =>
             j.id === event.jobId
