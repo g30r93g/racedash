@@ -199,9 +199,12 @@ final class MetalCompositor {
         let audioQueue = DispatchQueue(label: "com.racedash.metal-composite.audio", qos: .userInitiated)
         let completionSemaphore = DispatchSemaphore(value: 0)
 
-        // Video: writer pulls frames when ready
+        // Video: writer pulls frames when ready (zero-wait pull model)
         videoInput.requestMediaDataWhenReady(on: processingQueue) { [self] in
             while videoInput.isReadyForMoreMediaData {
+                let tFrameStart = CFAbsoluteTimeGetCurrent()
+                let shouldTime = frameIndex % 300 == 0
+
                 guard sourceReader.status == .reading else {
                     videoInput.markAsFinished()
                     videoFinished = true
@@ -226,9 +229,9 @@ final class MetalCompositor {
                 } else {
                     overlayPixelBuffer = nil
                 }
+                let tAfterDecode = CFAbsoluteTimeGetCurrent()
 
                 do {
-                    // Get output pixel buffer from writer pool
                     guard let pool = adaptor.pixelBufferPool else {
                         throw CompositorError.pixelBufferCreationFailed
                     }
@@ -239,6 +242,7 @@ final class MetalCompositor {
                     }
                     let outputPBTexture = try makeTexture(from: outputPB)
                     let sourceTexture = try makeTexture(from: sourcePixelBuffer)
+                    let tAfterTex = CFAbsoluteTimeGetCurrent()
 
                     if let overlayPB = overlayPixelBuffer {
                         let rawOverlayTexture = try makeTexture(from: overlayPB)
@@ -262,8 +266,15 @@ final class MetalCompositor {
                     } else {
                         try blitCopy(from: sourceTexture, to: outputPBTexture)
                     }
+                    let tAfterComposite = CFAbsoluteTimeGetCurrent()
 
                     adaptor.append(outputPB, withPresentationTime: presentationTime)
+                    let tAfterAppend = CFAbsoluteTimeGetCurrent()
+
+                    if shouldTime {
+                        let fmt = { (v: Double) -> String in String(format: "%.1f", v * 1000) }
+                        dbg("frame \(frameIndex + 1)/\(totalFrames) — decode: \(fmt(tAfterDecode - tFrameStart))ms, tex: \(fmt(tAfterTex - tAfterDecode))ms, composite: \(fmt(tAfterComposite - tAfterTex))ms, append: \(fmt(tAfterAppend - tAfterComposite))ms — total: \(fmt(tAfterAppend - tFrameStart))ms")
+                    }
                 } catch {
                     compositeError = error
                     videoInput.markAsFinished()
@@ -276,9 +287,6 @@ final class MetalCompositor {
                 if frameIndex == 1 { dbg("first frame written") }
                 if frameIndex % 30 == 0 {
                     onProgress(frameIndex, totalFrames)
-                }
-                if frameIndex % 300 == 0 {
-                    dbg("frame \(frameIndex)/\(totalFrames)")
                 }
             }
         }
