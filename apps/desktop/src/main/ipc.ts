@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow, Notification } from 'electron'
 import type { WebContents } from 'electron'
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -1058,10 +1058,17 @@ export function registerIpcHandlers(): void {
         transitions: opts.transitions,
       },
       throttledProgress,
-      (result) => send('racedash:renderBatch:job-complete', result),
+      (result) => {
+        send('racedash:renderBatch:job-complete', result)
+        const filename = path.basename(result.outputPath)
+        new Notification({ title: 'Render complete', body: filename }).show()
+      },
       (jobId, error) => {
         console.error(`[renderBatch] Job ${jobId} failed:`, error.message, error.stack)
         send('racedash:renderBatch:job-error', { jobId, message: error.message })
+        const job = opts.jobs.find((j) => j.id === jobId)
+        const filename = job ? path.basename(job.outputPath) : jobId
+        new Notification({ title: 'Render failed', body: `${filename}: ${error.message}` }).show()
       },
       controller.signal,
     )
@@ -1070,6 +1077,7 @@ export function registerIpcHandlers(): void {
         activeBatchOpts = null
         activeBatchSender = null
         send('racedash:renderBatch:complete')
+        new Notification({ title: 'Batch render complete', body: `All ${opts.jobs.length} job(s) finished` }).show()
       })
       .catch((err: unknown) => {
         activeBatchController = null
@@ -1080,6 +1088,7 @@ export function registerIpcHandlers(): void {
         console.error(`[renderBatch] Batch failed:`, message, stack)
         send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
         send('racedash:renderBatch:complete')
+        new Notification({ title: 'Batch render failed', body: message }).show()
       })
   })
 
