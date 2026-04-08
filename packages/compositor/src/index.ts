@@ -167,9 +167,6 @@ export async function renderOverlay(
   const profile = getOverlayRenderProfile(runtimePlatform)
   const totalFrames = comp.durationInFrames
 
-  // Enable partitioned rendering for better multi-core utilisation
-  process.env.REMOTION_PARTITIONED_RENDERING = 'true'
-
   // Bridge native AbortSignal to Remotion's CancelSignal
   let remotionCancelSignal: ReturnType<typeof makeCancelSignal> | undefined
   if (signal) {
