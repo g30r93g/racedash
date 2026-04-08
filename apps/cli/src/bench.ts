@@ -43,7 +43,7 @@ program
   .option('--style <style>', 'Overlay style', 'modern')
   .option('-r, --runs <count>', 'Number of runs', '1')
   .option('-o, --output <dir>', 'Output directory')
-  .option('--overlay-only', 'Render overlay only, skip composite')
+  .option('--overlay-only', 'Render overlay only, skip composite', false)
   .action(async (projectPath: string, opts) => {
     const absProjectPath = path.resolve(projectPath)
     if (!fs.existsSync(absProjectPath)) {
@@ -62,7 +62,7 @@ program
     const lapNumber = parseInt(opts.lap, 10)
     const runs = parseInt(opts.runs, 10)
     const jobType = opts.type as 'entireProject' | 'segment' | 'lap'
-    const overlayOnly = opts.overlayOnly === true
+    const overlayOnly = !!opts.overlayOnly
 
     const segLabel = project.segments[segIndex]?.label ?? `Segment ${segIndex}`
     const jobLabel = jobType === 'lap'
