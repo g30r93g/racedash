@@ -480,7 +480,7 @@ function buildFilterComplex(
   }
   // Scale overlay to match video if rendered at lower resolution
   if (overlayScaleWidth != null && overlayScaleHeight != null) {
-    filterParts.push(`[1:v]format=rgba,scale=${overlayScaleWidth}:${overlayScaleHeight}:flags=lanczos[ov]`)
+    filterParts.push(`[1:v]format=rgba,scale=${overlayScaleWidth}:${overlayScaleHeight}:flags=bilinear[ov]`)
   } else {
     filterParts.push('[1:v]format=rgba[ov]')
   }
@@ -622,8 +622,8 @@ function buildMacCompositePlan(
       'hevc_videotoolbox',
       '-tag:v',
       'hvc1',
-      '-b:v',
-      opts.videoBitrate,
+      '-q:v',
+      '65',
       '-c:a',
       'copy',
       '-y',

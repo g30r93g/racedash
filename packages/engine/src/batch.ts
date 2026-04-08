@@ -401,15 +401,16 @@ async function renderEntireProject(
         overlayX: 0,
         overlayY: ctx.overlayY,
         durationSeconds: ctx.durationSeconds,
-        outputWidth: opts.outputResolution?.width,
-        outputHeight: opts.outputResolution?.height,
+        // Only pass output dimensions if they differ from source (avoids redundant scale filter)
+        ...(opts.outputResolution && (opts.outputResolution.width !== ctx.videoResolution.width || opts.outputResolution.height !== ctx.videoResolution.height)
+          ? { outputWidth: opts.outputResolution.width, outputHeight: opts.outputResolution.height }
+          : {}),
         ...(ovDim.needsScale ? { overlayScaleWidth: ctx.outputResolution.width, overlayScaleHeight: ctx.outputResolution.height } : {}),
       },
       (p) => progress('Compositing', hasCuts ? p * 0.85 : p),
       signal,
     )
   } finally {
-    // Clean up overlay intermediate (ProRes 4444 files are 1-2 GB/min)
     await unlink(overlayPath).catch(() => {})
   }
 
@@ -724,8 +725,9 @@ async function renderSubClip(
             overlayX: 0,
             overlayY: ctx.overlayY,
             durationSeconds: clipDuration,
-            outputWidth: opts.outputResolution?.width,
-            outputHeight: opts.outputResolution?.height,
+            ...(opts.outputResolution && (opts.outputResolution.width !== ctx.videoResolution.width || opts.outputResolution.height !== ctx.videoResolution.height)
+              ? { outputWidth: opts.outputResolution.width, outputHeight: opts.outputResolution.height }
+              : {}),
             ...(ovDim.needsScale ? { overlayScaleWidth: ctx.outputResolution.width, overlayScaleHeight: ctx.outputResolution.height } : {}),
           },
           (p) => progress('Compositing', p),
