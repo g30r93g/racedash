@@ -26,9 +26,10 @@ kernel void alphaComposite(
         ovPos.x < params.overlaySize.x && ovPos.y < params.overlaySize.y)
     {
         float4 ov = overlay.read(ovPos);
-        // Straight alpha composite
+        // Premultiplied alpha composite (AVFoundation BGRA output is premultiplied)
+        // ov.rgb already contains color * alpha, so: result = ov + src * (1 - ov.a)
         float4 result = float4(
-            ov.rgb * ov.a + src.rgb * (1.0 - ov.a),
+            ov.rgb + src.rgb * (1.0 - ov.a),
             1.0
         );
         output.write(result, gid);
