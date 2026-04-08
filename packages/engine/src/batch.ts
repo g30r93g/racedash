@@ -453,7 +453,7 @@ async function renderEntireProject(
       signal,
     )
   } finally {
-    await unlink(overlayPath).catch(() => {})
+    // await unlink(overlayPath).catch(() => {}) // temporarily keep for color debugging
   }
 
   // Apply cut regions and transitions
@@ -776,7 +776,7 @@ async function renderSubClip(
           signal,
         )
       } finally {
-        await unlink(overlayPath).catch(() => {})
+        // await unlink(overlayPath).catch(() => {}) // temporarily keep for color debugging
       }
       console.log(`[perf]   compositeVideo: ${elapsed(phaseStart)}`)
     } finally {

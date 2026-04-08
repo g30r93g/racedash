@@ -26,10 +26,13 @@ kernel void alphaComposite(
         ovPos.x < params.overlaySize.x && ovPos.y < params.overlaySize.y)
     {
         float4 ov = overlay.read(ovPos);
-        // Premultiplied alpha composite (AVFoundation BGRA output is premultiplied)
-        // ov.rgb already contains color * alpha, so: result = ov + src * (1 - ov.a)
+
+        // AVFoundation decodes ProRes 4444 to BGRA as premultiplied alpha.
+        // Unpremultiply first to get true RGB, then composite with straight alpha.
+        // This matches FFmpeg's behavior: format=rgba unpremultiplies, then overlay composites.
+        float3 ovRGB = ov.a > 0.001 ? ov.rgb / ov.a : float3(0.0);
         float4 result = float4(
-            ov.rgb + src.rgb * (1.0 - ov.a),
+            ovRGB * ov.a + src.rgb * (1.0 - ov.a),
             1.0
         );
         output.write(result, gid);
