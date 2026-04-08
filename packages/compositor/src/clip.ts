@@ -24,20 +24,36 @@ export function buildExtractClipArgs(
   ]
 }
 
-export async function probeActualStartSeconds(filePath: string): Promise<number> {
-  const { stdout } = await execFileAsync('ffprobe', [
-    '-v', 'error',
-    '-select_streams', 'v:0',
-    '-show_entries', 'frame=pts_time',
-    '-read_intervals', '%+#1',
-    '-of', 'default=noprint_wrappers=1:nokey=1',
-    filePath,
-  ])
-  const pts = parseFloat(stdout.trim())
-  if (isNaN(pts)) {
-    throw new Error(`Failed to probe start PTS from ${filePath}: ffprobe returned "${stdout.trim()}"`)
-  }
-  return pts
+export async function probeActualStartSeconds(filePath: string, requestedStartSeconds: number): Promise<number> {
+  // Try format-level start_time first (most reliable with -copyts stream copy)
+  try {
+    const { stdout } = await execFileAsync('ffprobe', [
+      '-v', 'error',
+      '-show_entries', 'format=start_time',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      filePath,
+    ])
+    const pts = parseFloat(stdout.trim())
+    if (!isNaN(pts) && pts >= 0) return pts
+  } catch { /* fall through */ }
+
+  // Try stream-level start_time
+  try {
+    const { stdout } = await execFileAsync('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 'v:0',
+      '-show_entries', 'stream=start_time',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      filePath,
+    ])
+    const pts = parseFloat(stdout.trim())
+    if (!isNaN(pts) && pts >= 0) return pts
+  } catch { /* fall through */ }
+
+  // Fall back to requested start — overlay will be aligned to requested position
+  // (at most ~2s off due to I-frame rounding, within the 5s pre-roll buffer)
+  console.warn(`[extractClip] Could not probe start PTS from ${filePath}, using requested start ${requestedStartSeconds}s`)
+  return requestedStartSeconds
 }
 
 export async function extractClip(
@@ -88,6 +104,7 @@ export async function extractClip(
     })
   })
 
-  const actualStartSeconds = await probeActualStartSeconds(outputPath)
+  const requestedStartSeconds = startFrame / fps
+  const actualStartSeconds = await probeActualStartSeconds(outputPath, requestedStartSeconds)
   return { actualStartSeconds }
 }

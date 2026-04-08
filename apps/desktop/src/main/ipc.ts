@@ -30,6 +30,7 @@ import {
   resolveSegmentPositionOverrides,
   resolveTimingSegments,
 } from '@racedash/engine'
+import type { BatchJobProgressEvent } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 import { registerCloudRenderHandlers } from './cloud-render-handlers'
@@ -1034,6 +1035,16 @@ export function registerIpcHandlers(): void {
       if (!event.sender.isDestroyed()) event.sender.send(channel, ...args)
     }
 
+    // Throttle progress events to ~4Hz to avoid flooding the renderer
+    const progressThrottles = new Map<string, number>()
+    const throttledProgress = (progressEvent: BatchJobProgressEvent) => {
+      const now = Date.now()
+      const last = progressThrottles.get(progressEvent.jobId) ?? 0
+      if (now - last < 250 && progressEvent.progress < 1) return
+      progressThrottles.set(progressEvent.jobId, now)
+      send('racedash:renderBatch:job-progress', progressEvent)
+    }
+
     renderBatch(
       {
         configPath: opts.configPath,
@@ -1046,7 +1057,7 @@ export function registerIpcHandlers(): void {
         cutRegions: opts.cutRegions,
         transitions: opts.transitions,
       },
-      (progressEvent) => send('racedash:renderBatch:job-progress', progressEvent),
+      throttledProgress,
       (result) => send('racedash:renderBatch:job-complete', result),
       (jobId, error) => {
         console.error(`[renderBatch] Job ${jobId} failed:`, error.message, error.stack)
