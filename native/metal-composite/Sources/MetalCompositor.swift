@@ -124,10 +124,11 @@ final class MetalCompositor {
         )
         writer.add(videoInput)
 
-        // Audio input (passthrough)
+        // Audio input (passthrough — requires format hint for MP4 container)
         var audioInput: AVAssetWriterInput?
-        if sourceAudioTrack != nil {
-            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
+        if let audioTrack = sourceAudioTrack {
+            let formatHint = audioTrack.formatDescriptions.first as! CMFormatDescription
+            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: nil, sourceFormatHint: formatHint)
             input.expectsMediaDataInRealTime = false
             writer.add(input)
             audioInput = input
