@@ -109,7 +109,7 @@ export const Modern: React.FC<OverlayProps | LapOverlayProps> = (props) => {
         paddingRight: padX,
         boxSizing: 'border-box' as const,
         background: [
-          `repeating-linear-gradient(-55deg, rgba(255,255,255,${stripeOpacity}), rgba(255,255,255,${stripeOpacity}) 2px, transparent 2px, transparent 18px)`,
+          `repeating-linear-gradient(-55deg, rgba(255,255,255,${stripeOpacity}), rgba(255,255,255,${stripeOpacity}) ${2 * scale}px, transparent ${2 * scale}px, transparent ${18 * scale}px)`,
           bgColor,
         ].join(', '),
       },
