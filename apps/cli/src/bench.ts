@@ -43,7 +43,7 @@ program
   .option('--style <style>', 'Overlay style', 'modern')
   .option('-r, --runs <count>', 'Number of runs', '1')
   .option('-o, --output <dir>', 'Output directory')
-  .option('--overlay-only', 'Render overlay only, skip composite', false)
+  .option('--overlay-only', 'Render overlay only, skip composite')
   .action(async (projectPath: string, opts) => {
     const absProjectPath = path.resolve(projectPath)
     if (!fs.existsSync(absProjectPath)) {

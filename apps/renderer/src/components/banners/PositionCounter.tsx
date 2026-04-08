@@ -3,6 +3,7 @@ import { useVideoConfig } from 'remotion'
 import type { Lap, LapTimestamp, PositionOverride, SessionMode } from '@racedash/core'
 import { useDisplayedPosition } from '../../displayedPosition'
 import { fontFamily } from '../../Root'
+import { colorWithAlpha } from '../../utils/colorAlpha'
 
 interface Props {
   timestamps: LapTimestamp[]
@@ -67,8 +68,7 @@ export const PositionCounter: React.FC<Props> = ({
       fontFamily,
       fontSize: 13 * scale,
       fontWeight: 700,
-      color: textColor,
-      opacity: 0.75,
+      color: colorWithAlpha(textColor, 0.75),
       letterSpacing: 2 * scale,
       userSelect: 'none',
     }),
