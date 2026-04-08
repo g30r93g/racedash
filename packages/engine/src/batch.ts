@@ -257,6 +257,11 @@ export async function buildPrecomputedContext(
 // renderBatch — orchestrates multiple render jobs sharing one precomputed context
 // ---------------------------------------------------------------------------
 
+function elapsed(startMs: number): string {
+  const ms = performance.now() - startMs
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`
+}
+
 export async function renderBatch(
   opts: BatchRenderOpts,
   onJobProgress: (event: BatchJobProgressEvent) => void,
@@ -264,14 +269,20 @@ export async function renderBatch(
   onJobError: (jobId: string, error: Error) => void,
   signal: AbortSignal,
 ): Promise<void> {
+  const batchStart = performance.now()
+  console.log(`[perf] renderBatch: starting ${opts.jobs.length} job(s)`)
+
+  const precomputeStart = performance.now()
   const ctx = await buildPrecomputedContext(opts, signal, (phase, progress) => {
-    // Report precompute progress under a synthetic '__precompute__' job ID
     onJobProgress({ jobId: '__precompute__', phase, progress })
   })
+  console.log(`[perf] precompute: ${elapsed(precomputeStart)}`)
 
   try {
     for (const job of opts.jobs) {
       if (signal.aborted) break
+      const jobStart = performance.now()
+      console.log(`[perf] job ${job.id} (${job.type}): starting`)
 
       try {
         switch (job.type) {
@@ -288,8 +299,10 @@ export async function renderBatch(
             await renderLapJob(opts, ctx, job, onJobProgress, signal)
             break
         }
+        console.log(`[perf] job ${job.id} (${job.type}): completed in ${elapsed(jobStart)}`)
         onJobComplete({ jobId: job.id, outputPath: job.outputPath })
       } catch (err) {
+        console.log(`[perf] job ${job.id} (${job.type}): failed after ${elapsed(jobStart)}`)
         if (signal.aborted) break
         onJobError(job.id, err instanceof Error ? err : new Error(String(err)))
       }
@@ -297,6 +310,8 @@ export async function renderBatch(
   } finally {
     if (ctx.tempJoinedVideo) await unlink(ctx.tempJoinedVideo).catch(() => {})
   }
+
+  console.log(`[perf] renderBatch: total ${elapsed(batchStart)}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -580,11 +595,16 @@ async function renderSubClip(
   const localEndFrame = clipRange.endFrame - sourceFrameOffset
 
   try {
+    // Compute clip duration from frame range (avoids spawning ffprobe)
+    const clipFrames = localEndFrame - localStartFrame
+    const clipDuration = clipFrames / ctx.fps
+
     if (signal.aborted) return
 
     const tempClipPath = path.join(tmpdir(), `racedash-clip-${randomUUID()}.mp4`)
 
     try {
+      let phaseStart = performance.now()
       progress('Extracting clip', 0)
       const { actualStartSeconds } = await extractClip(
         clipSourcePath,
@@ -595,6 +615,7 @@ async function renderSubClip(
         signal,
         (p) => progress('Extracting clip', p),
       )
+      console.log(`[perf]   extractClip: ${elapsed(phaseStart)} (${clipFrames} frames, ${clipDuration.toFixed(1)}s)`)
 
       if (signal.aborted) return
 
@@ -616,10 +637,6 @@ async function renderSubClip(
           },
         }))
       }
-
-      // Compute clip duration from frame range (avoids spawning ffprobe)
-      const clipFrames = localEndFrame - localStartFrame
-      const clipDuration = clipFrames / ctx.fps
 
       // Build overlay props
       let overlayProps: OverlayProps | LapOverlayProps = {
@@ -653,6 +670,7 @@ async function renderSubClip(
       if (signal.aborted) return
 
       // Render overlay (using pre-bundled serveUrl)
+      phaseStart = performance.now()
       await renderOverlay(
         ctx.serveUrl,
         opts.style,
@@ -663,15 +681,16 @@ async function renderSubClip(
         undefined,
         signal,
       )
+      console.log(`[perf]   renderOverlay: ${elapsed(phaseStart)}`)
 
       if (opts.renderMode === 'overlay-only') {
-        // Keep overlay file as the output — nothing else to do
         return
       }
 
       if (signal.aborted) return
 
       // Composite overlay onto clip
+      phaseStart = performance.now()
       try {
         await compositeVideo(
           tempClipPath,
@@ -691,6 +710,7 @@ async function renderSubClip(
       } finally {
         await unlink(overlayPath).catch(() => {})
       }
+      console.log(`[perf]   compositeVideo: ${elapsed(phaseStart)}`)
     } finally {
       await unlink(tempClipPath).catch(() => {})
     }
