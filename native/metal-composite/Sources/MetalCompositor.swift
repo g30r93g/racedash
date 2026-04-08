@@ -201,23 +201,25 @@ final class MetalCompositor {
                 }
             }
 
+            // Per-frame timing (sampled every 300 frames)
+            let shouldTime = frameIndex % 300 == 0
+            var tWaitStart = CFAbsoluteTimeGetCurrent()
+
             // Wait for video input to be ready (with timeout)
             var waitCount = 0
             while !videoInput.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.001)
                 waitCount += 1
-                if waitCount > 5000 { // 5 second timeout
+                if waitCount > 5000 {
                     throw CompositorError.writerFailed("Video input not ready after 5s (frame \(frameIndex))")
                 }
             }
+            var tAfterWait = CFAbsoluteTimeGetCurrent()
 
             guard let sourceSample = sourceOutput.copyNextSampleBuffer() else { break }
             guard let sourcePixelBuffer = CMSampleBufferGetImageBuffer(sourceSample) else { continue }
-
-            // Use source sample's presentation time
             let presentationTime = CMSampleBufferGetPresentationTimeStamp(sourceSample)
 
-            // Get overlay frame
             let overlayPixelBuffer: CVPixelBuffer?
             if overlayReader.status == .reading,
                let overlaySample = overlayOutput.copyNextSampleBuffer() {
@@ -225,9 +227,8 @@ final class MetalCompositor {
             } else {
                 overlayPixelBuffer = nil
             }
+            var tAfterDecode = CFAbsoluteTimeGetCurrent()
 
-            // Per-frame timing (sampled every 300 frames to avoid overhead)
-            let shouldTime = frameIndex % 300 == 0
             var t0 = CFAbsoluteTimeGetCurrent(), t1 = t0, t2 = t0, t3 = t0, t4 = t0, t5 = t0
 
             // Get output pixel buffer from writer pool
@@ -284,7 +285,7 @@ final class MetalCompositor {
             }
             if shouldTime {
                 let fmt = { (v: Double) -> String in String(format: "%.1f", v * 1000) }
-                dbg("frame \(frameIndex)/\(totalFrames) — pool+tex: \(fmt(t1-t0))ms, srcTex: \(fmt(t2-t1))ms, scale: \(fmt(t3-t2))ms, shader: \(fmt(t4-t3))ms, append: \(fmt(t5-t4))ms — reader: \(sourceReader.status.rawValue), writer: \(writer.status.rawValue)")
+                dbg("frame \(frameIndex)/\(totalFrames) — wait: \(fmt(tAfterWait-tWaitStart))ms, decode: \(fmt(tAfterDecode-tAfterWait))ms, pool+tex: \(fmt(t1-t0))ms, scale: \(fmt(t3-t2))ms, shader: \(fmt(t4-t3))ms, append: \(fmt(t5-t4))ms — total: \(fmt(t5-tWaitStart))ms")
             }
         }
 
