@@ -4,6 +4,11 @@ import CoreVideo
 import Foundation
 import Metal
 
+struct CompositeParams {
+    var overlayOffset: SIMD2<UInt32>
+    var overlaySize: SIMD2<UInt32>
+}
+
 final class MetalCompositor {
     let device: MTLDevice
     let commandQueue: MTLCommandQueue
@@ -164,15 +169,11 @@ final class MetalCompositor {
         let needsScale = scaleWidth != overlayNativeWidth || scaleHeight != overlayNativeHeight
         dbg("overlay native: \(overlayNativeWidth)x\(overlayNativeHeight), scale to: \(scaleWidth)x\(scaleHeight), needsScale: \(needsScale)")
 
-        // Positioned overlay texture (full frame, reused across frames)
-        let positionedDesc = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .bgra8Unorm, width: outputWidth, height: outputHeight, mipmapped: false
+        // Params buffer for composite shader (overlay position + size)
+        var compositeParams = CompositeParams(
+            overlayOffset: SIMD2<UInt32>(UInt32(overlayX), UInt32(overlayY)),
+            overlaySize: SIMD2<UInt32>(UInt32(scaleWidth), UInt32(scaleHeight))
         )
-        positionedDesc.usage = [.shaderRead, .shaderWrite]
-        positionedDesc.storageMode = .shared
-        guard let positionedOverlay = device.makeTexture(descriptor: positionedDesc) else {
-            throw CompositorError.textureCreationFailed
-        }
 
         // CIContext for overlay scaling
         let ciContext = needsScale ? CIContext(mtlDevice: device) : nil
@@ -255,14 +256,11 @@ final class MetalCompositor {
                     overlayToUse = rawOverlayTexture
                 }
 
-                // Clear positioned overlay, blit overlay into position
-                try blitOverlayIntoPosition(
-                    overlayToUse, into: positionedOverlay,
-                    atX: overlayX, atY: overlayY,
-                    outputWidth: outputWidth, outputHeight: outputHeight
+                // Composite with positioning — shader handles offset, no CPU clearing needed
+                try runCompositeShader(
+                    source: sourceTexture, overlay: overlayToUse, output: outputPBTexture,
+                    params: &compositeParams
                 )
-                // Composite directly into the writer's pixel buffer (zero-copy)
-                try runCompositeShader(source: sourceTexture, overlay: positionedOverlay, output: outputPBTexture)
             } else {
                 // No overlay — blit source directly into writer's pixel buffer
                 try blitCopy(from: sourceTexture, to: outputPBTexture)
@@ -324,40 +322,10 @@ final class MetalCompositor {
         return texture
     }
 
-    private func blitOverlayIntoPosition(
-        _ overlay: MTLTexture, into dest: MTLTexture,
-        atX x: Int, atY y: Int,
-        outputWidth: Int, outputHeight: Int
+    private func runCompositeShader(
+        source: MTLTexture, overlay: MTLTexture, output: MTLTexture,
+        params: inout CompositeParams
     ) throws {
-        guard let cmd = commandQueue.makeCommandBuffer(),
-              let blit = cmd.makeBlitCommandEncoder() else {
-            throw CompositorError.commandBufferFailed
-        }
-
-        // Clear dest to transparent
-        // (We fill the whole texture via the composite shader, so just clear is enough)
-        let zeroRegion = MTLRegion(origin: .init(), size: .init(width: outputWidth, height: outputHeight, depth: 1))
-        let zeros = [UInt8](repeating: 0, count: outputWidth * outputHeight * 4)
-        dest.replace(region: zeroRegion, mipmapLevel: 0, withBytes: zeros, bytesPerRow: outputWidth * 4)
-
-        // Copy overlay into position
-        let copyW = min(overlay.width, outputWidth - x)
-        let copyH = min(overlay.height, outputHeight - y)
-        if copyW > 0 && copyH > 0 {
-            blit.copy(
-                from: overlay, sourceSlice: 0, sourceLevel: 0,
-                sourceOrigin: .init(x: 0, y: 0, z: 0),
-                sourceSize: .init(width: copyW, height: copyH, depth: 1),
-                to: dest, destinationSlice: 0, destinationLevel: 0,
-                destinationOrigin: .init(x: x, y: y, z: 0)
-            )
-        }
-        blit.endEncoding()
-        cmd.commit()
-        cmd.waitUntilCompleted()
-    }
-
-    private func runCompositeShader(source: MTLTexture, overlay: MTLTexture, output: MTLTexture) throws {
         guard let cmd = commandQueue.makeCommandBuffer(),
               let encoder = cmd.makeComputeCommandEncoder() else {
             throw CompositorError.commandBufferFailed
@@ -367,6 +335,7 @@ final class MetalCompositor {
         encoder.setTexture(source, index: 0)
         encoder.setTexture(overlay, index: 1)
         encoder.setTexture(output, index: 2)
+        encoder.setBytes(&params, length: MemoryLayout<CompositeParams>.size, index: 0)
 
         let w = pipelineState.threadExecutionWidth
         let h = pipelineState.maxTotalThreadsPerThreadgroup / w
