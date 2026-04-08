@@ -15,9 +15,9 @@ kernel void alphaComposite(
     float4 src = source.read(gid);
     float4 ov  = overlay.read(gid);
 
-    // Standard alpha composite (overlay is premultiplied by Remotion/ProRes)
+    // Straight alpha composite (ProRes 4444 from Remotion uses straight alpha)
     float4 result = float4(
-        ov.rgb + src.rgb * (1.0 - ov.a),
+        ov.rgb * ov.a + src.rgb * (1.0 - ov.a),
         1.0
     );
 
