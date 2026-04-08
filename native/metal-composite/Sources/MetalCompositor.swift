@@ -174,11 +174,6 @@ final class MetalCompositor {
             throw CompositorError.textureCreationFailed
         }
 
-        // Output texture (reused)
-        guard let outputTexture = device.makeTexture(descriptor: positionedDesc) else {
-            throw CompositorError.textureCreationFailed
-        }
-
         // CIContext for overlay scaling
         let ciContext = needsScale ? CIContext(mtlDevice: device) : nil
 
@@ -230,6 +225,17 @@ final class MetalCompositor {
                 overlayPixelBuffer = nil
             }
 
+            // Get output pixel buffer from writer pool (IOSurface-backed → zero-copy to encoder)
+            guard let pool = adaptor.pixelBufferPool else {
+                throw CompositorError.pixelBufferCreationFailed
+            }
+            var outPB: CVPixelBuffer?
+            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &outPB)
+            guard let outputPB = outPB else {
+                throw CompositorError.pixelBufferCreationFailed
+            }
+            let outputPBTexture = try makeTexture(from: outputPB)
+
             // Create textures from pixel buffers
             let sourceTexture = try makeTexture(from: sourcePixelBuffer)
 
@@ -249,35 +255,18 @@ final class MetalCompositor {
                     overlayToUse = rawOverlayTexture
                 }
 
-                // Clear positioned overlay, blit overlay into position, composite
+                // Clear positioned overlay, blit overlay into position
                 try blitOverlayIntoPosition(
                     overlayToUse, into: positionedOverlay,
                     atX: overlayX, atY: overlayY,
                     outputWidth: outputWidth, outputHeight: outputHeight
                 )
-                try runCompositeShader(source: sourceTexture, overlay: positionedOverlay, output: outputTexture)
+                // Composite directly into the writer's pixel buffer (zero-copy)
+                try runCompositeShader(source: sourceTexture, overlay: positionedOverlay, output: outputPBTexture)
             } else {
-                // No overlay — copy source through
-                try blitCopy(from: sourceTexture, to: outputTexture)
+                // No overlay — blit source directly into writer's pixel buffer
+                try blitCopy(from: sourceTexture, to: outputPBTexture)
             }
-
-            // Write frame
-            guard let pool = adaptor.pixelBufferPool else {
-                throw CompositorError.pixelBufferCreationFailed
-            }
-            var outPB: CVPixelBuffer?
-            CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &outPB)
-            guard let outputPB = outPB else {
-                throw CompositorError.pixelBufferCreationFailed
-            }
-
-            CVPixelBufferLockBaseAddress(outputPB, [])
-            let dest = CVPixelBufferGetBaseAddress(outputPB)!
-            let bytesPerRow = CVPixelBufferGetBytesPerRow(outputPB)
-            outputTexture.getBytes(dest, bytesPerRow: bytesPerRow,
-                                   from: MTLRegion(origin: .init(), size: .init(width: outputWidth, height: outputHeight, depth: 1)),
-                                   mipmapLevel: 0)
-            CVPixelBufferUnlockBaseAddress(outputPB, [])
 
             adaptor.append(outputPB, withPresentationTime: presentationTime)
 
