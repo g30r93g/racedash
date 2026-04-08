@@ -4,7 +4,7 @@ export { extractClip, probeActualStartSeconds, buildExtractClipArgs } from './cl
 // bundleRenderer is exported via the renderOverlay block above
 import { bundle } from '@remotion/bundler'
 import { renderMedia, selectComposition, makeCancelSignal } from '@remotion/renderer'
-import { execFile, execFileSync, spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { unlink, writeFile } from 'node:fs/promises'
 import { cpus, tmpdir } from 'node:os'
@@ -12,26 +12,6 @@ import { resolve, win32 } from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
-
-/**
- * Determine optimal Remotion concurrency for this machine.
- * On Apple Silicon: use P-core count if >= 6 (avoids E-core stragglers).
- * On machines with few P-cores (e.g. M1 Air: 4P+4E), use all cores.
- * On non-macOS: use all cores.
- */
-function getOptimalConcurrency(): number {
-  const total = cpus().length
-  if (process.platform !== 'darwin') return total
-
-  try {
-    const pCores = parseInt(execFileSync('sysctl', ['-n', 'hw.perflevel0.logicalcpu']).toString().trim(), 10)
-    if (!isNaN(pCores) && pCores >= 6) return pCores
-  } catch { /* sysctl not available or no perflevel — use all cores */ }
-
-  return total
-}
-
-const OPTIMAL_CONCURRENCY = getOptimalConcurrency()
 
 export interface CompositeDiagnostic {
   label: string
@@ -194,37 +174,42 @@ export async function renderOverlay(
     signal.addEventListener('abort', () => remotionCancelSignal!.cancel(), { once: true })
   }
 
-  const sharedRenderOpts = {
-    serveUrl,
-    composition: comp,
-    imageFormat: 'png' as const,
-    outputLocation: outputPath,
-    inputProps,
-    chromiumOptions: { gl: 'angle' as const },
-    chromeMode: 'headless-shell' as const,
-    hardwareAcceleration: 'required' as const,
-    concurrency: OPTIMAL_CONCURRENCY,
-    cancelSignal: remotionCancelSignal?.cancelSignal,
-    onProgress: onProgress
-      ? ({ progress, renderedFrames }: { progress: number; renderedFrames: number }) =>
-          onProgress({ progress, renderedFrames, totalFrames })
-      : undefined,
-  }
-
   if (profile.codec === 'prores') {
     await renderMedia({
-      ...sharedRenderOpts,
+      serveUrl,
+      composition: comp,
       codec: 'prores',
       proResProfile: '4444',
       pixelFormat: profile.pixelFormat,
+      imageFormat: 'png',
+      outputLocation: outputPath,
+      inputProps,
+      chromiumOptions: { gl: 'angle' },
+      hardwareAcceleration: 'required',
+      concurrency: cpus().length,
+      cancelSignal: remotionCancelSignal?.cancelSignal,
+      onProgress: onProgress
+        ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
+        : undefined,
     })
     return
   }
 
   await renderMedia({
-    ...sharedRenderOpts,
+    serveUrl,
+    composition: comp,
     codec: 'vp9',
     pixelFormat: profile.pixelFormat,
+    imageFormat: 'png',
+    outputLocation: outputPath,
+    inputProps,
+    chromiumOptions: { gl: 'angle' },
+    hardwareAcceleration: 'required',
+    concurrency: cpus().length,
+    cancelSignal: remotionCancelSignal?.cancelSignal,
+    onProgress: onProgress
+      ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
+      : undefined,
   })
 }
 
