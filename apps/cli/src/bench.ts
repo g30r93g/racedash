@@ -209,4 +209,6 @@ program
     }
   })
 
-program.parse()
+// Filter out the bare '--' that pnpm passes through
+const argv = process.argv.filter(a => a !== '--')
+program.parse(argv)
