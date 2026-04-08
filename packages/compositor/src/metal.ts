@@ -73,7 +73,10 @@ export async function metalComposite(
     args.push('--overlay-scale-width', String(opts.overlayScaleWidth))
     args.push('--overlay-scale-height', String(opts.overlayScaleHeight))
   }
-  args.push('--verbose')
+  // Enable verbose logging in dev for debugging
+  if (!('resourcesPath' in process)) {
+    args.push('--verbose')
+  }
 
   return new Promise((resolve, reject) => {
     const proc = spawn(binaryPath, args)
