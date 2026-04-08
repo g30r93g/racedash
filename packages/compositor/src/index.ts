@@ -563,9 +563,21 @@ async function resolveWindowsCompositePlan(
   emitDiagnostic(opts.onDiagnostic, 'Decode', selected)
   emitDiagnostic(opts.onDiagnostic, 'Software fallback', softwareFallback ? 'yes' : 'no')
 
-  if (!capabilities.encoders.has('libx264')) {
-    throw new Error('ffmpeg does not provide libx264 on this machine. Install a build with libx264 support.')
+  // Select encoder: prefer NVENC hardware encode, fall back to libx264
+  const useNvenc = capabilities.encoders.has('hevc_nvenc')
+  const useNvencH264 = !useNvenc && capabilities.encoders.has('h264_nvenc')
+
+  if (!useNvenc && !useNvencH264 && !capabilities.encoders.has('libx264')) {
+    throw new Error('ffmpeg does not provide libx264, h264_nvenc, or hevc_nvenc. Install a build with encoder support.')
   }
+
+  const encoderArgs: string[] = useNvenc
+    ? ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
+    : useNvencH264
+      ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
+      : ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18']
+
+  emitDiagnostic(opts.onDiagnostic, 'Encode', useNvenc ? 'hevc_nvenc' : useNvencH264 ? 'h264_nvenc' : 'libx264')
 
   return {
     decodePath: selected,
@@ -582,12 +594,7 @@ async function resolveWindowsCompositePlan(
       String(opts.fps),
       '-pix_fmt',
       'yuv420p',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'medium',
-      '-crf',
-      '18',
+      ...encoderArgs,
       '-c:a',
       'copy',
       '-y',
@@ -632,16 +639,34 @@ function buildMacCompositePlan(
   }
 }
 
-function buildGenericCompositePlan(
+async function buildGenericCompositePlan(
   sourcePath: string,
   overlayPath: string,
   outputPath: string,
   opts: Required<Pick<CompositeOptions, 'fps' | 'overlayX' | 'overlayY'>> & CompositeOptions,
-): CompositePlan {
+): Promise<CompositePlan> {
+  const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
+
+  // Prefer NVENC on Linux/cloud GPU instances
+  const useNvenc = capabilities.encoders.has('hevc_nvenc')
+  const useNvencH264 = !useNvenc && capabilities.encoders.has('h264_nvenc')
+  const hwaccelArgs: string[] = useNvenc || useNvencH264
+    ? ['-hwaccel', 'cuda']
+    : []
+
+  const encoderArgs: string[] = useNvenc
+    ? ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
+    : useNvencH264
+      ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
+      : ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18']
+
+  emitDiagnostic(opts.onDiagnostic, 'Encode', useNvenc ? 'hevc_nvenc' : useNvencH264 ? 'h264_nvenc' : 'libx264')
+
   return {
-    decodePath: 'software',
-    softwareFallback: true,
+    decodePath: useNvenc || useNvencH264 ? 'cuda' : 'software',
+    softwareFallback: !useNvenc && !useNvencH264,
     args: [
+      ...hwaccelArgs,
       '-i',
       sourcePath,
       '-i',
@@ -652,12 +677,7 @@ function buildGenericCompositePlan(
       String(opts.fps),
       '-pix_fmt',
       'yuv420p',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'medium',
-      '-crf',
-      '18',
+      ...encoderArgs,
       '-c:a',
       'copy',
       '-y',
@@ -709,7 +729,7 @@ export async function compositeVideo(
       ? await resolveWindowsCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
       : runtimePlatform === 'darwin'
         ? buildMacCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
-        : buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
+        : await buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
 
   await runFFmpegWithProgress(plan.args, totalSeconds, onProgress, signal)
 }
