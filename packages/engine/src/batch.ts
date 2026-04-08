@@ -37,6 +37,25 @@ import type {
 const SUB_RENDER_PRE_ROLL_SECONDS = 5
 const SUB_RENDER_POST_ROLL_SECONDS = 5
 
+/** Overlay is always rendered at this base width. For higher-res video, it's scaled up during composite. */
+const OVERLAY_BASE_WIDTH = 1920
+
+function overlayDimensions(outputRes: { width: number; height: number }): {
+  overlayWidth: number
+  overlayHeight: number
+  needsScale: boolean
+} {
+  if (outputRes.width <= OVERLAY_BASE_WIDTH) {
+    return { overlayWidth: outputRes.width, overlayHeight: outputRes.height, needsScale: false }
+  }
+  const scale = OVERLAY_BASE_WIDTH / outputRes.width
+  return {
+    overlayWidth: OVERLAY_BASE_WIDTH,
+    overlayHeight: Math.round(outputRes.height * scale),
+    needsScale: true,
+  }
+}
+
 const BOX_STRIP_HEIGHTS: Partial<Record<string, number>> = { esports: 400, minimal: 400 }
 const VALID_BOX_POSITIONS = ['bottom-left', 'bottom-center', 'bottom-right', 'top-left', 'top-center', 'top-right']
 const VALID_TABLE_POSITIONS = ['bottom-left', 'bottom-right', 'top-left', 'top-right']
@@ -328,13 +347,15 @@ async function renderEntireProject(
   const progress = (phase: string, p: number, extra?: { renderedFrames?: number; totalFrames?: number }) =>
     onJobProgress({ jobId: job.id, phase, progress: p, ...extra })
 
+  const ovDim = overlayDimensions(ctx.outputResolution)
+
   const overlayProps: OverlayProps = {
     segments: ctx.segments,
     startingGridPosition: ctx.startingGridPosition,
     fps: ctx.fps,
     durationInFrames: Math.ceil(ctx.durationSeconds * ctx.fps),
-    videoWidth: ctx.outputResolution.width,
-    videoHeight: ctx.outputResolution.height,
+    videoWidth: ovDim.overlayWidth,
+    videoHeight: ovDim.overlayHeight,
     boxPosition: ctx.boxPosition,
     qualifyingTablePosition: ctx.qualifyingTablePosition,
     overlayComponents: ctx.overlayComponents,
@@ -346,7 +367,7 @@ async function renderEntireProject(
 
   if (signal.aborted) return
 
-  // Render overlay (using pre-bundled serveUrl)
+  // Render overlay at base resolution (scaled up during composite if needed)
   await renderOverlay(
     ctx.serveUrl,
     opts.style,
@@ -382,6 +403,7 @@ async function renderEntireProject(
         durationSeconds: ctx.durationSeconds,
         outputWidth: opts.outputResolution?.width,
         outputHeight: opts.outputResolution?.height,
+        ...(ovDim.needsScale ? { overlayScaleWidth: ctx.outputResolution.width, overlayScaleHeight: ctx.outputResolution.height } : {}),
       },
       (p) => progress('Compositing', hasCuts ? p * 0.85 : p),
       signal,
@@ -638,14 +660,15 @@ async function renderSubClip(
         }))
       }
 
-      // Build overlay props
+      // Build overlay props at base resolution (scaled up during composite if needed)
+      const ovDim = overlayDimensions(ctx.outputResolution)
       let overlayProps: OverlayProps | LapOverlayProps = {
         segments: rebasedSegments,
         startingGridPosition: ctx.startingGridPosition,
         fps: ctx.fps,
         durationInFrames: clipFrames,
-        videoWidth: ctx.outputResolution.width,
-        videoHeight: ctx.outputResolution.height,
+        videoWidth: ovDim.overlayWidth,
+        videoHeight: ovDim.overlayHeight,
         boxPosition: ctx.boxPosition,
         qualifyingTablePosition: ctx.qualifyingTablePosition,
         overlayComponents: ctx.overlayComponents,
@@ -703,6 +726,7 @@ async function renderSubClip(
             durationSeconds: clipDuration,
             outputWidth: opts.outputResolution?.width,
             outputHeight: opts.outputResolution?.height,
+            ...(ovDim.needsScale ? { overlayScaleWidth: ctx.outputResolution.width, overlayScaleHeight: ctx.outputResolution.height } : {}),
           },
           (p) => progress('Compositing', p),
           signal,

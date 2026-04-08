@@ -55,6 +55,9 @@ export interface CompositeOptions {
   durationSeconds?: number
   outputWidth?: number
   outputHeight?: number
+  /** Scale the overlay to these dimensions during composite (for lower-res overlay on higher-res video). */
+  overlayScaleWidth?: number
+  overlayScaleHeight?: number
   onDiagnostic?: (diagnostic: CompositeDiagnostic) => void
   runtimePlatform?: NodeJS.Platform
   ffmpegCapabilities?: FfmpegCapabilities
@@ -461,14 +464,26 @@ async function runFfmpegCapture(
   })
 }
 
-function buildFilterComplex(overlayX: number, overlayY: number, outputWidth?: number, outputHeight?: number): string {
+function buildFilterComplex(
+  overlayX: number,
+  overlayY: number,
+  outputWidth?: number,
+  outputHeight?: number,
+  overlayScaleWidth?: number,
+  overlayScaleHeight?: number,
+): string {
   const filterParts: string[] = []
   let sourceLabel = '0:v'
   if (outputWidth != null && outputHeight != null) {
     filterParts.push(`[0:v]scale=${outputWidth}:${outputHeight}[src]`)
     sourceLabel = 'src'
   }
-  filterParts.push('[1:v]format=rgba[ov]')
+  // Scale overlay to match video if rendered at lower resolution
+  if (overlayScaleWidth != null && overlayScaleHeight != null) {
+    filterParts.push(`[1:v]format=rgba,scale=${overlayScaleWidth}:${overlayScaleHeight}:flags=lanczos[ov]`)
+  } else {
+    filterParts.push('[1:v]format=rgba[ov]')
+  }
   filterParts.push(`[${sourceLabel}][ov]overlay=x=${overlayX}:y=${overlayY}`)
   return filterParts.join(';')
 }
@@ -513,7 +528,7 @@ async function resolveWindowsCompositePlan(
   emitDiagnostic(opts.onDiagnostic, 'CPU', hardwareInfo.cpu ?? 'Unknown')
   emitDiagnostic(opts.onDiagnostic, 'GPU', hardwareInfo.gpuNames.join(', ') || 'Unknown')
 
-  const filterComplex = buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight)
+  const filterComplex = buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight, opts.overlayScaleWidth, opts.overlayScaleHeight)
   const candidates = getWindowsDecodeCandidateOrder(hardwareInfo.gpuVendors, capabilities.hwaccels)
 
   let selected = 'software'
@@ -598,7 +613,7 @@ function buildMacCompositePlan(
       '-i',
       overlayPath,
       '-filter_complex',
-      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
+      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight, opts.overlayScaleWidth, opts.overlayScaleHeight),
       '-r',
       String(opts.fps),
       '-pix_fmt',
@@ -632,7 +647,7 @@ function buildGenericCompositePlan(
       '-i',
       overlayPath,
       '-filter_complex',
-      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
+      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight, opts.overlayScaleWidth, opts.overlayScaleHeight),
       '-r',
       String(opts.fps),
       '-pix_fmt',
