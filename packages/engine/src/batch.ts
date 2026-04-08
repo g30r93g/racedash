@@ -15,6 +15,7 @@ import {
   getVideoResolution,
   joinVideos as compositorJoinVideos,
   renderOverlay,
+  renderOverlayAndComposite,
   trimVideo,
   computeKeptRanges,
   type ResolvedTransition,
@@ -688,54 +689,57 @@ async function renderSubClip(
         } as LapOverlayProps
       }
 
-      const overlayPath = getOverlayOutputPath(job.outputPath)
-
       if (signal.aborted) return
 
-      // Render overlay (using pre-bundled serveUrl)
-      phaseStart = performance.now()
-      await renderOverlay(
-        ctx.serveUrl,
-        opts.style,
-        overlayProps,
-        overlayPath,
-        ({ progress: p, renderedFrames, totalFrames }) =>
-          progress('Rendering overlay', p, { renderedFrames, totalFrames }),
-        undefined,
-        signal,
-      )
-      console.log(`[perf]   renderOverlay: ${elapsed(phaseStart)}`)
-
       if (opts.renderMode === 'overlay-only') {
+        // Overlay-only: use existing renderOverlay → ProRes/VP9 file
+        const overlayPath = getOverlayOutputPath(job.outputPath)
+        phaseStart = performance.now()
+        await renderOverlay(
+          ctx.serveUrl,
+          opts.style,
+          overlayProps,
+          overlayPath,
+          ({ progress: p, renderedFrames, totalFrames }) =>
+            progress('Rendering overlay', p, { renderedFrames, totalFrames }),
+          undefined,
+          signal,
+        )
+        console.log(`[perf]   renderOverlay (overlay-only): ${elapsed(phaseStart)}`)
         return
       }
 
-      if (signal.aborted) return
-
-      // Composite overlay onto clip
+      // Combined overlay render + composite: skip ProRes intermediate
       phaseStart = performance.now()
-      try {
-        await compositeVideo(
-          tempClipPath,
-          overlayPath,
-          job.outputPath,
-          {
-            fps: ctx.fps,
-            overlayX: 0,
-            overlayY: ctx.overlayY,
-            durationSeconds: clipDuration,
-            ...(opts.outputResolution && (opts.outputResolution.width !== ctx.videoResolution.width || opts.outputResolution.height !== ctx.videoResolution.height)
-              ? { outputWidth: opts.outputResolution.width, outputHeight: opts.outputResolution.height }
-              : {}),
-            ...(ovDim.needsScale ? { overlayScaleWidth: ctx.outputResolution.width, overlayScaleHeight: ctx.outputResolution.height } : {}),
-          },
-          (p) => progress('Compositing', p),
-          signal,
-        )
-      } finally {
-        await unlink(overlayPath).catch(() => {})
-      }
-      console.log(`[perf]   compositeVideo: ${elapsed(phaseStart)}`)
+      await renderOverlayAndComposite(
+        ctx.serveUrl,
+        opts.style,
+        overlayProps,
+        tempClipPath,
+        job.outputPath,
+        {
+          fps: ctx.fps,
+          overlayX: 0,
+          overlayY: ctx.overlayY,
+          durationSeconds: clipDuration,
+          ...(opts.outputResolution && (opts.outputResolution.width !== ctx.videoResolution.width || opts.outputResolution.height !== ctx.videoResolution.height)
+            ? { outputWidth: opts.outputResolution.width, outputHeight: opts.outputResolution.height }
+            : {}),
+          ...(ovDim.needsScale ? { overlayScaleWidth: ctx.outputResolution.width, overlayScaleHeight: ctx.outputResolution.height } : {}),
+        },
+        (event) => {
+          if (event.phase === 'overlay') {
+            progress('Rendering overlay', event.progress, {
+              renderedFrames: event.renderedFrames,
+              totalFrames: event.totalFrames,
+            })
+          } else {
+            progress('Compositing', event.progress)
+          }
+        },
+        signal,
+      )
+      console.log(`[perf]   renderOverlayAndComposite: ${elapsed(phaseStart)}`)
     } finally {
       await unlink(tempClipPath).catch(() => {})
     }

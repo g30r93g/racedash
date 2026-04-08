@@ -3,12 +3,13 @@ export { trimVideo, computeKeptRanges, type ResolvedTransition } from './cuts'
 export { extractClip, probeActualStartSeconds, buildExtractClipArgs } from './clip'
 // bundleRenderer is exported via the renderOverlay block above
 import { bundle } from '@remotion/bundler'
-import { renderMedia, selectComposition, makeCancelSignal } from '@remotion/renderer'
+import { renderMedia, renderFrames, selectComposition, makeCancelSignal } from '@remotion/renderer'
 import { execFile, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { unlink, writeFile } from 'node:fs/promises'
 import { cpus, tmpdir } from 'node:os'
-import { resolve, win32 } from 'node:path'
+import path, { resolve, win32 } from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
@@ -211,6 +212,135 @@ export async function renderOverlay(
       ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
       : undefined,
   })
+}
+
+/**
+ * Combined overlay render + composite in a single pipeline.
+ * Skips the ProRes intermediate — renders overlay frames as PNGs to a temp dir,
+ * then FFmpeg reads them as an image sequence for compositing.
+ *
+ * Saves ~15-20s by eliminating ProRes encode (Remotion stitcher) + decode (FFmpeg).
+ */
+export async function renderOverlayAndComposite(
+  serveUrl: string,
+  compositionId: string,
+  props: OverlayProps,
+  sourcePath: string,
+  outputPath: string,
+  opts: {
+    fps: number
+    overlayX: number
+    overlayY: number
+    durationSeconds: number
+    outputWidth?: number
+    outputHeight?: number
+    overlayScaleWidth?: number
+    overlayScaleHeight?: number
+    onDiagnostic?: (diagnostic: CompositeDiagnostic) => void
+    runtimePlatform?: NodeJS.Platform
+    ffmpegCapabilities?: FfmpegCapabilities
+    windowsHardwareInfo?: WindowsHardwareInfo
+  },
+  onProgress?: (event: { phase: 'overlay' | 'composite'; progress: number; renderedFrames?: number; totalFrames?: number }) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const inputProps = props as unknown as Record<string, unknown>
+  const comp = await selectComposition({ serveUrl, id: compositionId, inputProps })
+  const totalFrames = comp.durationInFrames
+
+  // Bridge AbortSignal to Remotion CancelSignal
+  let remotionCancelSignal: ReturnType<typeof makeCancelSignal> | undefined
+  if (signal) {
+    remotionCancelSignal = makeCancelSignal()
+    signal.addEventListener('abort', () => remotionCancelSignal!.cancel(), { once: true })
+  }
+
+  // Render overlay frames as PNG sequence to temp dir
+  const framesDir = path.join(tmpdir(), `racedash-frames-${randomUUID()}`)
+  mkdirSync(framesDir, { recursive: true })
+
+  try {
+    await renderFrames({
+      serveUrl,
+      composition: comp,
+      imageFormat: 'png',
+      outputDir: framesDir,
+      inputProps,
+      chromiumOptions: { gl: 'angle' },
+      concurrency: cpus().length,
+      cancelSignal: remotionCancelSignal?.cancelSignal,
+      onStart: () => {},
+      onFrameUpdate: (renderedFrames, _frameIndex) => {
+        onProgress?.({
+          phase: 'overlay',
+          progress: renderedFrames / totalFrames,
+          renderedFrames,
+          totalFrames,
+        })
+      },
+    })
+
+    if (signal?.aborted) return
+
+    // Build FFmpeg composite command with PNG sequence as overlay input
+    const runtimePlatform = opts.runtimePlatform ?? process.platform
+    // Remotion default pattern: element-NNNN.png (zero-padded)
+    // FFmpeg image2 demuxer needs %0Nd format
+    const files = readdirSync(framesDir).filter(f => f.endsWith('.png')).sort()
+    if (files.length === 0) throw new Error('No overlay frames rendered')
+    // Detect padding length from first file (e.g., element-0000.png → 4 digits)
+    const padMatch = files[0].match(/element-(\d+)\.png/)
+    const padLength = padMatch ? padMatch[1].length : 4
+    const framePattern = path.join(framesDir, `element-%0${padLength}d.png`)
+
+    // Build filter complex for overlay positioning + scaling
+    const filterComplex = buildFilterComplex(
+      opts.overlayX, opts.overlayY,
+      opts.outputWidth, opts.outputHeight,
+      opts.overlayScaleWidth, opts.overlayScaleHeight,
+    )
+
+    // Determine encoder based on platform
+    const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
+    let encoderArgs: string[]
+    let hwaccelArgs: string[] = []
+
+    if (runtimePlatform === 'darwin') {
+      hwaccelArgs = ['-hwaccel', 'videotoolbox']
+      encoderArgs = ['-c:v', 'hevc_videotoolbox', '-tag:v', 'hvc1', '-q:v', '65']
+    } else if (capabilities.encoders.has('hevc_nvenc')) {
+      hwaccelArgs = ['-hwaccel', 'cuda']
+      encoderArgs = ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
+    } else if (capabilities.encoders.has('h264_nvenc')) {
+      hwaccelArgs = ['-hwaccel', 'cuda']
+      encoderArgs = ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
+    } else {
+      encoderArgs = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18']
+    }
+
+    const args = [
+      ...hwaccelArgs,
+      '-i', sourcePath,
+      '-framerate', String(opts.fps),
+      '-i', framePattern,
+      '-filter_complex', filterComplex,
+      '-r', String(opts.fps),
+      '-pix_fmt', 'yuv420p',
+      ...encoderArgs,
+      '-c:a', 'copy',
+      '-y', outputPath,
+    ]
+
+    await runFFmpegWithProgress(args, opts.durationSeconds, (p) => {
+      onProgress?.({ phase: 'composite', progress: p })
+    }, signal)
+
+  } finally {
+    // Clean up frame directory
+    if (existsSync(framesDir)) {
+      rmSync(framesDir, { recursive: true, force: true })
+    }
+  }
 }
 
 export function parseFpsValue(raw: string, videoPath: string): number {
