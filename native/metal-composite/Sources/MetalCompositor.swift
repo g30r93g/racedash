@@ -91,10 +91,15 @@ final class MetalCompositor {
         dbg("sourceReader status: \(sourceReader.status.rawValue)")
         dbg("overlayReader status: \(overlayReader.status.rawValue)")
 
-        // Source video: decode to BGRA (let AVFoundation handle color space natively)
+        // Source video: decode to BGRA with correct BT.709 color matrix
+        // Without explicit color properties, AVFoundation may use BT.601 matrix
+        // which shifts R/G channels ~17% brighter for BT.709 content.
         let sourceOutput = AVAssetReaderTrackOutput(track: sourceVideoTrack, outputSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferMetalCompatibilityKey as String: true,
+            AVVideoColorPropertiesKey: [
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+            ] as [String: Any],
         ])
         sourceOutput.alwaysCopiesSampleData = false
         sourceReader.add(sourceOutput)
