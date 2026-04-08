@@ -58,7 +58,7 @@ function overlayDimensions(outputRes: { width: number; height: number }): {
   }
 }
 
-const USE_METAL_COMPOSITOR = isMetalCompositorAvailable()
+const USE_METAL_COMPOSITOR = process.env.RACEDASH_METAL !== '0' && isMetalCompositorAvailable()
 
 async function runComposite(
   sourcePath: string,
