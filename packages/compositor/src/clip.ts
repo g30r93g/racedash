@@ -16,10 +16,7 @@ export function buildExtractClipArgs(
     '-ss', String(startSec),
     '-i', sourcePath,
     '-t', String(duration),
-    '-c:v', 'copy',
-    '-c:a', 'aac',
-    '-af', 'afade=t=in:d=0.1',
-    '-copyts',
+    '-c', 'copy',
     '-y', outputPath,
   ]
 }
@@ -104,7 +101,9 @@ export async function extractClip(
     })
   })
 
-  const requestedStartSeconds = startFrame / fps
-  const actualStartSeconds = await probeActualStartSeconds(outputPath, requestedStartSeconds)
+  // Without -copyts, the output PTS starts at ~0.
+  // The actual start in source timeline is the requested start (I-frame rounding
+  // adds at most ~2s extra pre-roll, absorbed by the 5s buffer).
+  const actualStartSeconds = startFrame / fps
   return { actualStartSeconds }
 }
