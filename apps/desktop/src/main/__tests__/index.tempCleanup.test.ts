@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({
   app: {
     setName: vi.fn(),
+    setAppUserModelId: vi.fn(),
     whenReady: vi.fn(() => new Promise(() => {})),
     on: vi.fn(),
     isPackaged: false,
