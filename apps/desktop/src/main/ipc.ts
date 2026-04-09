@@ -725,6 +725,7 @@ const RENDERER_ENTRY = path.resolve(__dirname, '../../../../apps/renderer/src/in
 let activeBatchController: AbortController | null = null
 let activeBatchOpts: RenderBatchOpts | null = null
 let activeBatchSender: WebContents | null = null
+let isBatchRunning = false
 
 // ---------------------------------------------------------------------------
 // previewDrivers — wizard helper
@@ -1028,6 +1029,7 @@ export function registerIpcHandlers(): void {
     activeBatchController = controller
     activeBatchOpts = opts
     activeBatchSender = event.sender
+    isBatchRunning = true
 
     const outputResolution = opts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[opts.outputResolution]
 
@@ -1073,16 +1075,15 @@ export function registerIpcHandlers(): void {
       controller.signal,
     )
       .then(() => {
+        isBatchRunning = false
         activeBatchController = null
-        activeBatchOpts = null
-        activeBatchSender = null
+        // Keep activeBatchOpts alive so retry can use it after completion
         send('racedash:renderBatch:complete')
         new Notification({ title: 'Batch render complete', body: `All ${opts.jobs.length} job(s) finished` }).show()
       })
       .catch((err: unknown) => {
+        isBatchRunning = false
         activeBatchController = null
-        activeBatchOpts = null
-        activeBatchSender = null
         const message = err instanceof Error ? err.message : String(err)
         const stack = err instanceof Error ? err.stack : undefined
         console.error(`[renderBatch] Batch failed:`, message, stack)
@@ -1096,15 +1097,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('racedash:renderBatch:cancel', () => {
     if (activeBatchController) {
       activeBatchController.abort()
-      activeBatchController = null
-      activeBatchOpts = null
-      activeBatchSender = null
+      // Note: isBatchRunning is cleared by the .then()/.catch() of the active renderBatch call
     }
   })
 
   // Export — retryBatchJobs (re-queue specific failed jobs)
   ipcMain.handle('racedash:renderBatch:retry', (event, jobIds: string[]) => {
     if (!activeBatchOpts) throw new Error('No batch render to retry — start a new batch instead')
+    if (isBatchRunning) throw new Error('A batch is currently running — wait for it to complete before retrying')
 
     const originalOpts = activeBatchOpts
     const retryJobs = originalOpts.jobs.filter((j) => jobIds.includes(j.id))
@@ -1113,6 +1113,7 @@ export function registerIpcHandlers(): void {
     const controller = new AbortController()
     activeBatchController = controller
     activeBatchSender = event.sender
+    isBatchRunning = true
 
     const outputResolution =
       originalOpts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[originalOpts.outputResolution]
@@ -1139,13 +1140,13 @@ export function registerIpcHandlers(): void {
       controller.signal,
     )
       .then(() => {
+        isBatchRunning = false
         activeBatchController = null
-        activeBatchSender = null
         send('racedash:renderBatch:complete')
       })
       .catch((err: unknown) => {
+        isBatchRunning = false
         activeBatchController = null
-        activeBatchSender = null
         const message = err instanceof Error ? err.message : String(err)
         send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
         send('racedash:renderBatch:complete')

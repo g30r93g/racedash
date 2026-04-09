@@ -141,7 +141,7 @@ function buildJobList(
     const min = Number(minStr)
     const max = Number(maxStr)
 
-    if (!selection.segments.has(min) && !selection.segments.has(max)) continue
+    if (!selection.segments.has(min) || !selection.segments.has(max)) continue
 
     const minSeg = segments.find((s) => s.index === min)
     const maxSeg = segments.find((s) => s.index === max)
@@ -393,15 +393,21 @@ export function ExportTab({
     cleanupRef.current.push(
       window.racedash.onBatchComplete(() => {
         stopRendering()
+        // Read current jobs via updater, capture values, then set lastRender outside
+        let hasError = false
+        let completedOutputPath = outputDir
         setJobs((prev) => {
-          const hasError = prev.some((j) => j.status === 'error')
+          hasError = prev.some((j) => j.status === 'error')
           const lastCompleted = prev.find((j) => j.status === 'completed')
-          setLastRender({
-            status: hasError ? 'error' : 'completed',
-            outputPath: lastCompleted?.id ? batchJobs.find((bj) => bj.id === lastCompleted.id)?.outputPath ?? outputDir : outputDir,
-            timestamp: new Date(),
-          })
+          completedOutputPath = lastCompleted?.id
+            ? batchJobs.find((bj) => bj.id === lastCompleted.id)?.outputPath ?? outputDir
+            : outputDir
           return prev
+        })
+        setLastRender({
+          status: hasError ? 'error' : 'completed',
+          outputPath: completedOutputPath,
+          timestamp: new Date(),
         })
         cleanupRef.current.forEach((fn) => fn())
         cleanupRef.current = []
