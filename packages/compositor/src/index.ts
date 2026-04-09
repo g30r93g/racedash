@@ -139,10 +139,6 @@ export function getOverlayOutputPath(outputPath: string, platform: NodeJS.Platfo
 }
 
 /**
- * Bundle the Remotion renderer entry point, render the overlay with alpha,
- * and write it to `outputPath`.
- */
-/**
  * Bundle the Remotion renderer entry point. Call once and reuse the serveUrl
  * across multiple renderOverlay calls (e.g., in a batch).
  */
