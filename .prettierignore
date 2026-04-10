@@ -4,6 +4,7 @@ out
 coverage
 .turbo
 .next
+.clerk
 next-env.d.ts
 pnpm-lock.yaml
 *.md

@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils'
 type SectionProps = {
   id?: string
   eyebrow?: string
-  heading?: string
-  body?: string
+  heading?: React.ReactNode
+  body?: React.ReactNode
   className?: string
   children: React.ReactNode
   align?: 'left' | 'center'

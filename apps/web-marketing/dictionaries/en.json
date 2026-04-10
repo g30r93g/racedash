@@ -188,10 +188,10 @@
     "creditsHeading": "Cloud render credits",
     "creditsBody": "Cloud renders are metered in credits. Top up when you need to. Credits never expire unless your subscription lapses.",
     "creditPacks": [
-      { "name": "50 RC", "price": "£7", "subtitle": "A weekend of practice" },
-      { "name": "100 RC", "price": "£10", "subtitle": "A full race weekend" },
-      { "name": "250 RC", "price": "£20", "subtitle": "A full season", "popular": true },
-      { "name": "500 RC", "price": "£35", "subtitle": "Everything, everywhere" }
+      { "name": "50 RC", "price": "£7" },
+      { "name": "100 RC", "price": "£10" },
+      { "name": "250 RC", "price": "£20", "popular": true },
+      { "name": "500 RC", "price": "£35" }
     ],
     "faqHeading": "Frequently asked questions",
     "faq": [
@@ -338,12 +338,57 @@
     "dashboard": {
       "eyebrow": "Account",
       "heading": "Welcome back, {name}.",
-      "signOut": "Sign out",
-      "subscriptionHeading": "Subscription",
-      "creditsHeading": "Cloud credits",
-      "billingHeading": "Billing",
-      "manageBilling": "Manage billing",
-      "downloadApp": "Download the app"
+      "subhead": "Manage your subscription, cloud credits and downloads.",
+      "download": {
+        "eyebrow": "Download",
+        "heading": "Download RaceDash",
+        "meta": "v0.9.0 · 142 MB · Released 10 Apr 2026 · Signed & notarized",
+        "macLabel": "Download for macOS",
+        "windowsLabel": "Download for Windows",
+        "systemReqsLabel": "System requirements",
+        "systemReqs": "macOS 13+ · Windows 11 · 4 GB RAM · 8 GB disk",
+        "changelogLink": "See what's new in v0.9.0",
+        "lockedEyebrow": "Subscribe to unlock",
+        "lockedHeading": "Download RaceDash",
+        "lockedBody": "A RaceDash subscription unlocks the desktop app. Pick a plan to get started.",
+        "lockedPrimary": "See pricing",
+        "lockedSecondary": "Join the waitlist"
+      },
+      "subscription": {
+        "eyebrow": "Subscription",
+        "activeLabel": "Active",
+        "cancellingLabel": "Cancelling",
+        "pastDueLabel": "Past due",
+        "empty": {
+          "heading": "No active subscription yet",
+          "body": "Subscribe to unlock the desktop app, timekeeper integrations and cloud rendering.",
+          "seePricing": "See pricing",
+          "joinWaitlist": "Join the waitlist"
+        },
+        "price": "{price} / year",
+        "renewalLabel": "Renews",
+        "featuresHeading": "Included at this tier",
+        "manageBilling": "Manage billing",
+        "upgradeToPro": "Upgrade to Pro",
+        "proActive": "You're on Pro"
+      },
+      "credits": {
+        "eyebrow": "Cloud credits",
+        "remaining": "{amount} RC remaining",
+        "empty": {
+          "heading": "No cloud credits yet",
+          "body": "Top up to start rendering in the cloud."
+        },
+        "topUp": "Top up credits",
+        "neverExpires": "Credits never expire while your subscription is active.",
+        "sparklineLabel": "Last 14 days",
+        "lastUsedTemplate": "Last used {when} · {filename} · {cost} RC",
+        "noActivity": "No cloud renders yet."
+      },
+      "footer": {
+        "signOut": "Sign out",
+        "supportLabel": "Contact support"
+      }
     },
     "signIn": {
       "eyebrow": "Sign in",

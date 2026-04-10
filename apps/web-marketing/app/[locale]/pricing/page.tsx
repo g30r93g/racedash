@@ -88,7 +88,6 @@ export default async function PricingPage({ params }: PageProps) {
                 )}
                 <div className="font-display text-foreground-strong text-3xl font-medium tabular-nums">{pack.name}</div>
                 <div className="font-display text-accent mt-3 text-2xl font-medium tabular-nums">{pack.price}</div>
-                <div className="text-foreground-dim mt-3 text-xs">{pack.subtitle}</div>
               </article>
             )
           })}
