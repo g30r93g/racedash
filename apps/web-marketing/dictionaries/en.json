@@ -1,0 +1,391 @@
+{
+  "metadata": {
+    "title": "RaceDash — Your lap times through a new lens",
+    "description": "RaceDash turns your track footage into broadcast-grade race videos — with live timing, telemetry and lap-by-lap overlays baked right in."
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "testimonials": "Testimonials",
+    "changelog": "Changelog",
+    "waitlist": "Join the waitlist"
+  },
+  "hero": {
+    "eyebrow": "Precision video for racers",
+    "headline": "Your lap times through a new lens.",
+    "subhead": "RaceDash turns your track footage into broadcast-grade race videos — with live timing, telemetry and lap-by-lap overlays baked right in.",
+    "ctaPrimary": "Join the waitlist",
+    "ctaSecondary": "See pricing",
+    "meta": "Launching 2026 · macOS & Windows"
+  },
+  "trust": {
+    "eyebrow": "Early access",
+    "line": "Built with racers across karting, club and endurance paddocks."
+  },
+  "primitives": {
+    "eyebrow": "How it works",
+    "heading": "Three steps. No editing suite required.",
+    "items": [
+      {
+        "number": "01",
+        "eyebrow": "Import",
+        "heading": "Bring in your session.",
+        "body": "Drop in your footage and bring in your lap times — from your timekeeper, your on-dash logger, or typed in by hand. RaceDash takes it from there."
+      },
+      {
+        "number": "02",
+        "eyebrow": "Review",
+        "heading": "Jump straight to your fastest lap.",
+        "body": "RaceDash lines up every lap to every frame and flags your quickest one. Watch it back, learn from it, and be on the grid before the next session is called."
+      },
+      {
+        "number": "03",
+        "eyebrow": "Render",
+        "heading": "Broadcast-grade videos, baked in.",
+        "body": "Pick an overlay style and let RaceDash compose the final video. Render on your machine, or offload it to the cloud."
+      }
+    ]
+  },
+  "showcase": {
+    "eyebrow": "Overlays",
+    "heading": "Lap times belong on the video, not on a spreadsheet.",
+    "body": "RaceDash writes every lap, every position and your session's fastest time straight onto the frame. No cross-referencing a timing sheet with a video player — the context is baked in, so you can just watch the lap and learn."
+  },
+  "features": {
+    "eyebrow": "Features",
+    "heading": "Everything a race weekend needs.",
+    "items": [
+      {
+        "icon": "radio",
+        "heading": "Timekeeper integrations",
+        "body": "Pull sessions straight from Alpha, SpeedHive/MyLaps, Daytona and TeamSport. No typing lap times by hand."
+      },
+      {
+        "icon": "gauge",
+        "heading": "Works with your logger",
+        "body": "MyChron, Alfano or RaceBox — RaceDash reads your session straight off the SD card.",
+        "proOnly": true
+      },
+      {
+        "icon": "zap",
+        "heading": "Fastest lap, in one click",
+        "body": "RaceDash flags your best lap of the session so you can jump straight to it between runs."
+      },
+      {
+        "icon": "layers",
+        "heading": "Multiple overlay styles",
+        "body": "Banner, Geometric, Esports, Minimal, Modern — and more on the way. Pick one and you're ready to render."
+      },
+      {
+        "icon": "film",
+        "heading": "Lap-by-lap renders",
+        "body": "Export your fastest lap, your whole session, or any subset — pick the laps that mattered."
+      },
+      {
+        "icon": "cloud",
+        "heading": "Cloud rendering",
+        "body": "Offload the heavy frames to RaceDash Cloud and keep your laptop cool."
+      }
+    ]
+  },
+  "testimonials": {
+    "eyebrow": "From the paddock",
+    "heading": "What racers are saying.",
+    "addYours": "Add yours"
+  },
+  "why": {
+    "eyebrow": "Why RaceDash",
+    "heading": "Built by racers who got tired of being video editors.",
+    "body": "RaceDash started at Club100. Between heats, we'd want to watch our fastest lap and work out where we'd left time on the table — but finding it meant scrubbing through footage with a paper timing sheet in hand, and Premiere Pro was no help. So we built the tool we needed: one that knows what a lap is, knows which one was your fastest, and has your video ready before you're back on grid."
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "heading": "One license. Every track day.",
+    "plus": {
+      "name": "Plus",
+      "tagline": "For the driver with a camera and a timing sheet.",
+      "price": "£24.99",
+      "period": "per year",
+      "features": [
+        { "text": "Desktop app for macOS & Windows" },
+        { "text": "Unlimited local renders" },
+        { "text": "1 cloud render slot" }
+      ],
+      "cta": "Join the waitlist"
+    },
+    "pro": {
+      "name": "Pro",
+      "tagline": "For the racer who doesn't have time to wait on a render.",
+      "price": "£49.99",
+      "period": "per year",
+      "features": [
+        { "text": "Everything in Plus" },
+        {
+          "text": "Data logger support",
+          "linkLabel": "See supported devices",
+          "href": "/blog/supported-data-loggers"
+        },
+        { "text": "250 GB cloud storage" },
+        { "text": "3 cloud render slots" }
+      ],
+      "cta": "Join the waitlist"
+    },
+    "credits": "Cloud render credits sold separately · from £7 for 50 RC",
+    "link": "See full pricing"
+  },
+  "waitlistCta": {
+    "eyebrow": "Early access",
+    "heading": "Be first on the grid.",
+    "body": "Drop your email. We'll let you know the moment RaceDash is ready.",
+    "placeholder": "you@example.com",
+    "submit": "Join the waitlist",
+    "success": "You're on the list. We'll be in touch.",
+    "error": "Something went wrong. Please try again.",
+    "countLabel": "racers already waiting"
+  },
+  "footer": {
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "links": {
+      "product": [
+        { "label": "Features", "href": "/#features" },
+        { "label": "Pricing", "href": "/pricing" },
+        { "label": "Support", "href": "/support" },
+        { "label": "Changelog", "href": "/changelog" }
+      ],
+      "company": [
+        { "label": "About", "href": "/about" },
+        { "label": "Blog", "href": "/blog" },
+        { "label": "Contact", "href": "/contact" }
+      ],
+      "legal": [
+        { "label": "Privacy", "href": "/privacy" },
+        { "label": "Terms", "href": "/terms" }
+      ]
+    },
+    "copyright": "© 2026 RaceDash · Made by racers, for racers."
+  },
+  "pricingPage": {
+    "metadata": {
+      "title": "Pricing — RaceDash",
+      "description": "Plus and Pro subscriptions, cloud render credits, and everything in between. Simple pricing for racers."
+    },
+    "eyebrow": "Pricing",
+    "heading": "One license. Every track day.",
+    "subhead": "RaceDash is a yearly subscription. Pick the tier that fits how you race, top up cloud render credits when you need them, and cancel any time.",
+    "compareHeading": "What's in each tier",
+    "compareRows": [
+      { "label": "Desktop app for macOS & Windows", "plus": true, "pro": true },
+      { "label": "Unlimited local renders", "plus": true, "pro": true },
+      { "label": "Timekeeper integrations (Alpha, MyLaps, Daytona, TeamSport)", "plus": true, "pro": true },
+      { "label": "Fastest lap highlighting", "plus": true, "pro": true },
+      { "label": "Multiple overlay styles", "plus": true, "pro": true },
+      { "label": "Cloud render slots", "plus": "1", "pro": "3" },
+      { "label": "Data logger support (MyChron, Alfano, RaceBox)", "plus": false, "pro": true },
+      { "label": "Cloud storage", "plus": false, "pro": "250 GB" }
+    ],
+    "creditsHeading": "Cloud render credits",
+    "creditsBody": "Cloud renders are metered in credits. Top up when you need to. Credits never expire unless your subscription lapses.",
+    "creditPacks": [
+      { "name": "50 RC", "price": "£7", "subtitle": "A weekend of practice" },
+      { "name": "100 RC", "price": "£10", "subtitle": "A full race weekend" },
+      { "name": "250 RC", "price": "£20", "subtitle": "A full season", "popular": true },
+      { "name": "500 RC", "price": "£35", "subtitle": "Everything, everywhere" }
+    ],
+    "faqHeading": "Frequently asked questions",
+    "faq": [
+      {
+        "q": "What's a cloud render credit?",
+        "a": "One credit renders one minute of standard 1080p footage. 4K and higher framerates cost more credits per minute — the exact multiplier is shown in the app before you hit render."
+      },
+      {
+        "q": "Can I cancel any time?",
+        "a": "Yes. Your subscription stays active until the end of the billing period you've already paid for. After that, your desktop app stops activating new renders but your existing exports stay yours forever."
+      },
+      {
+        "q": "Do I need Pro to use RaceDash?",
+        "a": "No. Plus gets you the full desktop app, timekeeper integrations, and one cloud render slot. Pro adds data logger support, more cloud render slots, and 250 GB of cloud storage."
+      },
+      {
+        "q": "What happens to my footage if I don't pay for cloud rendering?",
+        "a": "Nothing. RaceDash renders locally on your machine by default. Cloud rendering is an opt-in convenience — your video never leaves your laptop unless you ask it to."
+      },
+      {
+        "q": "Is there a trial?",
+        "a": "Not at launch. We're running a waitlist instead — early signups get a discount on their first year."
+      }
+    ]
+  },
+  "support": {
+    "metadata": {
+      "title": "Support — RaceDash",
+      "description": "Help articles, tutorials and troubleshooting for RaceDash."
+    },
+    "eyebrow": "Support",
+    "heading": "Help, tutorials and troubleshooting.",
+    "body": "Everything you need to get the most out of RaceDash. Can't find what you're looking for? Get in touch.",
+    "emptyState": "No articles yet — we're writing them now.",
+    "backToSupport": "Back to support",
+    "contactCta": "Still stuck? Contact us"
+  },
+  "blog": {
+    "metadata": {
+      "title": "Blog — RaceDash",
+      "description": "Product updates, racing stories and behind-the-scenes from the RaceDash team."
+    },
+    "eyebrow": "Blog",
+    "heading": "Stories from the paddock.",
+    "body": "Product updates, race weekends and the occasional deep-dive into how RaceDash is built.",
+    "emptyState": "No posts yet — the first one's on its way.",
+    "readMore": "Read more",
+    "backToBlog": "Back to blog",
+    "postedOn": "Posted",
+    "readingTime": "min read"
+  },
+  "legal": {
+    "privacy": {
+      "metadata": {
+        "title": "Privacy Policy — RaceDash",
+        "description": "How RaceDash handles your data."
+      },
+      "eyebrow": "Legal",
+      "heading": "Privacy Policy",
+      "lastUpdated": "Last updated"
+    },
+    "terms": {
+      "metadata": {
+        "title": "Terms of Service — RaceDash",
+        "description": "The terms governing your use of RaceDash."
+      },
+      "eyebrow": "Legal",
+      "heading": "Terms of Service",
+      "lastUpdated": "Last updated"
+    }
+  },
+  "about": {
+    "metadata": {
+      "title": "About — RaceDash",
+      "description": "The Club100 origin story behind RaceDash."
+    },
+    "eyebrow": "About",
+    "heading": "Racers first. Software engineers second.",
+    "body": "RaceDash is built by people who race. We know the cadence of a race weekend, the frustration of watching a lap back on a phone screen in the paddock, and the small joy of finally finding the corner you left time on.",
+    "storyHeading": "The story",
+    "storyParagraphs": [
+      "RaceDash started at Club100 in Buckmore Park. Between heats we'd sit in the paddock with a paper timing sheet and a phone, trying to find the lap we wanted to watch. We knew which lap was our fastest — the timing sheet said so — but the footage on our phones was 45 minutes of continuous recording with no markers, no context, and no way to jump to the one corner that mattered.",
+      "We tried Premiere Pro. It worked, just about, but by the time we'd finished exporting we'd already driven home. The whole point of watching the lap was to learn from it before the next session, and that window had closed.",
+      "So we built RaceDash. It knows what a lap is. It knows which one was your fastest. It pulls timing from whoever's running the event — Alpha, MyLaps, Daytona, TeamSport — or straight off the SD card in your MyChron. And it gets your video ready in the time it takes to grab a drink.",
+      "We're still racing. This is still the tool we want to use. That's the whole brief."
+    ],
+    "valuesHeading": "What we believe",
+    "values": [
+      {
+        "heading": "Your footage stays yours",
+        "body": "Everything renders locally by default. Cloud rendering is opt-in, and we don't keep your uploads longer than we have to."
+      },
+      {
+        "heading": "Built for the paddock",
+        "body": "RaceDash has to work on a laptop with patchy Wi-Fi, between sessions, on five hours' sleep. That's the real environment — so that's how we build it."
+      },
+      {
+        "heading": "No unnecessary complexity",
+        "body": "We don't add features because our competitors do. We add them because a racer told us they'd stopped watching their footage."
+      }
+    ]
+  },
+  "contact": {
+    "metadata": {
+      "title": "Contact — RaceDash",
+      "description": "Get in touch with the RaceDash team."
+    },
+    "eyebrow": "Contact",
+    "heading": "Get in touch.",
+    "body": "We're a small team, still in pre-launch, and we read every message. Drop us a note and we'll get back to you.",
+    "comingSoonHeading": "Email is coming soon",
+    "comingSoonBody": "Our support inbox goes live when the app launches. Until then, the fastest way to reach us is the waitlist form — tell us what you'd like to talk about in the email you use to sign up and we'll follow up personally.",
+    "waitlistCta": "Join the waitlist",
+    "sectionsHeading": "In the meantime"
+  },
+  "changelog": {
+    "metadata": {
+      "title": "Changelog — RaceDash",
+      "description": "What's new in RaceDash."
+    },
+    "eyebrow": "Changelog",
+    "heading": "Built in public.",
+    "body": "Every release, every fix, every small improvement — logged here. Starts on launch day.",
+    "emptyEyebrow": "Status",
+    "emptyHeading": "Launching 2026",
+    "emptyBody": "The first release is in the oven. Join the waitlist to be the first to know when it's out.",
+    "emptyCta": "Join the waitlist"
+  },
+  "notFound": {
+    "metadata": {
+      "title": "Not found — RaceDash",
+      "description": "The page you're looking for doesn't exist."
+    },
+    "eyebrow": "404",
+    "heading": "Took a wrong turn.",
+    "body": "The page you're looking for doesn't exist — or it's still being built. Head back to the start line.",
+    "cta": "Back to the homepage"
+  },
+  "account": {
+    "metadata": {
+      "title": "Your account — RaceDash",
+      "description": "Manage your RaceDash subscription, renders and billing."
+    },
+    "dashboard": {
+      "eyebrow": "Account",
+      "heading": "Welcome back, {name}.",
+      "signOut": "Sign out",
+      "subscriptionHeading": "Subscription",
+      "creditsHeading": "Cloud credits",
+      "billingHeading": "Billing",
+      "manageBilling": "Manage billing",
+      "downloadApp": "Download the app"
+    },
+    "signIn": {
+      "eyebrow": "Sign in",
+      "heading": "Welcome back.",
+      "body": "Sign in to your RaceDash account to manage your subscription and downloads.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Your password",
+      "submit": "Sign in",
+      "forgotPassword": "Forgot your password?",
+      "oauthDivider": "or",
+      "google": "Continue with Google",
+      "apple": "Continue with Apple",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create one"
+    },
+    "signUp": {
+      "eyebrow": "Create account",
+      "heading": "Join the paddock.",
+      "body": "Create your RaceDash account. You'll only need an email and a password to get started.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Choose a strong password",
+      "submit": "Create account",
+      "oauthDivider": "or",
+      "google": "Continue with Google",
+      "apple": "Continue with Apple",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "termsNotice": "By creating an account you agree to our Terms and Privacy Policy.",
+      "verifyHeading": "Check your email",
+      "verifyBody": "We've sent a verification code to {email}. Enter it below to finish creating your account.",
+      "codeLabel": "Verification code",
+      "verifySubmit": "Verify email"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "invalidCredentials": "Incorrect email or password.",
+      "emailExists": "An account already exists for that email.",
+      "weakPassword": "Password is too weak. Try something longer."
+    }
+  }
+}

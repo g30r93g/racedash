@@ -1,0 +1,56 @@
+---
+title: Every data logger RaceDash supports
+description: A practical rundown of the on-dash loggers RaceDash reads, which models are covered, and how to get your sessions into the app.
+author: The RaceDash team
+publishedAt: 2026-04-10
+tags: [loggers, hardware, pro]
+featured: true
+---
+
+If you race with an on-board lap timer, RaceDash can read your session data directly from the SD card — no typing, no cross-referencing, no manual entry. This is a **Pro** feature, because maintaining parsers for every logger on the market is ongoing work and we wanted to keep the Plus tier simple.
+
+Here's what RaceDash supports today.
+
+## MyChron (AiM Sports)
+
+RaceDash reads sessions from the following MyChron models:
+
+- **MyChron 5** (5, 5S, 5S 2T)
+- **MyChron 6** (all variants)
+
+Drop the MyChron SD card into your laptop, point RaceDash at it, and every session you've recorded will appear in the import dialog. RaceDash pulls lap times, sector splits and session metadata automatically.
+
+The karting world's default lap timer — if you race in any serious UK or European series, you've probably got one.
+
+## Alfano
+
+Supported models:
+
+- **Alfano 6**
+- **Alfano Pro**
+
+Alfano exports live on the internal SD card the same way MyChron does. If you've got the optional GPS module, RaceDash will use the extra data to sharpen lap boundaries.
+
+## RaceBox
+
+Supported devices:
+
+- **RaceBox Mini**
+- **RaceBox Mini S**
+
+RaceBox is the newcomer on the list but it's quickly becoming a favourite in the car community. The dataset is lightweight, the GPS is accurate, and the sessions export cleanly. RaceDash reads them straight from the companion app's export folder — no SD card required.
+
+## What about my logger?
+
+If you're racing with hardware that isn't on this list and you'd like RaceDash to support it, send us a note with the make and model. We keep a public list of the loggers we're working on next, and we prioritise based on what drivers actually use.
+
+## FAQ
+
+**Does this feature need an internet connection?**
+No. Logger imports are fully local. The SD card never leaves your machine.
+
+**Do I need Pro to use timekeeper integrations (Alpha, MyLaps, etc.) too?**
+No — timekeeper integrations are in both Plus and Pro. Logger support is the only Pro-only timing source.
+
+**Can I use a logger _and_ a timekeeper integration in the same project?**
+Yes. If RaceDash detects both, it uses the timekeeper data for official position/lap information and the logger data for sector splits and higher-resolution lap boundaries. You get the best of both.

@@ -3,6 +3,8 @@ dist
 out
 coverage
 .turbo
+.next
+next-env.d.ts
 pnpm-lock.yaml
 *.md
 .github/
