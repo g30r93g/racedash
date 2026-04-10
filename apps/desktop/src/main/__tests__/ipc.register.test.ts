@@ -27,6 +27,7 @@ vi.mock('electron', () => ({
     showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: ['/selected/file.mp4'] }),
   },
   shell: { showItemInFolder: vi.fn() },
+  Notification: vi.fn().mockImplementation(() => ({ show: vi.fn() })),
 }))
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
