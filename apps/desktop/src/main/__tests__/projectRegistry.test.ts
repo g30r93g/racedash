@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import path from 'node:path'
+
+const USER_DATA = path.join('/', 'Users', 'testuser')
 
 // Must mock electron before importing the module under test.
 vi.mock('electron', () => ({
   ipcMain: { handle: vi.fn() },
-  app: { getPath: vi.fn().mockReturnValue('/Users/testuser') },
+  app: { getPath: vi.fn().mockReturnValue(path.join('/', 'Users', 'testuser')) },
   dialog: {},
   shell: {},
 }))
@@ -35,7 +38,7 @@ import {
 const mockReadFile = vi.mocked(fs.promises.readFile)
 const mockWriteFile = vi.mocked(fs.promises.writeFile)
 
-const REGISTRY_PATH = '/Users/testuser/projects-registry.json'
+const REGISTRY_PATH = path.join(USER_DATA, 'projects-registry.json')
 
 beforeEach(() => {
   vi.clearAllMocks()
