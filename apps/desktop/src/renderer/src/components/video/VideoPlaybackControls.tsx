@@ -15,6 +15,10 @@ interface VideoPlaybackControlsProps {
   onPause: () => void
   onSeek: (time: number) => void
   onMuteToggle: () => void
+  /** Display duration (output duration in Project view). Falls back to `duration` when not set. */
+  displayDuration?: number
+  /** Display current time (output time in Project view). Falls back to `currentTime` when not set. */
+  displayCurrentTime?: number
 }
 
 function formatTimecode(seconds: number): string {
@@ -35,8 +39,12 @@ export function VideoPlaybackControls({
   onPause,
   onSeek,
   onMuteToggle,
+  displayDuration: displayDurationProp,
+  displayCurrentTime: displayCurrentTimeProp,
 }: VideoPlaybackControlsProps): React.ReactElement {
-  const frame = Math.floor(currentTime * fps)
+  const displayDuration = displayDurationProp ?? duration
+  const displayCurrentTime = displayCurrentTimeProp ?? currentTime
+  const frame = Math.floor(displayCurrentTime * fps)
   const [jumpOpen, setJumpOpen] = useState(false)
 
   return (
@@ -59,9 +67,9 @@ export function VideoPlaybackControls({
 
         <Slider
           min={0}
-          max={duration || 1}
+          max={displayDuration || 1}
           step={0.001}
-          value={[currentTime]}
+          value={[displayCurrentTime]}
           onValueChange={([v]) => onSeek(v)}
           className="flex-1"
           aria-label="Playback position"
@@ -84,19 +92,19 @@ export function VideoPlaybackControls({
 
         <Button
           variant="ghost"
-          className="h-7 shrink-0 px-2 font-mono text-xs text-muted-foreground"
+          className="h-7 shrink-0 px-2 font-mono tabular-nums text-xs text-muted-foreground"
           onClick={() => setJumpOpen(true)}
         >
-          {frame} F &bull; {formatTimecode(currentTime)}
+          {frame} F &bull; {formatTimecode(displayCurrentTime)}
         </Button>
       </div>
 
       <JumpToDialog
         open={jumpOpen}
         onOpenChange={setJumpOpen}
-        currentTime={currentTime}
+        currentTime={displayCurrentTime}
         fps={fps}
-        duration={duration}
+        duration={displayDuration}
         onSeek={onSeek}
       />
     </TooltipProvider>

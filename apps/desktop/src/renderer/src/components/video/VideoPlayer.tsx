@@ -15,6 +15,8 @@ interface VideoPlayerProps {
   overlayType?: OverlayType
   overlayProps?: OverlayProps
   playerRef?: React.RefObject<PlayerRef>
+  /** 0 = fully black, 1 = fully visible. Used for CSS transition preview. */
+  transitionOpacity?: number
 }
 
 interface Size {
@@ -23,7 +25,7 @@ interface Size {
 }
 
 export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(function VideoPlayer(
-  { videoPath, muted = false, onLoadedMetadata, onPlay, onPause, onEnded, overlayType, overlayProps, playerRef },
+  { videoPath, muted = false, onLoadedMetadata, onPlay, onPause, onEnded, overlayType, overlayProps, playerRef, transitionOpacity = 1 },
   ref,
 ) {
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -140,6 +142,13 @@ export const VideoPlayer = React.forwardRef<HTMLVideoElement, VideoPlayerProps>(
             acknowledgeRemotionLicense
           />
         </div>
+      )}
+      {/* Transition preview: black overlay with opacity */}
+      {transitionOpacity < 1 && (
+        <div
+          className="pointer-events-none absolute inset-0 z-20 bg-black"
+          style={{ opacity: 1 - transitionOpacity }}
+        />
       )}
     </div>
   )

@@ -3,11 +3,13 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
+  type LapOverlayProps,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
+import { useLapGate } from '../../hooks/useLapGate'
 import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { LapHistory } from '../../components/shared/LapHistory'
 import { SegmentLabel } from '../../SegmentLabel'
@@ -21,14 +23,16 @@ const SVG_W = 1010.181
 const SVG_H = 67.30343
 const TIME_PLACEHOLDER = '-:--.---'
 
-export const GeometricBanner: React.FC<OverlayProps> = ({
-  segments,
-  fps,
-  startingGridPosition,
-  styling,
-  labelWindowSeconds,
-  overlayComponents,
-}) => {
+export const GeometricBanner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
+  const {
+    segments,
+    fps,
+    startingGridPosition,
+    styling,
+    labelWindowSeconds,
+    overlayComponents,
+  } = props
+  const lapGate = useLapGate(props)
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const currentTime = frame / fps
@@ -136,6 +140,8 @@ export const GeometricBanner: React.FC<OverlayProps> = ({
     raceEnd,
     textColor: gb?.timerTextColor ?? text,
     flashDuration: gb?.flashDuration,
+    isLapRender: lapGate.isLapRender,
+    isLapActive: lapGate.isActive || lapGate.isPastEnd,
   }
 
   if (showTimePanels) {

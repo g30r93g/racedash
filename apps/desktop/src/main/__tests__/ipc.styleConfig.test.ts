@@ -13,10 +13,13 @@ vi.mock('@racedash/engine', () => ({
   joinVideos: vi.fn(),
   listDrivers: vi.fn(),
   generateTimestamps: vi.fn(),
-  renderSession: vi.fn(),
+  renderBatch: vi.fn(),
   parseFpsValue: vi.fn(),
   buildRaceLapSnapshots: vi.fn(),
   buildSessionSegments: vi.fn(),
+  loadTimingConfig: vi.fn(),
+  resolveTimingSegments: vi.fn(),
+  resolveSegmentPositionOverrides: vi.fn(),
 }))
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
@@ -26,12 +29,12 @@ vi.mock('node:child_process', () => ({
 import { saveStyleToConfigHandler } from '../ipc'
 
 describe('saveStyleToConfigHandler', () => {
-  it('writes overlayType and styling, preserving existing fields', () => {
+  it('writes overlayType and styling, preserving existing fields', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'test-style-'))
     const configPath = join(tmp, 'config.json')
     writeFileSync(configPath, JSON.stringify({ segments: [{ source: 'manual' }], driver: 'GG' }))
 
-    saveStyleToConfigHandler(configPath, 'esports', { accentColor: '#ff0000' })
+    await saveStyleToConfigHandler(configPath, 'esports', { accentColor: '#ff0000' })
 
     const result = JSON.parse(readFileSync(configPath, 'utf-8'))
     expect(result.overlayType).toBe('esports')
@@ -40,41 +43,41 @@ describe('saveStyleToConfigHandler', () => {
     expect(result.driver).toBe('GG')
   })
 
-  it('overwrites existing overlayType and styling', () => {
+  it('overwrites existing overlayType and styling', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'test-style-'))
     const configPath = join(tmp, 'config.json')
     writeFileSync(configPath, JSON.stringify({ overlayType: 'banner', styling: { accentColor: '#000' } }))
 
-    saveStyleToConfigHandler(configPath, 'modern', { accentColor: '#fff' })
+    await saveStyleToConfigHandler(configPath, 'modern', { accentColor: '#fff' })
 
     const result = JSON.parse(readFileSync(configPath, 'utf-8'))
     expect(result.overlayType).toBe('modern')
     expect(result.styling).toEqual({ accentColor: '#fff' })
   })
 
-  it('writes valid JSON (pretty-printed with 2-space indent)', () => {
+  it('writes valid JSON (pretty-printed with 2-space indent)', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'test-style-'))
     const configPath = join(tmp, 'config.json')
     writeFileSync(configPath, JSON.stringify({ segments: [] }))
 
-    saveStyleToConfigHandler(configPath, 'banner', {})
+    await saveStyleToConfigHandler(configPath, 'banner', {})
 
     const raw = readFileSync(configPath, 'utf-8')
     expect(() => JSON.parse(raw)).not.toThrow()
     expect(raw).toContain('\n') // pretty-printed
   })
 
-  it('writes overlay component toggles to config.json and removes them when omitted', () => {
+  it('writes overlay component toggles to config.json and removes them when omitted', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'test-style-'))
     const configPath = join(tmp, 'config.json')
     writeFileSync(configPath, JSON.stringify({ overlayComponents: { leaderboard: 'off' } }))
 
-    saveStyleToConfigHandler(configPath, 'banner', {}, { overlayComponents: { leaderboard: 'on' } })
+    await saveStyleToConfigHandler(configPath, 'banner', {}, { overlayComponents: { leaderboard: 'on' } })
 
     let result = JSON.parse(readFileSync(configPath, 'utf-8'))
     expect(result.overlayComponents).toEqual({ leaderboard: 'on' })
 
-    saveStyleToConfigHandler(configPath, 'banner', {})
+    await saveStyleToConfigHandler(configPath, 'banner', {})
 
     result = JSON.parse(readFileSync(configPath, 'utf-8'))
     expect(result.overlayComponents).toBeUndefined()

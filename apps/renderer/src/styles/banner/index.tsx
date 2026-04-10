@@ -3,11 +3,13 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
+  type LapOverlayProps,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
+import { useLapGate } from '../../hooks/useLapGate'
 import { InfoSegmentPanel, LapCounter, LapTimerTrap, PositionCounter } from '../../components/banners'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { LapHistory } from '../../components/shared/LapHistory'
@@ -22,15 +24,17 @@ const TIME_PLACEHOLDER = '-:--.---'
 const LAP_PLACEHOLDER = '-/-'
 const POSITION_PLACEHOLDER = 'P-'
 
-export const Banner: React.FC<OverlayProps> = ({
-  segments,
-  fps,
-  startingGridPosition,
-  styling,
-  labelWindowSeconds,
-  qualifyingTablePosition,
-  overlayComponents,
-}) => {
+export const Banner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
+  const {
+    segments,
+    fps,
+    startingGridPosition,
+    styling,
+    labelWindowSeconds,
+    qualifyingTablePosition,
+    overlayComponents,
+  } = props
+  const lapGate = useLapGate(props)
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -119,6 +123,8 @@ export const Banner: React.FC<OverlayProps> = ({
     raceEnd,
     textColor: styling?.banner?.timerTextColor ?? text,
     flashDuration: styling?.banner?.flashDuration,
+    isLapRender: lapGate.isLapRender,
+    isLapActive: lapGate.isActive || lapGate.isPastEnd,
   }
 
   if (showTimePanels) {

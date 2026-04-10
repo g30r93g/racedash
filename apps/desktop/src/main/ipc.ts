@@ -1,6 +1,7 @@
-import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow, Notification } from 'electron'
 import type { WebContents } from 'electron'
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -11,7 +12,7 @@ import type {
   OpenDirectoryOptions,
   VideoInfo,
   MultiVideoInfo,
-  RenderStartOpts,
+  RenderBatchOpts,
   OutputResolution,
   DriversResult,
 } from '../types/ipc'
@@ -21,7 +22,7 @@ import {
   joinVideos,
   listDrivers,
   generateTimestamps,
-  renderSession,
+  renderBatch,
   parseFpsValue,
   buildRaceLapSnapshots,
   buildSessionSegments,
@@ -29,6 +30,7 @@ import {
   resolveSegmentPositionOverrides,
   resolveTimingSegments,
 } from '@racedash/engine'
+import type { BatchJobProgressEvent } from '@racedash/engine'
 import { getBundledToolPath, resolveFfprobeCommand } from './ffmpeg'
 import { getRegistry, addToRegistry, removeFromRegistry, replaceInRegistry } from './projectRegistry'
 import { registerCloudRenderHandlers } from './cloud-render-handlers'
@@ -255,6 +257,20 @@ export async function updateProjectConfigOverridesHandler(
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
+export async function updateProjectVideoEditingHandler(
+  projectPath: string,
+  data: { cutRegions: Array<{ id: string; startFrame: number; endFrame: number }>; transitions: Array<{ id: string; boundaryId: string; type: string; durationMs: number }> },
+): Promise<void> {
+  if (typeof projectPath !== 'string' || projectPath.trim().length === 0) {
+    throw new Error('updateProjectVideoEditing: projectPath must be a non-empty string')
+  }
+  const raw = fs.readFileSync(projectPath, 'utf-8') as string
+  const project = JSON.parse(raw) as Record<string, unknown>
+  project.cutRegions = data.cutRegions
+  project.transitions = data.transitions
+  fs.writeFileSync(projectPath, JSON.stringify(project, null, 2), 'utf-8')
+}
+
 export async function saveStyleToConfigHandler(
   configPath: string,
   overlayType: string,
@@ -476,6 +492,17 @@ export async function openProjectHandler(projectPath: string): Promise<ProjectDa
   if (!project.configPath) {
     project.configPath = path.join(path.dirname(projectPath), 'config.json')
   }
+  // Migrate existing segments that are missing a stable UUID.
+  let needsSave = false
+  for (const seg of project.segments ?? []) {
+    if (!seg.id) {
+      seg.id = randomUUID()
+      needsSave = true
+    }
+  }
+  if (needsSave) {
+    fs.writeFileSync(projectPath, JSON.stringify(project, null, 2), 'utf-8')
+  }
   return project
 }
 
@@ -537,13 +564,19 @@ export async function handleCreateProject(opts: CreateProjectOpts): Promise<Proj
 
   // Write app metadata (project.json) — wizard-format segments for UI display.
   const projectPath = path.join(saveDir, 'project.json')
+  const segmentsWithIds = opts.segments.map((seg) => ({
+    ...seg,
+    id: seg.id ?? randomUUID(),
+  }))
   const projectData: ProjectData = {
     name: opts.name,
     projectPath,
     configPath,
     videoPaths: opts.videoPaths,
-    segments: opts.segments,
+    segments: segmentsWithIds,
     selectedDrivers: opts.selectedDrivers,
+    cutRegions: [],
+    transitions: [],
   }
   fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
 
@@ -686,11 +719,13 @@ const RESOLUTION_MAP: Record<Exclude<OutputResolution, 'source'>, { width: numbe
 const RENDERER_ENTRY = path.resolve(__dirname, '../../../../apps/renderer/src/index.ts')
 
 // ---------------------------------------------------------------------------
-// Active render state (one render at a time)
+// Active batch render state
 // ---------------------------------------------------------------------------
 
-let activeRenderCancelled = false
-let activeRenderSender: WebContents | null = null
+let activeBatchController: AbortController | null = null
+let activeBatchOpts: RenderBatchOpts | null = null
+let activeBatchSender: WebContents | null = null
+let isBatchRunning = false
 
 // ---------------------------------------------------------------------------
 // previewDrivers — wizard helper
@@ -927,6 +962,11 @@ export function registerIpcHandlers(): void {
       updateProjectConfigOverridesHandler(configPath, overrides),
   )
   ipcMain.handle(
+    'racedash:updateProjectVideoEditing',
+    (_event, projectPath: string, data: { cutRegions: unknown[]; transitions: unknown[] }) =>
+      updateProjectVideoEditingHandler(projectPath, data as Parameters<typeof updateProjectVideoEditingHandler>[1]),
+  )
+  ipcMain.handle(
     'racedash:saveStyleToConfig',
     (
       _event,
@@ -983,48 +1023,134 @@ export function registerIpcHandlers(): void {
     return { available, unavailable }
   })
 
-  // Export — startRender (non-blocking; progress pushed via webContents.send)
-  ipcMain.handle('racedash:startRender', (event, opts: RenderStartOpts) => {
-    activeRenderCancelled = false
-    activeRenderSender = event.sender
+  // Export — startBatchRender (non-blocking; progress pushed via webContents.send)
+  ipcMain.handle('racedash:renderBatch:start', (event, opts: RenderBatchOpts) => {
+    const controller = new AbortController()
+    activeBatchController = controller
+    activeBatchOpts = opts
+    activeBatchSender = event.sender
+    isBatchRunning = true
 
     const outputResolution = opts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[opts.outputResolution]
 
-    renderSession(
+    const send = (channel: string, ...args: unknown[]) => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, ...args)
+    }
+
+    // Throttle progress events to ~4Hz to avoid flooding the renderer
+    const progressThrottles = new Map<string, number>()
+    const throttledProgress = (progressEvent: BatchJobProgressEvent) => {
+      const now = Date.now()
+      const last = progressThrottles.get(progressEvent.jobId) ?? 0
+      if (now - last < 250 && progressEvent.progress < 1) return
+      progressThrottles.set(progressEvent.jobId, now)
+      send('racedash:renderBatch:job-progress', progressEvent)
+    }
+
+    renderBatch(
       {
         configPath: opts.configPath,
         videoPaths: opts.videoPaths,
-        outputPath: opts.outputPath,
         rendererEntry: RENDERER_ENTRY,
         style: opts.style,
         outputResolution,
-        onlyRenderOverlay: opts.renderMode === 'overlay-only',
+        renderMode: opts.renderMode,
+        jobs: opts.jobs,
+        cutRegions: opts.cutRegions,
+        transitions: opts.transitions,
       },
-      (progress) => {
-        if (activeRenderCancelled) {
-          throw new Error('Render cancelled by user')
-        }
-        event.sender.send('racedash:render-progress', progress)
+      throttledProgress,
+      (result) => {
+        send('racedash:renderBatch:job-complete', result)
+        const filename = path.basename(result.outputPath)
+        new Notification({ title: 'Render complete', body: filename }).show()
       },
+      (jobId, error) => {
+        console.error(`[renderBatch] Job ${jobId} failed:`, error.message, error.stack)
+        send('racedash:renderBatch:job-error', { jobId, message: error.message })
+        const job = opts.jobs.find((j) => j.id === jobId)
+        const filename = job ? path.basename(job.outputPath) : jobId
+        new Notification({ title: 'Render failed', body: `${filename}: ${error.message}` }).show()
+      },
+      controller.signal,
     )
-      .then((result) => {
-        activeRenderSender = null
-        event.sender.send('racedash:render-complete', result)
+      .then(() => {
+        isBatchRunning = false
+        activeBatchController = null
+        // Keep activeBatchOpts alive so retry can use it after completion
+        send('racedash:renderBatch:complete')
+        new Notification({ title: 'Batch render complete', body: `All ${opts.jobs.length} job(s) finished` }).show()
       })
       .catch((err: unknown) => {
-        activeRenderSender = null
+        isBatchRunning = false
+        activeBatchController = null
         const message = err instanceof Error ? err.message : String(err)
-        event.sender.send('racedash:render-error', { message })
+        const stack = err instanceof Error ? err.stack : undefined
+        console.error(`[renderBatch] Batch failed:`, message, stack)
+        send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
+        send('racedash:renderBatch:complete')
+        new Notification({ title: 'Batch render failed', body: message }).show()
       })
   })
 
-  // Export — cancelRender
-  ipcMain.handle('racedash:cancelRender', () => {
-    activeRenderCancelled = true
-    if (activeRenderSender && !activeRenderSender.isDestroyed()) {
-      activeRenderSender.send('racedash:render-error', { message: 'Render cancelled by user' })
+  // Export — cancelBatchRender
+  ipcMain.handle('racedash:renderBatch:cancel', () => {
+    if (activeBatchController) {
+      activeBatchController.abort()
+      // Note: isBatchRunning is cleared by the .then()/.catch() of the active renderBatch call
     }
-    activeRenderSender = null
+  })
+
+  // Export — retryBatchJobs (re-queue specific failed jobs)
+  ipcMain.handle('racedash:renderBatch:retry', (event, jobIds: string[]) => {
+    if (!activeBatchOpts) throw new Error('No batch render to retry — start a new batch instead')
+    if (isBatchRunning) throw new Error('A batch is currently running — wait for it to complete before retrying')
+
+    const originalOpts = activeBatchOpts
+    const retryJobs = originalOpts.jobs.filter((j) => jobIds.includes(j.id))
+    if (retryJobs.length === 0) throw new Error('None of the specified job IDs match the last batch')
+
+    const controller = new AbortController()
+    activeBatchController = controller
+    activeBatchSender = event.sender
+    isBatchRunning = true
+
+    const outputResolution =
+      originalOpts.outputResolution === 'source' ? undefined : RESOLUTION_MAP[originalOpts.outputResolution]
+
+    const send = (channel: string, ...args: unknown[]) => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, ...args)
+    }
+
+    renderBatch(
+      {
+        configPath: originalOpts.configPath,
+        videoPaths: originalOpts.videoPaths,
+        rendererEntry: RENDERER_ENTRY,
+        style: originalOpts.style,
+        outputResolution,
+        renderMode: originalOpts.renderMode,
+        jobs: retryJobs,
+        cutRegions: originalOpts.cutRegions,
+        transitions: originalOpts.transitions,
+      },
+      (progressEvent) => send('racedash:renderBatch:job-progress', progressEvent),
+      (result) => send('racedash:renderBatch:job-complete', result),
+      (jobId, error) => send('racedash:renderBatch:job-error', { jobId, message: error.message }),
+      controller.signal,
+    )
+      .then(() => {
+        isBatchRunning = false
+        activeBatchController = null
+        send('racedash:renderBatch:complete')
+      })
+      .catch((err: unknown) => {
+        isBatchRunning = false
+        activeBatchController = null
+        const message = err instanceof Error ? err.message : String(err)
+        send('racedash:renderBatch:job-error', { jobId: '__batch__', message })
+        send('racedash:renderBatch:complete')
+      })
   })
 
   // Cloud render handlers

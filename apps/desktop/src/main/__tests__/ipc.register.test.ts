@@ -12,7 +12,7 @@ vi.mock('@racedash/engine', () => ({
     segments: [],
     offsets: [],
   }),
-  renderSession: vi.fn().mockResolvedValue({ outputPath: '/out.mp4', overlayReused: false }),
+  renderBatch: vi.fn().mockResolvedValue(undefined),
   parseFpsValue: vi.fn(),
   buildRaceLapSnapshots: vi.fn().mockReturnValue([]),
   buildSessionSegments: vi.fn().mockReturnValue({ segments: [], startingGridPosition: undefined }),
@@ -27,6 +27,7 @@ vi.mock('electron', () => ({
     showOpenDialog: vi.fn().mockResolvedValue({ canceled: false, filePaths: ['/selected/file.mp4'] }),
   },
   shell: { showItemInFolder: vi.fn() },
+  Notification: vi.fn(function () { return { show: vi.fn() } }),
 }))
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
@@ -66,7 +67,7 @@ vi.mock('../cloud-render-handlers', () => ({
 
 import { ipcMain, dialog, shell } from 'electron'
 import { registerIpcHandlers, previewDriversImpl, previewTimestampsImpl } from '../ipc'
-import { listDrivers, generateTimestamps, renderSession } from '@racedash/engine'
+import { listDrivers, generateTimestamps, renderBatch } from '@racedash/engine'
 
 describe('registerIpcHandlers', () => {
   const handlers = new Map<string, (...args: any[]) => any>()
@@ -89,8 +90,9 @@ describe('registerIpcHandlers', () => {
     expect(channels).toContain('racedash:openDirectory')
     expect(channels).toContain('racedash:revealInFinder')
     expect(channels).toContain('racedash:listProjects')
-    expect(channels).toContain('racedash:startRender')
-    expect(channels).toContain('racedash:cancelRender')
+    expect(channels).toContain('racedash:renderBatch:start')
+    expect(channels).toContain('racedash:renderBatch:cancel')
+    expect(channels).toContain('racedash:renderBatch:retry')
     expect(channels).toContain('racedash:previewDrivers')
     expect(channels).toContain('racedash:previewTimestamps')
     expect(channels).toContain('racedash:getVideoInfo')
@@ -155,62 +157,73 @@ describe('registerIpcHandlers', () => {
     })
   })
 
-  describe('startRender', () => {
-    it('starts render and sends progress events', async () => {
+  describe('startBatchRender', () => {
+    it('starts batch render and sends complete event', async () => {
       const mockSend = vi.fn()
       const event = { sender: { send: mockSend, isDestroyed: () => false } }
 
-      handlers.get('racedash:startRender')!(event, {
+      handlers.get('racedash:renderBatch:start')!(event, {
         configPath: '/config.json',
         videoPaths: ['/video.mp4'],
-        outputPath: '/output.mp4',
+        outputDir: '/output',
         style: 'modern',
-        renderMode: 'full',
+        renderMode: 'overlay+footage',
         outputResolution: 'source',
+        jobs: [{ id: 'job-1', type: 'entireProject', segmentIndices: [0], outputPath: '/output/full.mp4' }],
+        cutRegions: [],
+        transitions: [],
       })
 
       // Wait for async render to complete
       await vi.waitFor(() => {
-        expect(mockSend).toHaveBeenCalledWith('racedash:render-complete', expect.any(Object))
+        expect(mockSend).toHaveBeenCalledWith('racedash:renderBatch:complete')
       })
     })
 
-    it('sends render-error on failure', async () => {
-      vi.mocked(renderSession).mockRejectedValueOnce(new Error('render failed'))
+    it('sends batch-error on failure', async () => {
+      vi.mocked(renderBatch).mockRejectedValueOnce(new Error('render failed'))
       const mockSend = vi.fn()
       const event = { sender: { send: mockSend, isDestroyed: () => false } }
 
-      handlers.get('racedash:startRender')!(event, {
+      handlers.get('racedash:renderBatch:start')!(event, {
         configPath: '/config.json',
         videoPaths: ['/video.mp4'],
-        outputPath: '/output.mp4',
+        outputDir: '/output',
         style: 'modern',
-        renderMode: 'full',
+        renderMode: 'overlay+footage',
         outputResolution: 'source',
+        jobs: [{ id: 'job-1', type: 'entireProject', segmentIndices: [0], outputPath: '/output/full.mp4' }],
+        cutRegions: [],
+        transitions: [],
       })
 
       await vi.waitFor(() => {
-        expect(mockSend).toHaveBeenCalledWith('racedash:render-error', { message: 'render failed' })
+        expect(mockSend).toHaveBeenCalledWith('racedash:renderBatch:job-error', {
+          jobId: '__batch__',
+          message: 'render failed',
+        })
       })
     })
   })
 
-  describe('cancelRender', () => {
-    it('sets cancelled flag and notifies sender', () => {
+  describe('cancelBatchRender', () => {
+    it('aborts active batch render', () => {
       const mockSend = vi.fn()
-      // Simulate an active render first
       const event = { sender: { send: mockSend, isDestroyed: () => false } }
-      handlers.get('racedash:startRender')!(event, {
+      handlers.get('racedash:renderBatch:start')!(event, {
         configPath: '/c.json',
         videoPaths: ['/v.mp4'],
-        outputPath: '/o.mp4',
+        outputDir: '/o',
         style: 'modern',
-        renderMode: 'full',
+        renderMode: 'overlay+footage',
         outputResolution: 'source',
+        jobs: [{ id: 'job-1', type: 'entireProject', segmentIndices: [0], outputPath: '/o/full.mp4' }],
+        cutRegions: [],
+        transitions: [],
       })
 
-      handlers.get('racedash:cancelRender')!()
-      // cancelRender should send an error message
+      // cancelBatchRender should not throw
+      expect(() => handlers.get('racedash:renderBatch:cancel')!()).not.toThrow()
     })
   })
 })

@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Save } from 'lucide-react'
+import { PanelLeft, Save } from 'lucide-react'
 import React, { useState } from 'react'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import type { CutRegion, Transition } from '../../../../types/videoEditing'
 import type { ProjectData } from '../../../../types/project'
 import { ExportTab } from './tabs/ExportTab'
 import { StyleTab } from './tabs/StyleTab'
@@ -30,6 +31,10 @@ interface EditorTabsPaneProps {
   authUser?: { name: string } | null
   licenseTier?: 'plus' | 'pro' | null
   onSignIn?: () => void
+  drawerOpen?: boolean
+  onToggleDrawer?: () => void
+  cutRegions?: CutRegion[]
+  transitions?: Transition[]
 }
 
 const TAB_IDS = ['timing', 'style', 'export'] as const
@@ -62,6 +67,10 @@ export function EditorTabsPane({
   authUser,
   licenseTier,
   onSignIn,
+  drawerOpen,
+  onToggleDrawer,
+  cutRegions,
+  transitions,
 }: EditorTabsPaneProps): React.ReactElement {
   const [rendering, setRendering] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('timing')
@@ -87,6 +96,10 @@ export function EditorTabsPane({
             </TabsTrigger>
           ))}
           <div className="ml-auto flex items-center px-2">
+            <Button size="sm" variant={drawerOpen ? 'secondary' : 'ghost'} onClick={onToggleDrawer} className="mr-1">
+              <PanelLeft className="mr-1.5 h-4 w-4" />
+              Edit
+            </Button>
             <Button size="sm" onClick={onSave} disabled={rendering}>
               <Save className="mr-1.5 h-4 w-4" />
               Save
@@ -130,6 +143,9 @@ export function EditorTabsPane({
             authUser={authUser}
             licenseTier={licenseTier}
             onSignIn={onSignIn}
+            cutRegions={cutRegions}
+            transitions={transitions}
+            timestampsResult={timestampsResult}
           />
         </TabsContent>
       </Tabs>

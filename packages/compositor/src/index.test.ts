@@ -141,7 +141,7 @@ describe('collectDoctorDiagnostics', () => {
       { label: 'CPU', value: 'AMD Ryzen' },
       { label: 'GPU', value: 'AMD Radeon RX 7900' },
       { label: 'Decode pref', value: 'd3d11va -> dxva2 -> software' },
-      { label: 'Output', value: 'libx264 (preset slow, crf 16)' },
+      { label: 'Output', value: 'libx264 (preset medium, crf 18)' },
     ])
   })
 
@@ -311,8 +311,8 @@ describe('compositeVideo', () => {
     expect(args).toContain('-hwaccel')
     expect(args[args.indexOf('-hwaccel') + 1]).toBe('d3d11va')
     expect(args).toContain('libx264')
-    expect(args).toContain('slow')
-    expect(args).toContain('16')
+    expect(args).toContain('medium')
+    expect(args).toContain('18')
   })
 
   it('emits software fallback diagnostics on Windows after a failed hardware probe', async () => {
@@ -390,11 +390,16 @@ describe('compositeVideo', () => {
     await compositeVideo('/src.mp4', '/overlay.mov', '/out.mp4', {
       durationSeconds: 60,
       runtimePlatform: 'linux',
+      ffmpegCapabilities: {
+        encoders: new Set(['libx264']),
+        hwaccels: new Set([]),
+        ffprobeVersion: 'ffprobe version 7.0',
+      },
     })
     const [, args] = vi.mocked(spawn).mock.calls[0] as [string, string[]]
     expect(args).not.toContain('-hwaccel')
     expect(args).toContain('libx264')
-    expect(args).toContain('slow')
+    expect(args).toContain('medium')
   })
 
   it('throws when duration is zero', async () => {
@@ -586,7 +591,7 @@ describe('collectDoctorDiagnostics', () => {
     })
     expect(result).toContainEqual({ label: 'Platform', value: 'linux' })
     expect(result).toContainEqual({ label: 'Decode pref', value: 'software' })
-    expect(result).toContainEqual({ label: 'Output', value: 'libx264 (preset slow, crf 16)' })
+    expect(result).toContainEqual({ label: 'Output', value: 'libx264 (preset medium, crf 18)' })
   })
 })
 

@@ -1,11 +1,15 @@
 import type { OverlayProps } from '@racedash/core'
+export { trimVideo, computeKeptRanges, type ResolvedTransition } from './cuts'
+export { extractClip, probeActualStartSeconds, buildExtractClipArgs } from './clip'
+// bundleRenderer is exported via the renderOverlay block above
 import { bundle } from '@remotion/bundler'
-import { renderMedia, selectComposition } from '@remotion/renderer'
+import { renderMedia, renderFrames, selectComposition, makeCancelSignal } from '@remotion/renderer'
 import { execFile, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { unlink, writeFile } from 'node:fs/promises'
 import { cpus, tmpdir } from 'node:os'
-import { resolve, win32 } from 'node:path'
+import path, { resolve, win32 } from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
@@ -52,6 +56,9 @@ export interface CompositeOptions {
   durationSeconds?: number
   outputWidth?: number
   outputHeight?: number
+  /** Scale the overlay to these dimensions during composite (for lower-res overlay on higher-res video). */
+  overlayScaleWidth?: number
+  overlayScaleHeight?: number
   onDiagnostic?: (diagnostic: CompositeDiagnostic) => void
   runtimePlatform?: NodeJS.Platform
   ffmpegCapabilities?: FfmpegCapabilities
@@ -132,22 +139,37 @@ export function getOverlayOutputPath(outputPath: string, platform: NodeJS.Platfo
 }
 
 /**
- * Bundle the Remotion renderer entry point, render the overlay with alpha,
- * and write it to `outputPath`.
+ * Bundle the Remotion renderer entry point. Call once and reuse the serveUrl
+ * across multiple renderOverlay calls (e.g., in a batch).
  */
+export async function bundleRenderer(rendererEntryPoint: string): Promise<string> {
+  return bundle({ entryPoint: rendererEntryPoint })
+}
+
 export async function renderOverlay(
-  rendererEntryPoint: string,
+  serveUrlOrEntryPoint: string,
   compositionId: string,
   props: OverlayProps,
   outputPath: string,
   onProgress?: (event: { progress: number; renderedFrames: number; totalFrames: number }) => void,
   runtimePlatform: NodeJS.Platform = process.platform,
+  signal?: AbortSignal,
 ): Promise<void> {
-  const serveUrl = await bundle({ entryPoint: rendererEntryPoint })
+  // Accept either a pre-bundled serveUrl (starts with /) or an entry point (bundle on the fly)
+  const serveUrl = serveUrlOrEntryPoint.startsWith('/')
+    ? serveUrlOrEntryPoint
+    : await bundle({ entryPoint: serveUrlOrEntryPoint })
   const inputProps = props as unknown as Record<string, unknown>
   const comp = await selectComposition({ serveUrl, id: compositionId, inputProps })
   const profile = getOverlayRenderProfile(runtimePlatform)
   const totalFrames = comp.durationInFrames
+
+  // Bridge native AbortSignal to Remotion's CancelSignal
+  let remotionCancelSignal: ReturnType<typeof makeCancelSignal> | undefined
+  if (signal) {
+    remotionCancelSignal = makeCancelSignal()
+    signal.addEventListener('abort', () => remotionCancelSignal!.cancel(), { once: true })
+  }
 
   if (profile.codec === 'prores') {
     await renderMedia({
@@ -159,9 +181,10 @@ export async function renderOverlay(
       imageFormat: 'png',
       outputLocation: outputPath,
       inputProps,
-      chromiumOptions: { gl: 'angle' },
+      chromiumOptions: {},
       hardwareAcceleration: 'required',
       concurrency: cpus().length,
+      cancelSignal: remotionCancelSignal?.cancelSignal,
       onProgress: onProgress
         ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
         : undefined,
@@ -177,12 +200,147 @@ export async function renderOverlay(
     imageFormat: 'png',
     outputLocation: outputPath,
     inputProps,
-    chromiumOptions: { gl: 'angle' },
+    chromiumOptions: {},
+    hardwareAcceleration: 'required',
     concurrency: cpus().length,
+    cancelSignal: remotionCancelSignal?.cancelSignal,
     onProgress: onProgress
       ? ({ progress, renderedFrames }) => onProgress({ progress, renderedFrames, totalFrames })
       : undefined,
   })
+}
+
+/**
+ * Combined overlay render + composite in a single pipeline.
+ * Skips the ProRes intermediate — renders overlay frames as PNGs to a temp dir,
+ * then FFmpeg reads them as an image sequence for compositing.
+ *
+ * Saves ~15-20s by eliminating ProRes encode (Remotion stitcher) + decode (FFmpeg).
+ */
+export async function renderOverlayAndComposite(
+  serveUrl: string,
+  compositionId: string,
+  props: OverlayProps,
+  sourcePath: string,
+  outputPath: string,
+  opts: {
+    fps: number
+    overlayX: number
+    overlayY: number
+    durationSeconds: number
+    outputWidth?: number
+    outputHeight?: number
+    overlayScaleWidth?: number
+    overlayScaleHeight?: number
+    onDiagnostic?: (diagnostic: CompositeDiagnostic) => void
+    runtimePlatform?: NodeJS.Platform
+    ffmpegCapabilities?: FfmpegCapabilities
+    windowsHardwareInfo?: WindowsHardwareInfo
+  },
+  onProgress?: (event: { phase: 'overlay' | 'composite'; progress: number; renderedFrames?: number; totalFrames?: number }) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const inputProps = props as unknown as Record<string, unknown>
+  const comp = await selectComposition({ serveUrl, id: compositionId, inputProps })
+  const totalFrames = comp.durationInFrames
+
+  // Bridge AbortSignal to Remotion CancelSignal
+  let remotionCancelSignal: ReturnType<typeof makeCancelSignal> | undefined
+  if (signal) {
+    remotionCancelSignal = makeCancelSignal()
+    signal.addEventListener('abort', () => remotionCancelSignal!.cancel(), { once: true })
+  }
+
+  // Render overlay frames as PNG sequence to temp dir
+  const framesDir = path.join(tmpdir(), `racedash-frames-${randomUUID()}`)
+  mkdirSync(framesDir, { recursive: true })
+
+  try {
+    await renderFrames({
+      serveUrl,
+      composition: comp,
+      imageFormat: 'png',
+      outputDir: framesDir,
+      inputProps,
+      chromiumOptions: {},
+      concurrency: cpus().length,
+      cancelSignal: remotionCancelSignal?.cancelSignal,
+      onStart: () => {},
+      onFrameUpdate: (renderedFrames, _frameIndex) => {
+        onProgress?.({
+          phase: 'overlay',
+          progress: renderedFrames / totalFrames,
+          renderedFrames,
+          totalFrames,
+        })
+      },
+    })
+
+    if (signal?.aborted) return
+
+    // Build FFmpeg composite command with PNG sequence as overlay input
+    const runtimePlatform = opts.runtimePlatform ?? process.platform
+    // Remotion default pattern: element-NNNN.png (zero-padded)
+    // FFmpeg image2 demuxer needs %0Nd format
+    const files = readdirSync(framesDir).filter(f => f.endsWith('.png')).sort()
+    if (files.length === 0) throw new Error('No overlay frames rendered')
+    // Detect padding length from first file (e.g., element-0000.png → 4 digits)
+    const padMatch = files[0].match(/element-(\d+)\.png/)
+    const padLength = padMatch ? padMatch[1].length : 4
+    const framePattern = path.join(framesDir, `element-%0${padLength}d.png`)
+
+    // Build filter complex for overlay positioning + scaling
+    const filterComplex = buildFilterComplex(
+      opts.overlayX, opts.overlayY,
+      opts.outputWidth, opts.outputHeight,
+      opts.overlayScaleWidth, opts.overlayScaleHeight,
+    )
+
+    // Determine encoder based on platform
+    const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
+    let encoderArgs: string[]
+    let hwaccelArgs: string[] = []
+
+    // NVENC requires both the encoder AND CUDA hwaccel to be available.
+    // FFmpeg may have NVENC compiled in but no CUDA runtime on the machine.
+    const canUseNvenc = capabilities.hwaccels.has('cuda')
+
+    if (runtimePlatform === 'darwin') {
+      hwaccelArgs = ['-hwaccel', 'videotoolbox']
+      encoderArgs = ['-c:v', 'hevc_videotoolbox', '-tag:v', 'hvc1', '-q:v', '65']
+    } else if (canUseNvenc && capabilities.encoders.has('hevc_nvenc')) {
+      hwaccelArgs = ['-hwaccel', 'cuda']
+      encoderArgs = ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
+    } else if (canUseNvenc && capabilities.encoders.has('h264_nvenc')) {
+      hwaccelArgs = ['-hwaccel', 'cuda']
+      encoderArgs = ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
+    } else {
+      encoderArgs = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18']
+    }
+
+    const args = [
+      ...hwaccelArgs,
+      '-i', sourcePath,
+      '-framerate', String(opts.fps),
+      '-i', framePattern,
+      '-filter_complex', filterComplex,
+      '-r', String(opts.fps),
+      '-pix_fmt', 'yuv420p',
+      ...encoderArgs,
+      '-c:a', 'copy',
+      '-y', outputPath,
+    ]
+
+    await runFFmpegWithProgress(args, opts.durationSeconds, (p) => {
+      onProgress?.({ phase: 'composite', progress: p })
+    }, signal)
+
+  } finally {
+    // Clean up frame directory
+    if (existsSync(framesDir)) {
+      rmSync(framesDir, { recursive: true, force: true })
+    }
+  }
 }
 
 export function parseFpsValue(raw: string, videoPath: string): number {
@@ -378,7 +536,7 @@ export async function collectDoctorDiagnostics(opts: DoctorOptions = {}): Promis
     })
     diagnostics.push({
       label: 'Output',
-      value: 'libx264 (preset slow, crf 16)',
+      value: 'libx264 (preset medium, crf 18)',
     })
     return diagnostics
   }
@@ -401,7 +559,7 @@ export async function collectDoctorDiagnostics(opts: DoctorOptions = {}): Promis
   })
   diagnostics.push({
     label: 'Output',
-    value: 'libx264 (preset slow, crf 16)',
+    value: 'libx264 (preset medium, crf 18)',
   })
   return diagnostics
 }
@@ -436,14 +594,26 @@ async function runFfmpegCapture(
   })
 }
 
-function buildFilterComplex(overlayX: number, overlayY: number, outputWidth?: number, outputHeight?: number): string {
+function buildFilterComplex(
+  overlayX: number,
+  overlayY: number,
+  outputWidth?: number,
+  outputHeight?: number,
+  overlayScaleWidth?: number,
+  overlayScaleHeight?: number,
+): string {
   const filterParts: string[] = []
   let sourceLabel = '0:v'
   if (outputWidth != null && outputHeight != null) {
     filterParts.push(`[0:v]scale=${outputWidth}:${outputHeight}[src]`)
     sourceLabel = 'src'
   }
-  filterParts.push('[1:v]format=rgba[ov]')
+  // Scale overlay to match video if rendered at lower resolution
+  if (overlayScaleWidth != null && overlayScaleHeight != null) {
+    filterParts.push(`[1:v]format=rgba,scale=${overlayScaleWidth}:${overlayScaleHeight}:flags=lanczos[ov]`)
+  } else {
+    filterParts.push('[1:v]format=rgba[ov]')
+  }
   filterParts.push(`[${sourceLabel}][ov]overlay=x=${overlayX}:y=${overlayY}`)
   return filterParts.join(';')
 }
@@ -488,7 +658,7 @@ async function resolveWindowsCompositePlan(
   emitDiagnostic(opts.onDiagnostic, 'CPU', hardwareInfo.cpu ?? 'Unknown')
   emitDiagnostic(opts.onDiagnostic, 'GPU', hardwareInfo.gpuNames.join(', ') || 'Unknown')
 
-  const filterComplex = buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight)
+  const filterComplex = buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight, opts.overlayScaleWidth, opts.overlayScaleHeight)
   const candidates = getWindowsDecodeCandidateOrder(hardwareInfo.gpuVendors, capabilities.hwaccels)
 
   let selected = 'software'
@@ -523,9 +693,25 @@ async function resolveWindowsCompositePlan(
   emitDiagnostic(opts.onDiagnostic, 'Decode', selected)
   emitDiagnostic(opts.onDiagnostic, 'Software fallback', softwareFallback ? 'yes' : 'no')
 
+  // Select encoder: prefer NVENC hardware encode when an NVIDIA GPU is present,
+  // otherwise fall back to libx264. Just checking encoder availability isn't enough
+  // because Windows FFmpeg ships with NVENC compiled in even on non-NVIDIA systems,
+  // and attempting to use it fails at runtime with "Cannot load nvcuda.dll".
+  const hasNvidiaGpu = hardwareInfo.gpuVendors.includes('nvidia')
+  const useNvenc = hasNvidiaGpu && capabilities.encoders.has('hevc_nvenc')
+  const useNvencH264 = hasNvidiaGpu && !useNvenc && capabilities.encoders.has('h264_nvenc')
+
   if (!capabilities.encoders.has('libx264')) {
-    throw new Error('ffmpeg does not provide libx264 on this machine. Install a build with libx264 support.')
+    throw new Error('ffmpeg does not provide libx264. Install a build with libx264 support.')
   }
+
+  const encoderArgs: string[] = useNvenc
+    ? ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
+    : useNvencH264
+      ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
+      : ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18']
+
+  emitDiagnostic(opts.onDiagnostic, 'Encode', useNvenc ? 'hevc_nvenc' : useNvencH264 ? 'h264_nvenc' : 'libx264')
 
   return {
     decodePath: selected,
@@ -542,12 +728,7 @@ async function resolveWindowsCompositePlan(
       String(opts.fps),
       '-pix_fmt',
       'yuv420p',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'slow',
-      '-crf',
-      '16',
+      ...encoderArgs,
       '-c:a',
       'copy',
       '-y',
@@ -573,7 +754,7 @@ function buildMacCompositePlan(
       '-i',
       overlayPath,
       '-filter_complex',
-      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
+      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight, opts.overlayScaleWidth, opts.overlayScaleHeight),
       '-r',
       String(opts.fps),
       '-pix_fmt',
@@ -582,8 +763,8 @@ function buildMacCompositePlan(
       'hevc_videotoolbox',
       '-tag:v',
       'hvc1',
-      '-b:v',
-      opts.videoBitrate,
+      '-q:v',
+      '65',
       '-c:a',
       'copy',
       '-y',
@@ -592,32 +773,48 @@ function buildMacCompositePlan(
   }
 }
 
-function buildGenericCompositePlan(
+async function buildGenericCompositePlan(
   sourcePath: string,
   overlayPath: string,
   outputPath: string,
   opts: Required<Pick<CompositeOptions, 'fps' | 'overlayX' | 'overlayY'>> & CompositeOptions,
-): CompositePlan {
+): Promise<CompositePlan> {
+  const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
+
+  // Prefer NVENC on Linux/cloud GPU instances. NVENC requires both the
+  // encoder AND CUDA hwaccel to be available on the machine — FFmpeg may
+  // ship with NVENC compiled in even on systems without an NVIDIA GPU.
+  const canUseNvenc = capabilities.hwaccels.has('cuda')
+  const useNvenc = canUseNvenc && capabilities.encoders.has('hevc_nvenc')
+  const useNvencH264 = canUseNvenc && !useNvenc && capabilities.encoders.has('h264_nvenc')
+  const hwaccelArgs: string[] = useNvenc || useNvencH264
+    ? ['-hwaccel', 'cuda']
+    : []
+
+  const encoderArgs: string[] = useNvenc
+    ? ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
+    : useNvencH264
+      ? ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
+      : ['-c:v', 'libx264', '-preset', 'medium', '-crf', '18']
+
+  emitDiagnostic(opts.onDiagnostic, 'Encode', useNvenc ? 'hevc_nvenc' : useNvencH264 ? 'h264_nvenc' : 'libx264')
+
   return {
-    decodePath: 'software',
-    softwareFallback: true,
+    decodePath: useNvenc || useNvencH264 ? 'cuda' : 'software',
+    softwareFallback: !useNvenc && !useNvencH264,
     args: [
+      ...hwaccelArgs,
       '-i',
       sourcePath,
       '-i',
       overlayPath,
       '-filter_complex',
-      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight),
+      buildFilterComplex(opts.overlayX, opts.overlayY, opts.outputWidth, opts.outputHeight, opts.overlayScaleWidth, opts.overlayScaleHeight),
       '-r',
       String(opts.fps),
       '-pix_fmt',
       'yuv420p',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'slow',
-      '-crf',
-      '16',
+      ...encoderArgs,
       '-c:a',
       'copy',
       '-y',
@@ -635,6 +832,7 @@ export async function compositeVideo(
   outputPath: string,
   opts: CompositeOptions = {},
   onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const {
     fps = 60,
@@ -668,9 +866,9 @@ export async function compositeVideo(
       ? await resolveWindowsCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
       : runtimePlatform === 'darwin'
         ? buildMacCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
-        : buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
+        : await buildGenericCompositePlan(sourcePath, overlayPath, outputPath, resolvedOptions)
 
-  await runFFmpegWithProgress(plan.args, totalSeconds, onProgress)
+  await runFFmpegWithProgress(plan.args, totalSeconds, onProgress, signal)
 }
 
 /**
@@ -748,7 +946,7 @@ export async function getVideoResolution(videoPath: string): Promise<{ width: nu
  * Concatenate video files losslessly using FFmpeg's concat demuxer.
  * Writes a temporary file list to os.tmpdir(), runs ffmpeg -c copy, then cleans up.
  */
-export async function joinVideos(inputs: string[], outputPath: string): Promise<void> {
+export async function joinVideos(inputs: string[], outputPath: string, signal?: AbortSignal): Promise<void> {
   if (inputs.length < 2) throw new Error('joinVideos requires at least 2 input files')
 
   const durations = await Promise.all(inputs.map(getVideoDuration))
@@ -767,6 +965,7 @@ export async function joinVideos(inputs: string[], outputPath: string): Promise<
           `\rProgress: ${Math.round(pct * 100)}% (${formatSeconds(processed)} / ${formatSeconds(totalSeconds)})`,
         )
       },
+      signal,
     )
     process.stderr.write('\n')
   } finally {
@@ -786,6 +985,7 @@ function runFFmpegWithProgress(
   args: string[],
   totalSeconds: number,
   onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolvePromise, rejectPromise) => {
     const proc = spawn('ffmpeg', args)
@@ -802,6 +1002,12 @@ function runFFmpegWithProgress(
       if (settled) return
       settled = true
       resolvePromise()
+    }
+
+    if (signal) {
+      const onAbort = () => proc.kill('SIGTERM')
+      signal.addEventListener('abort', onAbort, { once: true })
+      proc.on('close', () => signal.removeEventListener('abort', onAbort))
     }
 
     proc.stderr.on('data', (chunk: Buffer) => {

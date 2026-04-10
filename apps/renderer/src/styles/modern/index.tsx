@@ -1,6 +1,7 @@
 import {
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
+  type LapOverlayProps,
   type OverlayProps,
 } from '@racedash/core'
 import React, { useMemo } from 'react'
@@ -8,6 +9,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import { useActiveSegment } from '../../activeSegment'
 import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
+import { useLapGate } from '../../hooks/useLapGate'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
 import { LapHistory } from '../../components/shared/LapHistory'
 import { fontFamily } from '../../Root'
@@ -16,16 +18,18 @@ import { useCardOverlayState } from '../../useCardOverlayState'
 
 const PLACEHOLDER = '—:--.---'
 
-export const Modern: React.FC<OverlayProps> = ({
-  segments,
-  fps,
-  styling,
-  startingGridPosition,
-  boxPosition = 'bottom-center',
-  labelWindowSeconds,
-  qualifyingTablePosition,
-  overlayComponents,
-}) => {
+export const Modern: React.FC<OverlayProps | LapOverlayProps> = (props) => {
+  const {
+    segments,
+    fps,
+    styling,
+    startingGridPosition,
+    boxPosition = 'bottom-center',
+    labelWindowSeconds,
+    qualifyingTablePosition,
+    overlayComponents,
+  } = props
+  const lapGate = useLapGate(props)
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const scale = width / 1920
@@ -54,13 +58,19 @@ export const Modern: React.FC<OverlayProps> = ({
   const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
   const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { currentIdx, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+  const cardState = useCardOverlayState({
     segment,
     isEnd,
     currentTime,
     startingGridPosition,
     placeholder: PLACEHOLDER,
   })
+  const preRollInactive = lapGate.isLapRender && !lapGate.isActive && !lapGate.isPastEnd
+  const currentIdx = cardState.currentIdx
+  const elapsedFormatted = preRollInactive ? '0:00.000' : cardState.elapsedFormatted
+  const lastLapTime = preRollInactive ? PLACEHOLDER : cardState.lastLapTime
+  const sessionBestTime = preRollInactive ? PLACEHOLDER : cardState.sessionBestTime
+  const displayedPosition = preRollInactive ? null : cardState.displayedPosition
 
   const mo = styling?.modern
   const stripeOpacity = mo?.stripeOpacity ?? 0.035
@@ -99,7 +109,7 @@ export const Modern: React.FC<OverlayProps> = ({
         paddingRight: padX,
         boxSizing: 'border-box' as const,
         background: [
-          `repeating-linear-gradient(-55deg, rgba(255,255,255,${stripeOpacity}), rgba(255,255,255,${stripeOpacity}) 2px, transparent 2px, transparent 18px)`,
+          `repeating-linear-gradient(-55deg, rgba(255,255,255,${stripeOpacity}), rgba(255,255,255,${stripeOpacity}) ${2 * scale}px, transparent ${2 * scale}px, transparent ${18 * scale}px)`,
           bgColor,
         ].join(', '),
       },

@@ -3,6 +3,7 @@ import { useVideoConfig } from 'remotion'
 import type { LapTimestamp } from '@racedash/core'
 import { getCompletedLaps, getSessionBest } from '../../timing'
 import { fontFamily } from '../../Root'
+import { colorWithAlpha } from '../../utils/colorAlpha'
 
 interface Props {
   timestamps: LapTimestamp[]
@@ -60,8 +61,7 @@ export const TimeLabelPanel: React.FC<Props> = ({
       fontFamily,
       fontSize: 13 * scale,
       fontWeight: 700,
-      color: textColor,
-      opacity: 0.75,
+      color: colorWithAlpha(textColor, 0.75),
       letterSpacing: 2 * scale,
       userSelect: 'none',
     }),

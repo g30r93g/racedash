@@ -149,7 +149,8 @@ const TableRow = React.memo(function TableRow({
       ? `linear-gradient(${accent}${hexAlpha}, ${accent}${hexAlpha}), ${leaderboardStyling?.ourRowBgColor ?? 'rgba(0,0,0,0.82)'}`
       : (leaderboardStyling?.bgColor ?? 'rgba(0,0,0,0.65)'),
     borderLeft: isOurs ? `${borderWidth}px solid ${accent}` : `${borderWidth}px solid transparent`,
-    backdropFilter: `blur(${blur}px)`,
+    // backdropFilter removed — overlay renders on transparent background so blur has
+    // no visual effect, but is extremely expensive in headless Chromium screenshots
     marginBottom: 2 * sc,
   }
 

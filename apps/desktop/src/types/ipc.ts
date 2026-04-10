@@ -1,4 +1,5 @@
 import type { ProjectData, CreateProjectOpts, SegmentConfig } from './project'
+import type { CutRegion, Transition } from './videoEditing'
 import type {
   BoxPosition,
   CornerPosition,
@@ -116,19 +117,42 @@ export type OutputResolution = 'source' | '1080p' | '1440p' | '2160p'
 export type OutputFrameRate = 'source' | '30' | '60' | '120'
 export type RenderMode = 'overlay+footage' | 'overlay-only'
 
-export interface RenderStartOpts {
-  configPath: string
-  videoPaths: string[]
+export interface RenderBatchJob {
+  id: string
+  type: 'entireProject' | 'segment' | 'linkedSegment' | 'lap'
+  segmentIndices: number[]
+  lapNumber?: number
   outputPath: string
-  style: string
-  outputResolution: OutputResolution
-  outputFrameRate: OutputFrameRate
-  renderMode: RenderMode
 }
 
-export interface RenderCompleteResult {
+export interface RenderBatchOpts {
+  configPath: string
+  videoPaths: string[]
+  outputDir: string
+  style: string
+  outputResolution: OutputResolution
+  renderMode: RenderMode
+  jobs: RenderBatchJob[]
+  cutRegions: CutRegion[]
+  transitions: Transition[]
+}
+
+export interface BatchJobProgressEvent {
+  jobId: string
+  phase: string
+  progress: number
+  renderedFrames?: number
+  totalFrames?: number
+}
+
+export interface BatchJobCompleteEvent {
+  jobId: string
   outputPath: string
-  overlayReused: boolean
+}
+
+export interface BatchJobErrorEvent {
+  jobId: string
+  message: string
 }
 
 // ── License types ─────────────────────────────────────────────────────────
@@ -372,6 +396,10 @@ export interface RacedashAPI {
     configPath: string,
     overrides: Array<{ segmentIndex: number; timestamp: string; position: number }>,
   ): Promise<void>
+  updateProjectVideoEditing(
+    projectPath: string,
+    data: { cutRegions: CutRegion[]; transitions: Transition[] },
+  ): Promise<void>
   saveStyleToConfig(
     configPath: string,
     overlayType: string,
@@ -411,16 +439,16 @@ export interface RacedashAPI {
   getVideoInfo(videoPath: string): Promise<VideoInfo>
   getMultiVideoInfo(videoPaths: string[]): Promise<MultiVideoInfo>
   validateVideoPaths(videoPaths: string[]): Promise<{ available: string[]; unavailable: string[] }>
-  startRender(opts: RenderStartOpts): Promise<void>
-  cancelRender(): Promise<void>
+  startBatchRender(opts: RenderBatchOpts): Promise<void>
+  cancelBatchRender(): Promise<void>
+  retryBatchJobs(jobIds: string[]): Promise<void>
 
-  // Render progress events — main → renderer push via ipcRenderer.on
+  // Batch render events — main → renderer push via ipcRenderer.on
   // Each returns a cleanup function that removes the listener.
-  onRenderProgress(
-    cb: (event: { phase: string; progress: number; renderedFrames?: number; totalFrames?: number }) => void,
-  ): () => void
-  onRenderComplete(cb: (result: RenderCompleteResult) => void): () => void
-  onRenderError(cb: (err: { message: string }) => void): () => void
+  onBatchJobProgress(cb: (event: BatchJobProgressEvent) => void): () => void
+  onBatchJobComplete(cb: (event: BatchJobCompleteEvent) => void): () => void
+  onBatchJobError(cb: (event: BatchJobErrorEvent) => void): () => void
+  onBatchComplete(cb: () => void): () => void
 
   // Update events — main → renderer push via ipcRenderer.on
   // Each returns a cleanup function that removes the listener.

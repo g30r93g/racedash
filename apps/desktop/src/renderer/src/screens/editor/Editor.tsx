@@ -1,9 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ProjectData } from '../../../../types/project'
 import type { TimestampsResult, VideoInfo } from '../../../../types/ipc'
+import type { Boundary, CutRegion, Transition, TransitionType } from '../../../../types/videoEditing'
+import { VideoEditingDrawer } from '@/components/video-editing/VideoEditingDrawer'
+import { CutRegionList } from '@/components/video-editing/CutRegionList'
+import { TransitionList } from '@/components/video-editing/TransitionList'
+import { inferCutBounds } from '@/lib/videoEditing'
+import { useSegmentBuffers, useBoundaries, useReconciledTransitions, useFrameMapping, useKeptRanges } from '@/hooks/useVideoEditing'
+import { toast } from 'sonner'
 import { useMultiVideo } from '../../hooks/useMultiVideo'
 import { VideoPane, type VideoPaneHandle } from './VideoPane'
 import { Timeline, type TimelineHandle } from '@/components/video/Timeline'
+import type { TimelineViewMode } from '@/components/video/timeline/Timeline'
 import { EditorTabsPane } from './EditorTabsPane'
 import type { Override } from './tabs/TimingTab'
 import type { StyleState } from './tabs/StyleTab'
@@ -62,6 +70,9 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const [projectState, setProjectState] = useState(project)
   const [configRevision, setConfigRevision] = useState(0)
   const [timingRevision, setTimingRevision] = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [cutRegions, setCutRegions] = useState<CutRegion[]>(projectState.cutRegions ?? [])
+  const [transitions, setTransitions] = useState<Transition[]>(projectState.transitions ?? [])
   const multiVideoInfo = useMultiVideo(projectState.videoPaths)
 
   // Derive a VideoInfo-compatible object for downstream components (memoized to avoid
@@ -82,6 +93,8 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   const timelineRef = useRef<TimelineHandle>(null)
   const currentTimeRef = useRef(0)
   const [currentTime, setCurrentTime] = useState(0)
+  /** Source time for TimingTab — always in source coordinates regardless of view mode. */
+  const [sourceTime, setSourceTime] = useState(0)
   const [timestampsResult, setTimestampsResult] = useState<TimestampsResult | null>(null)
   const [timingLoading, setTimingLoading] = useState(false)
   const [timingError, setTimingError] = useState<string | null>(null)
@@ -256,20 +269,153 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
       })
   }, [overrides, projectState.configPath])
 
+  // Auto-save video editing state to project.json
+  const videoEditingSavedRef = useRef(false)
+  useEffect(() => {
+    if (!videoEditingSavedRef.current && cutRegions.length === 0 && transitions.length === 0) return
+    videoEditingSavedRef.current = true
+    window.racedash
+      .updateProjectVideoEditing(projectState.projectPath, { cutRegions, transitions })
+      .catch((err: unknown) => {
+        console.warn('[Editor] failed to save video editing state:', err)
+      })
+  }, [cutRegions, transitions, projectState.projectPath])
+
+  // ── Video editing: segment spans, boundaries, transitions ──────────────────
+  const fps = videoInfo?.fps ?? 60
+  const totalFrames = Math.ceil((videoInfo?.durationSeconds ?? 0) * fps)
+
+  const segmentBuffers = useSegmentBuffers(styleState.styling, fps)
+
+  const segmentSpansWithIds = useMemo(() => {
+    return (projectState.segments ?? []).map((seg, i) => {
+      const startSeconds = timestampsResult?.offsets[i] ?? (seg.videoOffsetFrame ?? 0) / fps
+      const rawSeg = timestampsResult?.segments[i] as any
+      const laps = rawSeg?.selectedDriver?.laps as Array<{ cumulative: number }> | undefined
+      const lastLap = laps?.[laps.length - 1]
+      const endSeconds = lastLap ? startSeconds + lastLap.cumulative : startSeconds
+      return {
+        id: seg.id,
+        startFrame: Math.round(startSeconds * fps),
+        endFrame: Math.round(endSeconds * fps),
+      }
+    })
+  }, [projectState.segments, timestampsResult, fps])
+
+  const fileJoinFrames = useMemo(() => {
+    if (!multiVideoInfo || multiVideoInfo.files.length <= 1) return []
+    return multiVideoInfo.files.slice(0, -1).map((file) =>
+      Math.round((file.startSeconds + file.durationSeconds) * fps)
+    )
+  }, [multiVideoInfo, fps])
+
+  const boundaries = useBoundaries(totalFrames, cutRegions, fileJoinFrames, fps)
+  const frameMapping = useFrameMapping(cutRegions, transitions, fps)
+  const keptRanges = useKeptRanges(cutRegions, totalFrames)
+  const outputDuration = useMemo(
+    () => keptRanges.reduce((sum, r) => sum + (r.endFrame - r.startFrame), 0) / fps,
+    [keptRanges, fps],
+  )
+  const mapTimeToDisplay = useCallback(
+    (sourceSeconds: number) => frameMapping.toOutput(Math.round(sourceSeconds * fps)) / fps,
+    [frameMapping, fps],
+  )
+
+  // Resolve transitions to output-time positions for CSS preview.
+  // In Project view, the seam transitions need to be positioned in output time
+  // (after cut regions are removed) since playback skips over cuts.
+  const transitionPreviewData = useMemo(() => {
+    if (transitions.length === 0 || boundaries.length === 0) return undefined
+    return transitions.map((t) => {
+      const boundary = boundaries.find((b) => b.id === t.boundaryId)
+      if (!boundary) return null
+      const position = boundary.kind === 'projectStart' ? 'start' as const
+        : boundary.kind === 'projectEnd' ? 'end' as const
+        : 'seam' as const
+      // Map source frame to output time so the preview works in Project view
+      const outputTimeSec = mapTimeToDisplay(boundary.frameInSource / fps)
+      return {
+        sourceTimeSec: outputTimeSec,
+        type: t.type as 'fadeFromBlack' | 'fadeToBlack' | 'fadeThroughBlack' | 'crossfade',
+        durationMs: t.durationMs,
+        position,
+      }
+    }).filter((x): x is NonNullable<typeof x> => x !== null)
+  }, [transitions, boundaries, fps, mapTimeToDisplay])
+
+  // Only reconcile transitions once multiVideoInfo is loaded (so fileJoinFrames are populated).
+  // Without this guard, initial mount with empty fileJoinFrames would orphan all fileJoin transitions.
+  const { kept: reconciledTransitions, removed } = useReconciledTransitions(transitions, boundaries)
+  const videoInfoLoaded = multiVideoInfo !== null
+
+  useEffect(() => {
+    if (!videoInfoLoaded) return
+    if (removed.length > 0) {
+      setTransitions(reconciledTransitions)
+    }
+  }, [removed.length, videoInfoLoaded]) // Only react to changes in removed count, after video info loads
+
+  const handleAddCut = useCallback(() => {
+    const playheadFrame = Math.round(currentTimeRef.current * fps)
+    const spans = segmentSpansWithIds.map(({ startFrame, endFrame }) => ({ startFrame, endFrame }))
+    const newCut = inferCutBounds(playheadFrame, spans, segmentBuffers, totalFrames)
+    if (!newCut) {
+      toast.error('No dead space at playhead position')
+      return
+    }
+    setCutRegions((prev) => [...prev, newCut])
+  }, [fps, segmentSpansWithIds, segmentBuffers, totalFrames])
+
+  const handleUpdateCut = useCallback((updated: CutRegion) => {
+    setCutRegions((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+  }, [])
+
+  const handleDeleteCut = useCallback((id: string) => {
+    setCutRegions((prev) => prev.filter((c) => c.id !== id))
+    setTransitions((prev) => prev.filter((t) => t.boundaryId !== `cut:${id}`))
+  }, [])
+
+  const handleUpdateTransition = useCallback((updated: Transition) => {
+    setTransitions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+  }, [])
+
+  const handleDeleteTransition = useCallback((id: string) => {
+    setTransitions((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  const handleAddTransition = useCallback((boundaryId: string, type: TransitionType) => {
+    setTransitions((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      boundaryId,
+      type,
+      durationMs: 500,
+    }])
+  }, [])
+
+  const [timelineViewMode, setTimelineViewMode] = useState<TimelineViewMode>('source')
   const [playing, setPlaying] = useState(false)
   const videoPaneRef = useRef<VideoPaneHandle>(null)
   // Update timeline imperatively every frame; batch React state at 4Hz for TimingTab
   const timeUpdateFrameRef = useRef(0)
   const handleTimeUpdate = useCallback((t: number) => {
     currentTimeRef.current = t
-    timelineRef.current?.seek(t)
+    const displayTime = timelineViewMode === 'project'
+      ? frameMapping.toOutput(Math.round(t * fps)) / fps
+      : t
+    timelineRef.current?.seek(displayTime)
     // Throttle React state updates to ~4Hz (every 15 frames at 60fps)
     timeUpdateFrameRef.current++
     if (timeUpdateFrameRef.current % 15 === 0) {
-      setCurrentTime(t)
+      setCurrentTime(displayTime)
+      setSourceTime(t)
     }
-  }, [])
-  const handleSeek = useCallback((t: number) => videoPaneRef.current?.seek(t), [])
+  }, [timelineViewMode, frameMapping, fps])
+  const handleSeek = useCallback((t: number) => {
+    const sourceTime = timelineViewMode === 'project'
+      ? frameMapping.toSource(Math.round(t * fps)) / fps
+      : t
+    videoPaneRef.current?.seek(sourceTime)
+  }, [timelineViewMode, frameMapping, fps])
   const togglePlayPause = useCallback(() => {
     if (playing) {
       videoPaneRef.current?.pause()
@@ -321,8 +467,31 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
   }, [timestampsResult, videoInfo, styleState])
 
   return (
-    <div className="grid h-full w-full grid-cols-[1fr_430px] overflow-hidden">
-      {/* Left pane — video fills remaining height, timeline pinned to bottom */}
+    <div className={`grid h-full w-full overflow-hidden ${drawerOpen ? 'grid-cols-[256px_1fr_430px]' : 'grid-cols-[1fr_430px]'}`}>
+      {/* Left drawer — video editing controls */}
+      {drawerOpen && (
+        <VideoEditingDrawer>
+          <CutRegionList
+            cuts={cutRegions}
+            fps={fps}
+            onAdd={handleAddCut}
+            onUpdate={handleUpdateCut}
+            onDelete={handleDeleteCut}
+            disabled={!timestampsResult}
+          />
+          <TransitionList
+            transitions={transitions}
+            boundaries={boundaries}
+            fps={fps}
+            onAdd={handleAddTransition}
+            onUpdate={handleUpdateTransition}
+            onDelete={handleDeleteTransition}
+            disabled={!timestampsResult}
+          />
+        </VideoEditingDrawer>
+      )}
+
+      {/* Center pane — video fills remaining height, timeline pinned to bottom */}
       <div className="grid min-w-0 grid-rows-[1fr_auto] overflow-hidden border-r border-border">
         <VideoPane
           ref={videoPaneRef}
@@ -331,6 +500,11 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           onPlayingChange={setPlaying}
           overlayType={styleState.overlayType}
           overlayProps={overlayProps}
+          cutRegions={cutRegions}
+          skipCutRegions={timelineViewMode === 'project'}
+          displayDuration={timelineViewMode === 'project' ? outputDuration : undefined}
+          mapTimeToDisplay={timelineViewMode === 'project' ? mapTimeToDisplay : undefined}
+          transitionPreview={transitionPreviewData}
         />
         <Timeline
           ref={timelineRef}
@@ -340,6 +514,16 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           timestampsResult={timestampsResult}
           overrides={overrides}
           onSeek={handleSeek}
+          viewMode={timelineViewMode}
+          onViewModeChange={setTimelineViewMode}
+          cutRegions={cutRegions}
+          onCutClick={handleUpdateCut}
+          onCutUpdate={handleUpdateCut}
+          boundaries={boundaries}
+          transitions={transitions}
+          onAddTransition={handleAddTransition}
+          onTransitionUpdate={handleUpdateTransition}
+          onTransitionDelete={handleDeleteTransition}
         />
       </div>
 
@@ -348,7 +532,7 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
         <EditorTabsPane
           project={projectState}
           videoInfo={videoInfo}
-          currentTime={currentTime}
+          currentTime={sourceTime}
           playing={playing}
           onSave={handleSave}
           overrides={overrides}
@@ -366,6 +550,10 @@ export function Editor({ project, onClose }: EditorProps): React.ReactElement {
           authUser={user ? { name: user.name } : null}
           licenseTier={displayLicense?.tier ?? null}
           onSignIn={signIn}
+          drawerOpen={drawerOpen}
+          onToggleDrawer={() => setDrawerOpen((o) => !o)}
+          cutRegions={cutRegions}
+          transitions={transitions}
         />
       </div>
     </div>

@@ -1,3 +1,5 @@
+import type { CutRegion, Transition } from './videoEditing'
+
 // Wizard-selectable timing sources. The engine also supports 'cached' (produced at
 // save time by cacheRemoteTimingData), but it is not user-selectable.
 export type TimingSource = 'alphaTiming' | 'mylapsSpeedhive' | 'daytonaEmail' | 'teamsportEmail' | 'manual'
@@ -18,6 +20,7 @@ export type SessionMode = 'practice' | 'qualifying' | 'race'
  */
 export interface SegmentConfig {
   label: string
+  id: string  // UUID, generated on creation, stable across edits
   source: TimingSource
   // alpha-timing, speedhive: results URL
   url?: string
@@ -45,6 +48,8 @@ export interface ProjectData {
   selectedDrivers: Record<string, string>
   /** Runtime-only flag set by listProjectsHandler when the project.json cannot be found on disk. Never written to disk. */
   missing?: true
+  cutRegions: CutRegion[]
+  transitions: Transition[]
 }
 
 export interface CreateProjectOpts {

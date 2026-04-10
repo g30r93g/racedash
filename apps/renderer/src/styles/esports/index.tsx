@@ -3,11 +3,13 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_LABEL_WINDOW_SECONDS,
   isOverlayComponentEnabled,
+  type LapOverlayProps,
   type OverlayProps,
 } from '@racedash/core'
 import { useActiveSegment } from '../../activeSegment'
 import { useFadeOpacity } from '../../useFadeOpacity'
 import { useLabelOpacity } from '../../useLabelOpacity'
+import { useLapGate } from '../../hooks/useLapGate'
 import { SegmentLabel } from '../../SegmentLabel'
 import { fontFamily } from '../../Root'
 import { LeaderboardTable } from '../../components/shared/LeaderboardTable'
@@ -18,16 +20,18 @@ import { TimePanel } from './TimePanel'
 
 const EMPTY_TIME = '—:--.---'
 
-export const Esports: React.FC<OverlayProps> = ({
-  segments,
-  fps,
-  styling,
-  startingGridPosition,
-  boxPosition = 'bottom-left',
-  labelWindowSeconds,
-  qualifyingTablePosition,
-  overlayComponents,
-}) => {
+export const Esports: React.FC<OverlayProps | LapOverlayProps> = (props) => {
+  const {
+    segments,
+    fps,
+    styling,
+    startingGridPosition,
+    boxPosition = 'bottom-left',
+    labelWindowSeconds,
+    qualifyingTablePosition,
+    overlayComponents,
+  } = props
+  const lapGate = useLapGate(props)
   const frame = useCurrentFrame()
   const { width } = useVideoConfig()
   const sc = width / 1920
@@ -50,13 +54,20 @@ export const Esports: React.FC<OverlayProps> = ({
   const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
   const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
 
-  const { currentLap, currentIdx, elapsedFormatted, lastLapTime, sessionBestTime, displayedPosition } = useCardOverlayState({
+  const cardState = useCardOverlayState({
     segment,
     isEnd,
     currentTime,
     startingGridPosition,
     placeholder: EMPTY_TIME,
   })
+  const preRollInactive = lapGate.isLapRender && !lapGate.isActive && !lapGate.isPastEnd
+  const currentLap = cardState.currentLap
+  const currentIdx = cardState.currentIdx
+  const elapsedFormatted = preRollInactive ? '0:00.000' : cardState.elapsedFormatted
+  const lastLapTime = preRollInactive ? EMPTY_TIME : cardState.lastLapTime
+  const sessionBestTime = preRollInactive ? EMPTY_TIME : cardState.sessionBestTime
+  const displayedPosition = preRollInactive ? null : cardState.displayedPosition
 
   const es = styling?.esports
   const accentBarColor = es?.accentBarColor ?? '#2563eb'

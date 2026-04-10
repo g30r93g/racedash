@@ -47,6 +47,12 @@ export type {
   RenderOptions,
   RenderProgressEvent,
   RenderResult,
+  RenderJobType,
+  RenderJobOpts,
+  BatchRenderOpts,
+  BatchJobProgressEvent,
+  BatchJobResult,
+  PrecomputedContext,
 } from './types'
 
 export {
@@ -55,8 +61,17 @@ export {
   joinVideos,
   listDrivers,
   generateTimestamps,
-  renderSession,
 } from './operations'
+
+export {
+  renderBatch,
+  buildPrecomputedContext,
+  rebaseSegment,
+  computeClipRange,
+  resolveSourceFiles,
+} from './batch'
+
+export type { FileFrameRange } from './batch'
 
 // Re-export compositor utilities so CLI and desktop can use them
 // without taking a direct dependency on @racedash/compositor

@@ -73,32 +73,35 @@ describe('resolveActiveSegment', () => {
   })
 
   describe('label', () => {
+    const styling5s = { preRollSeconds: 5, postRollSeconds: 5 }
+    const styling10s = { preRollSeconds: 10, postRollSeconds: 10 }
+
     it('shows label for first segment within its window (before offset)', () => {
-      // SEG0 offset=100, window=5 → labelStart=max(95, 0)=95, labelEnd=105
-      expect(resolveActiveSegment(SEGMENTS, 97, 5).label).toBe('Practice Start')
+      // SEG0 offset=100, preRoll=5 → labelStart=max(95, 0)=95, labelEnd=105
+      expect(resolveActiveSegment(SEGMENTS, 97, 5, styling5s).label).toBe('Practice Start')
     })
 
     it('shows label for first segment within its window (after offset)', () => {
-      expect(resolveActiveSegment(SEGMENTS, 103, 5).label).toBe('Practice Start')
+      expect(resolveActiveSegment(SEGMENTS, 103, 5, styling5s).label).toBe('Practice Start')
     })
 
     it('returns null outside the label window of first segment', () => {
-      expect(resolveActiveSegment(SEGMENTS, 110, 5).label).toBeNull()
+      expect(resolveActiveSegment(SEGMENTS, 110, 5, styling5s).label).toBeNull()
     })
 
     it('shows label for second segment within its window (before offset)', () => {
-      // SEG0 ends at t=160, SEG1 offset=200, window=5
+      // SEG0 ends at t=160, SEG1 offset=200, preRoll=5
       // labelStart = max(200-5, 160) = max(195,160) = 195
-      expect(resolveActiveSegment(SEGMENTS, 197, 5).label).toBe('Qualifying Start')
+      expect(resolveActiveSegment(SEGMENTS, 197, 5, styling5s).label).toBe('Qualifying Start')
     })
 
     it('shows label for second segment within its window (after offset)', () => {
-      expect(resolveActiveSegment(SEGMENTS, 203, 5).label).toBe('Qualifying Start')
+      expect(resolveActiveSegment(SEGMENTS, 203, 5, styling5s).label).toBe('Qualifying Start')
     })
 
     it('returns null in the gap before the second segment label window', () => {
       // gap is t=160..195; t=180 is in the gap
-      expect(resolveActiveSegment(SEGMENTS, 180, 5).label).toBeNull()
+      expect(resolveActiveSegment(SEGMENTS, 180, 5, styling5s).label).toBeNull()
     })
 
     it('clamps pre-window to prevSegEnd when sessions are back-to-back', () => {
@@ -106,20 +109,20 @@ describe('resolveActiveSegment', () => {
       const s1 = seg(100, 60, 'Practice Start')
       const s2 = seg(162, 50, 'Qualifying Start')
       // t=159: before prevEnd (160), so still outside label window
-      expect(resolveActiveSegment([s1, s2], 159, 5).label).toBeNull()
+      expect(resolveActiveSegment([s1, s2], 159, 5, styling5s).label).toBeNull()
       // t=162: at offset, inside window
-      expect(resolveActiveSegment([s1, s2], 163, 5).label).toBe('Qualifying Start')
+      expect(resolveActiveSegment([s1, s2], 163, 5, styling5s).label).toBe('Qualifying Start')
     })
 
     it('returns null when segment has no label', () => {
       const unlabelled = [seg(100, 60), seg(200, 50)]
-      expect(resolveActiveSegment(unlabelled, 97, 5).label).toBeNull()
+      expect(resolveActiveSegment(unlabelled, 97, 5, styling5s).label).toBeNull()
     })
 
     it('respects custom window size', () => {
-      // window=10; SEG0 offset=100, labelStart=max(90,0)=90
-      expect(resolveActiveSegment(SEGMENTS, 92, 10).label).toBe('Practice Start')
-      expect(resolveActiveSegment(SEGMENTS, 88, 10).label).toBeNull()
+      // preRoll=10; SEG0 offset=100, labelStart=max(90,0)=90
+      expect(resolveActiveSegment(SEGMENTS, 92, 10, styling10s).label).toBe('Practice Start')
+      expect(resolveActiveSegment(SEGMENTS, 88, 10, styling10s).label).toBeNull()
     })
   })
 })

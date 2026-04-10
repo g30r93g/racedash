@@ -1,6 +1,7 @@
 import React from 'react'
 import type { LapListStyling, LapTimestamp } from '@racedash/core'
 import { formatLapTime } from '@racedash/timestamps'
+import { colorWithAlpha } from '../../utils/colorAlpha'
 
 interface Props {
   timestamps: LapTimestamp[]
@@ -53,10 +54,10 @@ export const LapHistory: React.FC<Props> = ({ timestamps, currentIdx, sessionBes
               fontSize: 16 * scale,
               fontWeight: 500,
               color: isBest ? bestLapColor : textColor,
-              backdropFilter: `blur(${8 * scale}px)`,
+              // backdropFilter removed — no visual effect on transparent overlay, very expensive in Chromium
             }}
           >
-            <span style={{ opacity: 0.6 }}>L{ts.lap.number}</span>
+            <span style={{ color: colorWithAlpha(isBest ? bestLapColor : textColor, 0.6) }}>L{ts.lap.number}</span>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatLapTime(ts.lap.lapTime)}</span>
           </div>
         )

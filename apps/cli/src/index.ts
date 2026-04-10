@@ -15,7 +15,7 @@ import {
   getOverlayRenderProfile,
   joinVideos,
   listDrivers,
-  renderSession,
+  renderBatch,
   runDoctor,
   TIMING_FEATURES,
   formatDriverDisplay,
@@ -226,44 +226,39 @@ program
       const selectedFiles = await resolveVideoFiles(opts.video)
       const rendererEntry = path.resolve(__dirname, '../../../apps/renderer/src/index.ts')
 
-      // Adapter: renderSession emits { phase, progress } but makeProgressCallback expects (progress: number)
-      // and must be called fresh each time the phase label changes so it initialises a new progress bar.
       let phaseBarCallback: ((n: number) => void) | null = null
       lastPhase = ''
-      const progressAdapter = ({ phase, progress }: RenderProgressEvent) => {
-        if (phase !== lastPhase) {
-          if (lastPhase) process.stderr.write('\n')
-          lastPhase = phase
-          phaseBarCallback = makeProgressCallback(phase)
-        }
-        phaseBarCallback!(progress)
-      }
 
       stat('Alpha', getOverlayRenderProfile().label)
-      const result = await renderSession(
+      const controller = new AbortController()
+      let outputPath = opts.output
+      await renderBatch(
         {
           configPath: opts.config,
           videoPaths: selectedFiles,
-          outputPath: opts.output,
           rendererEntry,
           style: opts.style,
           outputResolution: outputResolution
             ? { width: outputResolution.width, height: outputResolution.height }
             : undefined,
-          overlayX,
-          overlayY,
-          boxPosition: opts.boxPosition as BoxPosition | undefined,
-          qualifyingTablePosition: opts.qualifyingTablePosition as CornerPosition | undefined,
-          labelWindowSeconds,
-          noCache: opts.noCache,
-          onlyRenderOverlay: opts.onlyRenderOverlay,
+          renderMode: opts.onlyRenderOverlay ? 'overlay-only' : undefined,
+          jobs: [{ id: 'cli-render', type: 'entireProject', segmentIndices: [], outputPath: opts.output }],
         },
-        progressAdapter,
-        ({ label, value }) => stat(label, value),
+        (event) => {
+          if (event.phase !== lastPhase) {
+            if (lastPhase) process.stderr.write('\n')
+            lastPhase = event.phase
+            phaseBarCallback = makeProgressCallback(event.phase)
+          }
+          phaseBarCallback!(event.progress)
+        },
+        (result) => { outputPath = result.outputPath },
+        (_jobId, error) => { throw error },
+        controller.signal,
       )
 
       process.stderr.write('\n')
-      console.log(result.outputPath)
+      console.log(outputPath)
     } catch (err) {
       if (lastPhase) process.stderr.write('\n')
       console.error('Error:', (err as Error).message)
