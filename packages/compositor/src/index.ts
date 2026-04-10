@@ -301,13 +301,17 @@ export async function renderOverlayAndComposite(
     let encoderArgs: string[]
     let hwaccelArgs: string[] = []
 
+    // NVENC requires both the encoder AND CUDA hwaccel to be available.
+    // FFmpeg may have NVENC compiled in but no CUDA runtime on the machine.
+    const canUseNvenc = capabilities.hwaccels.has('cuda')
+
     if (runtimePlatform === 'darwin') {
       hwaccelArgs = ['-hwaccel', 'videotoolbox']
       encoderArgs = ['-c:v', 'hevc_videotoolbox', '-tag:v', 'hvc1', '-q:v', '65']
-    } else if (capabilities.encoders.has('hevc_nvenc')) {
+    } else if (canUseNvenc && capabilities.encoders.has('hevc_nvenc')) {
       hwaccelArgs = ['-hwaccel', 'cuda']
       encoderArgs = ['-c:v', 'hevc_nvenc', '-preset', 'p4', '-cq', '28', '-tag:v', 'hvc1']
-    } else if (capabilities.encoders.has('h264_nvenc')) {
+    } else if (canUseNvenc && capabilities.encoders.has('h264_nvenc')) {
       hwaccelArgs = ['-hwaccel', 'cuda']
       encoderArgs = ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', '23']
     } else {
@@ -689,12 +693,16 @@ async function resolveWindowsCompositePlan(
   emitDiagnostic(opts.onDiagnostic, 'Decode', selected)
   emitDiagnostic(opts.onDiagnostic, 'Software fallback', softwareFallback ? 'yes' : 'no')
 
-  // Select encoder: prefer NVENC hardware encode, fall back to libx264
-  const useNvenc = capabilities.encoders.has('hevc_nvenc')
-  const useNvencH264 = !useNvenc && capabilities.encoders.has('h264_nvenc')
+  // Select encoder: prefer NVENC hardware encode when an NVIDIA GPU is present,
+  // otherwise fall back to libx264. Just checking encoder availability isn't enough
+  // because Windows FFmpeg ships with NVENC compiled in even on non-NVIDIA systems,
+  // and attempting to use it fails at runtime with "Cannot load nvcuda.dll".
+  const hasNvidiaGpu = hardwareInfo.gpuVendors.includes('nvidia')
+  const useNvenc = hasNvidiaGpu && capabilities.encoders.has('hevc_nvenc')
+  const useNvencH264 = hasNvidiaGpu && !useNvenc && capabilities.encoders.has('h264_nvenc')
 
-  if (!useNvenc && !useNvencH264 && !capabilities.encoders.has('libx264')) {
-    throw new Error('ffmpeg does not provide libx264, h264_nvenc, or hevc_nvenc. Install a build with encoder support.')
+  if (!capabilities.encoders.has('libx264')) {
+    throw new Error('ffmpeg does not provide libx264. Install a build with libx264 support.')
   }
 
   const encoderArgs: string[] = useNvenc
@@ -773,9 +781,12 @@ async function buildGenericCompositePlan(
 ): Promise<CompositePlan> {
   const capabilities = opts.ffmpegCapabilities ?? (await probeFfmpegCapabilities())
 
-  // Prefer NVENC on Linux/cloud GPU instances
-  const useNvenc = capabilities.encoders.has('hevc_nvenc')
-  const useNvencH264 = !useNvenc && capabilities.encoders.has('h264_nvenc')
+  // Prefer NVENC on Linux/cloud GPU instances. NVENC requires both the
+  // encoder AND CUDA hwaccel to be available on the machine — FFmpeg may
+  // ship with NVENC compiled in even on systems without an NVIDIA GPU.
+  const canUseNvenc = capabilities.hwaccels.has('cuda')
+  const useNvenc = canUseNvenc && capabilities.encoders.has('hevc_nvenc')
+  const useNvencH264 = canUseNvenc && !useNvenc && capabilities.encoders.has('h264_nvenc')
   const hwaccelArgs: string[] = useNvenc || useNvencH264
     ? ['-hwaccel', 'cuda']
     : []
