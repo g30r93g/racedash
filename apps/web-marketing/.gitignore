@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+build/
+dist/
+
+# typescript
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# editor
+.vscode/
+.idea/
+.DS_Store

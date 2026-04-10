@@ -1,0 +1,22 @@
+<svg width="248" height="356" viewBox="0 0 179.496 257.624" fill="none" xmlns="http://www.w3.org/2000/svg" style="height: 246px; width: auto">
+  <g transform="matrix(1.064,0,0,1.064,276.773,-1.288)" fill="none">
+    <path d="m -219.199,98.461 79.498,131.917" stroke="#8CC8FF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="m -247.149,230.378 -0.018,-208 h 58 c 46,0 75,29 75,72 0,43 -29,72 -75,72 h -14.555" stroke="#E8F3FF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="m -128.098,37.57 16.488,-15.148" stroke="#E8F3FF" stroke-width="14" stroke-linecap="round" />
+    <rect x="-81.802" y="77.669" width="36" height="20" rx="10" fill="#E8F3FF" transform="rotate(45)" />
+    <rect x="76.578" y="57.595" width="1.856" height="17.815" rx="0.928" fill="#8CC8FF" transform="matrix(-0.686,0.727,-0.711,-0.703,0,0)" style="opacity: 0.9" />
+    <path d="m -168.167,58.005 5,-8.66" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.68" />
+    <path d="m -159.921,59.523 4.179,-4.979" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -154.312,65.131 4.979,-4.178" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -152.794,73.378 8.66,-5" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.68" />
+    <path d="m -146.411,78.816 6.108,-2.223" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -144.359,86.477 6.402,-1.129" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -147.167,94.378 h 10" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.68" />
+    <path d="m -144.359,102.279 6.402,1.129" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -146.411,109.94 6.108,2.223" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -152.794,115.378 8.66,5" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.68" />
+    <path d="m -154.312,123.625 4.979,4.178" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -159.921,129.233 4.179,4.979" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.55" />
+    <path d="m -168.167,130.751 5,8.66" stroke="#E8F3FF" stroke-width="3.376" stroke-linecap="round" style="opacity: 0.68" />
+  </g>
+</svg>
