@@ -1,4 +1,4 @@
-# @racedash/admin
+# @racedash/web-admin
 
 Next.js admin dashboard for RaceDash Cloud. Restricted to users with the Clerk `admin` role.
 
@@ -16,19 +16,19 @@ Provides an internal dashboard for viewing users, managing licenses, and inspect
 ### Start
 
 ```bash
-cd apps/admin
+cd apps/web-admin
 pnpm dev    # starts on http://localhost:3001
 ```
 
 ### Build
 
 ```bash
-pnpm --filter @racedash/admin build
+pnpm --filter @racedash/web-admin build
 ```
 
 ## Environment Variables
 
-The admin app picks up Clerk configuration from Next.js environment variable conventions. Create `apps/admin/.env.local`:
+The admin app picks up Clerk configuration from Next.js environment variable conventions. Create `apps/web-admin/.env.local`:
 
 | Variable | Description |
 |---|---|
@@ -54,8 +54,8 @@ UI uses Tailwind CSS v4, Shadcn/ui components (via `@base-ui/react`), and Lucide
 ## Testing
 
 ```bash
-pnpm --filter @racedash/admin test
-pnpm --filter @racedash/admin test:coverage
+pnpm --filter @racedash/web-admin test
+pnpm --filter @racedash/web-admin test:coverage
 ```
 
 Uses Vitest with `@testing-library/react` and jsdom.
