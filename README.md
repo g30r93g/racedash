@@ -35,7 +35,7 @@ graph TB
 
     subgraph Cloud["Cloud"]
         API["apps/api<br/><small>Fastify REST API</small>"]
-        Admin["apps/admin<br/><small>Next.js dashboard</small>"]
+        Admin["apps/web-admin<br/><small>Next.js dashboard</small>"]
         DB["packages/db<br/><small>Drizzle ORM schema</small>"]
         Infra["infra/<br/><small>AWS CDK stacks</small>"]
     end
@@ -84,7 +84,7 @@ graph TB
 | `@racedash/desktop` | Electron app with project library, creation wizard, editor, and video preview | [README](apps/desktop/README.md) |
 | `@racedash/renderer` | Remotion compositions for overlay styles (banner, esports, geometric-banner, minimal, modern) | [README](apps/renderer/README.md) |
 | `@racedash/api` | Fastify REST API — deployed as AWS Lambda | [README](apps/api/README.md) |
-| `@racedash/admin` | Next.js admin dashboard with Clerk auth | [README](apps/admin/README.md) |
+| `@racedash/web-admin` | Next.js admin dashboard with Clerk auth | [README](apps/web-admin/README.md) |
 
 ### Infrastructure
 

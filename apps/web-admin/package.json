@@ -1,5 +1,5 @@
 {
-  "name": "@racedash/admin",
+  "name": "@racedash/web-admin",
   "version": "0.0.0",
   "private": true,
   "scripts": {
