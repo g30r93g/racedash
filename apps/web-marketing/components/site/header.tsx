@@ -14,7 +14,6 @@ export function Header({ locale, dict }: HeaderProps) {
   const navItems = [
     { label: dict.nav.features, href: '#features' },
     { label: dict.nav.pricing, href: '#pricing' },
-    { label: dict.nav.testimonials, href: '#testimonials' },
     { label: dict.nav.changelog, href: '/changelog' },
   ]
 

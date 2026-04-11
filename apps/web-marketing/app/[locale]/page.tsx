@@ -4,7 +4,10 @@ import { FeaturesGrid } from '@/components/sections/features-grid'
 import { PricingTeaser } from '@/components/sections/pricing-teaser'
 import { Primitives } from '@/components/sections/primitives'
 import { Showcase } from '@/components/sections/showcase'
-import { Testimonials } from '@/components/sections/testimonials'
+// Testimonials section is intentionally not rendered while we're pre-launch
+// and only have placeholder quotes — see components/sections/testimonials.tsx
+// and dictionary `testimonials.*` entries, both kept in place so the section
+// can be re-enabled in one line once real quotes are collected.
 import { WaitlistCta } from '@/components/sections/waitlist-cta'
 import { Why } from '@/components/sections/why'
 import { Footer } from '@/components/site/footer'
@@ -31,7 +34,6 @@ export default async function HomePage({ params }: PageProps) {
         <Primitives dict={dict} />
         <Showcase dict={dict} />
         <FeaturesGrid dict={dict} />
-        <Testimonials locale={typedLocale} dict={dict} />
         <Why dict={dict} />
         <PricingTeaser dict={dict} />
         <WaitlistCta dict={dict} />
