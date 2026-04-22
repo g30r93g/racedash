@@ -53,9 +53,23 @@ function createWindow(): BrowserWindow {
   return win
 }
 
-export async function cleanupEmptyRacedashTempDirs(
+/**
+ * Stale-file extensions eligible for automatic cleanup.
+ * Only files matching these extensions AND the racedash- prefix are removed.
+ */
+const STALE_TEMP_EXTENSIONS = new Set(['.mp4', '.txt'])
+
+/**
+ * Age threshold (in milliseconds) after which orphaned temp files are
+ * considered stale and safe to delete. Files younger than this are left
+ * alone because they may belong to an in-progress operation.
+ */
+const STALE_AGE_MS = 60 * 60 * 1000 // 1 hour
+
+export async function cleanupStaleTempFiles(
   tempRoot: string = os.tmpdir(),
   prefix: string = 'racedash-',
+  maxAgeMs: number = STALE_AGE_MS,
 ): Promise<void> {
   let entries: string[]
   try {
@@ -63,6 +77,8 @@ export async function cleanupEmptyRacedashTempDirs(
   } catch {
     return
   }
+
+  const now = Date.now()
 
   await Promise.all(
     entries
@@ -72,12 +88,24 @@ export async function cleanupEmptyRacedashTempDirs(
 
         try {
           const stats = await fs.promises.lstat(targetPath)
-          if (!stats.isDirectory()) return
 
-          const children = await fs.promises.readdir(targetPath)
-          if (children.length !== 0) return
+          if (stats.isDirectory()) {
+            // Remove empty directories (original behaviour)
+            const children = await fs.promises.readdir(targetPath)
+            if (children.length === 0) {
+              await fs.promises.rmdir(targetPath)
+            }
+            return
+          }
 
-          await fs.promises.rmdir(targetPath)
+          // Remove stale files older than maxAgeMs
+          const ext = path.extname(name).toLowerCase()
+          if (!STALE_TEMP_EXTENSIONS.has(ext)) return
+
+          const ageMs = now - stats.mtimeMs
+          if (ageMs < maxAgeMs) return
+
+          await fs.promises.unlink(targetPath)
         } catch {
           // Ignore races and permission issues in the shared temp directory.
         }
@@ -158,7 +186,7 @@ app.whenReady().then(async () => {
       },
     })
   })
-  void cleanupEmptyRacedashTempDirs()
+  void cleanupStaleTempFiles()
   registerIpcHandlers()
   const win = createWindow()
   registerTokenHandlers(win)

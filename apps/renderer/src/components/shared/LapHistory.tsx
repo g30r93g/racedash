@@ -35,6 +35,7 @@ export const LapHistory: React.FC<Props> = ({ timestamps, currentIdx, sessionBes
       style={{
         display: 'flex',
         flexDirection: 'column',
+        width: 360 * scale,
         borderRadius: 6 * scale,
         overflow: 'hidden',
       }}

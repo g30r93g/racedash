@@ -213,7 +213,7 @@ export interface OverlayComponentsConfig {
 }
 
 export function isOverlayComponentEnabled(value: ComponentToggle | undefined): boolean {
-  return value !== 'off' && value !== false
+  return value === 'on' || value === true
 }
 
 export interface OverlayStyling {
