@@ -98,6 +98,7 @@ export interface MarginConfig {
 }
 
 export interface LapListStyling {
+  enabled?: boolean // whether to show the lap list         (default: false)
   maxRows?: number | 'all' // max visible rows          (default: 'all')
   bgColor?: string // row background             (default: rgba(0,0,0,0.65))
   textColor?: string // lap number/time text       (default: white)
@@ -112,6 +113,7 @@ export interface DeltaBadgeStyling {
 }
 
 export interface LeaderboardStyling {
+  enabled?: boolean // whether to show the leaderboard       (default: false)
   accentColor?: string // P1 highlight & our-row accent         (default: inherits OverlayStyling.accentColor)
   bgColor?: string // default row background                (default: rgba(0,0,0,0.65))
   ourRowBgColor?: string // our-kart row background               (default: rgba(0,0,0,0.82))
@@ -201,12 +203,10 @@ export interface ModernStyling {
 export type ComponentToggle = 'off' | 'on' | boolean
 
 export interface OverlayComponentsConfig {
-  leaderboard?: ComponentToggle
   positionCounter?: ComponentToggle
   lapCounter?: ComponentToggle
   lapTimer?: ComponentToggle
   deltaBadge?: ComponentToggle
-  lapList?: ComponentToggle
   position?: ComponentToggle
   lastLap?: ComponentToggle
   sessionBest?: ComponentToggle

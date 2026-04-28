@@ -87,7 +87,7 @@ describe('loadTimingConfig', () => {
 
   it('loads overlay component config from config.json', async () => {
     const configPath = await writeTempConfig({
-      overlayComponents: { leaderboard: false },
+      overlayComponents: { lapTimer: false },
       segments: [
         {
           driver: 'Alice',
@@ -100,7 +100,7 @@ describe('loadTimingConfig', () => {
     })
 
     const result = await loadTimingConfig(configPath, true)
-    expect(result.overlayComponents).toEqual({ leaderboard: false })
+    expect(result.overlayComponents).toEqual({ lapTimer: false })
   })
 })
 

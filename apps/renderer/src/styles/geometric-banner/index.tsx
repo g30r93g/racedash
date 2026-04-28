@@ -49,7 +49,7 @@ export const GeometricBanner: React.FC<OverlayProps | LapOverlayProps> = (props)
   const { currentLap, currentIdx, raceEnd, livePosition, lapColors } = useBannerOverlayState({ segment, currentTime })
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showLapList = styling?.lapList?.enabled ?? false
   const showPositionCounter = isOverlayComponentEnabled(overlayComponents?.positionCounter)
   const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
   const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)

@@ -70,12 +70,12 @@ describe('saveStyleToConfigHandler', () => {
   it('writes overlay component toggles to config.json and removes them when omitted', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'test-style-'))
     const configPath = join(tmp, 'config.json')
-    writeFileSync(configPath, JSON.stringify({ overlayComponents: { leaderboard: 'off' } }))
+    writeFileSync(configPath, JSON.stringify({ overlayComponents: { lapTimer: 'off' } }))
 
-    await saveStyleToConfigHandler(configPath, 'banner', {}, { overlayComponents: { leaderboard: 'on' } })
+    await saveStyleToConfigHandler(configPath, 'banner', {}, { overlayComponents: { lapTimer: 'on' } })
 
     let result = JSON.parse(readFileSync(configPath, 'utf-8'))
-    expect(result.overlayComponents).toEqual({ leaderboard: 'on' })
+    expect(result.overlayComponents).toEqual({ lapTimer: 'on' })
 
     await saveStyleToConfigHandler(configPath, 'banner', {})
 

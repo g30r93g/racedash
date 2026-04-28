@@ -79,8 +79,8 @@ export const Minimal: React.FC<OverlayProps | LapOverlayProps> = (props) => {
   )
   const { session, mode } = segment
 
-  const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
-  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showTable = segment.leaderboardDrivers != null && (styling?.leaderboard?.enabled ?? false)
+  const showLapList = styling?.lapList?.enabled ?? false
   const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
   const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)
   const showPosition = isOverlayComponentEnabled(overlayComponents?.position)

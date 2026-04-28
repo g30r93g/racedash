@@ -2,7 +2,6 @@ import React, { useMemo } from 'react'
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   DEFAULT_LABEL_WINDOW_SECONDS,
-  isOverlayComponentEnabled,
   type LapOverlayProps,
   type OverlayProps,
 } from '@racedash/core'
@@ -45,8 +44,8 @@ export const Esports: React.FC<OverlayProps | LapOverlayProps> = (props) => {
   )
   const { session, mode } = segment
 
-  const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
-  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showTable = segment.leaderboardDrivers != null && (styling?.leaderboard?.enabled ?? false)
+  const showLapList = styling?.lapList?.enabled ?? false
 
   const raceStart = session.timestamps[0].ytSeconds
   const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)

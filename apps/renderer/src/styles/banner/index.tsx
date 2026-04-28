@@ -51,8 +51,8 @@ export const Banner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
   const { currentLap, currentIdx, raceEnd, livePosition, lapColors } = useBannerOverlayState({ segment, currentTime })
 
   const showTimePanels = mode === 'practice' || mode === 'qualifying'
-  const showTable = segment.leaderboardDrivers != null && isOverlayComponentEnabled(overlayComponents?.leaderboard)
-  const showLapList = isOverlayComponentEnabled(overlayComponents?.lapList)
+  const showTable = segment.leaderboardDrivers != null && (styling?.leaderboard?.enabled ?? false)
+  const showLapList = styling?.lapList?.enabled ?? false
   const showPositionCounter = isOverlayComponentEnabled(overlayComponents?.positionCounter)
   const showLapCounter = isOverlayComponentEnabled(overlayComponents?.lapCounter)
   const showLapTimer = isOverlayComponentEnabled(overlayComponents?.lapTimer)

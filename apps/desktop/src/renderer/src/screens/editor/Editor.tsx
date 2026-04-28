@@ -55,7 +55,6 @@ function styleHistoryReducer(state: StyleHistoryState, action: StyleHistoryActio
 const DEFAULT_STYLE_STATE: StyleState = {
   overlayType: 'banner',
   styling: {},
-  overlayComponents: { leaderboard: 'on' },
 }
 
 interface EditorProps {
