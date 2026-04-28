@@ -56,7 +56,7 @@ export const Modern: React.FC<OverlayProps | LapOverlayProps> = (props) => {
   const { opacity, hidden } = useFadeOpacity(currentTime, raceStart, segEnd, isEnd, styling?.fade)
 
   const labelOpacity = useLabelOpacity(currentTime, labelStart, labelEnd, styling?.segmentLabel)
-  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? true)
+  const showLabel = label != null && (styling?.segmentLabel?.enabled ?? false)
 
   const cardState = useCardOverlayState({
     segment,
