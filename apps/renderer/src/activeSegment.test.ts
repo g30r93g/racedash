@@ -50,6 +50,25 @@ describe('resolveActiveSegment', () => {
       const r = resolveActiveSegment(SEGMENTS, 9999, 5)
       expect(r.segment).toBe(SEG1)
     })
+
+    it('switches to second segment at its pre-roll start (offset - fadePreRoll)', () => {
+      // SEG1 offset=200, default fadePreRoll=3 → switch at t=197
+      const r = resolveActiveSegment(SEGMENTS, 197, 5)
+      expect(r.segment).toBe(SEG1)
+    })
+
+    it('stays on first segment just before second segment pre-roll', () => {
+      // SEG1 offset=200, default fadePreRoll=3 → switch at t=197; t=196.9 still SEG0
+      const r = resolveActiveSegment(SEGMENTS, 196.9, 5)
+      expect(r.segment).toBe(SEG0)
+    })
+
+    it('uses custom fadePreRoll from fadeStyling', () => {
+      // fadePreRoll=10 → switch at t=190
+      const fade = { preRollSeconds: 10 }
+      expect(resolveActiveSegment(SEGMENTS, 190, 5, undefined, fade).segment).toBe(SEG1)
+      expect(resolveActiveSegment(SEGMENTS, 189.9, 5, undefined, fade).segment).toBe(SEG0)
+    })
   })
 
   describe('isEnd', () => {

@@ -76,6 +76,7 @@ export const Minimal: React.FC<OverlayProps | LapOverlayProps> = (props) => {
     currentTime,
     labelWindowSeconds ?? DEFAULT_LABEL_WINDOW_SECONDS,
     styling?.segmentLabel,
+    styling?.fade,
   )
   const { session, mode } = segment
 

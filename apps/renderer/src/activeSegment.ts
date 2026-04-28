@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import {
+  DEFAULT_FADE_PRE_ROLL_SECONDS,
   DEFAULT_LABEL_WINDOW_SECONDS,
   DEFAULT_SEGMENT_LABEL_POST_ROLL_SECONDS,
   DEFAULT_SEGMENT_LABEL_PRE_ROLL_SECONDS,
+  type FadeStyling,
   type SegmentLabelStyling,
   type SessionSegment,
 } from '@racedash/core'
@@ -22,9 +24,10 @@ export interface ActiveSegmentResult {
 /**
  * Resolves the active segment and transition state for a given video time.
  *
- * Active segment: the last segment whose offset (timestamps[0].ytSeconds) <= currentTime.
- * If currentTime is before the first segment's offset, returns the first segment
- * (the overlay will be hidden via its own raceStart guard).
+ * Active segment: the last segment whose pre-roll start
+ * (timestamps[0].ytSeconds - fadePreRoll) <= currentTime.
+ * This ensures useFadeOpacity sees the full fade-in window for every segment,
+ * not just the first.
  *
  * isEnd: true when currentTime >= the active segment's last lap end time.
  *
@@ -41,11 +44,15 @@ export function resolveActiveSegment(
   currentTime: number,
   labelWindowSeconds: number,
   labelStyling?: SegmentLabelStyling,
+  fadeStyling?: FadeStyling,
 ): ActiveSegmentResult {
-  // Find active segment index
+  const fadePreRoll = fadeStyling?.preRollSeconds ?? DEFAULT_FADE_PRE_ROLL_SECONDS
+
+  // Find active segment index — switch to the next segment at its pre-roll
+  // start so useFadeOpacity can run the full fade-in for every segment.
   let activeIdx = 0
   for (let i = 0; i < segments.length; i++) {
-    if (segments[i].session.timestamps[0].ytSeconds <= currentTime) activeIdx = i
+    if (segments[i].session.timestamps[0].ytSeconds - fadePreRoll <= currentTime) activeIdx = i
   }
   const segment = segments[activeIdx]
 
@@ -89,9 +96,10 @@ export function useActiveSegment(
   currentTime: number,
   labelWindowSeconds = DEFAULT_LABEL_WINDOW_SECONDS,
   labelStyling?: SegmentLabelStyling,
+  fadeStyling?: FadeStyling,
 ): ActiveSegmentResult {
   return useMemo(
-    () => resolveActiveSegment(segments, currentTime, labelWindowSeconds, labelStyling),
-    [segments, currentTime, labelWindowSeconds, labelStyling],
+    () => resolveActiveSegment(segments, currentTime, labelWindowSeconds, labelStyling, fadeStyling),
+    [segments, currentTime, labelWindowSeconds, labelStyling, fadeStyling],
   )
 }
