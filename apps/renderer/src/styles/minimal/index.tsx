@@ -211,10 +211,10 @@ export const Minimal: React.FC<OverlayProps | LapOverlayProps> = (props) => {
           )}
           {showStatRow && (
             <div style={styles.statRow}>
-              {showPosition && displayedPosition != null && (
+              {showPosition && (
                 <StatColumn
                   label="POSITION"
-                  value={`P${displayedPosition}`}
+                  value={displayedPosition != null ? `P${displayedPosition}` : 'P-'}
                   scale={scale}
                   labelColor={positionLabelColor}
                 />

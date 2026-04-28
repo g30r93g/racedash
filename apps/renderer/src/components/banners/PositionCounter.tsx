@@ -86,12 +86,10 @@ export const PositionCounter: React.FC<Props> = ({
     [scale, textColor],
   )
 
-  if (position == null) return null
-
   return (
     <div style={containerStyle}>
       <span style={labelStyle}>POSITION</span>
-      <span style={valueStyle}>{`P${position}`}</span>
+      <span style={valueStyle}>{position != null ? `P${position}` : 'P-'}</span>
     </div>
   )
 }

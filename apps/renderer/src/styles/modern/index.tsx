@@ -186,10 +186,10 @@ export const Modern: React.FC<OverlayProps | LapOverlayProps> = (props) => {
           {showLapTimer && showStats && <div style={styles.divider} />}
           {showStats && (
             <div style={styles.statGroup}>
-              {showPosition && displayedPosition != null && (
+              {showPosition && (
                 <div style={styles.posStatCol}>
                   <span style={styles.label}>POS</span>
-                  <span style={styles.statValue}>{`P${displayedPosition}`}</span>
+                  <span style={styles.statValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
                 </div>
               )}
               {showLastLap && (

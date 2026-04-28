@@ -184,12 +184,10 @@ export const Esports: React.FC<OverlayProps | LapOverlayProps> = (props) => {
     <AbsoluteFill style={{ opacity }}>
       <div style={styles.container}>
         <div style={styles.accentBar}>
-          {displayedPosition != null && (
-            <div style={styles.positionBadge}>
-              <span style={styles.positionLabel}>Position</span>
-              <span style={styles.positionValue}>{`P${displayedPosition}`}</span>
-            </div>
-          )}
+          <div style={styles.positionBadge}>
+            <span style={styles.positionLabel}>Position</span>
+            <span style={styles.positionValue}>{displayedPosition != null ? `P${displayedPosition}` : 'P-'}</span>
+          </div>
           <span style={styles.accentText}>
             LAP {currentLap.lap.number} / {session.timestamps.length}
           </span>

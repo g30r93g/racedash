@@ -68,7 +68,7 @@ export function useDisplayedPosition({
   }, [mode, currentLaps, sessionAllLaps, startingGridPosition])
 
   // In practice/qualifying, position is meaningless until at least one lap is completed.
-  if ((mode === 'practice' || mode === 'qualifying') && currentIdx < 1 && currentTime >= raceStart) {
+  if ((mode === 'practice' || mode === 'qualifying') && currentIdx < 1) {
     return null
   }
 
