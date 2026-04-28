@@ -67,6 +67,11 @@ export function useDisplayedPosition({
     return result
   }, [mode, currentLaps, sessionAllLaps, startingGridPosition])
 
+  // In practice/qualifying, position is meaningless until at least one lap is completed.
+  if ((mode === 'practice' || mode === 'qualifying') && currentIdx < 1 && currentTime >= raceStart) {
+    return null
+  }
+
   const computedPosition: number | null =
     currentTime < raceStart || currentIdx === 0 ? positions[0] : (positions[currentIdx + 1] ?? null)
 

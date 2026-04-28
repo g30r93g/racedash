@@ -163,7 +163,7 @@ export const GeometricBanner: React.FC<OverlayProps | LapOverlayProps> = (props)
                 textColor={text}
                 livePosition={livePosition}
                 positionOverrides={segment.positionOverrides}
-                placeholderText="P-"
+
               />
             )}
             {infoSegments.leftSegment !== 'none' ? (
@@ -234,7 +234,6 @@ export const GeometricBanner: React.FC<OverlayProps | LapOverlayProps> = (props)
               textColor={text}
               livePosition={livePosition}
               positionOverrides={segment.positionOverrides}
-              placeholderText="P-"
             />
           )}
           <div style={{ flex: 1 }} />

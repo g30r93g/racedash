@@ -22,7 +22,6 @@ import { useBannerOverlayState } from '../../useBannerOverlayState'
 const DEFAULT_ACCENT = '#3DD73D'
 const TIME_PLACEHOLDER = '-:--.---'
 const LAP_PLACEHOLDER = '-/-'
-const POSITION_PLACEHOLDER = 'P-'
 
 export const Banner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
   const {
@@ -152,7 +151,7 @@ export const Banner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
                 textColor={text}
                 livePosition={livePosition}
                 positionOverrides={segment.positionOverrides}
-                placeholderText={POSITION_PLACEHOLDER}
+
               />
             )}
             {infoSegments.leftSegment !== 'none' ? (
@@ -240,7 +239,6 @@ export const Banner: React.FC<OverlayProps | LapOverlayProps> = (props) => {
               textColor={text}
               livePosition={livePosition}
               positionOverrides={segment.positionOverrides}
-              placeholderText={POSITION_PLACEHOLDER}
             />
           )}
           {showLapTimer && (
